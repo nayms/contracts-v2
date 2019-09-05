@@ -1,7 +1,11 @@
 pragma solidity >=0.5.8;
 
+import "./base/Address.sol";
 import "./base/AccessControl.sol";
 import "./base/EternalStorage.sol";
+import './base/IERC777Sender.sol';
+import './base/IERC777Recipient.sol';
+import './base/IERC1820Registry.sol';
 import "./base/IProxyImpl.sol";
 import "./base/IFUCImpl.sol";
 import "./base/TranchTokenImpl.sol";
@@ -12,6 +16,21 @@ import "./FUCTranch.sol";
  * @dev Business-logic for FUC
  */
 contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, TranchTokenImpl {
+  using Address for address;
+
+  /*
+    Following ERC-1820 stuff is from:
+    - https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC777/ERC777.sol
+    - https://eips.ethereum.org/EIPS/eip-1820
+   */
+  IERC1820Registry private erc1820Registry = IERC1820Registry(0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24);
+  // keccak256("ERC777TokensSender")
+  bytes32 constant private TOKENS_SENDER_INTERFACE_HASH =
+      0x29ddb589b1fb5fc7cf394961c1adf5f8c6454761adf795e67fe149f658abe895;
+  // keccak256("ERC777TokensRecipient")
+  bytes32 constant private TOKENS_RECIPIENT_INTERFACE_HASH =
+      0xb281fc8c12954d22544db45de3159a39272895b169a852b314f9cc762e44c53b;
+
   /**
    * Constructor
    */
@@ -114,13 +133,7 @@ contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, TranchT
   }
 
   function tknTransfer(uint256 _index, address _caller, address _to, uint256 _value) public {
-    string memory fromKey = string(abi.encodePacked(_index, _caller, "balance"));
-    string memory toKey = string(abi.encodePacked(_index, _to, "balance"));
-
-    require(dataUint256[fromKey] >= _value, 'not enough balance');
-
-    dataUint256[fromKey] = SafeMath.sub(dataUint256[fromKey], _value);
-    dataUint256[toKey] = SafeMath.add(dataUint256[toKey], _value);
+    _transfer(_index, _caller, _to, _value);
   }
 
   function tknTransferFrom(uint256 _index, address _caller, address _from, address _to, uint256 _value) public {
@@ -139,5 +152,76 @@ contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, TranchT
   function tknRevokeOperator(uint256 _index, address _tokenHolder, address _operator) public {
     string memory k = string(abi.encodePacked(_index, _tokenHolder, _operator, "operator"));
     dataBool[k] = false;
+  }
+
+  function tknSend(uint256 _index, address _sender, address _recipient, uint256 _amount, bytes memory _data) public {
+    require(recipient != address(0), 'cannot send to zero address');
+
+    _callTokensToSend(_sender, _sender, _recipient, _amount, _data, "");
+
+    _transfer(_index, _sender, _recipient, _amount);
+
+    _callTokensReceived(_sender, _sender, _recipient, _amount, _data, "");
+  }
+
+  function tknOperatorSend(uint256 _index, address _operator, address _sender, address _recipient, uint256 _amount, bytes memory _data, bytes memory _operatorData) public {
+    require(recipient != address(0), 'cannot send to zero address');
+
+    string memory k = string(abi.encodePacked(_index, _sender, _operator, "operator"));
+    require(dataBool[k], 'not authorized');
+
+    _callTokensToSend(_sender, _sender, _recipient, _amount, _data, _operatorData);
+
+    _transfer(_index, _sender, _recipient, _amount);
+
+    _callTokensReceived(_sender, _sender, _recipient, _amount, _data, _operatorData);
+  }
+
+  // Helpers
+
+  function _transfer(uint _index, address _from, address _to, uint256 _value) private {
+    string memory fromKey = string(abi.encodePacked(_index, _from, "balance"));
+    string memory toKey = string(abi.encodePacked(_index, _to, "balance"));
+
+    require(dataUint256[fromKey] >= _value, 'not enough balance');
+
+    dataUint256[fromKey] = SafeMath.sub(dataUint256[fromKey], _value);
+    dataUint256[toKey] = SafeMath.add(dataUint256[toKey], _value);
+  }
+
+  // From https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC777/ERC777.sol
+  function _callTokensToSend(
+    address _operator,
+    address _from,
+    address _to,
+    uint256 _amount,
+    bytes memory _userData,
+    bytes memory _operatorData
+  )
+      private
+  {
+    address implementer = erc1820Registry.getInterfaceImplementer(_from, TOKENS_SENDER_INTERFACE_HASH);
+    if (implementer != address(0)) {
+      IERC777Sender(implementer).tokensToSend(_operator, _from, _to, _amount, _userData, _operatorData);
+    }
+  }
+
+  // From https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC777/ERC777.sol
+  function _callTokensReceived(
+    address _operator,
+    address _from,
+    address _to,
+    uint256 _amount,
+    bytes memory _userData,
+    bytes memory _operatorData
+  )
+      private
+  {
+    address implementer = erc1820Registry.getInterfaceImplementer(_to, TOKENS_RECIPIENT_INTERFACE_HASH);
+    if (implementer != address(0)) {
+      IERC777Recipient(implementer).tokensReceived(_operator, _from, _to, _amount, _userData, _operatorData);
+    } else {
+      require(!to.isContract(), "token recipient contract has no implementer for ERC777TokensRecipient");
+    }
   }
 }

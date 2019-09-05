@@ -18,4 +18,5 @@ contract TranchTokenImpl {
   // ERC-777 mutations
   function tknAuthorizeOperator(uint256 _index, address _tokenHolder, address _operator) public;
   function tknRevokeOperator(uint256 _index, address _tokenHolder, address _operator) public;
+  function tknSend(uint256 _index, address _sender, address _recipient, uint256 _amount, bytes memory _data, bytes memory _operatorData) public;
 }

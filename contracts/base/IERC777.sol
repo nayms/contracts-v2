@@ -50,7 +50,7 @@ interface IERC777 {
      * - if `recipient` is a contract, it must implement the {IERC777Recipient}
      * interface.
      */
-    /* function send(address recipient, uint256 amount, bytes calldata data) external; */
+    function send(address recipient, uint256 amount, bytes calldata data) external;
 
     /**
      * @dev Returns true if an account is an operator of `tokenHolder`.
@@ -59,7 +59,7 @@ interface IERC777 {
      *
      * See {operatorSend} and {operatorBurn}.
      */
-    /* function isOperatorFor(address operator, address tokenHolder) external view returns (bool); */
+    function isOperatorFor(address operator, address tokenHolder) external view returns (bool);
 
     /**
      * @dev Make an account an operator of the caller.
@@ -72,7 +72,7 @@ interface IERC777 {
      *
      * - `operator` cannot be calling address.
      */
-    /* function authorizeOperator(address operator) external; */
+    function authorizeOperator(address operator) external;
 
     /**
      * @dev Make an account an operator of the caller.
@@ -85,7 +85,7 @@ interface IERC777 {
      *
      * - `operator` cannot be calling address.
      */
-    /* function revokeOperator(address operator) external; */
+    function revokeOperator(address operator) external;
 
     /**
      * @dev Returns the list of default operators. These accounts are operators
@@ -95,7 +95,7 @@ interface IERC777 {
      * This list is immutable, but individual holders may revoke these via
      * {revokeOperator}, in which case {isOperatorFor} will return false.
      */
-    /* function defaultOperators() external view returns (address[] memory); */
+    function defaultOperators() external view returns (address[] memory);
 
     /**
      * @dev Moves `amount` tokens from `sender` to `recipient`. The caller must
@@ -116,13 +116,13 @@ interface IERC777 {
      * - if `recipient` is a contract, it must implement the {IERC777Recipient}
      * interface.
      */
-    /* function operatorSend(
+    function operatorSend(
         address sender,
         address recipient,
         uint256 amount,
         bytes calldata data,
         bytes calldata operatorData
-    ) external; */
+    ) external;
 
     event Sent(
         address indexed operator,

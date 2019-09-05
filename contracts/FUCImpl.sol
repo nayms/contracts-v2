@@ -76,7 +76,7 @@ contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, TranchT
     return dataAddress[addressKey];
   }
 
-  // TranchTokenImpl //
+  // TranchTokenImpl - queries //
 
   function tknName(uint256 _index) public view returns (string memory) {
     return string(abi.encodePacked(dataString["name"], "_tranch_", _index));
@@ -101,6 +101,13 @@ contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, TranchT
     return dataUint256[k];
   }
 
+  function isOperatorFor(address _operator, address _tokenHolder) public view returns (bool) {
+    string memory k = string(abi.encodePacked(_index, _tokenHolder, _operator, "operator"));
+    return dataBool[k];
+  }
+
+  // TranchTokenImpl - ERC20 mutations //
+
   function tknApprove(uint256 _index, address _caller, address _spender, uint256 _value) public {
     string memory k = string(abi.encodePacked(_index, _caller, _spender, "allowance"));
     dataUint256[k] = _value;
@@ -120,5 +127,17 @@ contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, TranchT
     string memory k = string(abi.encodePacked(_index, _from, _caller, "allowance"));
     require(dataUint256[k] >= _value, 'unauthorized');
     tknTransfer(_index, _from, _to, _value);
+  }
+
+  // TranchTokenImpl - ERC777 mutations //
+
+  function tknAuthorizeOperator(uint256 _index, address _tokenHolder, address _operator) public {
+    string memory k = string(abi.encodePacked(_index, _tokenHolder, _operator, "operator"));
+    dataBool[k] = true;
+  }
+
+  function tknRevokeOperator(uint256 _index, address _tokenHolder, address _operator) public {
+    string memory k = string(abi.encodePacked(_index, _tokenHolder, _operator, "operator"));
+    dataBool[k] = false;
   }
 }

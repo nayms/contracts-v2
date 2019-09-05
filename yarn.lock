@@ -9694,13 +9694,14 @@ solgraph@^0.3.2:
     graphlib-dot "^0.6.2"
     solidity-parser-sc "^0.4.10"
 
-solhint@^2.0.0:
-  version "2.1.1"
-  resolved "https://registry.yarnpkg.com/solhint/-/solhint-2.1.1.tgz#3d7c80902ce8893188937c1e525f58feff18e598"
-  integrity sha512-/2NeYMlicH8BruYOvK3Ze8jRv7dwh6BMk5Va+OltXERMklUa7NdcynKfQ9jKK6zAqoDVVMQk/m/nVP1dtHP9kA==
+solhint@^2.2.0:
+  version "2.2.0"
+  resolved "https://registry.yarnpkg.com/solhint/-/solhint-2.2.0.tgz#c9ea75b8c2a5a9f4ec8f16d813c7efd851614273"
+  integrity sha512-KNi9qGu17XNV75q9eFftrWIpDVHbejyZ5vaDuNQwet0e9+k8Xw0BdckyVUjYRfFQXAQA3nBTafxUVUtkM4cfIA==
   dependencies:
     ajv "^6.6.1"
     antlr4 "4.7.1"
+    chalk "^2.4.2"
     commander "2.18.0"
     cosmiconfig "^5.0.7"
     eslint "^5.6.0"

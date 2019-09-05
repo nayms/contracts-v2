@@ -34,7 +34,7 @@
     "deploy:rinkeby": "yarn truffle migrate --network rinkeby && scripts/extractDeployedAddresses.js",
     "deploy:local": "yarn truffle migrate",
     "setup": "[[ -f .deployment.js ]] || cp .deployment-sample.js .deployment.js",
-    "lint": "solhint contracts/**/*.sol",
+    "lint": "solhint --config ./.solhint.json contracts/**/*.sol",
     "abi-encode": "./scripts/abiEncode.js"
   },
   "author": "Ramesh Nair <ram@hiddentao.com>",
@@ -66,7 +66,7 @@
     "sol-merger": "^0.1.2",
     "solc": ">=0.5.8",
     "solgraph": "^0.3.2",
-    "solhint": "^2.0.0",
+    "solhint": "^2.2.0",
     "solidity-coverage": "^0.6.4",
     "truffle": "^5.0.28",
     "truffle-hdwallet-provider": "^1.0.0-web3one.0",

@@ -120,7 +120,7 @@ contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, TranchT
     return dataUint256[k];
   }
 
-  function isOperatorFor(address _operator, address _tokenHolder) public view returns (bool) {
+  function tknIsOperatorFor(uint256 _index, address _operator, address _tokenHolder) public view returns (bool) {
     string memory k = string(abi.encodePacked(_index, _tokenHolder, _operator, "operator"));
     return dataBool[k];
   }
@@ -155,7 +155,7 @@ contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, TranchT
   }
 
   function tknSend(uint256 _index, address _sender, address _recipient, uint256 _amount, bytes memory _data) public {
-    require(recipient != address(0), 'cannot send to zero address');
+    require(_recipient != address(0), 'cannot send to zero address');
 
     _callTokensToSend(_sender, _sender, _recipient, _amount, _data, "");
 
@@ -165,7 +165,7 @@ contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, TranchT
   }
 
   function tknOperatorSend(uint256 _index, address _operator, address _sender, address _recipient, uint256 _amount, bytes memory _data, bytes memory _operatorData) public {
-    require(recipient != address(0), 'cannot send to zero address');
+    require(_recipient != address(0), 'cannot send to zero address');
 
     string memory k = string(abi.encodePacked(_index, _sender, _operator, "operator"));
     require(dataBool[k], 'not authorized');
@@ -221,7 +221,7 @@ contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, TranchT
     if (implementer != address(0)) {
       IERC777Recipient(implementer).tokensReceived(_operator, _from, _to, _amount, _userData, _operatorData);
     } else {
-      require(!to.isContract(), "token recipient contract has no implementer for ERC777TokensRecipient");
+      require(!_to.isContract(), "token recipient contract has no implementer for ERC777TokensRecipient");
     }
   }
 }

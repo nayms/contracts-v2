@@ -47,30 +47,31 @@ contract FUCTranch is IERC20, IERC777 {
   }
 
   function isOperatorFor(address operator, address tokenHolder) public view returns (bool) {
-    return impl.tknIsOperatorFor(operator, tokenHolder);
+    return impl.tknIsOperatorFor(index, operator, tokenHolder);
   }
 
   function defaultOperators() public view returns (address[] memory) {
-    return [];
+    address[] memory empty;
+    return empty;
   }
 
   // ERC-20 mutations //
 
   function approve(address spender, uint256 value) public returns (bool) {
     impl.tknApprove(index, msg.sender, spender, value);
-    Approval(msg.sender, spender, value);
+    emit Approval(msg.sender, spender, value);
     return true;
   }
 
   function transfer(address to, uint256 value) public returns (bool) {
     impl.tknTransfer(index, msg.sender, to, value);
-    Transfer(from, to, amount);
+    emit Transfer(msg.sender, to, value);
     return true;
   }
 
   function transferFrom(address from, address to, uint256 value) public returns (bool) {
     impl.tknTransferFrom(index, msg.sender, from, to, value);
-    Transfer(from, to, amount);
+    emit Transfer(from, to, value);
     return true;
   }
 
@@ -78,29 +79,29 @@ contract FUCTranch is IERC20, IERC777 {
 
   function authorizeOperator(address operator) public {
     impl.tknAuthorizeOperator(index, msg.sender, operator);
-    AuthorizedOperator(operator, msg.sender);
+    emit AuthorizedOperator(operator, msg.sender);
   }
 
   function revokeOperator(address operator) public {
     impl.tknRevokeOperator(index, msg.sender, operator);
-    RevokedOperator(operator, msg.sender);
+    emit RevokedOperator(operator, msg.sender);
   }
 
   function send(address recipient, uint256 amount, bytes memory data) public {
     impl.tknSend(index, msg.sender, recipient, amount, data);
-    Transfer(from, to, amount);
-    Sent(operator, from, to, amount, data, "");
+    emit Transfer(msg.sender, recipient, amount);
+    emit Sent(msg.sender, msg.sender, recipient, amount, data, "");
   }
 
   function operatorSend(
       address sender,
       address recipient,
       uint256 amount,
-      bytes calldata data,
-      bytes calldata operatorData
+      bytes memory data,
+      bytes memory operatorData
   ) public {
     impl.tknOperatorSend(index, msg.sender, sender, recipient, amount, data, operatorData);
-    Transfer(from, to, amount);
-    Sent(operator, from, to, amount, data, operatorData);
+    emit Transfer(sender, recipient, amount);
+    emit Sent(msg.sender, sender, recipient, amount, data, operatorData);
   }
 }

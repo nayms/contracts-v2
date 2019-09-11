@@ -7,6 +7,7 @@ const ACL = artifacts.require("./base/ACL.sol")
 const IProxyImpl = artifacts.require("./base/IProxyImpl.sol")
 const IFUCImpl = artifacts.require("./base/IFUCImpl.sol")
 const IERC20 = artifacts.require("./base/IERC20.sol")
+const IERC777 = artifacts.require("./base/IERC777.sol")
 const FUC = artifacts.require("./FUC.sol")
 const FUCImpl = artifacts.require("./FUCImpl.sol")
 
@@ -241,6 +242,60 @@ contract('FUC', accounts => {
             await firstTkn.balanceOf(accounts[2]).should.eventually.eq(5)
           })
         })
+      })
+    })
+
+    describe('are ERC777 tokens', () => {
+      beforeEach(async () => {
+        await fuc.createTranches(3, tranchNumShares, tranchPricePerShare)
+        await fuc.createTranches(3, tranchNumShares, tranchPricePerShare)
+      })
+
+      it('which have basic details', async () => {
+        let done = 0
+
+        await Promise.all(_.range(0, 6).map(async i => {
+          const tkn = await IERC777.at(await fuc.getTranch(i))
+
+          const NAME = 'fuc1_tranch_\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000' + String.fromCodePoint(i)
+
+          await tkn.name().should.eventually.eq(NAME)
+          await tkn.symbol().should.eventually.eq(NAME)
+          await tkn.totalSupply().should.eventually.eq(tranchNumShares[i % 3])
+          await tkn.granularity().should.eventually.eq(1)
+
+          done++
+        }))
+
+        expect(done).to.eq(6)
+      })
+
+      it('which have all supply initially allocated to creator', async () => {
+        let done = 0
+
+        await Promise.all(_.range(0, 6).map(async i => {
+          const tkn = await IERC777.at(await fuc.getTranch(i))
+
+          await tkn.balanceOf(accounts[0]).should.eventually.eq(await tkn.totalSupply())
+
+          done++
+        }))
+
+        expect(done).to.eq(6)
+      })
+
+      it('which have an empty list of default operators', async () => {
+        let done = 0
+
+        await Promise.all(_.range(0, 6).map(async i => {
+          const tkn = await IERC777.at(await fuc.getTranch(i))
+
+          await tkn.defaultOperators().should.eventually.eq([])
+
+          done++
+        }))
+
+        expect(done).to.eq(6)
       })
     })
   })

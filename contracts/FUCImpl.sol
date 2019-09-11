@@ -157,11 +157,11 @@ contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, TranchT
   function tknSend(uint256 _index, address _sender, address _recipient, uint256 _amount, bytes memory _data) public {
     require(_recipient != address(0), 'cannot send to zero address');
 
-    _callTokensToSend(_sender, _sender, _recipient, _amount, _data, "");
+    _callTokensToSend(_index, _sender, _sender, _recipient, _amount, _data, "");
 
     _transfer(_index, _sender, _recipient, _amount);
 
-    _callTokensReceived(_sender, _sender, _recipient, _amount, _data, "");
+    _callTokensReceived(_index, _sender, _sender, _recipient, _amount, _data, "");
   }
 
   function tknOperatorSend(uint256 _index, address _operator, address _sender, address _recipient, uint256 _amount, bytes memory _data, bytes memory _operatorData) public {
@@ -170,11 +170,11 @@ contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, TranchT
     string memory k = string(abi.encodePacked(_index, _sender, _operator, "operator"));
     require(dataBool[k], 'not authorized');
 
-    _callTokensToSend(_sender, _sender, _recipient, _amount, _data, _operatorData);
+    _callTokensToSend(_index, _sender, _sender, _recipient, _amount, _data, _operatorData);
 
     _transfer(_index, _sender, _recipient, _amount);
 
-    _callTokensReceived(_sender, _sender, _recipient, _amount, _data, _operatorData);
+    _callTokensReceived(_index, _sender, _sender, _recipient, _amount, _data, _operatorData);
   }
 
   // Helpers
@@ -189,8 +189,26 @@ contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, TranchT
     dataUint256[toKey] = SafeMath.add(dataUint256[toKey], _value);
   }
 
+  // re-entrancy protection
+  modifier acquireErc777SenderMutex (uint256 _index) {
+    string memory k = string(abi.encodePacked(_index, "erc777sender-mutex"));
+    require(!dataBool[k], 'ERC777 sender mutex already acquired');
+    dataBool[k] = true;
+    _;
+    dataBool[k] = false;
+  }
+  // re-entrancy protection
+  modifier acquireErc777ReceiverMutex (uint256 _index) {
+    string memory k = string(abi.encodePacked(_index, "erc777receiver-mutex"));
+    require(!dataBool[k], 'ERC777 receiver mutex already acquired');
+    dataBool[k] = true;
+    _;
+    dataBool[k] = false;
+  }
+
   // From https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC777/ERC777.sol
   function _callTokensToSend(
+    uint256 _index,
     address _operator,
     address _from,
     address _to,
@@ -198,7 +216,8 @@ contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, TranchT
     bytes memory _userData,
     bytes memory _operatorData
   )
-      private
+    acquireErc777SenderMutex(_index)
+    private
   {
     address implementer = erc1820Registry.getInterfaceImplementer(_from, TOKENS_SENDER_INTERFACE_HASH);
     if (implementer != address(0)) {
@@ -208,6 +227,7 @@ contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, TranchT
 
   // From https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC777/ERC777.sol
   function _callTokensReceived(
+    uint256 _index,
     address _operator,
     address _from,
     address _to,
@@ -215,7 +235,8 @@ contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, TranchT
     bytes memory _userData,
     bytes memory _operatorData
   )
-      private
+    acquireErc777ReceiverMutex(_index)
+    private
   {
     address implementer = erc1820Registry.getInterfaceImplementer(_to, TOKENS_RECIPIENT_INTERFACE_HASH);
     if (implementer != address(0)) {

@@ -1,4 +1,4 @@
-import { toHex, toWei, sha3 } from 'web3-utils'
+import { toHex, toWei, sha3, asciiToHex } from 'web3-utils'
 
 import { setupGlobalHooks, extractEventArgs, hdWallet } from './utils'
 import { events } from '../'
@@ -12,6 +12,9 @@ const FUC = artifacts.require("./FUC.sol")
 const FUCImpl = artifacts.require("./FUCImpl.sol")
 
 setupGlobalHooks()
+
+const NULL_ADDRESS = '0x0000000000000000000000000000000000000000'
+const NULL_BYTES = asciiToHex('')
 
 contract('FUC', accounts => {
   let acl
@@ -296,6 +299,26 @@ contract('FUC', accounts => {
         }))
 
         expect(done).to.eq(6)
+      })
+
+      describe('which support operations', () => {
+        let firstTkn
+        let firstTknNumShares
+
+        beforeEach(async () => {
+          firstTkn = await IERC777.at(await fuc.getTranch(0))
+          firstTknNumShares = await firstTkn.totalSupply()
+        })
+
+        describe('such as transferring one\'s own tokens', () => {
+          it('but not when sender does not have enough', async () => {
+            await firstTkn.send(accounts[1], firstTknNumShares + 1, NULL_BYTES).should.be.rejectedWith('not enough balance')
+          })
+
+          it('but not when recipient is null address', async () => {
+            await firstTkn.send(NULL_ADDRESS, 1, NULL_BYTES).should.be.rejectedWith('cannot send to zero address')
+          })
+        })
       })
     })
   })

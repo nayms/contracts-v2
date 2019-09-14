@@ -13,6 +13,8 @@ const ERC1820_RAW_TX = '0xf90a388085174876e800830c35008080b909e56080604052348015
 
 const ERC1820_DEPLOYER = '0xa990077c3205cbDf861e17Fa532eeB069cE9fF96'
 
+const ERC1820_DEPLOYED_ADDRESS = '0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24'.toLowerCase()
+
 const log = msg => console.log(chalk.blue(msg))
 
 module.exports = async (deployer, network, accounts) => {
@@ -38,7 +40,7 @@ module.exports = async (deployer, network, accounts) => {
 
     const { contractAddress } = await web3.eth.sendSignedTransaction(ERC1820_RAW_TX)
 
-    if (contractAddress.toLowerCase() != '0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24'.toLowerCase()) {
+    if (contractAddress.toLowerCase() != ERC1820_DEPLOYED_ADDRESS) {
       throw new Error(`Unexpected deployed contract address: ${contractAddress}`)
     }
 

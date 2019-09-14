@@ -18,17 +18,14 @@ import "./FUCTranch.sol";
 contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, TranchTokenImpl {
   using Address for address;
 
-  /*
-    Following ERC-1820 stuff is from:
-    - https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC777/ERC777.sol
-    - https://eips.ethereum.org/EIPS/eip-1820
-   */
-  IERC1820Registry private erc1820Registry = IERC1820Registry(0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24);
+  /* ERC 1820 stuff */
+  address private constant ERC1820_REGISTRY_ADDRESS =
+      0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24;
   // keccak256("ERC777TokensSender")
-  bytes32 constant private TOKENS_SENDER_INTERFACE_HASH =
+  bytes32 private constant TOKENS_SENDER_INTERFACE_HASH =
       0x29ddb589b1fb5fc7cf394961c1adf5f8c6454761adf795e67fe149f658abe895;
   // keccak256("ERC777TokensRecipient")
-  bytes32 constant private TOKENS_RECIPIENT_INTERFACE_HASH =
+  bytes32 private constant TOKENS_RECIPIENT_INTERFACE_HASH =
       0xb281fc8c12954d22544db45de3159a39272895b169a852b314f9cc762e44c53b;
 
   /**
@@ -219,7 +216,7 @@ contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, TranchT
     acquireErc777SenderMutex(_index)
     private
   {
-    address implementer = erc1820Registry.getInterfaceImplementer(_from, TOKENS_SENDER_INTERFACE_HASH);
+    address implementer = IERC1820Registry(ERC1820_REGISTRY_ADDRESS).getInterfaceImplementer(_from, TOKENS_SENDER_INTERFACE_HASH);
     if (implementer != address(0)) {
       IERC777Sender(implementer).tokensToSend(_operator, _from, _to, _amount, _userData, _operatorData);
     }
@@ -238,7 +235,7 @@ contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, TranchT
     acquireErc777ReceiverMutex(_index)
     private
   {
-    address implementer = erc1820Registry.getInterfaceImplementer(_to, TOKENS_RECIPIENT_INTERFACE_HASH);
+    address implementer = IERC1820Registry(ERC1820_REGISTRY_ADDRESS).getInterfaceImplementer(_to, TOKENS_RECIPIENT_INTERFACE_HASH);
     if (implementer != address(0)) {
       IERC777Recipient(implementer).tokensReceived(_operator, _from, _to, _amount, _userData, _operatorData);
     } else {

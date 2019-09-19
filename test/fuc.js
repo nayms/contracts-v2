@@ -1,6 +1,13 @@
 import { toHex, toWei, sha3, asciiToHex } from 'web3-utils'
 
-import { setupGlobalHooks, extractEventArgs, hdWallet } from './utils'
+import {
+  setupGlobalHooks,
+  extractEventArgs,
+  hdWallet,
+  ERC1820_REGISTRY_ADDRESS,
+  TOKENS_SENDER_INTERFACE_HASH,
+  TOKENS_RECIPIENT_INTERFACE_HASH
+} from './utils'
 import { events } from '../'
 
 const ACL = artifacts.require("./base/ACL.sol")
@@ -10,17 +17,24 @@ const IERC20 = artifacts.require("./base/IERC20.sol")
 const IERC777 = artifacts.require("./base/IERC777.sol")
 const FUC = artifacts.require("./FUC.sol")
 const FUCImpl = artifacts.require("./FUCImpl.sol")
+const IERC1820Registry = artifacts.require('./base/IERC1820Registry')
+const DummyERC777TokensSender = artifacts.require('./test/DummyERC777TokensSender')
+const DummyERC777TokensRecipient = artifacts.require('./test/DummyERC777TokensRecipient')
+const ReEntrantERC777TokensSender = artifacts.require('./test/ReEntrantERC777TokensSender')
+const ReEntrantERC777TokensRecipient = artifacts.require('./test/ReEntrantERC777TokensRecipient')
 
 setupGlobalHooks()
 
 const NULL_ADDRESS = '0x0000000000000000000000000000000000000000'
-const NULL_BYTES = asciiToHex('')
+const DATA_BYTES = asciiToHex('test')
+const DATA_BYTES_2 = asciiToHex('test2')
 
 contract('FUC', accounts => {
   let acl
   let fucImpl
   let fucProxy
   let fuc
+  let erc1820Registry
 
   beforeEach(async () => {
     acl = await ACL.deployed()
@@ -32,6 +46,8 @@ contract('FUC', accounts => {
     )
     // now let's speak to FUC contract using FUCImpl ABI
     fuc = await IFUCImpl.at(fucProxy.address)
+
+    erc1820Registry = await IERC1820Registry.at('0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24')
   })
 
   it('can be deployed', async () => {
@@ -207,6 +223,16 @@ contract('FUC', accounts => {
           firstTknNumShares = await firstTkn.totalSupply()
         })
 
+        it('such as approving an address to send on one\'s behalf', async () => {
+          const result = await firstTkn.approve(accounts[1], 2).should.be.fulfilled
+
+          expect(extractEventArgs(result, events.Approval)).to.include({
+            owner: accounts[0],
+            spender: accounts[1],
+            value: '2',
+          })
+        })
+
         describe('such as transferring one\'s own tokens', () => {
           it('but not when sender does not have enough', async () => {
             await firstTkn.transfer(accounts[1], firstTknNumShares + 1).should.be.rejectedWith('not enough balance')
@@ -220,10 +246,16 @@ contract('FUC', accounts => {
           })
 
           it('when the sender has enough', async () => {
-            await firstTkn.transfer(accounts[1], 5).should.be.fulfilled
+            const result = await firstTkn.transfer(accounts[1], 5).should.be.fulfilled
 
             await firstTkn.balanceOf(accounts[0]).should.eventually.eq(firstTknNumShares - 5)
             await firstTkn.balanceOf(accounts[1]).should.eventually.eq(5)
+
+            expect(extractEventArgs(result, events.Transfer)).to.include({
+              from: accounts[0],
+              to: accounts[1],
+              value: '5',
+            })
           })
         })
 
@@ -239,10 +271,18 @@ contract('FUC', accounts => {
 
           it('if sender meets their approved limit', async () => {
             await firstTkn.approve(accounts[1], 5).should.be.fulfilled
-            await firstTkn.transferFrom(accounts[0], accounts[2], 5, { from: accounts[1] }).should.be.fulfilled
+
+            const result =
+              await firstTkn.transferFrom(accounts[0], accounts[2], 5, { from: accounts[1] }).should.be.fulfilled
 
             await firstTkn.balanceOf(accounts[0]).should.eventually.eq(firstTknNumShares - 5)
             await firstTkn.balanceOf(accounts[2]).should.eventually.eq(5)
+
+            expect(extractEventArgs(result, events.Transfer)).to.include({
+              from: accounts[0],
+              to: accounts[2],
+              value: '5',
+            })
           })
         })
       })
@@ -310,13 +350,242 @@ contract('FUC', accounts => {
           firstTknNumShares = await firstTkn.totalSupply()
         })
 
+        describe('such as transferring someone else\'s tokens', () => {
+          it('but not when operator is not approved', async () => {
+            await firstTkn.operatorSend(accounts[0], accounts[1], 1, DATA_BYTES, DATA_BYTES_2, { from: accounts[1] }).should.be.rejectedWith('not authorized')
+          })
+
+          it('when operator is not approved', async () => {
+            const result1 = await firstTkn.authorizeOperator(accounts[1]).should.be.fulfilled
+
+            expect(extractEventArgs(result1, events.AuthorizedOperator)).to.include({
+              operator: accounts[1],
+              tokenHolder: accounts[0],
+            })
+
+            const result2 = await firstTkn.operatorSend(accounts[0], accounts[1], 1, DATA_BYTES, DATA_BYTES_2, { from: accounts[1] }).should.be.fulfilled
+
+            await firstTkn.balanceOf(accounts[0]).should.eventually.eq(firstTknNumShares - 1)
+            await firstTkn.balanceOf(accounts[1]).should.eventually.eq(1)
+
+            expect(extractEventArgs(result2, events.Transfer)).to.include({
+              from: accounts[0],
+              to: accounts[1],
+              value: '1',
+            })
+
+            expect(extractEventArgs(result2, events.Sent)).to.include({
+              operator: accounts[1],
+              from: accounts[0],
+              to: accounts[1],
+              amount: '1',
+              data: DATA_BYTES,
+              operatorData: DATA_BYTES_2,
+            })
+          })
+
+          it('but not when an operator has been revoked', async () => {
+            await firstTkn.authorizeOperator(accounts[1]).should.be.fulfilled
+            const result = await firstTkn.revokeOperator(accounts[1]).should.be.fulfilled
+
+            expect(extractEventArgs(result, events.RevokedOperator)).to.include({
+              operator: accounts[1],
+              tokenHolder: accounts[0],
+            })
+
+            await firstTkn.operatorSend(accounts[0], accounts[1], 1, DATA_BYTES, DATA_BYTES_2, { from: accounts[1] }).should.be.rejectedWith('not authorized')
+          })
+        })
+
         describe('such as transferring one\'s own tokens', () => {
           it('but not when sender does not have enough', async () => {
-            await firstTkn.send(accounts[1], firstTknNumShares + 1, NULL_BYTES).should.be.rejectedWith('not enough balance')
+            await firstTkn.send(accounts[1], firstTknNumShares + 1, DATA_BYTES).should.be.rejectedWith('not enough balance')
           })
 
           it('but not when recipient is null address', async () => {
-            await firstTkn.send(NULL_ADDRESS, 1, NULL_BYTES).should.be.rejectedWith('cannot send to zero address')
+            await firstTkn.send(NULL_ADDRESS, 1, DATA_BYTES).should.be.rejectedWith('cannot send to zero address')
+          })
+
+          it('when the balance is enough', async () => {
+            const result = await firstTkn.send(accounts[1], 1, DATA_BYTES).should.be.fulfilled
+
+            await firstTkn.balanceOf(accounts[0]).should.eventually.eq(firstTknNumShares - 1)
+            await firstTkn.balanceOf(accounts[1]).should.eventually.eq(1)
+
+            expect(extractEventArgs(result, events.Transfer)).to.include({
+              from: accounts[0],
+              to: accounts[1],
+              value: '1',
+            })
+
+            expect(extractEventArgs(result, events.Sent)).to.include({
+              operator: accounts[0],
+              from: accounts[0],
+              to: accounts[1],
+              amount: '1',
+              data: DATA_BYTES,
+              operatorData: null,
+            })
+          })
+        })
+
+        describe('involving ERC1820 registry', () => {
+          beforeEach(async () => {
+            await erc1820Registry.setInterfaceImplementer(
+              accounts[0],
+              TOKENS_SENDER_INTERFACE_HASH,
+              NULL_ADDRESS,
+              { from: accounts[0] }
+            );
+
+            await erc1820Registry.setInterfaceImplementer(
+              accounts[1],
+              TOKENS_RECIPIENT_INTERFACE_HASH,
+              NULL_ADDRESS,
+              { from: accounts[1] }
+            )
+          })
+
+          afterEach(async () => {
+            await erc1820Registry.setInterfaceImplementer(
+              accounts[0],
+              TOKENS_SENDER_INTERFACE_HASH,
+              NULL_ADDRESS,
+              { from: accounts[0] }
+            );
+
+            await erc1820Registry.setInterfaceImplementer(
+              accounts[1],
+              TOKENS_RECIPIENT_INTERFACE_HASH,
+              NULL_ADDRESS,
+              { from: accounts[1] }
+            )
+          })
+
+          describe('and if sender has registered a handler', () => {
+            describe('when it\'s a dummy handler', () => {
+              beforeEach(async () => {
+                const dummyERC777TokenSender = await DummyERC777TokensSender.new()
+
+                await erc1820Registry.setInterfaceImplementer(
+                  accounts[0],
+                  TOKENS_SENDER_INTERFACE_HASH,
+                  dummyERC777TokenSender.address,
+                  { from: accounts[0] }
+                )
+              })
+
+              it('then the handler gets invoked during a transfer', async () => {
+                const result = await firstTkn.send(accounts[1], 1, DATA_BYTES).should.be.fulfilled
+
+                expect(extractEventArgs(result, events.TokensToSend)).to.include({
+                  operator: accounts[0],
+                  from: accounts[0],
+                  to: accounts[1],
+                  amount: '1',
+                  userData: DATA_BYTES,
+                  operatorData: null,
+                })
+              })
+
+              it('then operator data also gets passed to the handler', async () => {
+                await firstTkn.authorizeOperator(accounts[1]).should.be.fulfilled
+
+                const result = await firstTkn.operatorSend(accounts[0], accounts[1], 1, DATA_BYTES, DATA_BYTES_2, { from: accounts[1] }).should.be.fulfilled
+
+                expect(extractEventArgs(result, events.TokensToSend)).to.include({
+                  operator: accounts[1],
+                  from: accounts[0],
+                  to: accounts[1],
+                  amount: '1',
+                  userData: DATA_BYTES,
+                  operatorData: DATA_BYTES_2,
+                })
+              })
+            })
+
+            describe('when it\'s a re-entrant handler', () => {
+              beforeEach(async () => {
+                const reEntrantERC777TokenSender = await ReEntrantERC777TokensSender.new(
+                  fucProxy.address,
+                  0
+                )
+
+                await erc1820Registry.setInterfaceImplementer(
+                  accounts[0],
+                  TOKENS_SENDER_INTERFACE_HASH,
+                  reEntrantERC777TokenSender.address,
+                  { from: accounts[0] }
+                )
+              })
+
+              it('then mutex prevents transaction succeeding', async () => {
+                await firstTkn.send(accounts[1], 1, DATA_BYTES).should.be.rejectedWith('ERC777 sender mutex already acquired')
+              })
+            })
+          })
+
+          describe('and if receiver has registered a handler', () => {
+            describe('when it\'s a dummy handler', () => {
+              beforeEach(async () => {
+                const dummyERC777TokensRecipient = await DummyERC777TokensRecipient.new()
+
+                await erc1820Registry.setInterfaceImplementer(
+                  accounts[1],
+                  TOKENS_RECIPIENT_INTERFACE_HASH,
+                  dummyERC777TokensRecipient.address,
+                  { from: accounts[1] }
+                )
+              })
+
+              it('then the handler gets invoked during a transfer', async () => {
+                const result = await firstTkn.send(accounts[1], 1, DATA_BYTES).should.be.fulfilled
+
+                expect(extractEventArgs(result, events.TokensReceived)).to.include({
+                  operator: accounts[0],
+                  from: accounts[0],
+                  to: accounts[1],
+                  amount: '1',
+                  userData: DATA_BYTES,
+                  operatorData: null,
+                })
+              })
+
+              it('then operator data also gets passed to the handler', async () => {
+                await firstTkn.authorizeOperator(accounts[1]).should.be.fulfilled
+
+                const result = await firstTkn.operatorSend(accounts[0], accounts[1], 1, DATA_BYTES, DATA_BYTES_2, { from: accounts[1] }).should.be.fulfilled
+
+                expect(extractEventArgs(result, events.TokensReceived)).to.include({
+                  operator: accounts[1],
+                  from: accounts[0],
+                  to: accounts[1],
+                  amount: '1',
+                  userData: DATA_BYTES,
+                  operatorData: DATA_BYTES_2,
+                })
+              })
+            })
+
+            describe('when it\'s a re-entrant handler', () => {
+              beforeEach(async () => {
+                const reEntrantERC777TokenRecipient = await ReEntrantERC777TokensRecipient.new(
+                  fucProxy.address,
+                  0
+                )
+
+                await erc1820Registry.setInterfaceImplementer(
+                  accounts[1],
+                  TOKENS_RECIPIENT_INTERFACE_HASH,
+                  reEntrantERC777TokenRecipient.address,
+                  { from: accounts[1] }
+                )
+              })
+
+              it('then mutex prevents transaction succeeding', async () => {
+                await firstTkn.send(accounts[1], 1, DATA_BYTES).should.be.rejectedWith('ERC777 receiver mutex already acquired')
+              })
+            })
           })
         })
       })

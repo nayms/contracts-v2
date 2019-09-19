@@ -167,11 +167,11 @@ contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, TranchT
     string memory k = string(abi.encodePacked(_index, _sender, _operator, "operator"));
     require(dataBool[k], 'not authorized');
 
-    _callTokensToSend(_index, _sender, _sender, _recipient, _amount, _data, _operatorData);
+    _callTokensToSend(_index, _operator, _sender, _recipient, _amount, _data, _operatorData);
 
     _transfer(_index, _sender, _recipient, _amount);
 
-    _callTokensReceived(_index, _sender, _sender, _recipient, _amount, _data, _operatorData);
+    _callTokensReceived(_index, _operator, _sender, _recipient, _amount, _data, _operatorData);
   }
 
   // Helpers

@@ -1,7 +1,8 @@
 import { EthHdWallet } from 'eth-hd-wallet'
 import _ from 'lodash'
-import { toBN } from 'web3-utils'
+import { toBN, isBN } from 'web3-utils'
 import chai from 'chai'
+import { parseLog } from 'ethereum-event-logs'
 import chaiAsPromised from 'chai-as-promised'
 
 // mocha global after hook, see https://github.com/mochajs/mocha/issues/3094
@@ -80,6 +81,13 @@ hdWallet.generateAddresses(10)
 
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000'
 export const BYTES32_ZERO = '0x0000000000000000000000000000000000000000000000000000000000000000'
+/* ERC 1820 stuff */
+export const ERC1820_REGISTRY_ADDRESS = '0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24';
+// keccak256("ERC777TokensSender")
+export const TOKENS_SENDER_INTERFACE_HASH = '0x29ddb589b1fb5fc7cf394961c1adf5f8c6454761adf795e67fe149f658abe895';
+// keccak256("ERC777TokensRecipient")
+export const TOKENS_RECIPIENT_INTERFACE_HASH = '0xb281fc8c12954d22544db45de3159a39272895b169a852b314f9cc762e44c53b';
+
 
 export const getBalance = async addr => toBN(await web3.eth.getBalance(addr))
 
@@ -87,10 +95,20 @@ export const getBalance = async addr => toBN(await web3.eth.getBalance(addr))
 export const mulBN = (bn, factor) => bn.mul( toBN(factor * 1000) ).div( toBN(1000) )
 
 export const parseEvents = (result, e) => {
-  return result.logs.filter(({ event }) => event === e.name)
+  return parseLog(result.receipt.rawLogs, [ e ])
 }
 
-export const extractEventArgs = (result, eventAbi) => parseEvents(result, eventAbi).pop().args
+export const extractEventArgs = (result, eventAbi) => {
+  const { args } = parseEvents(result, eventAbi).pop()
+
+  for (let key in args) {
+    if (isBN(args[key])) {
+      args[key] = args[key].toString(10)
+    }
+  }
+
+  return args
+}
 
 export const outputBNs = bn => {
   console.log('BNs: ');

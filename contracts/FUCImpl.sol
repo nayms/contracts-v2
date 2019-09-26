@@ -80,6 +80,8 @@ contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, TranchT
       // save reference
       string memory addressKey = string(abi.encodePacked(i, "address"));
       dataAddress[addressKey] = address(t);
+
+      emit CreateTranch(address(this), address(t), i);
     }
   }
 

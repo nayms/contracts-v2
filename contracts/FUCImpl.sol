@@ -53,12 +53,12 @@ contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, TranchT
   }
 
   function createTranches (
-    uint256 _numTranches,
     uint256[] memory _tranchNumShares,
     uint256[] memory _tranchInitialPricePerShare
   ) public {
+    uint256 _numTranches = _tranchNumShares.length;
+
     require(_numTranches > 0, 'need atleast 1 tranch');
-    require(_tranchNumShares.length == _numTranches, 'num-shares array length mismatch');
     require(_tranchInitialPricePerShare.length == _numTranches, 'price-per-share array length mismatch');
 
     // instantiate tranches

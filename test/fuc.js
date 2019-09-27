@@ -132,16 +132,16 @@ contract('FUC', accounts => {
     const tranchPricePerShare = [100, 200, 300]
 
     it('count must be greater than 0', async () => {
-      await fuc.createTranches(0, [], []).should.be.rejectedWith('need atleast 1 tranch')
+      await fuc.createTranches([], []).should.be.rejectedWith('need atleast 1 tranch')
     })
 
     it('must have correct data', async () => {
-      await fuc.createTranches(1, [1, 2], [1]).should.be.rejectedWith('num-shares array length mismatch')
-      await fuc.createTranches(1, [1], [1, 2]).should.be.rejectedWith('price-per-share array length mismatch')
+      await fuc.createTranches([1, 2], [1]).should.be.rejectedWith('price-per-share array length mismatch')
+      await fuc.createTranches([1], [1, 2]).should.be.rejectedWith('price-per-share array length mismatch')
     })
 
     it('can be created', async () => {
-      const result = await fuc.createTranches(3, tranchNumShares, tranchPricePerShare).should.be.fulfilled
+      const result = await fuc.createTranches(tranchNumShares, tranchPricePerShare).should.be.fulfilled
 
       const logs = parseEvents(result, events.CreateTranch)
 
@@ -169,8 +169,8 @@ contract('FUC', accounts => {
     })
 
     it('can be created more than once', async () => {
-      await fuc.createTranches(3, tranchNumShares, tranchPricePerShare).should.be.fulfilled
-      await fuc.createTranches(3, tranchNumShares, tranchPricePerShare).should.be.fulfilled
+      await fuc.createTranches(tranchNumShares, tranchPricePerShare).should.be.fulfilled
+      await fuc.createTranches(tranchNumShares, tranchPricePerShare).should.be.fulfilled
 
       await fuc.getNumTranches().should.eventually.eq(6)
 
@@ -188,8 +188,8 @@ contract('FUC', accounts => {
 
     describe('are ERC20 tokens', () => {
       beforeEach(async () => {
-        await fuc.createTranches(3, tranchNumShares, tranchPricePerShare)
-        await fuc.createTranches(3, tranchNumShares, tranchPricePerShare)
+        await fuc.createTranches(tranchNumShares, tranchPricePerShare)
+        await fuc.createTranches(tranchNumShares, tranchPricePerShare)
       })
 
       it('which have basic details', async () => {
@@ -301,8 +301,8 @@ contract('FUC', accounts => {
 
     describe('are ERC777 tokens', () => {
       beforeEach(async () => {
-        await fuc.createTranches(3, tranchNumShares, tranchPricePerShare)
-        await fuc.createTranches(3, tranchNumShares, tranchPricePerShare)
+        await fuc.createTranches(tranchNumShares, tranchPricePerShare)
+        await fuc.createTranches(tranchNumShares, tranchPricePerShare)
       })
 
       it('which have basic details', async () => {

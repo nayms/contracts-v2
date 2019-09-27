@@ -2,6 +2,7 @@ import { toHex, toWei, sha3, asciiToHex } from 'web3-utils'
 
 import {
   setupGlobalHooks,
+  parseEvents,
   extractEventArgs,
   hdWallet,
   ERC1820_REGISTRY_ADDRESS,
@@ -140,7 +141,17 @@ contract('FUC', accounts => {
     })
 
     it('can be created', async () => {
-      await fuc.createTranches(3, tranchNumShares, tranchPricePerShare).should.be.fulfilled
+      const result = await fuc.createTranches(3, tranchNumShares, tranchPricePerShare).should.be.fulfilled
+
+      const logs = parseEvents(result, events.CreateTranch)
+
+      expect(logs.length).to.eq(3)
+
+      for (let i = 0; 3 > i; i += 1) {
+        expect(logs[i].args.fuc).to.eq(fuc.address)
+        expect(logs[i].args.tranch).to.eq(await fuc.getTranch(i))
+        expect(logs[i].args.index).to.eq(`${i}`)
+      }
 
       await fuc.getNumTranches().should.eventually.eq(3)
 

@@ -19,32 +19,38 @@ const log = msg => console.log(chalk.blue(msg))
 
 module.exports = async (deployer, network, accounts) => {
   if ('development' === network) {
-    log('Deploying ERC1820 registry ...')
+    try {
+      await deployer.at(ERC1820_DEPLOYED_ADDRESS)
 
-    const { provider } = (networks[network] || {})
-    if (!provider) {
-      throw new Error(`Unable to find provider for network: ${network}`)
+      log(`ERC1820 registry contract found at: ${ERC1820_DEPLOYED_ADDRESS}`)
+    } catch (_err) {
+      log('Deploying ERC1820 registry ...')
+
+      const { provider } = (networks[network] || {})
+      if (!provider) {
+        throw new Error(`Unable to find provider for network: ${network}`)
+      }
+
+      const web3 = new Web3(provider)
+
+      log(`Sending some eth to ${ERC1820_DEPLOYER}`)
+
+      await web3.eth.sendTransaction({
+        from: accounts[0],
+        to: ERC1820_DEPLOYER,
+        value: new EthVal(0.08, 'eth').toWei().toString(16),
+      })
+
+      log(`Deploying registry contract`)
+
+      const { contractAddress } = await web3.eth.sendSignedTransaction(ERC1820_RAW_TX)
+
+      if (contractAddress.toLowerCase() != ERC1820_DEPLOYED_ADDRESS) {
+        throw new Error(`Unexpected deployed contract address: ${contractAddress}`)
+      }
+
+      log(`... ERC 1820 registry successfully deployed!`)
     }
-
-    const web3 = new Web3(provider)
-
-    log(`Sending some eth to ${ERC1820_DEPLOYER}`)
-
-    await web3.eth.sendTransaction({
-      from: accounts[0],
-      to: ERC1820_DEPLOYER,
-      value: new EthVal(0.08, 'eth').toWei().toString(16),
-    })
-
-    log(`Deploying registry contract`)
-
-    const { contractAddress } = await web3.eth.sendSignedTransaction(ERC1820_RAW_TX)
-
-    if (contractAddress.toLowerCase() != ERC1820_DEPLOYED_ADDRESS) {
-      throw new Error(`Unexpected deployed contract address: ${contractAddress}`)
-    }
-
-    log(`... ERC 1820 registry successfully deployed!`)
   }
 
   await deployer.deploy(ACL)

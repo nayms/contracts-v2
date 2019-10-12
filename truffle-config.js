@@ -29,6 +29,14 @@ if (mode === "profile") {
       defaultFromAddress,
       {
         isVerbose,
+        ignoreFilesGlobs: [
+          "**/Migrations.*",
+          "**/I*.*",
+          "**/SafeMath.*",
+          "**/TranchTokenImpl.*",
+          "**/Address.*",
+          "**/ECDSA.*",
+        ]
       }
     )
     provider.addProvider(global.coverageSubprovider)

@@ -5,19 +5,7 @@ import chai from 'chai'
 import { parseLog } from 'ethereum-event-logs'
 import chaiAsPromised from 'chai-as-promised'
 
-// mocha global after hook, see https://github.com/mochajs/mocha/issues/3094
-let globalHooksSetup = false
-export const setupGlobalHooks = () => {
-  if (!globalHooksSetup) {
-    globalHooksSetup = true
-
-    after('global after hook', async () => {
-      if (global.coverageSubprovider) {
-        await global.coverageSubprovider.writeCoverageAsync()
-      }
-    })
-  }
-}
+import { ensureErc1820RegistryIsDeployed } from '../../migrations/utils'
 
 chai.use((_chai, utils) => {
   const sanitizeResultVal = (result, val) => {

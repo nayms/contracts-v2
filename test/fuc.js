@@ -11,6 +11,8 @@ import {
 } from './utils'
 import { events } from '../'
 
+import { ensureErc1820RegistryIsDeployed, ERC1820_DEPLOYED_ADDRESS } from '../migrations/utils'
+
 const ACL = artifacts.require("./base/ACL.sol")
 const IProxyImpl = artifacts.require("./base/IProxyImpl.sol")
 const IFUCImpl = artifacts.require("./base/IFUCImpl.sol")
@@ -24,8 +26,6 @@ const DummyERC777TokensRecipient = artifacts.require('./test/DummyERC777TokensRe
 const ReEntrantERC777TokensSender = artifacts.require('./test/ReEntrantERC777TokensSender')
 const ReEntrantERC777TokensRecipient = artifacts.require('./test/ReEntrantERC777TokensRecipient')
 
-setupGlobalHooks()
-
 const NULL_ADDRESS = '0x0000000000000000000000000000000000000000'
 const DATA_BYTES = asciiToHex('test')
 const DATA_BYTES_2 = asciiToHex('test2')
@@ -36,6 +36,11 @@ contract('FUC', accounts => {
   let fucProxy
   let fuc
   let erc1820Registry
+  let _accounts
+
+  before(async () => {
+    await ensureErc1820RegistryIsDeployed({ artifacts, accounts, web3 })
+  })
 
   beforeEach(async () => {
     acl = await ACL.new()
@@ -48,7 +53,7 @@ contract('FUC', accounts => {
     // now let's speak to FUC contract using FUCImpl ABI
     fuc = await IFUCImpl.at(fucProxy.address)
 
-    erc1820Registry = await IERC1820Registry.at('0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24')
+    erc1820Registry = await IERC1820Registry.at(ERC1820_DEPLOYED_ADDRESS)
   })
 
   it('can be deployed', async () => {
@@ -242,6 +247,8 @@ contract('FUC', accounts => {
             spender: accounts[1],
             value: '2',
           })
+
+          await firstTkn.allowance(accounts[0], accounts[1]).should.eventually.eq(2)
         })
 
         describe('such as transferring one\'s own tokens', () => {
@@ -366,13 +373,15 @@ contract('FUC', accounts => {
             await firstTkn.operatorSend(accounts[0], accounts[1], 1, DATA_BYTES, DATA_BYTES_2, { from: accounts[1] }).should.be.rejectedWith('not authorized')
           })
 
-          it('when operator is not approved', async () => {
+          it('when operator is approved', async () => {
             const result1 = await firstTkn.authorizeOperator(accounts[1]).should.be.fulfilled
 
             expect(extractEventArgs(result1, events.AuthorizedOperator)).to.include({
               operator: accounts[1],
               tokenHolder: accounts[0],
             })
+
+            await firstTkn.isOperatorFor(accounts[1], accounts[0]).should.eventually.eq(true)
 
             const result2 = await firstTkn.operatorSend(accounts[0], accounts[1], 1, DATA_BYTES, DATA_BYTES_2, { from: accounts[1] }).should.be.fulfilled
 
@@ -397,12 +406,15 @@ contract('FUC', accounts => {
 
           it('but not when an operator has been revoked', async () => {
             await firstTkn.authorizeOperator(accounts[1]).should.be.fulfilled
+
             const result = await firstTkn.revokeOperator(accounts[1]).should.be.fulfilled
 
             expect(extractEventArgs(result, events.RevokedOperator)).to.include({
               operator: accounts[1],
               tokenHolder: accounts[0],
             })
+
+            await firstTkn.isOperatorFor(accounts[1], accounts[0]).should.eventually.eq(false)
 
             await firstTkn.operatorSend(accounts[0], accounts[1], 1, DATA_BYTES, DATA_BYTES_2, { from: accounts[1] }).should.be.rejectedWith('not authorized')
           })

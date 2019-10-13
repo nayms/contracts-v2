@@ -2,7 +2,6 @@ const ProviderEngine = require("web3-provider-engine")
 const WebsocketSubprovider = require("web3-provider-engine/subproviders/websocket.js")
 const { TruffleArtifactAdapter, RevertTraceSubprovider } = require("@0x/sol-trace")
 const { ProfilerSubprovider } = require("@0x/sol-profiler")
-const { CoverageSubprovider } = require("@0x/sol-coverage")
 
 const mode = process.env.MODE
 
@@ -22,25 +21,7 @@ if (mode === "profile") {
   global.profilerSubprovider.stop()
   provider.addProvider(global.profilerSubprovider)
 } else {
-
-  if (mode === "coverage") {
-    global.coverageSubprovider = new CoverageSubprovider(
-      artifactAdapter,
-      defaultFromAddress,
-      {
-        isVerbose,
-        ignoreFilesGlobs: [
-          "**/Migrations.*",
-          "**/I*.*",
-          "**/SafeMath.*",
-          "**/TranchTokenImpl.*",
-          "**/Address.*",
-          "**/ECDSA.*",
-        ]
-      }
-    )
-    provider.addProvider(global.coverageSubprovider)
-  } else if (mode === "trace") {
+  if (mode === "trace") {
     const revertTraceSubprovider = new RevertTraceSubprovider(
       artifactAdapter,
       defaultFromAddress,
@@ -69,13 +50,22 @@ module.exports = {
     development: {
       provider,
       network_id: "*",
-      gasPrice: 1000000000, /* 1 gwei */
+      port: 8545,
+      gasPrice: 1000000000      // 1 gwei
     },
     test: {
       provider,
       network_id: "*",
-      gasPrice: 1000000000,  /* 1 gwei */
-    }
+      port: 8545,
+      gasPrice: 1000000000      // 1 gwei
+    },
+    coverage: {
+      host: "localhost",
+      network_id: "*",
+      port: 8555,
+      gas: 0xfffffffffff, // <-- Use this high gas value
+      gasPrice: 0x01      // <-- Use this low gas price
+    },
   },
 
   mocha: {

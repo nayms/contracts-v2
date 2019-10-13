@@ -1,17 +1,20 @@
 import { toHex, toWei, sha3 } from 'web3-utils'
 
+import { ensureErc1820RegistryIsDeployed } from '../migrations/utils'
 import { setupGlobalHooks, extractEventArgs } from './utils'
 import { events } from '../'
 
 const ACL = artifacts.require("./base/ACL.sol")
-
-setupGlobalHooks()
 
 contract('ACL', accounts => {
   const role1 = sha3('testrole1')
   const role2 = sha3('testrole2')
 
   let acl
+
+  before(async () => {
+    await ensureErc1820RegistryIsDeployed({ artifacts, accounts, web3 })
+  })
 
   beforeEach(async () => {
     acl = await ACL.new({ from: accounts[0] })

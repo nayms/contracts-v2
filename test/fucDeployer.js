@@ -1,5 +1,6 @@
 import { toHex, toWei } from 'web3-utils'
 
+import { ensureErc1820RegistryIsDeployed } from '../migrations/utils'
 import { setupGlobalHooks, extractEventArgs } from './utils'
 import { events } from '../'
 
@@ -8,12 +9,14 @@ const FUC = artifacts.require("./FUC.sol")
 const FUCImpl = artifacts.require("./FUCImpl.sol")
 const FUCDeployer = artifacts.require("./FUCDeployer.sol")
 
-setupGlobalHooks()
-
 contract('FUCDeployer', accounts => {
   let acl
   let fucImpl
   let deployer
+
+  before(async () => {
+    await ensureErc1820RegistryIsDeployed({ artifacts, accounts, web3 })
+  })
 
   beforeEach(async () => {
     acl = await ACL.new()

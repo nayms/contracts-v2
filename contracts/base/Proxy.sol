@@ -44,8 +44,7 @@ contract Proxy is EternalStorage {
     require(_implementation != address(0), 'implementation must be valid');
     require(_implementation != dataAddress["implementation"], 'already this implementation');
 
-    IProxyImpl impl = IProxyImpl(_implementation);
-    string memory version = impl.getImplementationVersion();
+    string memory version = IProxyImpl(_implementation).getImplementationVersion();
 
     dataAddress["implementation"] = _implementation;
 
@@ -56,8 +55,7 @@ contract Proxy is EternalStorage {
     require(_implementation != address(0), 'implementation must be valid');
 
     // get implementation version
-    IProxyImpl impl = IProxyImpl(_implementation);
-    string memory version = impl.getImplementationVersion();
+    string memory version = IProxyImpl(_implementation).getImplementationVersion();
     // generate hash
     /*
     NOTE: signature is currently only specific to the implementation, not the proxy being upgraded.

@@ -38,8 +38,8 @@ contract('FUC', accounts => {
   let erc1820Registry
 
   beforeEach(async () => {
-    acl = await ACL.deployed()
-    fucImpl = await FUCImpl.deployed()
+    acl = await ACL.new()
+    fucImpl = await FUCImpl.new(acl.address, "acme")
     fucProxy = await FUC.new(
       acl.address, "acme",
       fucImpl.address,

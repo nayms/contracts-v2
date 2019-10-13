@@ -16,8 +16,8 @@ contract('FUCDeployer', accounts => {
   let deployer
 
   beforeEach(async () => {
-    acl = await ACL.deployed()
-    fucImpl = await FUCImpl.deployed()
+    acl = await ACL.new()
+    fucImpl = await FUCImpl.new(acl.address, "acme")
     deployer = await FUCDeployer.new(acl.address, fucImpl.address)
   })
 

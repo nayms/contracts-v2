@@ -50,13 +50,11 @@ module.exports = {
     development: {
       provider,
       network_id: "*",
-      port: 8545,
       gasPrice: 1000000000      // 1 gwei
     },
     test: {
       provider,
       network_id: "*",
-      port: 8545,
       gasPrice: 1000000000      // 1 gwei
     },
     coverage: {

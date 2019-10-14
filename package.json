@@ -18,8 +18,7 @@
   ],
   "scripts": {
     "devnet": "ganache-cli -a 10 -m 'funny door sample enrich female wedding stereo crane setup shop dwarf dismiss'",
-    "devnet-ci": "ganache-cli -a 10 -m 'funny door sample enrich female wedding stereo crane setup shop dwarf dismiss' >ganache.log 2>&1 &",
-    "devnet-0x": "docker run -it --rm -p 8545:8546 0xorg/devnet:constantinople-0.0.1",
+    "devnet-ci": "yarn devnet >ganache.log 2>&1 &",
     "truffle": "babel-node node_modules/.bin/truffle",
     "coverage": "rm -rf coverage && solidity-coverage && istanbul report lcov",
     "profile": "MODE=profile yarn test && istanbul report lcov",

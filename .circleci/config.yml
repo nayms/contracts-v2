@@ -56,8 +56,4 @@ workflows:
   version: 2
   ci:
     jobs:
-      - build_contracts:
-          filters:
-            branches:
-              only:
-                - master
+      - build_contracts

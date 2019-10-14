@@ -475,6 +475,11 @@ contract('FUC', accounts => {
             })
           })
 
+          it('but not when sending to null address', async () => {
+            await firstTkn.authorizeOperator(accounts[1]).should.be.fulfilled
+            await firstTkn.operatorSend(accounts[0], ADDRESS_ZERO, 1, DATA_BYTES, DATA_BYTES_2, { from: accounts[1] }).should.be.rejectedWith('cannot send to zero address')
+          })
+
           it('but not when an operator has been revoked', async () => {
             await firstTkn.authorizeOperator(accounts[1]).should.be.fulfilled
 
@@ -679,6 +684,12 @@ contract('FUC', accounts => {
               it('then mutex prevents transaction succeeding', async () => {
                 await firstTkn.send(accounts[1], 1, DATA_BYTES).should.be.rejectedWith('ERC777 receiver mutex already acquired')
               })
+            })
+          })
+
+          describe('and if receiver is a contract and it has not registered a handler', () => {
+            it('then it reverts', async () => {
+              await firstTkn.send(fucImpl.address, 1, DATA_BYTES).should.be.rejectedWith('has no implementer')
             })
           })
         })

@@ -19,7 +19,7 @@ contract TestProxyImpl is EternalStorage, IProxyImpl, ITestProxyImpl {
     dataUint256["data"] = dataUint256["data"] + 1;
   }
 
-  function getCounter() public returns (uint256) {
+  function getCounter() public view returns (uint256) {
     return dataUint256["data"];
   }
 }

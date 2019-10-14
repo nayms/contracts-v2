@@ -8,20 +8,20 @@ const TestProxy = artifacts.require("./test/TestProxy.sol")
 const TestProxyImpl = artifacts.require("./test/TestProxyImpl.sol")
 const ITestProxyImpl = artifacts.require("./test/ITestProxyImpl.sol")
 
-contract('Proxy (base class)', accounts => {
+contract('Proxy (base class tests)', accounts => {
   let testProxy
   let testProxyImpl
-  let proxy
+  let int
 
   beforeEach(async () => {
     testProxyImpl = await TestProxyImpl.new()
     testProxy = await TestProxy.new(testProxyImpl.address)
-    proxy = await ITestProxyImpl.at(testProxy.address)
+    int = await ITestProxyImpl.at(testProxy.address)
   })
 
   it('cannot delegate to null implementation', async () => {
     await testProxy.unsafeUpgrade(ADDRESS_ZERO).should.be.fulfilled
-    await proxy.incCounter().should.be.rejectedWith('implementation not set')
+    await int.incCounter().should.be.rejectedWith('implementation not set')
   })
 
   it('cannot upgrade to null implementation', async () => {
@@ -35,5 +35,10 @@ contract('Proxy (base class)', accounts => {
 
   it('cannot get signer if signer is empty', async () => {
     await testProxy.getSigner(testProxyImpl.address, "0x0").should.be.rejectedWith('valid signer not found')
+  })
+
+  it('can delegate if all else is ok', async () => {
+    await int.incCounter().should.be.fulfilled;
+    await int.getCounter().should.eventually.eq(1);
   })
 })

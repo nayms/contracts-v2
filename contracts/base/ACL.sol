@@ -95,9 +95,9 @@ contract ACL is IACL {
   }
 
   function removeAdmin(address _addr) assertIsAdmin public {
+    require(1 < numAdmins, 'cannot remove last admin');
     require(_addr != msg.sender, 'cannot remove oneself');
     require(admins[_addr], 'not an admin');
-    require(1 < numAdmins, 'cannot remove last admin');
     admins[_addr] = false;
     numAdmins--;
     emit AdminRemoved(_addr);

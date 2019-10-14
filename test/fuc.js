@@ -1,7 +1,6 @@
 import { toHex, toWei, sha3, asciiToHex } from 'web3-utils'
 
 import {
-  setupGlobalHooks,
   parseEvents,
   extractEventArgs,
   hdWallet,
@@ -184,6 +183,10 @@ contract('FUC', accounts => {
 
     it('but not to an empty address', async () => {
       await fucProxy.upgrade(ADDRESS_ZERO, assetMgrSig, clientMgrSig).should.be.rejectedWith('implementation must be valid')
+    })
+
+    it('but not if signatures are empty', async () => {
+      await fucProxy.upgrade(fucImpl.address, "0x0", "0x0").should.be.rejectedWith('valid signer not found')
     })
 
     it('but not to the existing implementation', async () => {

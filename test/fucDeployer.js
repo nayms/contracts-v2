@@ -1,7 +1,7 @@
 import { toHex, toWei } from 'web3-utils'
 
 import { ensureErc1820RegistryIsDeployed } from '../migrations/utils'
-import { setupGlobalHooks, extractEventArgs } from './utils'
+import { extractEventArgs } from './utils'
 import { events } from '../'
 
 const ACL = artifacts.require("./base/ACL.sol")

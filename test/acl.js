@@ -1,7 +1,7 @@
 import { toHex, toWei, sha3 } from 'web3-utils'
 
 import { ensureErc1820RegistryIsDeployed } from '../migrations/utils'
-import { setupGlobalHooks, extractEventArgs } from './utils'
+import { extractEventArgs } from './utils'
 import { events } from '../'
 
 const ACL = artifacts.require("./base/ACL.sol")
@@ -61,6 +61,10 @@ contract('ACL', accounts => {
 
     it('but not by a non-admin', async () => {
       await acl.cancelNewAdminProposal(accounts[1], { from: accounts[2] }).should.be.rejectedWith('unauthorized')
+    })
+
+    it('but not if not proposed', async () => {
+      await acl.cancelNewAdminProposal(accounts[2]).should.be.rejectedWith('not proposed')
     })
 
     it('by an admin', async () => {
@@ -123,6 +127,11 @@ contract('ACL', accounts => {
 
     it('but not if they try to remove themselves', async () => {
       await acl.removeAdmin(accounts[0]).should.be.rejectedWith('cannot remove oneself')
+    })
+
+    it('but not if they are the last admin', async () => {
+      await acl.removeAdmin(accounts[0], { from: accounts[2] }).should.be.fulfilled
+      await acl.removeAdmin(accounts[2], { from: accounts[2] }).should.be.rejectedWith('cannot remove last admin')
     })
 
     it('by another admin', async () => {

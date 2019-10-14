@@ -23,23 +23,8 @@ contract AccessControl is EternalStorage {
     _;
   }
 
-  modifier assertIsAssetManager () {
-    require(isAssetManager(msg.sender), 'unauthorized - must be asset mgr');
-    _;
-  }
-
   modifier assertIsAssetManagerAgent () {
     require(isAssetManagerAgent(msg.sender), 'unauthorized - must be asset mgr agent');
-    _;
-  }
-
-  modifier assertIsClientManager () {
-    require(isClientManager(msg.sender), 'unauthorized - must be client mgr');
-    _;
-  }
-
-  modifier assertIsClientManagerAgent () {
-    require(isClientManagerAgent(msg.sender), 'unauthorized - must be client mgr agent');
     _;
   }
 
@@ -47,8 +32,16 @@ contract AccessControl is EternalStorage {
     return ROLE_ASSET_MANAGER;
   }
 
+  function getAssetManagerAgentRole () pure public returns (bytes32) {
+    return ROLE_ASSET_MANAGER_AGENT;
+  }
+
   function getClientManagerRole () pure public returns (bytes32) {
     return ROLE_CLIENT_MANAGER;
+  }
+
+  function getClientManagerAgentRole () pure public returns (bytes32) {
+    return ROLE_CLIENT_MANAGER_AGENT;
   }
 
   function isAssetManager(address _addr) view public returns (bool) {

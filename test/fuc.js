@@ -6,6 +6,7 @@ import {
   extractEventArgs,
   hdWallet,
   ERC1820_REGISTRY_ADDRESS,
+  ADDRESS_ZERO,
   TOKENS_SENDER_INTERFACE_HASH,
   TOKENS_RECIPIENT_INTERFACE_HASH
 } from './utils'
@@ -26,7 +27,6 @@ const DummyERC777TokensRecipient = artifacts.require('./test/DummyERC777TokensRe
 const ReEntrantERC777TokensSender = artifacts.require('./test/ReEntrantERC777TokensSender')
 const ReEntrantERC777TokensRecipient = artifacts.require('./test/ReEntrantERC777TokensRecipient')
 
-const NULL_ADDRESS = '0x0000000000000000000000000000000000000000'
 const DATA_BYTES = asciiToHex('test')
 const DATA_BYTES_2 = asciiToHex('test2')
 
@@ -56,6 +56,14 @@ contract('FUC', accounts => {
     erc1820Registry = await IERC1820Registry.at(ERC1820_DEPLOYED_ADDRESS)
   })
 
+  it('must be deployed with a valid implementation', async () => {
+    await FUC.new(
+      acl.address, "acme",
+      ADDRESS_ZERO,
+      "fuc1"
+    ).should.be.rejectedWith('implementation must be valid')
+  })
+
   it('can be deployed', async () => {
     expect(fucProxy.address).to.exist
   })
@@ -83,6 +91,58 @@ contract('FUC', accounts => {
       await acl.assignRole("acme", accounts[0], sha3("roleAssetManagerAgent"))
       await fuc.setName('fuc2').should.be.fulfilled;
       await fuc.getName().should.eventually.eq('fuc2')
+    })
+  })
+
+  describe('implements access control', async () => {
+    beforeEach(async () => {
+      const roles = await Promise.all([
+        fucProxy.getAssetManagerRole(),
+        fucProxy.getAssetManagerAgentRole(),
+        fucProxy.getClientManagerRole(),
+        fucProxy.getClientManagerAgentRole(),
+      ])
+
+      expect(roles.length).to.eq(4)
+
+      await Promise.all([
+        acl.assignRole("acme", accounts[3], roles[0]),
+        acl.assignRole("acme", accounts[4], roles[1]),
+        acl.assignRole("acme", accounts[5], roles[2]),
+        acl.assignRole("acme", accounts[6], roles[3]),
+      ])
+    })
+
+    it('and can confirm if someone is an asset manager', async () => {
+      await fucProxy.isAssetManager(accounts[0]).should.eventually.eq(false)
+      await fucProxy.isAssetManager(accounts[3]).should.eventually.eq(true)
+      await fucProxy.isAssetManager(accounts[4]).should.eventually.eq(false)
+      await fucProxy.isAssetManager(accounts[5]).should.eventually.eq(false)
+      await fucProxy.isAssetManager(accounts[6]).should.eventually.eq(false)
+    })
+
+    it('and can confirm if someone is an asset manager agent', async () => {
+      await fucProxy.isAssetManagerAgent(accounts[0]).should.eventually.eq(false)
+      await fucProxy.isAssetManagerAgent(accounts[3]).should.eventually.eq(true)
+      await fucProxy.isAssetManagerAgent(accounts[4]).should.eventually.eq(true)
+      await fucProxy.isAssetManagerAgent(accounts[5]).should.eventually.eq(false)
+      await fucProxy.isAssetManagerAgent(accounts[6]).should.eventually.eq(false)
+    })
+
+    it('and can confirm if someone is a client manager', async () => {
+      await fucProxy.isClientManager(accounts[0]).should.eventually.eq(false)
+      await fucProxy.isClientManager(accounts[3]).should.eventually.eq(false)
+      await fucProxy.isClientManager(accounts[4]).should.eventually.eq(false)
+      await fucProxy.isClientManager(accounts[5]).should.eventually.eq(true)
+      await fucProxy.isClientManager(accounts[6]).should.eventually.eq(false)
+    })
+
+    it('and can confirm if someone is a client manager agent', async () => {
+      await fucProxy.isClientManagerAgent(accounts[0]).should.eventually.eq(false)
+      await fucProxy.isClientManagerAgent(accounts[3]).should.eventually.eq(false)
+      await fucProxy.isClientManagerAgent(accounts[4]).should.eventually.eq(false)
+      await fucProxy.isClientManagerAgent(accounts[5]).should.eventually.eq(true)
+      await fucProxy.isClientManagerAgent(accounts[6]).should.eventually.eq(true)
     })
   })
 
@@ -120,6 +180,14 @@ contract('FUC', accounts => {
 
     it('but must have client manager\'s approval', async () => {
       await fucProxy.upgrade(fucImpl2.address, assetMgrSig, randomSig).should.be.rejectedWith('must be approved by client mgr')
+    })
+
+    it('but not to an empty address', async () => {
+      await fucProxy.upgrade(ADDRESS_ZERO, assetMgrSig, clientMgrSig).should.be.rejectedWith('implementation must be valid')
+    })
+
+    it('but not to the existing implementation', async () => {
+      await fucProxy.upgrade(fucImpl.address, assetMgrSig, clientMgrSig).should.be.rejectedWith('already this implementation')
     })
 
     it('and points to the new implementation', async () => {
@@ -426,7 +494,7 @@ contract('FUC', accounts => {
           })
 
           it('but not when recipient is null address', async () => {
-            await firstTkn.send(NULL_ADDRESS, 1, DATA_BYTES).should.be.rejectedWith('cannot send to zero address')
+            await firstTkn.send(ADDRESS_ZERO, 1, DATA_BYTES).should.be.rejectedWith('cannot send to zero address')
           })
 
           it('when the balance is enough', async () => {
@@ -457,14 +525,14 @@ contract('FUC', accounts => {
             await erc1820Registry.setInterfaceImplementer(
               accounts[0],
               TOKENS_SENDER_INTERFACE_HASH,
-              NULL_ADDRESS,
+              ADDRESS_ZERO,
               { from: accounts[0] }
             );
 
             await erc1820Registry.setInterfaceImplementer(
               accounts[1],
               TOKENS_RECIPIENT_INTERFACE_HASH,
-              NULL_ADDRESS,
+              ADDRESS_ZERO,
               { from: accounts[1] }
             )
           })
@@ -473,14 +541,14 @@ contract('FUC', accounts => {
             await erc1820Registry.setInterfaceImplementer(
               accounts[0],
               TOKENS_SENDER_INTERFACE_HASH,
-              NULL_ADDRESS,
+              ADDRESS_ZERO,
               { from: accounts[0] }
             );
 
             await erc1820Registry.setInterfaceImplementer(
               accounts[1],
               TOKENS_RECIPIENT_INTERFACE_HASH,
-              NULL_ADDRESS,
+              ADDRESS_ZERO,
               { from: accounts[1] }
             )
           })

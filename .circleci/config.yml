@@ -51,6 +51,9 @@ jobs:
       - run:
           name: Upload coverage report to coveralls
           command: cat ./coverage/lcov.info | yarn coveralls
+      - persist_to_workspace:
+          root: ~/repo
+          paths: .
   publish_to_npm:
     executor: smart_contracts
     working_directory: ~/repo

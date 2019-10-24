@@ -1,15 +1,10 @@
 {
   "name": "@nayms/contracts",
-  "private": true,
   "version": "1.0.0",
   "description": "Nayms smart contracts",
   "main": "index.js",
   "publishConfig": {
     "access": "public"
-  },
-  "directories": {
-    "doc": "doc",
-    "test": "test"
   },
   "files": [
     "build/**",

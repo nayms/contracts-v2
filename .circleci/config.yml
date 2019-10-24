@@ -51,9 +51,31 @@ jobs:
       - run:
           name: Upload coverage report to coveralls
           command: cat ./coverage/lcov.info | yarn coveralls
+  publish_to_npm:
+    executor: smart_contracts
+    working_directory: ~/repo
+    steps:
+      - attach_workspace:
+          at: ~/repo
+      - run:
+          name: Set package version
+          command: npm version 1.0.0-$CIRCLE_BUILD_NUM
+      - run:
+          name: Authenticate with registry
+          command: echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/repo/.npmrc
+      - run:
+          name: Publish to NPM
+          command: npm publish
 
 workflows:
   version: 2
   ci:
     jobs:
       - build_contracts
+      - publish_to_npm:
+          requires:
+            - build_contracts
+          filters:
+            branches:
+              only:
+                - master

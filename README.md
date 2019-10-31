@@ -67,6 +67,8 @@ console.log(events)
 
 ## Development
 
+**Note: Requires Node 12+**
+
 Install dependencies:
 
 ```

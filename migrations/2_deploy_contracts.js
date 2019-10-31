@@ -24,4 +24,9 @@ module.exports = async (deployer, network, accounts) => {
   await deployer.deploy(ACL)
   await deployer.deploy(FUCImpl, ACL.address, "fucImplementation")
   await deployer.deploy(FUCDeployer, ACL.address, FUCImpl.address)
+
+  if (network !== 'coverage') {
+    const MatchingMarket = artifacts.require("./MatchingMarket.sol")
+    await deployer.deploy(MatchingMarket, '0xFFFFFFFFFFFFFFFF')
+  }
 }

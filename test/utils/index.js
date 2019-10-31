@@ -1,10 +1,10 @@
 import { EthHdWallet } from 'eth-hd-wallet'
 import _ from 'lodash'
-import { toBN, isBN } from 'web3-utils'
 import chai from 'chai'
 import { parseLog } from 'ethereum-event-logs'
 import chaiAsPromised from 'chai-as-promised'
 
+import { toBN, isBN } from './web3'
 import { ensureErc1820RegistryIsDeployed } from '../../migrations/utils'
 
 chai.use((_chai, utils) => {

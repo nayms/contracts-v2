@@ -1,5 +1,4 @@
-import { toHex, toWei, sha3 } from 'web3-utils'
-
+import { toHex, toWei, sha3 } from './utils/web3'
 import { ensureErc1820RegistryIsDeployed } from '../migrations/utils'
 import { ADDRESS_ZERO, hdWallet } from './utils'
 import { events } from '../'

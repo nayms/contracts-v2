@@ -1,5 +1,4 @@
-import { toHex, toWei } from 'web3-utils'
-
+import { toHex, toWei } from './utils/web3'
 import { ensureErc1820RegistryIsDeployed } from '../migrations/utils'
 import { extractEventArgs } from './utils'
 import { events } from '../'

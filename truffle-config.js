@@ -1,3 +1,4 @@
+const { Compiler } = require('@0x/sol-compiler')
 const ProviderEngine = require("web3-provider-engine")
 const WebsocketSubprovider = require("web3-provider-engine/subproviders/websocket.js")
 const { TruffleArtifactAdapter, RevertTraceSubprovider } = require("@0x/sol-trace")

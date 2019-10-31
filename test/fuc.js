@@ -1,4 +1,4 @@
-import { toHex, toWei, sha3, asciiToHex } from 'web3-utils'
+import { toHex, toWei, sha3, asciiToHex } from './utils/web3'
 
 import {
   parseEvents,

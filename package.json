@@ -1,6 +1,6 @@
 {
   "name": "@nayms/contracts",
-  "version": "1.0.0-2",
+  "version": "1.0.0",
   "description": "Nayms smart contracts",
   "main": "index.js",
   "publishConfig": {
@@ -19,8 +19,8 @@
     "profile": "MODE=profile yarn test && istanbul report lcov",
     "test": "yarn truffle test --network test",
     "trace": "MODE=trace yarn test",
-    "compile": "yarn truffle compile",
-    "migrate": "yarn truffle migrate",
+    "copy-maker-otc-artifacts": "cp maker-otc/build/contracts/*.json build/contracts",
+    "compile": "yarn truffle compile && yarn copy-maker-otc-artifacts",
     "sol-compiler": "sol-compiler",
     "sol-compiler:watch": "sol-compiler -w",
     "deploy:mainnet": "yarn truffle networks --clean && yarn truffle migrate --network mainnet && scripts/extractDeployedAddresses.js",
@@ -33,7 +33,7 @@
   "author": "Ramesh Nair <ram@hiddentao.com>",
   "license": "ISC",
   "devDependencies": {
-    "@0x/sol-compiler": "^3.1.9",
+    "@0x/sol-compiler": "^3.1.15",
     "@0x/sol-profiler": "^3.1.8",
     "@0x/sol-trace": "^2.0.14",
     "argv": "0.0.2",
@@ -63,10 +63,9 @@
     "truffle": "^5.0.40",
     "truffle-hdwallet-provider": "^1.0.0-web3one.0",
     "uuid": "^3.0.1",
-    "web3": "1.0.0-beta.33",
+    "web3": "1.2.2",
     "web3-eth-abi": "^1.0.0-beta.55",
     "web3-provider-engine": "^15.0.0",
-    "web3-utils": "^1.0.0-beta.36",
     "yargs": "^9.0.1"
   },
   "dependencies": {
@@ -74,6 +73,6 @@
     "ethereum-event-logs": "^1.3.1"
   },
   "engines": {
-    "node": ">=10.15.1"
+    "node": ">=12.0.0"
   }
 }

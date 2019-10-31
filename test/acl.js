@@ -1,8 +1,7 @@
-import { toHex, toWei, sha3 } from 'web3-utils'
-
 import { ensureErc1820RegistryIsDeployed } from '../migrations/utils'
 import { extractEventArgs } from './utils'
 import { events } from '../'
+import { toHex, toWei, sha3 } from './utils/web3'
 
 const ACL = artifacts.require("./base/ACL.sol")
 

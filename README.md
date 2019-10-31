@@ -67,10 +67,19 @@ console.log(events)
 
 ## Development
 
+**Note: Requires Node 12+**
+
 Install dependencies:
 
 ```
 yarn
+```
+
+Initialize git submodules (for maker-otc trading engine):
+
+```
+git submodule init
+git submodule update
 ```
 
 First, run the dev network in a separate terminal:
@@ -82,7 +91,7 @@ yarn devnet
 Now deploy the contracts to it:
 
 ```
-yarn migrate
+yarn deploy:local
 ```
 
 Now you can run the tests:

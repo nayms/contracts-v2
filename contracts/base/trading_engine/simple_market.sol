@@ -1,23 +1,7 @@
-/// simple_market.sol
+pragma solidity >=0.5.8;
 
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Affero General Public License for more details.
-//
-// You should have received a copy of the GNU Affero General Public License
-// along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-pragma solidity ^0.4.18;
-
-import "ds-math/math.sol";
-import "erc20/erc20.sol";
+import "../SafeMath.sol";
+import "../IERC20.sol";
 
 contract EventfulMarket {
     event LogItemUpdate(uint id);
@@ -28,8 +12,8 @@ contract EventfulMarket {
         bytes32  indexed  id,
         bytes32  indexed  pair,
         address  indexed  maker,
-        ERC20             pay_gem,
-        ERC20             buy_gem,
+        IERC20             pay_gem,
+        IERC20             buy_gem,
         uint128           pay_amt,
         uint128           buy_amt,
         uint64            timestamp
@@ -39,8 +23,8 @@ contract EventfulMarket {
         bytes32  indexed  id,
         bytes32  indexed  pair,
         address  indexed  maker,
-        ERC20             pay_gem,
-        ERC20             buy_gem,
+        IERC20             pay_gem,
+        IERC20             buy_gem,
         uint128           pay_amt,
         uint128           buy_amt,
         uint64            timestamp
@@ -50,8 +34,8 @@ contract EventfulMarket {
         bytes32           id,
         bytes32  indexed  pair,
         address  indexed  maker,
-        ERC20             pay_gem,
-        ERC20             buy_gem,
+        IERC20             pay_gem,
+        IERC20             buy_gem,
         address  indexed  taker,
         uint128           take_amt,
         uint128           give_amt,
@@ -62,8 +46,8 @@ contract EventfulMarket {
         bytes32  indexed  id,
         bytes32  indexed  pair,
         address  indexed  maker,
-        ERC20             pay_gem,
-        ERC20             buy_gem,
+        IERC20             pay_gem,
+        IERC20             buy_gem,
         uint128           pay_amt,
         uint128           buy_amt,
         uint64            timestamp
@@ -80,9 +64,9 @@ contract SimpleMarket is EventfulMarket, DSMath {
 
     struct OfferInfo {
         uint     pay_amt;
-        ERC20    pay_gem;
+        IERC20    pay_gem;
         uint     buy_amt;
-        ERC20    buy_gem;
+        IERC20    buy_gem;
         address  owner;
         uint64   timestamp;
     }
@@ -99,6 +83,7 @@ contract SimpleMarket is EventfulMarket, DSMath {
     }
 
     modifier can_offer {
+        require(!isPaused());
         _;
     }
 
@@ -109,15 +94,15 @@ contract SimpleMarket is EventfulMarket, DSMath {
         locked = false;
     }
 
-    function isActive(uint id) public constant returns (bool active) {
+    function isActive(uint id) public view returns (bool active) {
         return offers[id].timestamp > 0;
     }
 
-    function getOwner(uint id) public constant returns (address owner) {
+    function getOwner(uint id) public view returns (address owner) {
         return offers[id].owner;
     }
 
-    function getOffer(uint id) public constant returns (uint, ERC20, uint, ERC20) {
+    function getOffer(uint id) public view returns (uint, IERC20, uint, IERC20) {
       var offer = offers[id];
       return (offer.pay_amt, offer.pay_gem,
               offer.buy_amt, offer.buy_gem);
@@ -151,7 +136,7 @@ contract SimpleMarket is EventfulMarket, DSMath {
         returns (bool)
     {
         OfferInfo memory offer = offers[id];
-        uint spend = mul(quantity, offer.buy_amt) / offer.pay_amt;
+        uint spend = SafeMath.div(SafeMath.mul(quantity, offer.buy_amt), offer.pay_amt);
 
         require(uint128(spend) == spend);
         require(uint128(quantity) == quantity);
@@ -163,8 +148,8 @@ contract SimpleMarket is EventfulMarket, DSMath {
             return false;
         }
 
-        offers[id].pay_amt = sub(offer.pay_amt, quantity);
-        offers[id].buy_amt = sub(offer.buy_amt, spend);
+        offers[id].pay_amt = SafeMath.sub(offer.pay_amt, quantity);
+        offers[id].buy_amt = SafeMath.sub(offer.buy_amt, spend);
         require( offer.buy_gem.transferFrom(msg.sender, offer.owner, spend) );
         require( offer.pay_gem.transfer(msg.sender, quantity) );
 
@@ -224,8 +209,8 @@ contract SimpleMarket is EventfulMarket, DSMath {
     }
 
     function make(
-        ERC20    pay_gem,
-        ERC20    buy_gem,
+        IERC20    pay_gem,
+        IERC20    buy_gem,
         uint128  pay_amt,
         uint128  buy_amt
     )
@@ -236,7 +221,7 @@ contract SimpleMarket is EventfulMarket, DSMath {
     }
 
     // Make a new offer. Takes funds from the caller into market escrow.
-    function offer(uint pay_amt, ERC20 pay_gem, uint buy_amt, ERC20 buy_gem)
+    function offer(uint pay_amt, IERC20 pay_gem, uint buy_amt, IERC20 buy_gem)
         public
         can_offer
         synchronized
@@ -245,9 +230,9 @@ contract SimpleMarket is EventfulMarket, DSMath {
         require(uint128(pay_amt) == pay_amt);
         require(uint128(buy_amt) == buy_amt);
         require(pay_amt > 0);
-        require(pay_gem != ERC20(0x0));
+        require(pay_gem != IERC20(0x0));
         require(buy_amt > 0);
-        require(buy_gem != ERC20(0x0));
+        require(buy_gem != IERC20(0x0));
         require(pay_gem != buy_gem);
 
         OfferInfo memory info;

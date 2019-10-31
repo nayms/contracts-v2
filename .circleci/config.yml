@@ -4,7 +4,7 @@ version: 2.1
 executors:
   smart_contracts:
     docker:
-      - image: circleci/node:10.16.0
+      - image: circleci/node:12.13.0
       - image: trufflesuite/ganache-cli
         command: ganache-cli -a 10
 
@@ -36,6 +36,9 @@ jobs:
           path: ~/repo
       - install_node_modules:
           executor: contracts
+      - run:
+          name: Setup submodules
+          command: git submodule init && git submodule update
       - run:
           name: Compile
           command: yarn compile

@@ -1,7 +1,6 @@
 pragma solidity >=0.5.8;
 
 import "./expiring_market.sol";
-import "ds-note/note.sol";
 
 contract MatchingEvents {
     event LogBuyEnabled(bool isEnabled);
@@ -13,7 +12,7 @@ contract MatchingEvents {
     event LogDelete(address keeper, uint id);
 }
 
-contract MatchingMarket is MatchingEvents, ExpiringMarket, DSNote {
+contract MatchingMarket is MatchingEvents, ExpiringMarket {
     bool public buyEnabled = true;      //buy enabled
     bool public matchingEnabled = true; //true: enable matching,
                                          //false: revert to expiring market
@@ -201,7 +200,6 @@ contract MatchingMarket is MatchingEvents, ExpiringMarket, DSNote {
     )
         public
         auth
-        note
         returns (bool)
     {
         _dust[pay_gem] = dust;

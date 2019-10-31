@@ -5,7 +5,7 @@ import "./simple_market.sol";
 // Simple Market with a market lifetime. When the close_time has been reached,
 // offers can only be cancelled (offer and buy will throw).
 
-contract ExpiringMarket is DSAuth, SimpleMarket {
+contract ExpiringMarket is SimpleMarket {
     uint64 public close_time;
 
     // after close_time has been reached, no new offers are allowed

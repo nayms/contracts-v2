@@ -54,7 +54,7 @@ contract EventfulMarket {
     );
 }
 
-contract SimpleMarket is EventfulMarket, DSMath {
+contract SimpleMarket is EventfulMarket {
 
     uint public last_offer_id;
 

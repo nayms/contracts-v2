@@ -26,6 +26,7 @@ contract('Market', accounts => {
   let erc1820Registry
   let market
   let etherTokenAddress
+  let assetMgrRole
 
   before(async () => {
     etherTokenAddress = await ensureEtherTokenIsDeployed({ artifacts, accounts, web3 })
@@ -41,15 +42,41 @@ contract('Market', accounts => {
     )
     // now let's speak to FUC contract using FUCImpl ABI
     fuc = await IFUCImpl.at(fucProxy.address)
+
+    assetMgrRole = await fucProxy.ROLE_ASSET_MANAGER()
+
     // get market address
     market = await MatchingMarket.new('0xFFFFFFFFFFFFFFFF')
 
     // setup one tranch with 100 shares at 1 WEI per share
-    acl.assignRole("acme", accounts[0], await fuc.ROLE_ASSET_MANAGER()),
-    await fuc.createTranches([100], [1]).should.be.fulfilled
+    const r = await fucProxy.ROLE_ASSET_MANAGER()
+    acl.assignRole("acme", accounts[1], r),
+    await fuc.createTranch(100, 1, etherTokenAddress, { from: accounts[1] }).should.be.fulfilled
   })
 
-  it('todo!', async () => {
-    console.log('TODO!')
+  describe('tranches begin trading', async () => {
+    it('but not by an unauthorized person', async () => {
+      await fuc.beginTranchSale(0, market.address).should.be.rejectedWith('unauthorized')
+    })
+
+    it.only('by an authorized person', async () => {
+      const result = await fuc.beginTranchSale(0, market.address, { from: accounts[1] })
+
+      expect(extractEventArgs(result, events.BeginTranchSale)).to.include({
+        tranch: '0',
+        amount: '100',
+        price: '100',
+        unit: etherTokenAddress,
+      })
+    })
+
+    it('and can only do this once', async () => {
+      await fuc.beginTranchSale(0, market.address, { from: accounts[1] }).should.be.fulfilled
+      await fuc.beginTranchSale(0, market.address, { from: accounts[1] }).should.be.rejectedWith('sale already started')
+    })
+
+    it('by creating a sell offer', async () => {
+      await fuc.beginTranchSale(0, market.address, { from: accounts[1] }).should.be.fulfilled
+    })
   })
 })

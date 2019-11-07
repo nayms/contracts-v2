@@ -102,18 +102,21 @@ contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, TranchT
     address creator = dataAddress[creatorKey];
     uint256 currentBalance = tknBalanceOf(_index, creator);
     uint256 totalSupply = tknTotalSupply(_index);
-    require(currentBalance == totalSupply, 'tranch sale already started');
+    require(currentBalance == totalSupply, 'sale already started');
 
     string memory pricePerShareKey = string(abi.encodePacked(_index, "pricePerShare"));
     string memory pricePerShareUnitKey = string(abi.encodePacked(_index, "pricePerShareUnit"));
     uint256 pricePerShare = dataUint256[pricePerShareKey];
     address unit = dataAddress[pricePerShareUnitKey];
+    string memory tranchAddressKey = string(abi.encodePacked(_index, "address"));
+    address tranchAddress = dataAddress[tranchAddressKey];
 
     IMarket mkt = IMarket(_market);
     uint256 totalPrice = currentBalance.mul(pricePerShare);
-    mkt.offer(currentBalance, address(this), totalPrice, unit);
 
-    emit BeginTranchSale(_index, _market, unit, totalPrice);
+    mkt.offer(currentBalance, tranchAddress, totalPrice, unit);
+
+    emit BeginTranchSale(_index, currentBalance, totalPrice, unit);
   }
 
   // TranchTokenImpl - queries //

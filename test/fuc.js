@@ -178,7 +178,7 @@ contract('FUC', accounts => {
     })
   })
 
-  describe.only('tranches', () => {
+  describe('tranches', () => {
     const tranchNumShares = 10
     const tranchPricePerShare = 100
 

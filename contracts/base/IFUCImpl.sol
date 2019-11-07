@@ -23,8 +23,8 @@ interface IFUCImpl {
 
   event BeginTranchSale(
     uint256 indexed tranch,
-    address market,
-    address priceUnit,
-    uint256 totalPrice
+    uint256 indexed amount,
+    uint256 indexed price,
+    address unit
   );
 }

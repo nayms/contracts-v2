@@ -50,6 +50,7 @@
     "etherscan-api": "^3.0.11",
     "ethval": "^1.3.0",
     "faker": "^4.1.0",
+    "ganache-cli": "^6.7.0",
     "get-stdin": "^7.0.0",
     "husky": "^3.0.3",
     "lodash": "^4.17.11",

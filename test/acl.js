@@ -148,6 +148,41 @@ contract('ACL', accounts => {
     })
   })
 
+  describe('can have a role group set', async () => {
+    const group1 = sha3('group1')
+
+    it('but not by a non-admin', async () => {
+      await acl.setRoleGroup(group1, [ role1, role2 ], { from: accounts[1] }).should.be.rejectedWith('unauthorized')
+    })
+
+    it('by an admin', async () => {
+      await acl.setRoleGroup(group1, [ role1, role2 ]).should.be.fulfilled
+      await acl.roleGroups(group1, 0).should.eventually.eq(role1)
+      await acl.roleGroups(group1, 1).should.eventually.eq(role2)
+    })
+
+    it('and it works with role checking', async () => {
+      await acl.assignRole('context', accounts[1], role2)
+
+      await acl.setRoleGroup(group1, [ role1 ]).should.be.fulfilled
+      await acl.hasRoleInGroup('context', group1, accounts[1]).should.eventually.eq(false)
+
+      await acl.setRoleGroup(group1, [ role1, role2 ]).should.be.fulfilled
+      await acl.hasRoleInGroup('context', group1, accounts[1]).should.eventually.eq(true)
+
+      await acl.setRoleGroup(group1, []).should.be.fulfilled
+      await acl.hasRoleInGroup('context', group1, accounts[1]).should.eventually.eq(false)
+    })
+
+    it('and emits an event when successful', async () => {
+      const result = await acl.setRoleGroup(group1, [ role1, role2 ]).should.be.fulfilled
+
+      expect(extractEventArgs(result, events.RoleGroupUpdated)).to.include({
+        roleGroup: group1
+      })
+    })
+  })
+
   describe('can have a role assigned', async () => {
     it('but not by a non-admin', async () => {
       await acl.assignRole('test', accounts[2], role1, { from: accounts[1] }).should.be.rejectedWith('unauthorized')

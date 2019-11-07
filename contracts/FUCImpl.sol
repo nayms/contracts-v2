@@ -17,6 +17,7 @@ import "./FUCTranch.sol";
  * @dev Business-logic for FUC
  */
 contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, TranchTokenImpl {
+  using SafeMath for uint;
   using Address for address;
 
   /* ERC 1820 stuff */
@@ -53,42 +54,38 @@ contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, TranchT
     return dataString["name"];
   }
 
-  function createTranches (
-    uint256[] memory _tranchNumShares,
-    uint256[] memory _tranchInitialPricePerShare,
-    address _tranchInitialPricePerShareUnit
+  function createTranch (
+    uint256 _numShares,
+    uint256 _initialPricePerShare,
+    address _initialPricePerShareUnit
   ) assertCanCreatePolicyTranches public {
-    uint256 _numTranches = _tranchNumShares.length;
-
-    require(_numTranches > 0, 'need atleast 1 tranch');
-    require(_tranchInitialPricePerShare.length == _numTranches, 'price-per-share array length mismatch');
+    require(_numShares > 0, 'invalid num of shares');
+    require(_initialPricePerShare > 0, 'invalid price');
+    require(_initialPricePerShareUnit != address(0), 'invalid price unit');
 
     // instantiate tranches
-    uint256 existingNumTranches = dataUint256["numTranches"];
+    uint256 i = dataUint256["numTranches"];
+    dataUint256["numTranches"] = i + 1;
 
-    dataUint256["numTranches"] = existingNumTranches + _numTranches;
+    // setup initial data for tranch
+    string memory numSharesKey = string(abi.encodePacked(i, "numShares"));
+    string memory pricePerShareKey = string(abi.encodePacked(i, "pricePerShare"));
+    string memory pricePerShareUnitKey = string(abi.encodePacked(i, "pricePerShareUnit"));
+    dataUint256[numSharesKey] = _numShares;
+    dataUint256[pricePerShareKey] = _initialPricePerShare;
+    dataAddress[pricePerShareUnitKey] = _initialPricePerShareUnit;
+    // sender holds all shares initially
+    string memory creatorKey = string(abi.encodePacked(i, "creator"));
+    dataAddress[creatorKey] = msg.sender;
+    string memory creatorBalanceKey = string(abi.encodePacked(i, msg.sender, "balance"));
+    dataUint256[creatorBalanceKey] = _numShares;
+    // deploy token contract
+    FUCTranch t = new FUCTranch(address(this), i);
+    // save reference
+    string memory addressKey = string(abi.encodePacked(i, "address"));
+    dataAddress[addressKey] = address(t);
 
-    for (uint256 i = existingNumTranches; i < dataUint256["numTranches"]; i++) {
-      // setup initial data for tranch
-      string memory numSharesKey = string(abi.encodePacked(i, "numShares"));
-      string memory pricePerShareKey = string(abi.encodePacked(i, "pricePerShare"));
-      string memory pricePerShareUnitKey = string(abi.encodePacked(i, "pricePerShareUnit"));
-      dataUint256[numSharesKey] = _tranchNumShares[i - existingNumTranches];
-      dataUint256[pricePerShareKey] = _tranchInitialPricePerShare[i - existingNumTranches];
-      dataAddress[pricePerShareUnitKey] = _tranchInitialPricePerShareUnit;
-      // sender holds all shares initially
-      string memory creatorKey = string(abi.encodePacked(i, "creator"))
-      dataAddress[creatorKey] = msg.sender;
-      string memory creatorBalanceKey = string(abi.encodePacked(i, msg.sender, "balance"));
-      dataUint256[creatorBalanceKey] = dataUint256[numSharesKey];
-      // deploy token contract
-      FUCTranch t = new FUCTranch(address(this), i);
-      // save reference
-      string memory addressKey = string(abi.encodePacked(i, "address"));
-      dataAddress[addressKey] = address(t);
-
-      emit CreateTranch(address(this), address(t), i);
-    }
+    emit CreateTranch(address(this), address(t), i);
   }
 
   function getNumTranches () public view returns (uint256) {
@@ -101,26 +98,22 @@ contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, TranchT
   }
 
   function beginTranchSale(uint256 _index, address _market) assertCanStartTranchSale public {
-    string memory creatorKey = string(abi.encodePacked(i, "creator"))
+    string memory creatorKey = string(abi.encodePacked(_index, "creator"));
     address creator = dataAddress[creatorKey];
     uint256 currentBalance = tknBalanceOf(_index, creator);
     uint256 totalSupply = tknTotalSupply(_index);
-    require(bal == totalSupply, 'tranch sale already started');
+    require(currentBalance == totalSupply, 'tranch sale already started');
 
-    string memory pricePerShareKey = string(abi.encodePacked(i, "pricePerShare"));
-    string memory pricePerShareUnitKey = string(abi.encodePacked(i, "pricePerShareUnit"));
+    string memory pricePerShareKey = string(abi.encodePacked(_index, "pricePerShare"));
+    string memory pricePerShareUnitKey = string(abi.encodePacked(_index, "pricePerShareUnit"));
     uint256 pricePerShare = dataUint256[pricePerShareKey];
-    address unit = dataAddress[pricePerShareUnitKey]
+    address unit = dataAddress[pricePerShareUnitKey];
 
     IMarket mkt = IMarket(_market);
-    mkt.offer(bal, address(this), SafeMath.mul(bal, pricePerShare), unit);
+    uint256 totalPrice = currentBalance.mul(pricePerShare);
+    mkt.offer(currentBalance, address(this), totalPrice, unit);
 
-    event BeginTranchSale(
-      address indexed tranch,
-      address market,
-      address priceUnit,
-      uint256 priceAmt,
-    );
+    emit BeginTranchSale(_index, _market, unit, totalPrice);
   }
 
   // TranchTokenImpl - queries //
@@ -213,8 +206,8 @@ contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, TranchT
 
     require(dataUint256[fromKey] >= _value, 'not enough balance');
 
-    dataUint256[fromKey] = SafeMath.sub(dataUint256[fromKey], _value);
-    dataUint256[toKey] = SafeMath.add(dataUint256[toKey], _value);
+    dataUint256[fromKey] = dataUint256[fromKey].sub(_value);
+    dataUint256[toKey] = dataUint256[toKey].add(_value);
   }
 
   // re-entrancy protection

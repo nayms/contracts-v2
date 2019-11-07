@@ -41,6 +41,9 @@ contract('FUC', accounts => {
   let erc1820Registry
   let etherTokenAddress
 
+  let assetMgrRole
+  let clientMgrRole
+
   before(async () => {
     await ensureErc1820RegistryIsDeployed({ artifacts, accounts, web3 })
     etherTokenAddress = await ensureEtherTokenIsDeployed({ artifacts, accounts, web3 })
@@ -58,6 +61,9 @@ contract('FUC', accounts => {
     fuc = await IFUCImpl.at(fucProxy.address)
 
     erc1820Registry = await IERC1820Registry.at(ERC1820_DEPLOYED_ADDRESS)
+
+    assetMgrRole = await fucProxy.ROLE_ASSET_MANAGER()
+    clientMgrRole = await fucProxy.ROLE_CLIENT_MANAGER()
   })
 
   it('must be deployed with a valid implementation', async () => {
@@ -86,7 +92,7 @@ contract('FUC', accounts => {
     })
 
     it('if caller has correct ability', async () => {
-      await acl.assignRole("acme", accounts[2], await fucProxy.ROLE_ASSET_MANAGER())
+      await acl.assignRole("acme", accounts[2], assetMgrRole)
       await fuc.setName('fuc2', { from: accounts[2] }).should.be.fulfilled;
       await fuc.getName().should.eventually.eq('fuc2')
     })
@@ -94,16 +100,9 @@ contract('FUC', accounts => {
 
   describe('implements access control', async () => {
     beforeEach(async () => {
-      const roles = await Promise.all([
-        fucProxy.ROLE_ASSET_MANAGER(),
-        fucProxy.ROLE_CLIENT_MANAGER(),
-      ])
-
-      expect(roles.length).to.eq(4)
-
       await Promise.all([
-        acl.assignRole("acme", accounts[3], roles[0]),
-        acl.assignRole("acme", accounts[5], roles[1]),
+        acl.assignRole("acme", accounts[3], assetMgrRole),
+        acl.assignRole("acme", accounts[5], clientMgrRole),
       ])
     })
 
@@ -132,10 +131,7 @@ contract('FUC', accounts => {
 
     beforeEach(async () => {
       // assign asset manager
-      const assetMgrRole = await fucProxy.ROLE_ASSET_MANAGER()
       await acl.assignRole("acme", accounts[3], assetMgrRole)
-
-      const clientMgrRole = await fucProxy.ROLE_CLIENT_MANAGER()
       await acl.assignRole("acme", accounts[4], clientMgrRole)
 
       // deploy new implementation
@@ -182,103 +178,86 @@ contract('FUC', accounts => {
     })
   })
 
-  describe('tranches', () => {
-    const tranchNumShares = [10, 50, 40]
-    const tranchPricePerShare = [100, 200, 300]
+  describe.only('tranches', () => {
+    const tranchNumShares = 10
+    const tranchPricePerShare = 100
 
     beforeEach(async () => {
-      acl.assignRole("acme", accounts[2], await fuc.ROLE_ASSET_MANAGER())
+      acl.assignRole("acme", accounts[2], assetMgrRole)
     })
 
     it('cannot be created without correct ability', async () => {
-      await fuc.createTranches(tranchNumShares, tranchPricePerShare, etherTokenAddress).should.be.rejectedWith('unauthorized')
+      await fuc.createTranch(tranchNumShares, tranchPricePerShare, etherTokenAddress).should.be.rejectedWith('unauthorized')
     })
 
-    it('count must be greater than 0', async () => {
-      await fuc.createTranches([], [], etherTokenAddress, { from: accounts[2] }).should.be.rejectedWith('need atleast 1 tranch')
-    })
-
-    it('must have correct data', async () => {
-      await fuc.createTranches([1, 2], [1], etherTokenAddress, { from: accounts[2] }).should.be.rejectedWith('price-per-share array length mismatch')
-      await fuc.createTranches([1], [1, 2], etherTokenAddress, { from: accounts[2] }).should.be.rejectedWith('price-per-share array length mismatch')
+    it('all values must be valid', async () => {
+      await fuc.createTranch(0, 100, etherTokenAddress, { from: accounts[2] }).should.be.rejectedWith('invalid num of shares')
+      await fuc.createTranch(100, 0, etherTokenAddress, { from: accounts[2] }).should.be.rejectedWith('invalid price')
+      await fuc.createTranch(1, 1, ADDRESS_ZERO, { from: accounts[2] }).should.be.rejectedWith('invalid price unit')
     })
 
     it('can be created', async () => {
-      const result = await fuc.createTranches(tranchNumShares, tranchPricePerShare, etherTokenAddress, { from: accounts[2] }).should.be.fulfilled
+      const result = await fuc.createTranch(tranchNumShares, tranchPricePerShare, etherTokenAddress, { from: accounts[2] }).should.be.fulfilled
 
-      const logs = parseEvents(result, events.CreateTranch)
+      const [ log ] = parseEvents(result, events.CreateTranch)
 
-      expect(logs.length).to.eq(3)
+      expect(log.args.fuc).to.eq(fuc.address)
+      expect(log.args.tranch).to.eq(await fuc.getTranch(0))
+      expect(log.args.index).to.eq('0')
 
-      for (let i = 0; 3 > i; i += 1) {
-        expect(logs[i].args.fuc).to.eq(fuc.address)
-        expect(logs[i].args.tranch).to.eq(await fuc.getTranch(i))
-        expect(logs[i].args.index).to.eq(`${i}`)
-      }
-
-      await fuc.getNumTranches().should.eventually.eq(3)
-
-      const addresses = {}
-
-      await Promise.all(_.range(0, 3).map(async i => {
-        const addr = await fuc.getTranch(i)
-
-        expect(!addresses[addr]).to.be.true
-        expect(addr.length).to.eq(42)
-        addresses[addr] = true
-      }))
-
-      expect(Object.keys(addresses).length).to.eq(3)
+      await fuc.getNumTranches().should.eventually.eq(1)
+      const addr = await fuc.getTranch(0)
+      expect(addr.length).to.eq(42)
     })
 
     it('can be created more than once', async () => {
-      await fuc.createTranches(tranchNumShares, tranchPricePerShare, etherTokenAddress, { from: accounts[2] }).should.be.fulfilled
-      await fuc.createTranches(tranchNumShares, tranchPricePerShare, etherTokenAddress, { from: accounts[2] }).should.be.fulfilled
+      await fuc.createTranch(tranchNumShares, tranchPricePerShare, etherTokenAddress, { from: accounts[2] }).should.be.fulfilled
+      await fuc.createTranch(tranchNumShares + 1, tranchPricePerShare + 2, etherTokenAddress, { from: accounts[2] }).should.be.fulfilled
 
-      await fuc.getNumTranches().should.eventually.eq(6)
+      await fuc.getNumTranches().should.eventually.eq(2)
 
       const addresses = {}
 
-      await Promise.all(_.range(0, 6).map(async i => {
+      await Promise.all(_.range(0, 2).map(async i => {
         const addr = await fuc.getTranch(i)
         expect(!addresses[addr]).to.be.true
         expect(addr.length).to.eq(42)
         addresses[addr] = true
       }))
 
-      expect(Object.keys(addresses).length).to.eq(6)
+      expect(Object.keys(addresses).length).to.eq(2)
     })
 
     describe('are ERC20 tokens', () => {
       beforeEach(async () => {
-        acl.assignRole("acme", accounts[0], await fuc.ROLE_ASSET_MANAGER())
-        await fuc.createTranches(tranchNumShares, tranchPricePerShare, etherTokenAddress)
-        await fuc.createTranches(tranchNumShares, tranchPricePerShare, etherTokenAddress)
+        acl.assignRole("acme", accounts[0], assetMgrRole)
+        await fuc.createTranch(tranchNumShares, tranchPricePerShare, etherTokenAddress)
+        await fuc.createTranch(tranchNumShares, tranchPricePerShare, etherTokenAddress)
       })
 
       it('which have basic details', async () => {
         let done = 0
 
-        await Promise.all(_.range(0, 6).map(async i => {
+        await Promise.all(_.range(0, 2).map(async i => {
           const tkn = await IERC20.at(await fuc.getTranch(i))
 
           const NAME = 'fuc1_tranch_\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000' + String.fromCodePoint(i)
 
           await tkn.name().should.eventually.eq(NAME)
           await tkn.symbol().should.eventually.eq(NAME)
-          await tkn.totalSupply().should.eventually.eq(tranchNumShares[i % 3])
+          await tkn.totalSupply().should.eventually.eq(tranchNumShares)
           await tkn.decimals().should.eventually.eq(18)
 
           done++
         }))
 
-        expect(done).to.eq(6)
+        expect(done).to.eq(2)
       })
 
       it('which have all supply initially allocated to creator', async () => {
         let done = 0
 
-        await Promise.all(_.range(0, 6).map(async i => {
+        await Promise.all(_.range(0, 2).map(async i => {
           const tkn = await IERC20.at(await fuc.getTranch(i))
 
           await tkn.balanceOf(accounts[0]).should.eventually.eq(await tkn.totalSupply())
@@ -286,7 +265,7 @@ contract('FUC', accounts => {
           done++
         }))
 
-        expect(done).to.eq(6)
+        expect(done).to.eq(2)
       })
 
       describe('which support operations', () => {
@@ -367,34 +346,34 @@ contract('FUC', accounts => {
 
     describe('are ERC777 tokens', () => {
       beforeEach(async () => {
-        acl.assignRole("acme", accounts[0], await fuc.ROLE_ASSET_MANAGER())
-        await fuc.createTranches(tranchNumShares, tranchPricePerShare, etherTokenAddress)
-        await fuc.createTranches(tranchNumShares, tranchPricePerShare, etherTokenAddress)
+        acl.assignRole("acme", accounts[0], assetMgrRole)
+        await fuc.createTranch(tranchNumShares, tranchPricePerShare, etherTokenAddress)
+        await fuc.createTranch(tranchNumShares, tranchPricePerShare, etherTokenAddress)
       })
 
       it('which have basic details', async () => {
         let done = 0
 
-        await Promise.all(_.range(0, 6).map(async i => {
+        await Promise.all(_.range(0, 2).map(async i => {
           const tkn = await IERC777.at(await fuc.getTranch(i))
 
           const NAME = 'fuc1_tranch_\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000' + String.fromCodePoint(i)
 
           await tkn.name().should.eventually.eq(NAME)
           await tkn.symbol().should.eventually.eq(NAME)
-          await tkn.totalSupply().should.eventually.eq(tranchNumShares[i % 3])
+          await tkn.totalSupply().should.eventually.eq(tranchNumShares)
           await tkn.granularity().should.eventually.eq(1)
 
           done++
         }))
 
-        expect(done).to.eq(6)
+        expect(done).to.eq(2)
       })
 
       it('which have all supply initially allocated to creator', async () => {
         let done = 0
 
-        await Promise.all(_.range(0, 6).map(async i => {
+        await Promise.all(_.range(0, 2).map(async i => {
           const tkn = await IERC777.at(await fuc.getTranch(i))
 
           await tkn.balanceOf(accounts[0]).should.eventually.eq(await tkn.totalSupply())
@@ -402,13 +381,13 @@ contract('FUC', accounts => {
           done++
         }))
 
-        expect(done).to.eq(6)
+        expect(done).to.eq(2)
       })
 
       it('which have an empty list of default operators', async () => {
         let done = 0
 
-        await Promise.all(_.range(0, 6).map(async i => {
+        await Promise.all(_.range(0, 2).map(async i => {
           const tkn = await IERC777.at(await fuc.getTranch(i))
 
           await tkn.defaultOperators().should.eventually.eq([])
@@ -416,7 +395,7 @@ contract('FUC', accounts => {
           done++
         }))
 
-        expect(done).to.eq(6)
+        expect(done).to.eq(2)
       })
 
       describe('which support operations', () => {

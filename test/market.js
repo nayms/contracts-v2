@@ -27,7 +27,7 @@ contract('Market', accounts => {
   let market
   let etherTokenAddress
 
-  before(asyn () => {
+  before(async () => {
     etherTokenAddress = await ensureEtherTokenIsDeployed({ artifacts, accounts, web3 })
   })
 

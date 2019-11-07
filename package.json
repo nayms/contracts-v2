@@ -7,6 +7,7 @@
     "access": "public"
   },
   "files": [
+    "constants.js",
     "build/**",
     "contracts/**",
     "deployedAddresses.json"

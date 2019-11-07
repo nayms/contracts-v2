@@ -20,17 +20,17 @@ contract AccessControl is EternalStorage {
   }
 
   modifier assertCanCreatePolicyTranches () {
-    require(isAssetManagerAgent(msg.sender), 'unauthorized');
+    require(isAssetManager(msg.sender), 'unauthorized');
     _;
   }
 
   modifier assertCanStartTranchSale () {
-    require(isAssetManagerAgent(msg.sender), 'unauthorized');
+    require(isAssetManager(msg.sender), 'unauthorized');
     _;
   }
 
   modifier assertCanUpdatePolicyDetails () {
-    require(isAssetManagerAgent(msg.sender), 'unauthorized');
+    require(isAssetManager(msg.sender), 'unauthorized');
     _;
   }
 

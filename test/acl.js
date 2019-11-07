@@ -1,9 +1,9 @@
-import { ensureErc1820RegistryIsDeployed } from '../migrations/utils'
+import { ensureErc1820RegistryIsDeployed } from '../migrations/utils/erc1820'
 import { extractEventArgs } from './utils'
 import { events } from '../'
 import { toHex, toWei, sha3 } from './utils/web3'
 
-const ACL = artifacts.require("./base/ACL.sol")
+const ACL = artifacts.require("./base/ACL")
 
 contract('ACL', accounts => {
   const role1 = sha3('testrole1')

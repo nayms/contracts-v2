@@ -4,22 +4,26 @@ import {
   parseEvents,
   extractEventArgs,
   hdWallet,
-  ERC1820_REGISTRY_ADDRESS,
   ADDRESS_ZERO,
-  TOKENS_SENDER_INTERFACE_HASH,
-  TOKENS_RECIPIENT_INTERFACE_HASH
 } from './utils'
 import { events } from '../'
 
-import { ensureErc1820RegistryIsDeployed, ERC1820_DEPLOYED_ADDRESS } from '../migrations/utils'
+import {
+  ensureErc1820RegistryIsDeployed,
+  ERC1820_DEPLOYED_ADDRESS,
+  TOKENS_SENDER_INTERFACE_HASH,
+  TOKENS_RECIPIENT_INTERFACE_HASH
+} from '../migrations/utils/erc1820'
 
-const ACL = artifacts.require("./base/ACL.sol")
-const IProxyImpl = artifacts.require("./base/IProxyImpl.sol")
-const IFUCImpl = artifacts.require("./base/IFUCImpl.sol")
-const IERC20 = artifacts.require("./base/IERC20.sol")
-const IERC777 = artifacts.require("./base/IERC777.sol")
-const FUC = artifacts.require("./FUC.sol")
-const FUCImpl = artifacts.require("./FUCImpl.sol")
+import { ensureEtherTokenIsDeployed } from '../migrations/utils/etherToken'
+
+const ACL = artifacts.require("./base/ACL")
+const IProxyImpl = artifacts.require("./base/IProxyImpl")
+const IFUCImpl = artifacts.require("./base/IFUCImpl")
+const IERC20 = artifacts.require("./base/IERC20")
+const IERC777 = artifacts.require("./base/IERC777")
+const FUC = artifacts.require("./FUC")
+const FUCImpl = artifacts.require("./FUCImpl")
 const IERC1820Registry = artifacts.require('./base/IERC1820Registry')
 const DummyERC777TokensSender = artifacts.require('./test/DummyERC777TokensSender')
 const DummyERC777TokensRecipient = artifacts.require('./test/DummyERC777TokensRecipient')
@@ -35,10 +39,11 @@ contract('FUC', accounts => {
   let fucProxy
   let fuc
   let erc1820Registry
-  let _accounts
+  let etherTokenAddress
 
   before(async () => {
     await ensureErc1820RegistryIsDeployed({ artifacts, accounts, web3 })
+    etherTokenAddress = await ensureEtherTokenIsDeployed({ artifacts, accounts, web3 })
   })
 
   beforeEach(async () => {
@@ -80,15 +85,9 @@ contract('FUC', accounts => {
       await fuc.setName('fuc2').should.be.rejectedWith('unauthorized');
     })
 
-    it('if caller is an asset manager', async () => {
-      await acl.assignRole("acme", accounts[0], sha3("roleAssetManager"))
-      await fuc.setName('fuc2').should.be.fulfilled;
-      await fuc.getName().should.eventually.eq('fuc2')
-    })
-
-    it('if caller is an asset manager agent', async () => {
-      await acl.assignRole("acme", accounts[0], sha3("roleAssetManagerAgent"))
-      await fuc.setName('fuc2').should.be.fulfilled;
+    it('if caller has correct ability', async () => {
+      await acl.assignRole("acme", accounts[2], await fucProxy.ROLE_ASSET_MANAGER())
+      await fuc.setName('fuc2', { from: accounts[2] }).should.be.fulfilled;
       await fuc.getName().should.eventually.eq('fuc2')
     })
   })
@@ -97,18 +96,14 @@ contract('FUC', accounts => {
     beforeEach(async () => {
       const roles = await Promise.all([
         fucProxy.ROLE_ASSET_MANAGER(),
-        fucProxy.ROLE_ASSET_MANAGER_AGENT(),
         fucProxy.ROLE_CLIENT_MANAGER(),
-        fucProxy.ROLE_CLIENT_MANAGER_AGENT(),
       ])
 
       expect(roles.length).to.eq(4)
 
       await Promise.all([
         acl.assignRole("acme", accounts[3], roles[0]),
-        acl.assignRole("acme", accounts[4], roles[1]),
-        acl.assignRole("acme", accounts[5], roles[2]),
-        acl.assignRole("acme", accounts[6], roles[3]),
+        acl.assignRole("acme", accounts[5], roles[1]),
       ])
     })
 
@@ -120,28 +115,12 @@ contract('FUC', accounts => {
       await fucProxy.isAssetManager(accounts[6]).should.eventually.eq(false)
     })
 
-    it('and can confirm if someone is an asset manager agent', async () => {
-      await fucProxy.isAssetManagerAgent(accounts[0]).should.eventually.eq(false)
-      await fucProxy.isAssetManagerAgent(accounts[3]).should.eventually.eq(true)
-      await fucProxy.isAssetManagerAgent(accounts[4]).should.eventually.eq(true)
-      await fucProxy.isAssetManagerAgent(accounts[5]).should.eventually.eq(false)
-      await fucProxy.isAssetManagerAgent(accounts[6]).should.eventually.eq(false)
-    })
-
     it('and can confirm if someone is a client manager', async () => {
       await fucProxy.isClientManager(accounts[0]).should.eventually.eq(false)
       await fucProxy.isClientManager(accounts[3]).should.eventually.eq(false)
       await fucProxy.isClientManager(accounts[4]).should.eventually.eq(false)
       await fucProxy.isClientManager(accounts[5]).should.eventually.eq(true)
       await fucProxy.isClientManager(accounts[6]).should.eventually.eq(false)
-    })
-
-    it('and can confirm if someone is a client manager agent', async () => {
-      await fucProxy.isClientManagerAgent(accounts[0]).should.eventually.eq(false)
-      await fucProxy.isClientManagerAgent(accounts[3]).should.eventually.eq(false)
-      await fucProxy.isClientManagerAgent(accounts[4]).should.eventually.eq(false)
-      await fucProxy.isClientManagerAgent(accounts[5]).should.eventually.eq(true)
-      await fucProxy.isClientManagerAgent(accounts[6]).should.eventually.eq(true)
     })
   })
 
@@ -207,17 +186,25 @@ contract('FUC', accounts => {
     const tranchNumShares = [10, 50, 40]
     const tranchPricePerShare = [100, 200, 300]
 
+    beforeEach(async () => {
+      acl.assignRole("acme", accounts[2], await fuc.ROLE_ASSET_MANAGER())
+    })
+
+    it('cannot be created without correct ability', async () => {
+      await fuc.createTranches(tranchNumShares, tranchPricePerShare, etherTokenAddress).should.be.rejectedWith('unauthorized')
+    })
+
     it('count must be greater than 0', async () => {
-      await fuc.createTranches([], []).should.be.rejectedWith('need atleast 1 tranch')
+      await fuc.createTranches([], [], etherTokenAddress, { from: accounts[2] }).should.be.rejectedWith('need atleast 1 tranch')
     })
 
     it('must have correct data', async () => {
-      await fuc.createTranches([1, 2], [1]).should.be.rejectedWith('price-per-share array length mismatch')
-      await fuc.createTranches([1], [1, 2]).should.be.rejectedWith('price-per-share array length mismatch')
+      await fuc.createTranches([1, 2], [1], etherTokenAddress, { from: accounts[2] }).should.be.rejectedWith('price-per-share array length mismatch')
+      await fuc.createTranches([1], [1, 2], etherTokenAddress, { from: accounts[2] }).should.be.rejectedWith('price-per-share array length mismatch')
     })
 
     it('can be created', async () => {
-      const result = await fuc.createTranches(tranchNumShares, tranchPricePerShare).should.be.fulfilled
+      const result = await fuc.createTranches(tranchNumShares, tranchPricePerShare, etherTokenAddress, { from: accounts[2] }).should.be.fulfilled
 
       const logs = parseEvents(result, events.CreateTranch)
 
@@ -245,8 +232,8 @@ contract('FUC', accounts => {
     })
 
     it('can be created more than once', async () => {
-      await fuc.createTranches(tranchNumShares, tranchPricePerShare).should.be.fulfilled
-      await fuc.createTranches(tranchNumShares, tranchPricePerShare).should.be.fulfilled
+      await fuc.createTranches(tranchNumShares, tranchPricePerShare, etherTokenAddress, { from: accounts[2] }).should.be.fulfilled
+      await fuc.createTranches(tranchNumShares, tranchPricePerShare, etherTokenAddress, { from: accounts[2] }).should.be.fulfilled
 
       await fuc.getNumTranches().should.eventually.eq(6)
 
@@ -264,8 +251,9 @@ contract('FUC', accounts => {
 
     describe('are ERC20 tokens', () => {
       beforeEach(async () => {
-        await fuc.createTranches(tranchNumShares, tranchPricePerShare)
-        await fuc.createTranches(tranchNumShares, tranchPricePerShare)
+        acl.assignRole("acme", accounts[0], await fuc.ROLE_ASSET_MANAGER())
+        await fuc.createTranches(tranchNumShares, tranchPricePerShare, etherTokenAddress)
+        await fuc.createTranches(tranchNumShares, tranchPricePerShare, etherTokenAddress)
       })
 
       it('which have basic details', async () => {
@@ -379,8 +367,9 @@ contract('FUC', accounts => {
 
     describe('are ERC777 tokens', () => {
       beforeEach(async () => {
-        await fuc.createTranches(tranchNumShares, tranchPricePerShare)
-        await fuc.createTranches(tranchNumShares, tranchPricePerShare)
+        acl.assignRole("acme", accounts[0], await fuc.ROLE_ASSET_MANAGER())
+        await fuc.createTranches(tranchNumShares, tranchPricePerShare, etherTokenAddress)
+        await fuc.createTranches(tranchNumShares, tranchPricePerShare, etherTokenAddress)
       })
 
       it('which have basic details', async () => {

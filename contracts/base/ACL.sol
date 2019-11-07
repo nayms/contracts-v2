@@ -8,11 +8,12 @@ contract ACL is IACL {
 
   mapping (string => ACLRoles.Context) private assignments;
   mapping (string => ACLRoles.Context) private assigners;
-
+  mapping (bytes32 => bytes32[]) public roleGroups;
   mapping (address => bool) public admins;
   mapping (address => bool) public pendingAdmins;
   uint256 public numAdmins;
 
+  event RoleGroupUpdated(bytes32 indexed roleGroup);
   event RoleAssigned(string context, address indexed addr, bytes32 indexed role);
   event RoleUnassigned(string context, address indexed addr, bytes32 indexed role);
   event AssignerAdded(string context, address indexed addr, bytes32 indexed role);
@@ -38,33 +39,7 @@ contract ACL is IACL {
     numAdmins = 1;
   }
 
-  /**
-   * @dev determine if addr has role
-   */
-  function hasRole(string memory _context, address _addr, bytes32 _role)
-    view
-    public
-    returns (bool)
-  {
-    return assignments[_context].has(_role, _addr);
-  }
-
-  function hasAnyRole(string memory _context, address _addr, bytes32[] memory _roles)
-    view
-    public
-    returns (bool)
-  {
-    bool hasAny = false;
-
-    for (uint8 i = 0; i < _roles.length; i++) {
-      if (hasRole(_context, _addr, _roles[i])) {
-        hasAny = true;
-        break;
-      }
-    }
-
-    return hasAny;
-  }
+  // Admins
 
   /**
    * @dev determine if addr is an admin
@@ -103,6 +78,48 @@ contract ACL is IACL {
     emit AdminRemoved(_addr);
   }
 
+  // Role groups
+
+  function hasRoleInGroup(string memory _context, bytes32 _roleGroup, address _addr) view public returns (bool) {
+    return hasAnyRole(_context, _addr, roleGroups[_roleGroup]);
+  }
+
+  function setRoleGroup(bytes32 _roleGroup, bytes32[] memory _roles) assertIsAdmin public {
+    roleGroups[_roleGroup] = _roles;
+
+    emit RoleGroupUpdated(_roleGroup);
+  }
+
+  // Roles
+
+  /**
+   * @dev determine if addr has role
+   */
+  function hasRole(string memory _context, address _addr, bytes32 _role)
+    view
+    public
+    returns (bool)
+  {
+    return assignments[_context].has(_role, _addr);
+  }
+
+  function hasAnyRole(string memory _context, address _addr, bytes32[] memory _roles)
+    view
+    public
+    returns (bool)
+  {
+    bool hasAny = false;
+
+    for (uint256 i = 0; i < _roles.length; i++) {
+      if (hasRole(_context, _addr, _roles[i])) {
+        hasAny = true;
+        break;
+      }
+    }
+
+    return hasAny;
+  }
+
   /**
    * @dev assign a role to an address
    */
@@ -124,6 +141,8 @@ contract ACL is IACL {
     assignments[_context].remove(_role, _addr);
     emit RoleUnassigned(_context, _addr, _role);
   }
+
+  // Role assigners
 
   function addAssigner(string memory _context, address _addr, bytes32 _role)
     assertIsAdmin

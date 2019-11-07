@@ -96,10 +96,10 @@ contract('FUC', accounts => {
   describe('implements access control', async () => {
     beforeEach(async () => {
       const roles = await Promise.all([
-        fucProxy.getAssetManagerRole(),
-        fucProxy.getAssetManagerAgentRole(),
-        fucProxy.getClientManagerRole(),
-        fucProxy.getClientManagerAgentRole(),
+        fucProxy.ROLE_ASSET_MANAGER(),
+        fucProxy.ROLE_ASSET_MANAGER_AGENT(),
+        fucProxy.ROLE_CLIENT_MANAGER(),
+        fucProxy.ROLE_CLIENT_MANAGER_AGENT(),
       ])
 
       expect(roles.length).to.eq(4)
@@ -153,10 +153,10 @@ contract('FUC', accounts => {
 
     beforeEach(async () => {
       // assign asset manager
-      const assetMgrRole = await fucProxy.getAssetManagerRole()
+      const assetMgrRole = await fucProxy.ROLE_ASSET_MANAGER()
       await acl.assignRole("acme", accounts[3], assetMgrRole)
 
-      const clientMgrRole = await fucProxy.getClientManagerRole()
+      const clientMgrRole = await fucProxy.ROLE_CLIENT_MANAGER()
       await acl.assignRole("acme", accounts[4], clientMgrRole)
 
       // deploy new implementation

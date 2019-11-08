@@ -111,9 +111,13 @@ contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, TranchT
     string memory tranchAddressKey = string(abi.encodePacked(_index, "address"));
     address tranchAddress = dataAddress[tranchAddressKey];
 
-    IMarket mkt = IMarket(_market);
     uint256 totalPrice = currentBalance.mul(pricePerShare);
 
+    // approve the market to transfer tokens from creator into market escrow
+    tknApprove(_index, creator, _market, totalSupply);
+
+    // do the transfer
+    IMarket mkt = IMarket(_market);
     mkt.offer(currentBalance, tranchAddress, totalPrice, unit);
 
     emit BeginTranchSale(_index, currentBalance, totalPrice, unit);

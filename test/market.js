@@ -16,7 +16,7 @@ const IFUCImpl = artifacts.require("./base/IFUCImpl")
 const IERC20 = artifacts.require("./base/IERC20")
 const FUC = artifacts.require("./FUC")
 const FUCImpl = artifacts.require("./FUCImpl")
-const MatchingMarket = artifacts.require("./MatchingMarket")
+const Market = artifacts.require("./SimpleMarket")
 
 contract('Market', accounts => {
   let acl
@@ -46,7 +46,7 @@ contract('Market', accounts => {
     assetMgrRole = await fucProxy.ROLE_ASSET_MANAGER()
 
     // get market address
-    market = await MatchingMarket.new('0xFFFFFFFFFFFFFFFF')
+    market = await Market.new('0xFFFFFFFFFFFFFFFF')
 
     // setup one tranch with 100 shares at 1 WEI per share
     const r = await fucProxy.ROLE_ASSET_MANAGER()

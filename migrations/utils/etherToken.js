@@ -11,5 +11,5 @@ export const ensureEtherTokenIsDeployed = async ({ artifacts, accounts, web3 }) 
 
   const EtherToken = artifacts.require('./base/EtherToken')
 
-  return (await EtherToken.new()).address
+  return (await EtherToken.new())
 }

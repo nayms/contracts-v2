@@ -39,17 +39,15 @@ contract('FUC', accounts => {
   let fucProxy
   let fuc
   let erc1820Registry
-  let etherTokenAddress
+  let etherToken
 
   let assetMgrRole
   let clientMgrRole
 
-  before(async () => {
-    await ensureErc1820RegistryIsDeployed({ artifacts, accounts, web3 })
-    etherTokenAddress = await ensureEtherTokenIsDeployed({ artifacts, accounts, web3 })
-  })
-
   beforeEach(async () => {
+    await ensureErc1820RegistryIsDeployed({ artifacts, accounts, web3 })
+    etherToken = await ensureEtherTokenIsDeployed({ artifacts, accounts, web3 })
+
     acl = await ACL.new()
     fucImpl = await FUCImpl.new(acl.address, "acme")
     fucProxy = await FUC.new(
@@ -187,22 +185,23 @@ contract('FUC', accounts => {
     })
 
     it('cannot be created without correct ability', async () => {
-      await fuc.createTranch(tranchNumShares, tranchPricePerShare, etherTokenAddress).should.be.rejectedWith('unauthorized')
+      await fuc.createTranch(tranchNumShares, tranchPricePerShare, etherToken.address, ADDRESS_ZERO).should.be.rejectedWith('unauthorized')
     })
 
     it('all values must be valid', async () => {
-      await fuc.createTranch(0, 100, etherTokenAddress, { from: accounts[2] }).should.be.rejectedWith('invalid num of shares')
-      await fuc.createTranch(100, 0, etherTokenAddress, { from: accounts[2] }).should.be.rejectedWith('invalid price')
-      await fuc.createTranch(1, 1, ADDRESS_ZERO, { from: accounts[2] }).should.be.rejectedWith('invalid price unit')
+      await fuc.createTranch(0, 100, etherToken.address, ADDRESS_ZERO, { from: accounts[2] }).should.be.rejectedWith('invalid num of shares')
+      await fuc.createTranch(100, 0, etherToken.address, ADDRESS_ZERO, { from: accounts[2] }).should.be.rejectedWith('invalid price')
+      await fuc.createTranch(1, 1, ADDRESS_ZERO, ADDRESS_ZERO, { from: accounts[2] }).should.be.rejectedWith('invalid price unit')
     })
 
-    it('can be created', async () => {
-      const result = await fuc.createTranch(tranchNumShares, tranchPricePerShare, etherTokenAddress, { from: accounts[2] }).should.be.fulfilled
+    it('can be created and have initial balance auto-allocated to fuc impl', async () => {
+      const result = await fuc.createTranch(tranchNumShares, tranchPricePerShare, etherToken.address, ADDRESS_ZERO, { from: accounts[2] }).should.be.fulfilled
 
       const [ log ] = parseEvents(result, events.CreateTranch)
 
       expect(log.args.fuc).to.eq(fuc.address)
       expect(log.args.tranch).to.eq(await fuc.getTranch(0))
+      expect(log.args.initialBalanceHolder).to.eq(fuc.address)
       expect(log.args.index).to.eq('0')
 
       await fuc.getNumTranches().should.eventually.eq(1)
@@ -210,9 +209,17 @@ contract('FUC', accounts => {
       expect(addr.length).to.eq(42)
     })
 
+    it('can be created and have initial balance allocated to a specific address', async () => {
+      const result = await fuc.createTranch(tranchNumShares, tranchPricePerShare, etherToken.address, accounts[3], { from: accounts[2] }).should.be.fulfilled
+
+      const [ log ] = parseEvents(result, events.CreateTranch)
+
+      expect(log.args.initialBalanceHolder).to.eq(accounts[3])
+    })
+
     it('can be created more than once', async () => {
-      await fuc.createTranch(tranchNumShares, tranchPricePerShare, etherTokenAddress, { from: accounts[2] }).should.be.fulfilled
-      await fuc.createTranch(tranchNumShares + 1, tranchPricePerShare + 2, etherTokenAddress, { from: accounts[2] }).should.be.fulfilled
+      await fuc.createTranch(tranchNumShares, tranchPricePerShare, etherToken.address, ADDRESS_ZERO, { from: accounts[2] }).should.be.fulfilled
+      await fuc.createTranch(tranchNumShares + 1, tranchPricePerShare + 2, etherToken.address, ADDRESS_ZERO, { from: accounts[2] }).should.be.fulfilled
 
       await fuc.getNumTranches().should.eventually.eq(2)
 
@@ -229,10 +236,12 @@ contract('FUC', accounts => {
     })
 
     describe('are ERC20 tokens', () => {
+      let initialOwnerAddress
+
       beforeEach(async () => {
         acl.assignRole("acme", accounts[0], assetMgrRole)
-        await fuc.createTranch(tranchNumShares, tranchPricePerShare, etherTokenAddress)
-        await fuc.createTranch(tranchNumShares, tranchPricePerShare, etherTokenAddress)
+        await fuc.createTranch(tranchNumShares, tranchPricePerShare, etherToken.address, accounts[0])
+        await fuc.createTranch(tranchNumShares, tranchPricePerShare, etherToken.address, accounts[0])
       })
 
       it('which have basic details', async () => {
@@ -254,7 +263,7 @@ contract('FUC', accounts => {
         expect(done).to.eq(2)
       })
 
-      it('which have all supply initially allocated to creator', async () => {
+      it('which have all supply initially allocated to initial balance holder', async () => {
         let done = 0
 
         await Promise.all(_.range(0, 2).map(async i => {
@@ -347,8 +356,8 @@ contract('FUC', accounts => {
     describe('are ERC777 tokens', () => {
       beforeEach(async () => {
         acl.assignRole("acme", accounts[0], assetMgrRole)
-        await fuc.createTranch(tranchNumShares, tranchPricePerShare, etherTokenAddress)
-        await fuc.createTranch(tranchNumShares, tranchPricePerShare, etherTokenAddress)
+        await fuc.createTranch(tranchNumShares, tranchPricePerShare, etherToken.address, accounts[0])
+        await fuc.createTranch(tranchNumShares, tranchPricePerShare, etherToken.address, accounts[0])
       })
 
       it('which have basic details', async () => {

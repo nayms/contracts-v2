@@ -2,15 +2,15 @@ pragma solidity >=0.5.8;
 
 import '../base/ERC1820ImplementerInterface.sol';
 import '../base/IERC777Sender.sol';
-import '../base/TranchTokenImpl.sol';
+import '../base/ITranchToken.sol';
 
 contract ReEntrantERC777TokensSender is ERC1820ImplementerInterface, IERC777Sender {
   uint index;
-  TranchTokenImpl tokenImpl;
+  ITranchToken tokenImpl;
 
   constructor (address _token, uint256 _index) public {
     index = _index;
-    tokenImpl = TranchTokenImpl(_token);
+    tokenImpl = ITranchToken(_token);
   }
 
   function tokensToSend(

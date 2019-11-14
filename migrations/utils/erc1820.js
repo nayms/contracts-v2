@@ -21,8 +21,6 @@ export const ensureErc1820RegistryIsDeployed = async ({ artifacts, accounts, web
     const IERC1820Registry = artifacts.require("./base/IERC1820Registry.sol")
 
     await IERC1820Registry.at(ERC1820_DEPLOYED_ADDRESS)
-
-    log(`ERC1820 registry contract found at: ${ERC1820_DEPLOYED_ADDRESS}`)
   } catch (_err) {
     log('Deploying ERC1820 registry ...')
 

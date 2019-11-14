@@ -125,7 +125,7 @@ contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, ITranch
     tknApprove(_index, _market, initialHolder, totalSupply);
     // do the transfer
     IMarket mkt = IMarket(_market);
-    mkt.offer(totalSupply, tranchAddress, totalPrice, unit);
+    mkt.offer(totalSupply, tranchAddress, totalPrice, unit, 0, false);
 
     emit BeginTranchSale(_index, totalSupply, totalPrice, unit);
   }

@@ -51,7 +51,7 @@ contract('Market', accounts => {
     // setup one tranch with 100 shares at 1 WEI per share
     const r = await fucProxy.ROLE_ASSET_MANAGER()
     acl.assignRole("acme", accounts[1], r),
-    await fuc.createTranch(100, 200, etherToken.address, ADDRESS_ZERO, { from: accounts[1] }).should.be.fulfilled
+    await fuc.createTranch(100, 2, etherToken.address, ADDRESS_ZERO, { from: accounts[1] }).should.be.fulfilled
 
     const ta = await fuc.getTranch(0)
     tranchToken = await IERC20.at(ta)
@@ -86,53 +86,53 @@ contract('Market', accounts => {
   })
 
   describe('once a tranch begins trading', () => {
-    it('another party can make an offer that does not match', async () => {
-      await etherToken.deposit({ from: accounts[2], value: 25 }).should.be.fulfilled;
+    beforeEach(async () => {
+      await fuc.beginTranchSale(0, market.address, { from: accounts[1] })
+      await etherToken.deposit({ from: accounts[2], value: 25 })
+    })
 
+    it('another party can make an offer that does not match', async () => {
       // check initial balances
       await etherToken.balanceOf(accounts[2]).should.eventually.eq(25)
-      await etherToken.balanceOf(tranchToken.address).should.eventually.eq(0)
+      await etherToken.balanceOf(fuc.address).should.eventually.eq(0)
       await etherToken.balanceOf(market.address).should.eventually.eq(0)
       await tranchToken.balanceOf(accounts[2]).should.eventually.eq(0)
-      await tranchToken.balanceOf(tranchToken.address).should.eventually.eq(0)
+      await tranchToken.balanceOf(fuc.address).should.eventually.eq(0)
       await tranchToken.balanceOf(market.address).should.eventually.eq(100)
 
-      // make the offer on the market
+      // // make the offer on the market
       await etherToken.approve(market.address, 10, { from: accounts[2] })
       await market.offer(10, etherToken.address, 5000, tranchToken.address, 0, true, { from: accounts[2] })
 
       // check balances again
       await etherToken.balanceOf(accounts[2]).should.eventually.eq(15)
-      await etherToken.balanceOf(tranchToken.address).should.eventually.eq(0)
+      await etherToken.balanceOf(fuc.address).should.eventually.eq(0)
       await etherToken.balanceOf(market.address).should.eventually.eq(10)
       await tranchToken.balanceOf(accounts[2]).should.eventually.eq(0)
-      await tranchToken.balanceOf(tranchToken.address).should.eventually.eq(0)
+      await tranchToken.balanceOf(fuc.address).should.eventually.eq(0)
       await tranchToken.balanceOf(market.address).should.eventually.eq(100)
     })
-  })
 
-  it.only('another party can make an offer that does match', async () => {
-    await fuc.beginTranchSale(0, market.address, { from: accounts[1] })
-    await etherToken.deposit({ from: accounts[2], value: 25 })
+    it('another party can make an offer that does match', async () => {
+      // check initial balances
+      await etherToken.balanceOf(accounts[2]).should.eventually.eq(25)
+      await etherToken.balanceOf(fuc.address).should.eventually.eq(0)
+      await etherToken.balanceOf(market.address).should.eventually.eq(0)
+      await tranchToken.balanceOf(accounts[2]).should.eventually.eq(0)
+      await tranchToken.balanceOf(fuc.address).should.eventually.eq(0)
+      await tranchToken.balanceOf(market.address).should.eventually.eq(100)
 
-    // check initial balances
-    await etherToken.balanceOf(accounts[2]).should.eventually.eq(25)
-    await etherToken.balanceOf(tranchToken.address).should.eventually.eq(0)
-    await etherToken.balanceOf(market.address).should.eventually.eq(0)
-    await tranchToken.balanceOf(accounts[2]).should.eventually.eq(0)
-    await tranchToken.balanceOf(tranchToken.address).should.eventually.eq(0)
-    await tranchToken.balanceOf(market.address).should.eventually.eq(100)
+      // make the offer on the market
+      await etherToken.approve(market.address, 10, { from: accounts[2] })
+      await market.offer(10, etherToken.address, 5, tranchToken.address, 0, true, { from: accounts[2] })
 
-    // make the offer on the market
-    await etherToken.approve(market.address, 10, { from: accounts[2] })
-    await market.offer(10, etherToken.address, 5, tranchToken.address, 0, true, { from: accounts[2] })
-
-    // check balances again
-    // await etherToken.balanceOf(accounts[2]).should.eventually.eq(15)
-    // await etherToken.balanceOf(tranchToken.address).should.eventually.eq(10)
-    // await etherToken.balanceOf(market.address).should.eventually.eq(0)
-    // await tranchToken.balanceOf(accounts[2]).should.eventually.eq(5)
-    // await tranchToken.balanceOf(tranchToken.address).should.eventually.eq(0)
-    // await tranchToken.balanceOf(market.address).should.eventually.eq(90)
+      // check balances again
+      await etherToken.balanceOf(accounts[2]).should.eventually.eq(15)
+      await etherToken.balanceOf(fuc.address).should.eventually.eq(10)
+      await etherToken.balanceOf(market.address).should.eventually.eq(0)
+      await tranchToken.balanceOf(accounts[2]).should.eventually.eq(5)
+      await tranchToken.balanceOf(fuc.address).should.eventually.eq(0)
+      await tranchToken.balanceOf(market.address).should.eventually.eq(95)
+    })
   })
 })

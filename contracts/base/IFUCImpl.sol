@@ -8,7 +8,7 @@ interface IFUCImpl {
 
   // tranches
 
-  function createTranch (uint256 _numShares, uint256 _initialPricePerShare, address _initialPricePerShareUnit, address _initialBalanceHolder) external;
+  function createTranch (uint256 _numShares, uint256 _initialPricePerShare, address _initialPricePerShareUnit, address _initialBalanceHolder) external returns (uint256);
   function getNumTranches () external view returns (uint256);
   function getTranch (uint256 _index) external view returns (address);
   function beginTranchSale(uint256 _index, address _market) external;

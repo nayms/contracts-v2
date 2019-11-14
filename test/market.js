@@ -50,9 +50,8 @@ contract('Market', accounts => {
 
     // setup one tranch with 100 shares at 1 WEI per share
     const r = await fucProxy.ROLE_ASSET_MANAGER()
-    acl.assignRole("acme", accounts[1], r),
-    await fuc.createTranch(100, 2, etherToken.address, ADDRESS_ZERO, { from: accounts[1] }).should.be.fulfilled
-
+    acl.assignRole("acme", accounts[1], r)
+    await fuc.createTranch(100, 2, etherToken.address, ADDRESS_ZERO, { from: accounts[1] })
     const ta = await fuc.getTranch(0)
     tranchToken = await IERC20.at(ta)
   })
@@ -60,6 +59,11 @@ contract('Market', accounts => {
   describe('tranches begin trading', async () => {
     it('but not by an unauthorized person', async () => {
       await fuc.beginTranchSale(0, market.address).should.be.rejectedWith('unauthorized')
+    })
+
+    it('but not if initial allocation is not to parent policy', async () => {
+      await fuc.createTranch(100, 2, etherToken.address, accounts[3], { from: accounts[1] })
+      await fuc.beginTranchSale(1, market.address, { from: accounts[1] }).should.be.rejectedWith('initial holder must be policy contract')
     })
 
     it('by an authorized person', async () => {

@@ -59,7 +59,7 @@ contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, ITranch
     uint256 _initialPricePerShare,
     address _initialPricePerShareUnit,
     address _initialBalanceHolder
-  ) assertCanCreatePolicyTranches public {
+  ) assertCanCreatePolicyTranches public returns (uint256) {
     require(_numShares > 0, 'invalid num of shares');
     require(_initialPricePerShare > 0, 'invalid price');
     require(_initialPricePerShareUnit != address(0), 'invalid price unit');
@@ -92,6 +92,8 @@ contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, ITranch
     dataAddress[addressKey] = address(t);
 
     emit CreateTranch(address(this), address(t), dataAddress[initialHolderKey], i);
+
+    return i;
   }
 
   function getNumTranches () public view returns (uint256) {
@@ -110,7 +112,7 @@ contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, ITranch
     // initial token holder must be contract address
     string memory initialHolderKey = string(abi.encodePacked(_index, "initialHolder"));
     address initialHolder = dataAddress[initialHolderKey];
-    require(initialHolder == address(this), "initial holder must be impl contract");
+    require(initialHolder == address(this), "initial holder must be policy contract");
     // check balance
     uint256 currentBalance = tknBalanceOf(_index, address(this));
     uint256 totalSupply = tknTotalSupply(_index);

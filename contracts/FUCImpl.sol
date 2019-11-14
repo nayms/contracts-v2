@@ -8,14 +8,16 @@ import './base/IERC777Recipient.sol';
 import './base/IERC1820Registry.sol';
 import "./base/IProxyImpl.sol";
 import "./base/IFUCImpl.sol";
-import "./base/TranchTokenImpl.sol";
+import "./base/IMarket.sol";
+import "./base/ITranchToken.sol";
 import "./base/SafeMath.sol";
 import "./FUCTranch.sol";
 
 /**
  * @dev Business-logic for FUC
  */
-contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, TranchTokenImpl {
+contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, ITranchToken {
+  using SafeMath for uint;
   using Address for address;
 
   /* ERC 1820 stuff */
@@ -44,7 +46,7 @@ contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, TranchT
 
   // IFUCImpl //
 
-  function setName (string memory _name) assertIsAssetManagerAgent public {
+  function setName (string memory _name) assertCanUpdatePolicyDetails public {
     dataString["name"] = _name;
   }
 
@@ -52,37 +54,46 @@ contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, TranchT
     return dataString["name"];
   }
 
-  function createTranches (
-    uint256[] memory _tranchNumShares,
-    uint256[] memory _tranchInitialPricePerShare
-  ) public {
-    uint256 _numTranches = _tranchNumShares.length;
-
-    require(_numTranches > 0, 'need atleast 1 tranch');
-    require(_tranchInitialPricePerShare.length == _numTranches, 'price-per-share array length mismatch');
+  function createTranch (
+    uint256 _numShares,
+    uint256 _initialPricePerShare,
+    address _initialPricePerShareUnit,
+    address _initialBalanceHolder
+  ) assertCanCreatePolicyTranches public returns (uint256) {
+    require(_numShares > 0, 'invalid num of shares');
+    require(_initialPricePerShare > 0, 'invalid price');
+    require(_initialPricePerShareUnit != address(0), 'invalid price unit');
 
     // instantiate tranches
-    uint256 existingNumTranches = dataUint256["numTranches"];
+    uint256 i = dataUint256["numTranches"];
+    dataUint256["numTranches"] = i + 1;
 
-    dataUint256["numTranches"] = existingNumTranches + _numTranches;
-
-    for (uint256 i = existingNumTranches; i < dataUint256["numTranches"]; i++) {
-      // setup initial data for tranch
-      string memory numSharesKey = string(abi.encodePacked(i, "numShares"));
-      string memory pricePerShareKey = string(abi.encodePacked(i, "pricePerShare"));
-      dataUint256[numSharesKey] = _tranchNumShares[i - existingNumTranches];
-      dataUint256[pricePerShareKey] = _tranchInitialPricePerShare[i - existingNumTranches];
-      // sender holds all shares initially
-      string memory initialOwnerBalanceKey = string(abi.encodePacked(i, msg.sender, "balance"));
-      dataUint256[initialOwnerBalanceKey] = dataUint256[numSharesKey];
-      // deploy token contract
-      FUCTranch t = new FUCTranch(address(this), i);
-      // save reference
-      string memory addressKey = string(abi.encodePacked(i, "address"));
-      dataAddress[addressKey] = address(t);
-
-      emit CreateTranch(address(this), address(t), i);
+    // setup initial data for tranch
+    string memory numSharesKey = string(abi.encodePacked(i, "numShares"));
+    string memory pricePerShareKey = string(abi.encodePacked(i, "pricePerShare"));
+    string memory pricePerShareUnitKey = string(abi.encodePacked(i, "pricePerShareUnit"));
+    dataUint256[numSharesKey] = _numShares;
+    dataUint256[pricePerShareKey] = _initialPricePerShare;
+    dataAddress[pricePerShareUnitKey] = _initialPricePerShareUnit;
+    // deploy token contract
+    FUCTranch t = new FUCTranch(address(this), i);
+    // work out initial holder
+    if (_initialBalanceHolder == address(0)) {
+      // by default it's this conract
+      _initialBalanceHolder = address(this);
     }
+    string memory initialHolderKey = string(abi.encodePacked(i, "initialHolder"));
+    dataAddress[initialHolderKey] = _initialBalanceHolder;
+    // set initial holder balance
+    string memory contractBalanceKey = string(abi.encodePacked(i, dataAddress[initialHolderKey], "balance"));
+    dataUint256[contractBalanceKey] = _numShares;
+    // save reference
+    string memory addressKey = string(abi.encodePacked(i, "address"));
+    dataAddress[addressKey] = address(t);
+
+    emit CreateTranch(address(this), address(t), dataAddress[initialHolderKey], i);
+
+    return i;
   }
 
   function getNumTranches () public view returns (uint256) {
@@ -92,6 +103,33 @@ contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, TranchT
   function getTranch (uint256 _index) public view returns (address) {
     string memory addressKey = string(abi.encodePacked(_index, "address"));
     return dataAddress[addressKey];
+  }
+
+  function beginTranchSale(uint256 _index, address _market) assertCanStartTranchSale public {
+    // tranch/token address
+    string memory addressKey = string(abi.encodePacked(_index, "address"));
+    address tranchAddress = dataAddress[addressKey];
+    // initial token holder must be contract address
+    string memory initialHolderKey = string(abi.encodePacked(_index, "initialHolder"));
+    address initialHolder = dataAddress[initialHolderKey];
+    require(initialHolder == address(this), "initial holder must be policy contract");
+    // check balance
+    uint256 currentBalance = tknBalanceOf(_index, address(this));
+    uint256 totalSupply = tknTotalSupply(_index);
+    require(currentBalance == totalSupply, 'sale already started');
+    // calculate sale values
+    string memory pricePerShareKey = string(abi.encodePacked(_index, "pricePerShare"));
+    string memory pricePerShareUnitKey = string(abi.encodePacked(_index, "pricePerShareUnit"));
+    uint256 pricePerShare = dataUint256[pricePerShareKey];
+    address unit = dataAddress[pricePerShareUnitKey];
+    uint256 totalPrice = totalSupply.mul(pricePerShare);
+    // approve the market to transfer tokens from tranch into market escrow
+    tknApprove(_index, _market, initialHolder, totalSupply);
+    // do the transfer
+    IMarket mkt = IMarket(_market);
+    mkt.offer(totalSupply, tranchAddress, totalPrice, unit, 0, false);
+
+    emit BeginTranchSale(_index, totalSupply, totalPrice, unit);
   }
 
   // TranchTokenImpl - queries //
@@ -114,66 +152,66 @@ contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, TranchT
     return dataUint256[k];
   }
 
-  function tknAllowance(uint256 _index, address _owner, address _spender) public view returns (uint256) {
-    string memory k = string(abi.encodePacked(_index, _owner, _spender, "allowance"));
+  function tknAllowance(uint256 _index, address _spender, address _owner) public view returns (uint256) {
+    string memory k = string(abi.encodePacked(_index, _owner, "allowance", _spender));
     return dataUint256[k];
   }
 
   function tknIsOperatorFor(uint256 _index, address _operator, address _tokenHolder) public view returns (bool) {
-    string memory k = string(abi.encodePacked(_index, _tokenHolder, _operator, "operator"));
+    string memory k = string(abi.encodePacked(_index, _tokenHolder, "operator", _operator));
     return dataBool[k];
   }
 
   // TranchTokenImpl - ERC20 mutations //
 
-  function tknApprove(uint256 _index, address _caller, address _spender, uint256 _value) public {
-    string memory k = string(abi.encodePacked(_index, _caller, _spender, "allowance"));
+  function tknApprove(uint256 _index, address _spender, address _from, uint256 _value) public {
+    string memory k = string(abi.encodePacked(_index, _from, "allowance", _spender));
     dataUint256[k] = _value;
   }
 
-  function tknTransfer(uint256 _index, address _caller, address _to, uint256 _value) public {
-    _transfer(_index, _caller, _to, _value);
+  function tknTransfer(uint256 _index, address _from, address _to, uint256 _value) public {
+    _transfer(_index, _from, _to, _value);
   }
 
-  function tknTransferFrom(uint256 _index, address _caller, address _from, address _to, uint256 _value) public {
-    string memory k = string(abi.encodePacked(_index, _from, _caller, "allowance"));
+  function tknTransferFrom(uint256 _index, address _spender, address _from, address _to, uint256 _value) public {
+    string memory k = string(abi.encodePacked(_index, _from, "allowance", _spender));
     require(dataUint256[k] >= _value, 'unauthorized');
     tknTransfer(_index, _from, _to, _value);
   }
 
   // TranchTokenImpl - ERC777 mutations //
 
-  function tknAuthorizeOperator(uint256 _index, address _tokenHolder, address _operator) public {
-    string memory k = string(abi.encodePacked(_index, _tokenHolder, _operator, "operator"));
+  function tknAuthorizeOperator(uint256 _index, address _operator, address _tokenHolder) public {
+    string memory k = string(abi.encodePacked(_index, _tokenHolder, "operator", _operator));
     dataBool[k] = true;
   }
 
-  function tknRevokeOperator(uint256 _index, address _tokenHolder, address _operator) public {
-    string memory k = string(abi.encodePacked(_index, _tokenHolder, _operator, "operator"));
+  function tknRevokeOperator(uint256 _index, address _operator, address _tokenHolder) public {
+    string memory k = string(abi.encodePacked(_index, _tokenHolder, "operator", _operator));
     dataBool[k] = false;
   }
 
-  function tknSend(uint256 _index, address _sender, address _recipient, uint256 _amount, bytes memory _data) public {
-    require(_recipient != address(0), 'cannot send to zero address');
+  function tknSend(uint256 _index, address _from, address _to, uint256 _amount, bytes memory _data) public {
+    require(_to != address(0), 'cannot send to zero address');
 
-    _callTokensToSend(_index, _sender, _sender, _recipient, _amount, _data, "");
+    _callTokensToSend(_index, _from, _from, _to, _amount, _data, "");
 
-    _transfer(_index, _sender, _recipient, _amount);
+    _transfer(_index, _from, _to, _amount);
 
-    _callTokensReceived(_index, _sender, _sender, _recipient, _amount, _data, "");
+    _callTokensReceived(_index, _from, _from, _to, _amount, _data, "");
   }
 
-  function tknOperatorSend(uint256 _index, address _operator, address _sender, address _recipient, uint256 _amount, bytes memory _data, bytes memory _operatorData) public {
-    require(_recipient != address(0), 'cannot send to zero address');
+  function tknOperatorSend(uint256 _index, address _operator, address _from, address _to, uint256 _amount, bytes memory _data, bytes memory _operatorData) public {
+    require(_to != address(0), 'cannot send to zero address');
 
-    string memory k = string(abi.encodePacked(_index, _sender, _operator, "operator"));
+    string memory k = string(abi.encodePacked(_index, _from, "operator", _operator));
     require(dataBool[k], 'not authorized');
 
-    _callTokensToSend(_index, _operator, _sender, _recipient, _amount, _data, _operatorData);
+    _callTokensToSend(_index, _operator, _from, _to, _amount, _data, _operatorData);
 
-    _transfer(_index, _sender, _recipient, _amount);
+    _transfer(_index, _from, _to, _amount);
 
-    _callTokensReceived(_index, _operator, _sender, _recipient, _amount, _data, _operatorData);
+    _callTokensReceived(_index, _operator, _from, _to, _amount, _data, _operatorData);
   }
 
   // Helpers
@@ -184,8 +222,8 @@ contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, TranchT
 
     require(dataUint256[fromKey] >= _value, 'not enough balance');
 
-    dataUint256[fromKey] = SafeMath.sub(dataUint256[fromKey], _value);
-    dataUint256[toKey] = SafeMath.add(dataUint256[toKey], _value);
+    dataUint256[fromKey] = dataUint256[fromKey].sub(_value);
+    dataUint256[toKey] = dataUint256[toKey].add(_value);
   }
 
   // re-entrancy protection

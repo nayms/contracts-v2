@@ -21,6 +21,8 @@ const events = Object.values(contracts).reduce((output, contract) => {
 }, {})
 
 module.exports = {
+  addresses: require('./deployedAddresses.json'),
+  constants: require('./constants.js'),
   contracts,
   events,
 }

@@ -7,6 +7,7 @@
     "access": "public"
   },
   "files": [
+    "constants.js",
     "build/**",
     "contracts/**",
     "deployedAddresses.json"
@@ -15,17 +16,16 @@
     "devnet": "ganache-cli -a 10 -m 'funny door sample enrich female wedding stereo crane setup shop dwarf dismiss'",
     "devnet-ci": "yarn devnet >ganache.log 2>&1 &",
     "truffle": "babel-node node_modules/.bin/truffle",
-    "coverage": "rm -rf coverage && solidity-coverage && istanbul report lcov",
-    "profile": "MODE=profile yarn test && istanbul report lcov",
+    "clean": "rm -rf ./build",
     "test": "yarn truffle test --network test",
     "trace": "MODE=trace yarn test",
-    "copy-maker-otc-artifacts": "cp maker-otc/build/contracts/*.json build/contracts",
-    "compile": "yarn truffle compile && yarn copy-maker-otc-artifacts",
-    "sol-compiler": "sol-compiler",
-    "sol-compiler:watch": "sol-compiler -w",
+    "coverage": "rm -rf coverage && solidity-coverage && istanbul report lcov",
+    "profile": "MODE=profile yarn test && istanbul report lcov",
+    "copy-maker-otc-artifacts": "cp maker-otc/build/contracts/MatchingMarket.json build/contracts",
+    "compile": "yarn truffle compile --network test && yarn copy-maker-otc-artifacts",
     "deploy:mainnet": "yarn truffle networks --clean && yarn truffle migrate --network mainnet && scripts/extractDeployedAddresses.js",
     "deploy:rinkeby": "yarn truffle networks --clean && yarn truffle migrate --network rinkeby && scripts/extractDeployedAddresses.js",
-    "deploy:local": "yarn truffle migrate",
+    "deploy:local": "yarn truffle migrate --network test",
     "setup": "[[ -f .deployment.js ]] || cp .deployment-sample.js .deployment.js",
     "lint": "solhint --config ./.solhint.json contracts/**/*.sol",
     "abi-encode": "./scripts/abiEncode.js"
@@ -33,7 +33,6 @@
   "author": "Ramesh Nair <ram@hiddentao.com>",
   "license": "ISC",
   "devDependencies": {
-    "@0x/sol-compiler": "^3.1.15",
     "@0x/sol-profiler": "^3.1.8",
     "@0x/sol-trace": "^2.0.14",
     "argv": "0.0.2",

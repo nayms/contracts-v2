@@ -1,12 +1,12 @@
 import { toHex, toWei } from './utils/web3'
-import { ensureErc1820RegistryIsDeployed } from '../migrations/utils'
+import { ensureErc1820RegistryIsDeployed } from '../migrations/utils/erc1820'
 import { extractEventArgs } from './utils'
 import { events } from '../'
 
-const ACL = artifacts.require("./base/ACL.sol")
-const FUC = artifacts.require("./FUC.sol")
-const FUCImpl = artifacts.require("./FUCImpl.sol")
-const FUCDeployer = artifacts.require("./FUCDeployer.sol")
+const ACL = artifacts.require("./base/ACL")
+const FUC = artifacts.require("./FUC")
+const FUCImpl = artifacts.require("./FUCImpl")
+const FUCDeployer = artifacts.require("./FUCDeployer")
 
 contract('FUCDeployer', accounts => {
   let acl

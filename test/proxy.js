@@ -1,11 +1,11 @@
 import { toHex, toWei, sha3 } from './utils/web3'
-import { ensureErc1820RegistryIsDeployed } from '../migrations/utils'
+import { ensureErc1820RegistryIsDeployed } from '../migrations/utils/erc1820'
 import { ADDRESS_ZERO, hdWallet } from './utils'
 import { events } from '../'
 
-const TestProxy = artifacts.require("./test/TestProxy.sol")
-const TestProxyImpl = artifacts.require("./test/TestProxyImpl.sol")
-const ITestProxyImpl = artifacts.require("./test/ITestProxyImpl.sol")
+const TestProxy = artifacts.require("./test/TestProxy")
+const TestProxyImpl = artifacts.require("./test/TestProxyImpl")
+const ITestProxyImpl = artifacts.require("./test/ITestProxyImpl")
 
 contract('Proxy (base class tests)', accounts => {
   let testProxy

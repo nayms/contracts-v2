@@ -8,6 +8,12 @@ const ERC1820_DEPLOYER = '0xa990077c3205cbDf861e17Fa532eeB069cE9fF96'
 
 export const ERC1820_DEPLOYED_ADDRESS = '0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24'.toLowerCase()
 
+// keccak256("ERC777TokensSender")
+export const TOKENS_SENDER_INTERFACE_HASH = '0x29ddb589b1fb5fc7cf394961c1adf5f8c6454761adf795e67fe149f658abe895'
+
+// keccak256("ERC777TokensRecipient")
+export const TOKENS_RECIPIENT_INTERFACE_HASH = '0xb281fc8c12954d22544db45de3159a39272895b169a852b314f9cc762e44c53b'
+
 const log = msg => console.log(chalk.blue(msg))
 
 export const ensureErc1820RegistryIsDeployed = async ({ artifacts, accounts, web3 }) => {
@@ -15,8 +21,6 @@ export const ensureErc1820RegistryIsDeployed = async ({ artifacts, accounts, web
     const IERC1820Registry = artifacts.require("./base/IERC1820Registry.sol")
 
     await IERC1820Registry.at(ERC1820_DEPLOYED_ADDRESS)
-
-    log(`ERC1820 registry contract found at: ${ERC1820_DEPLOYED_ADDRESS}`)
   } catch (_err) {
     log('Deploying ERC1820 registry ...')
 

@@ -48,11 +48,6 @@ provider.send = provider.sendAsync.bind(provider)
 
 module.exports = {
   networks: {
-    development: {
-      provider,
-      network_id: "*",
-      gasPrice: 1000000000      // 1 gwei
-    },
     test: {
       provider,
       network_id: "*",

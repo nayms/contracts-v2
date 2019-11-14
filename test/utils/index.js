@@ -5,7 +5,6 @@ import { parseLog } from 'ethereum-event-logs'
 import chaiAsPromised from 'chai-as-promised'
 
 import { toBN, isBN } from './web3'
-import { ensureErc1820RegistryIsDeployed } from '../../migrations/utils'
 
 chai.use((_chai, utils) => {
   const sanitizeResultVal = (result, val) => {
@@ -69,12 +68,6 @@ hdWallet.generateAddresses(10)
 
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000'
 export const BYTES32_ZERO = '0x0000000000000000000000000000000000000000000000000000000000000000'
-/* ERC 1820 stuff */
-export const ERC1820_REGISTRY_ADDRESS = '0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24';
-// keccak256("ERC777TokensSender")
-export const TOKENS_SENDER_INTERFACE_HASH = '0x29ddb589b1fb5fc7cf394961c1adf5f8c6454761adf795e67fe149f658abe895';
-// keccak256("ERC777TokensRecipient")
-export const TOKENS_RECIPIENT_INTERFACE_HASH = '0xb281fc8c12954d22544db45de3159a39272895b169a852b314f9cc762e44c53b';
 
 
 export const getBalance = async addr => toBN(await web3.eth.getBalance(addr))

@@ -2,17 +2,17 @@ pragma solidity >=0.5.8;
 
 import './base/IERC20.sol';
 import './base/IERC777.sol';
-import './base/TranchTokenImpl.sol';
+import './base/ITranchToken.sol';
 
 /**
  * @dev An FUC tranch.
  */
 contract FUCTranch is IERC20, IERC777 {
-  TranchTokenImpl public impl;
+  ITranchToken public impl;
   uint256 public index;
 
   constructor (address _impl, uint256 _index) public {
-    impl = TranchTokenImpl(_impl);
+    impl = ITranchToken(_impl);
     index = _index;
   }
 
@@ -43,7 +43,7 @@ contract FUCTranch is IERC20, IERC777 {
   }
 
   function allowance(address owner, address spender) public view returns (uint256) {
-    return impl.tknAllowance(index, owner, spender);
+    return impl.tknAllowance(index, spender, owner);
   }
 
   function isOperatorFor(address operator, address tokenHolder) public view returns (bool) {
@@ -58,7 +58,7 @@ contract FUCTranch is IERC20, IERC777 {
   // ERC-20 mutations //
 
   function approve(address spender, uint256 value) public returns (bool) {
-    impl.tknApprove(index, msg.sender, spender, value);
+    impl.tknApprove(index, spender, msg.sender, value);
     emit Approval(msg.sender, spender, value);
     return true;
   }
@@ -78,12 +78,12 @@ contract FUCTranch is IERC20, IERC777 {
   // ERC-777 mutations //
 
   function authorizeOperator(address operator) public {
-    impl.tknAuthorizeOperator(index, msg.sender, operator);
+    impl.tknAuthorizeOperator(index, operator, msg.sender);
     emit AuthorizedOperator(operator, msg.sender);
   }
 
   function revokeOperator(address operator) public {
-    impl.tknRevokeOperator(index, msg.sender, operator);
+    impl.tknRevokeOperator(index, operator, msg.sender);
     emit RevokedOperator(operator, msg.sender);
   }
 

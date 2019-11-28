@@ -16,20 +16,20 @@ Then, using [truffle-contract](https://github.com/trufflesuite/truffle/tree/deve
 const promisify = require('es6-promisify')
 const TruffleContract = require('truffle-contract')
 const Web3 = require('web3')
-const { FUCDeployer } = require('@nayms/contracts')
+const { PolicyDeployer } = require('@nayms/contracts')
 
 async init = () => {
   const web3 = new Web3(/* ... */)
 
-  const contract = TruffleContract(FUCDeployer)
+  const contract = TruffleContract(PolicyDeployer)
   contract.setProvider(web3.currentProvider)
 
   const deployer = await contract.deployed()
 
-  // deploy a new FUC
+  // deploy a new Policy
   await deployer.deploy(/*...*/)
 
-  const events = await promisify(deployer.contract.getPastEvents, deployer.contract)('NewFUC')
+  const events = await promisify(deployer.contract.getPastEvents, deployer.contract)('NewPolicy')
 
   const { returnValues: { deployedAddress } } = events.pop()
 
@@ -43,18 +43,18 @@ parse logs for events:
 ```js
 // import the parser
 const { parseLog } = require('ethereum-event-logs')
-const { events: { NewFUC } } = require('@nayms/contracts')
+const { events: { NewPolicy } } = require('@nayms/contracts')
 
 const receipt = /* execute tx on chain and wait for receipt */
 
 // we can parse all events in the contract by passing through the ABI:
-const events = parseLog(receipt.logs, [ NewFUC ])
+const events = parseLog(receipt.logs, [ NewPolicy ])
 
 console.log(events)
 /*
   [
     {
-      name: 'NewFUC',
+      name: 'NewPolicy',
       address: '0x...',
       blockNumber: 123...,
       blockHash: '0x...',

@@ -1,13 +1,15 @@
 pragma solidity >=0.5.8;
 
 import "./ACLRoles.sol";
+import "./ACLAssigners.sol";
 import "./IACL.sol";
 
 contract ACL is IACL {
   using ACLRoles for ACLRoles.Context;
+  using ACLAssigners for ACLAssigners.Role;
 
   mapping (string => ACLRoles.Context) private assignments;
-  mapping (string => ACLRoles.Context) private assigners;
+  mapping (bytes32 => ACLAssigners.Role) private assigners;
   mapping (bytes32 => bytes32[]) public roleGroups;
   mapping (address => bool) public admins;
   mapping (address => bool) public pendingAdmins;
@@ -16,8 +18,8 @@ contract ACL is IACL {
   event RoleGroupUpdated(bytes32 indexed roleGroup);
   event RoleAssigned(string context, address indexed addr, bytes32 indexed role);
   event RoleUnassigned(string context, address indexed addr, bytes32 indexed role);
-  event AssignerAdded(string context, address indexed addr, bytes32 indexed role);
-  event AssignerRemoved(string context, address indexed addr, bytes32 indexed role);
+  event AssignerAdded(bytes32 indexed role, bytes32 indexed assigner);
+  event AssignerRemoved(bytes32 indexed role, bytes32 indexed assigner);
   event AdminProposed(address indexed addr);
   event AdminProposalCancelled(address indexed addr);
   event AdminProposalAccepted(address indexed addr);
@@ -30,7 +32,7 @@ contract ACL is IACL {
 
   modifier assertIsAssigner (string memory _context, bytes32 _role) {
     // either they have the permission to assign or they're an admin
-    require(isAssigner(_context, msg.sender, _role) || isAdmin(msg.sender), 'unauthorized');
+    require(canAssign(_context, msg.sender, _role) || isAdmin(msg.sender), 'unauthorized');
     _;
   }
 
@@ -44,18 +46,18 @@ contract ACL is IACL {
   /**
    * @dev determine if addr is an admin
    */
-  function isAdmin(address _addr) view public returns (bool) {
+  function isAdmin(address _addr) public view returns (bool) {
     return admins[_addr];
   }
 
-  function proposeNewAdmin(address _addr) assertIsAdmin public {
+  function proposeNewAdmin(address _addr) public assertIsAdmin {
     require(!admins[_addr], 'already an admin');
     require(!pendingAdmins[_addr], 'already proposed as an admin');
     pendingAdmins[_addr] = true;
     emit AdminProposed(_addr);
   }
 
-  function cancelNewAdminProposal(address _addr) assertIsAdmin public {
+  function cancelNewAdminProposal(address _addr) public assertIsAdmin {
     require(pendingAdmins[_addr], 'not proposed as an admin');
     pendingAdmins[_addr] = false;
     emit AdminProposalCancelled(_addr);
@@ -69,7 +71,7 @@ contract ACL is IACL {
     emit AdminProposalAccepted(msg.sender);
   }
 
-  function removeAdmin(address _addr) assertIsAdmin public {
+  function removeAdmin(address _addr) public assertIsAdmin {
     require(1 < numAdmins, 'cannot remove last admin');
     require(_addr != msg.sender, 'cannot remove oneself');
     require(admins[_addr], 'not an admin');
@@ -80,11 +82,11 @@ contract ACL is IACL {
 
   // Role groups
 
-  function hasRoleInGroup(string memory _context, bytes32 _roleGroup, address _addr) view public returns (bool) {
+  function hasRoleInGroup(string memory _context, address _addr, bytes32 _roleGroup) public view returns (bool) {
     return hasAnyRole(_context, _addr, roleGroups[_roleGroup]);
   }
 
-  function setRoleGroup(bytes32 _roleGroup, bytes32[] memory _roles) assertIsAdmin public {
+  function setRoleGroup(bytes32 _roleGroup, bytes32[] memory _roles) public assertIsAdmin {
     roleGroups[_roleGroup] = _roles;
 
     emit RoleGroupUpdated(_roleGroup);
@@ -96,16 +98,16 @@ contract ACL is IACL {
    * @dev determine if addr has role
    */
   function hasRole(string memory _context, address _addr, bytes32 _role)
-    view
     public
+    view
     returns (bool)
   {
     return assignments[_context].has(_role, _addr);
   }
 
   function hasAnyRole(string memory _context, address _addr, bytes32[] memory _roles)
-    view
     public
+    view
     returns (bool)
   {
     bool hasAny = false;
@@ -124,8 +126,8 @@ contract ACL is IACL {
    * @dev assign a role to an address
    */
   function assignRole(string memory _context, address _addr, bytes32 _role)
-    assertIsAssigner(_context, _role)
     public
+    assertIsAssigner(_context, _role)
   {
     assignments[_context].add(_role, _addr);
     emit RoleAssigned(_context, _addr, _role);
@@ -135,8 +137,8 @@ contract ACL is IACL {
    * @dev remove a role from an address
    */
   function unassignRole(string memory _context, address _addr, bytes32 _role)
-    assertIsAssigner(_context, _role)
     public
+    assertIsAssigner(_context, _role)
   {
     assignments[_context].remove(_role, _addr);
     emit RoleUnassigned(_context, _addr, _role);
@@ -144,23 +146,39 @@ contract ACL is IACL {
 
   // Role assigners
 
-  function addAssigner(string memory _context, address _addr, bytes32 _role)
-    assertIsAdmin
+  function addAssigner(bytes32 _role, bytes32 _assignerRole)
     public
+    assertIsAdmin
   {
-    assigners[_context].add(_role, _addr);
-    emit AssignerAdded(_context, _addr, _role);
+    assigners[_role].add(_assignerRole);
+    emit AssignerAdded(_role, _assignerRole);
   }
 
-  function removeAssigner(string memory _context, address _addr, bytes32 _role)
-    assertIsAdmin
+  function removeAssigner(bytes32 _role, bytes32 _assignerRole)
     public
+    assertIsAdmin
   {
-    assigners[_context].remove(_role, _addr);
-    emit AssignerRemoved(_context, _addr, _role);
+    assigners[_role].remove(_assignerRole);
+    emit AssignerRemoved(_role, _assignerRole);
   }
 
-  function isAssigner(string memory _context, address _addr, bytes32 _role) view public returns (bool) {
-    return assigners[_context].has(_role, _addr);
+  function getAssigners(bytes32 _role)
+    public
+    view
+    returns (bytes32[] memory)
+  {
+    return assigners[_role].all();
+  }
+
+  function canAssign(string memory _context, address _addr, bytes32 _role)
+    public
+    view
+    returns (bool)
+  {
+    if (isAdmin(_addr)) {
+      return true;
+    }
+
+    return hasAnyRole(_context, _addr, getAssigners(_role));
   }
 }

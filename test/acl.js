@@ -2,6 +2,17 @@ import { ensureErc1820RegistryIsDeployed } from '../migrations/utils/erc1820'
 import { extractEventArgs } from './utils'
 import { events } from '../'
 import { toHex, toWei, sha3 } from './utils/web3'
+import {
+  deployAcl,
+  ROLE_ENTITY_ADMIN,
+  ROLE_ENTITY_MANAGER,
+  ROLE_ENTITY_REPRESENTATIVE,
+  ROLE_ASSET_MANAGER,
+  ROLE_CLIENT_MANAGER,
+  ROLEGROUP_MANAGE_ENTITY,
+  ROLEGROUP_MANAGE_POLICY,
+  ROLEGROUP_APPROVE_POLICY,
+} from '../migrations/utils/acl'
 
 const ACL = artifacts.require("./base/ACL")
 
@@ -16,13 +27,46 @@ contract('ACL', accounts => {
   })
 
   beforeEach(async () => {
-    acl = await ACL.new({ from: accounts[0] })
+    acl = await deployAcl({ artifacts })
   })
 
   it('default account is initial admin', async () => {
     await acl.numAdmins().should.eventually.eq(1)
     await acl.isAdmin(accounts[0]).should.eventually.eq(true)
     await acl.isAdmin(accounts[1]).should.eventually.eq(false)
+  })
+
+  describe('default roles and role groups', async () => {
+    it('entity admins', async () => {
+      await acl.assignRole("test", accounts[1], ROLE_ENTITY_ADMIN)
+      await acl.hasRoleInGroup("test", accounts[1], ROLEGROUP_MANAGE_ENTITY).should.eventually.eq(true)
+    })
+
+    it('entity managers', async () => {
+      await acl.assignRole("test", accounts[1], ROLE_ENTITY_MANAGER)
+      await acl.hasRoleInGroup("test", accounts[1], ROLEGROUP_MANAGE_ENTITY).should.eventually.eq(true)
+      await acl.getAssigners(ROLE_ENTITY_MANAGER).should.eventually.eq([ROLE_ENTITY_ADMIN])
+    })
+
+    it('entity reps', async () => {
+      await acl.assignRole("test", accounts[1], ROLE_ENTITY_REPRESENTATIVE)
+      await acl.hasRoleInGroup("test", accounts[1], ROLEGROUP_MANAGE_POLICY).should.eventually.eq(true)
+      await acl.getAssigners(ROLE_ENTITY_REPRESENTATIVE).should.eventually.eq([ROLE_ENTITY_MANAGER])
+    })
+
+    it('assset managers', async () => {
+      await acl.assignRole("test", accounts[1], ROLE_ASSET_MANAGER)
+      await acl.hasRoleInGroup("test", accounts[1], ROLEGROUP_MANAGE_POLICY).should.eventually.eq(false)
+      await acl.hasRoleInGroup("test", accounts[1], ROLEGROUP_APPROVE_POLICY).should.eventually.eq(true)
+      await acl.getAssigners(ROLE_ASSET_MANAGER).should.eventually.eq([ROLE_ENTITY_REPRESENTATIVE])
+    })
+
+    it('client managers', async () => {
+      await acl.assignRole("test", accounts[1], ROLE_CLIENT_MANAGER)
+      await acl.hasRoleInGroup("test", accounts[1], ROLEGROUP_MANAGE_POLICY).should.eventually.eq(false)
+      await acl.hasRoleInGroup("test", accounts[1], ROLEGROUP_APPROVE_POLICY).should.eventually.eq(true)
+      await acl.getAssigners(ROLE_CLIENT_MANAGER).should.eventually.eq([ROLE_ENTITY_REPRESENTATIVE])
+    })
   })
 
   describe('can have new admin proposed', () => {
@@ -165,13 +209,13 @@ contract('ACL', accounts => {
       await acl.assignRole('context', accounts[1], role2)
 
       await acl.setRoleGroup(group1, [ role1 ]).should.be.fulfilled
-      await acl.hasRoleInGroup('context', group1, accounts[1]).should.eventually.eq(false)
+      await acl.hasRoleInGroup('context', accounts[1], group1).should.eventually.eq(false)
 
       await acl.setRoleGroup(group1, [ role1, role2 ]).should.be.fulfilled
-      await acl.hasRoleInGroup('context', group1, accounts[1]).should.eventually.eq(true)
+      await acl.hasRoleInGroup('context', accounts[1], group1).should.eventually.eq(true)
 
       await acl.setRoleGroup(group1, []).should.be.fulfilled
-      await acl.hasRoleInGroup('context', group1, accounts[1]).should.eventually.eq(false)
+      await acl.hasRoleInGroup('context', accounts[1], group1).should.eventually.eq(false)
     })
 
     it('and emits an event when successful', async () => {
@@ -248,76 +292,24 @@ contract('ACL', accounts => {
     })
   })
 
-  describe('allows for an assigner to be added for a given role', async () => {
-    it('but not by a non-admin', async () => {
-      await acl.addAssigner('test', accounts[2], role1, { from: accounts[1] }).should.be.rejectedWith('unauthorized')
-    })
-
-    it('by an admin', async () => {
-      await acl.addAssigner('test', accounts[2], role1).should.be.fulfilled
-      await acl.isAssigner('test', accounts[2], role1).should.eventually.eq(true)
-    })
-
-    it('who can then assign and unassign roles', async () => {
-      await acl.assignRole('test', accounts[1], role1, { from: accounts[2] }).should.be.rejectedWith('unauthorized')
-      await acl.addAssigner('test', accounts[2], role1).should.be.fulfilled
-      await acl.assignRole('test', accounts[1], role1, { from: accounts[2] }).should.be.fulfilled
-      await acl.hasRole('test', accounts[1], role1).should.eventually.eq(true)
-      await acl.unassignRole('test', accounts[1], role1, { from: accounts[2] }).should.be.fulfilled
-      await acl.hasRole('test', accounts[1], role1).should.eventually.eq(false)
-    })
-
-    it('who still can\'t assign arbitrary roles', async () => {
-      await acl.addAssigner('test', accounts[2], role1).should.be.fulfilled
-      await acl.assignRole('test', accounts[1], role2, { from: accounts[2] }).should.be.rejectedWith('unauthorized')
-    })
-
-    it('and emits an event when successful', async () => {
-      const result = await acl.addAssigner('test', accounts[2], role1).should.be.fulfilled
-
-      expect(extractEventArgs(result, events.AssignerAdded)).to.include({
-        context: 'test',
-        addr: accounts[2],
-        role: role1,
-      })
-    })
-  })
-
-  describe('allows for an assigner to be removed for a given role', async () => {
+  describe('allows for an assigning role to be added and removed for a role', () => {
     beforeEach(async () => {
-      await acl.addAssigner('test', accounts[2], role1).should.be.fulfilled
+      await acl.assignRole('test', accounts[2], role2).should.be.fulfilled
     })
 
-    it('but not by a non-admin', async () => {
-      await acl.removeAssigner('test', accounts[2], role1, { from: accounts[1] }).should.be.rejectedWith('unauthorized')
-    })
-
-    it('by an admin', async () => {
-      await acl.removeAssigner('test', accounts[2], role1).should.be.fulfilled
-      await acl.isAssigner('test', accounts[2], role1).should.eventually.eq(false)
-    })
-
-    it('who can no longer assign roles', async () => {
-      await acl.assignRole('test', accounts[1], role1, { from: accounts[2] }).should.be.fulfilled
-      await acl.removeAssigner('test', accounts[2], role1).should.be.fulfilled
+    it('works', async () => {
+      await acl.canAssign('test', accounts[2], role1).should.eventually.eq(false)
       await acl.assignRole('test', accounts[1], role1, { from: accounts[2] }).should.be.rejectedWith('unauthorized')
-      await acl.unassignRole('test', accounts[1], role1, { from: accounts[2] }).should.be.rejectedWith('unauthorized')
-    })
 
-    it('who can no longer unassign roles', async () => {
-      await acl.unassignRole('test', accounts[1], role1, { from: accounts[2] }).should.be.fulfilled
-      await acl.removeAssigner('test', accounts[2], role1).should.be.fulfilled
-      await acl.unassignRole('test', accounts[1], role1, { from: accounts[2] }).should.be.rejectedWith('unauthorized')
-    })
+      await acl.addAssigner(role1, role2).should.be.fulfilled
 
-    it('and emits an event when successful', async () => {
-      const result = await acl.removeAssigner('test', accounts[2], role1).should.be.fulfilled
+      await acl.canAssign('test', accounts[2], role1).should.eventually.eq(true)
+      await acl.assignRole('test', accounts[1], role1, { from: accounts[2] }).should.be.fulfilled
 
-      expect(extractEventArgs(result, events.AssignerRemoved)).to.include({
-        context: 'test',
-        addr: accounts[2],
-        role: role1,
-      })
+      await acl.removeAssigner(role1, role2).should.be.fulfilled
+
+      await acl.canAssign('test', accounts[2], role1).should.eventually.eq(false)
+      await acl.assignRole('test', accounts[1], role1, { from: accounts[2] }).should.be.rejectedWith('unauthorized')
     })
   })
 })

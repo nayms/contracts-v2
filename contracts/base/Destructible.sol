@@ -15,7 +15,10 @@ contract Destructible is AccessControl {
   /**
    * @dev Transfers the current balance to the sender and terminates the contract.
    */
-  function destroy() assertIsAdmin public {
+  function destroy()
+    public
+    assertIsAdmin
+  {
     selfdestruct(msg.sender);
   }
 }

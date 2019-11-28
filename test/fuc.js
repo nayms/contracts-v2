@@ -19,11 +19,11 @@ import { ensureEtherTokenIsDeployed } from '../migrations/utils/etherToken'
 
 const ACL = artifacts.require("./base/ACL")
 const IProxyImpl = artifacts.require("./base/IProxyImpl")
-const IFUCImpl = artifacts.require("./base/IFUCImpl")
+const IPolicyImpl = artifacts.require("./base/IPolicyImpl")
 const IERC20 = artifacts.require("./base/IERC20")
 const IERC777 = artifacts.require("./base/IERC777")
-const FUC = artifacts.require("./FUC")
-const FUCImpl = artifacts.require("./FUCImpl")
+const Policy = artifacts.require("./Policy")
+const PolicyImpl = artifacts.require("./PolicyImpl")
 const IERC1820Registry = artifacts.require('./base/IERC1820Registry')
 const DummyERC777TokensSender = artifacts.require('./test/DummyERC777TokensSender')
 const DummyERC777TokensRecipient = artifacts.require('./test/DummyERC777TokensRecipient')
@@ -33,11 +33,11 @@ const ReEntrantERC777TokensRecipient = artifacts.require('./test/ReEntrantERC777
 const DATA_BYTES = asciiToHex('test')
 const DATA_BYTES_2 = asciiToHex('test2')
 
-contract('FUC', accounts => {
+contract('Policy', accounts => {
   let acl
-  let fucImpl
-  let fucProxy
-  let fuc
+  let policyImpl
+  let policyProxy
+  let policy
   let erc1820Registry
   let etherToken
 
@@ -49,50 +49,50 @@ contract('FUC', accounts => {
     etherToken = await ensureEtherTokenIsDeployed({ artifacts, accounts, web3 })
 
     acl = await ACL.new()
-    fucImpl = await FUCImpl.new(acl.address, "acme")
-    fucProxy = await FUC.new(
+    policyImpl = await PolicyImpl.new(acl.address, "acme")
+    policyProxy = await Policy.new(
       acl.address, "acme",
-      fucImpl.address,
-      "fuc1"
+      policyImpl.address,
+      "policy1"
     )
-    // now let's speak to FUC contract using FUCImpl ABI
-    fuc = await IFUCImpl.at(fucProxy.address)
+    // now let's speak to Policy contract using PolicyImpl ABI
+    policy = await IPolicyImpl.at(policyProxy.address)
 
     erc1820Registry = await IERC1820Registry.at(ERC1820_DEPLOYED_ADDRESS)
 
-    assetMgrRole = await fucProxy.ROLE_ASSET_MANAGER()
-    clientMgrRole = await fucProxy.ROLE_CLIENT_MANAGER()
+    assetMgrRole = await policyProxy.ROLE_ASSET_MANAGER()
+    clientMgrRole = await policyProxy.ROLE_CLIENT_MANAGER()
   })
 
   it('must be deployed with a valid implementation', async () => {
-    await FUC.new(
+    await Policy.new(
       acl.address, "acme",
       ADDRESS_ZERO,
-      "fuc1"
+      "policy1"
     ).should.be.rejectedWith('implementation must be valid')
   })
 
   it('can be deployed', async () => {
-    expect(fucProxy.address).to.exist
+    expect(policyProxy.address).to.exist
   })
 
   it('has its name set during deployment', async () => {
-    await fuc.getName().should.eventually.eq('fuc1')
+    await policy.getName().should.eventually.eq('policy1')
   })
 
   it('can return its implementation version', async () => {
-    await fucImpl.getImplementationVersion().should.eventually.eq('v1')
+    await policyImpl.getImplementationVersion().should.eventually.eq('v1')
   })
 
   describe('can have its name set', () => {
     it('but not just by anyone', async () => {
-      await fuc.setName('fuc2').should.be.rejectedWith('unauthorized');
+      await policy.setName('policy2').should.be.rejectedWith('unauthorized');
     })
 
     it('if caller has correct ability', async () => {
       await acl.assignRole("acme", accounts[2], assetMgrRole)
-      await fuc.setName('fuc2', { from: accounts[2] }).should.be.fulfilled;
-      await fuc.getName().should.eventually.eq('fuc2')
+      await policy.setName('policy2', { from: accounts[2] }).should.be.fulfilled;
+      await policy.getName().should.eventually.eq('policy2')
     })
   })
 
@@ -105,24 +105,24 @@ contract('FUC', accounts => {
     })
 
     it('and can confirm if someone is an asset manager', async () => {
-      await fucProxy.isAssetManager(accounts[0]).should.eventually.eq(false)
-      await fucProxy.isAssetManager(accounts[3]).should.eventually.eq(true)
-      await fucProxy.isAssetManager(accounts[4]).should.eventually.eq(false)
-      await fucProxy.isAssetManager(accounts[5]).should.eventually.eq(false)
-      await fucProxy.isAssetManager(accounts[6]).should.eventually.eq(false)
+      await policyProxy.isAssetManager(accounts[0]).should.eventually.eq(false)
+      await policyProxy.isAssetManager(accounts[3]).should.eventually.eq(true)
+      await policyProxy.isAssetManager(accounts[4]).should.eventually.eq(false)
+      await policyProxy.isAssetManager(accounts[5]).should.eventually.eq(false)
+      await policyProxy.isAssetManager(accounts[6]).should.eventually.eq(false)
     })
 
     it('and can confirm if someone is a client manager', async () => {
-      await fucProxy.isClientManager(accounts[0]).should.eventually.eq(false)
-      await fucProxy.isClientManager(accounts[3]).should.eventually.eq(false)
-      await fucProxy.isClientManager(accounts[4]).should.eventually.eq(false)
-      await fucProxy.isClientManager(accounts[5]).should.eventually.eq(true)
-      await fucProxy.isClientManager(accounts[6]).should.eventually.eq(false)
+      await policyProxy.isClientManager(accounts[0]).should.eventually.eq(false)
+      await policyProxy.isClientManager(accounts[3]).should.eventually.eq(false)
+      await policyProxy.isClientManager(accounts[4]).should.eventually.eq(false)
+      await policyProxy.isClientManager(accounts[5]).should.eventually.eq(true)
+      await policyProxy.isClientManager(accounts[6]).should.eventually.eq(false)
     })
   })
 
   describe('it can be upgraded', async () => {
-    let fucImpl2
+    let policyImpl2
     let randomSig
     let assetMgrSig
     let clientMgrSig
@@ -133,44 +133,44 @@ contract('FUC', accounts => {
       await acl.assignRole("acme", accounts[4], clientMgrRole)
 
       // deploy new implementation
-      fucImpl2 = await FUCImpl.new(acl.address, "fucImplementation")
+      policyImpl2 = await PolicyImpl.new(acl.address, "policyImplementation")
 
       // generate upgrade approval signatures
-      const implVersion = await fucImpl2.getImplementationVersion()
+      const implVersion = await policyImpl2.getImplementationVersion()
       randomSig = hdWallet.sign({ address: accounts[5], data: sha3(implVersion) })
       assetMgrSig = hdWallet.sign({ address: accounts[3], data: sha3(implVersion) })
       clientMgrSig = hdWallet.sign({ address: accounts[4], data: sha3(implVersion) })
     })
 
     it('but not just by anyone', async () => {
-      await fucProxy.upgrade(fucImpl2.address, assetMgrSig, clientMgrSig, { from: accounts[1] }).should.be.rejectedWith('unauthorized')
+      await policyProxy.upgrade(policyImpl2.address, assetMgrSig, clientMgrSig, { from: accounts[1] }).should.be.rejectedWith('unauthorized')
     })
 
     it('but must have asset manager\'s approval', async () => {
-      await fucProxy.upgrade(fucImpl2.address, randomSig, clientMgrSig).should.be.rejectedWith('must be approved by asset mgr')
+      await policyProxy.upgrade(policyImpl2.address, randomSig, clientMgrSig).should.be.rejectedWith('must be approved by asset mgr')
     })
 
     it('but must have client manager\'s approval', async () => {
-      await fucProxy.upgrade(fucImpl2.address, assetMgrSig, randomSig).should.be.rejectedWith('must be approved by client mgr')
+      await policyProxy.upgrade(policyImpl2.address, assetMgrSig, randomSig).should.be.rejectedWith('must be approved by client mgr')
     })
 
     it('but not to an empty address', async () => {
-      await fucProxy.upgrade(ADDRESS_ZERO, assetMgrSig, clientMgrSig).should.be.rejectedWith('implementation must be valid')
+      await policyProxy.upgrade(ADDRESS_ZERO, assetMgrSig, clientMgrSig).should.be.rejectedWith('implementation must be valid')
     })
 
     it('but not if signatures are empty', async () => {
-      await fucProxy.upgrade(fucImpl.address, "0x0", "0x0").should.be.rejectedWith('valid signer not found')
+      await policyProxy.upgrade(policyImpl.address, "0x0", "0x0").should.be.rejectedWith('valid signer not found')
     })
 
     it('but not to the existing implementation', async () => {
-      await fucProxy.upgrade(fucImpl.address, assetMgrSig, clientMgrSig).should.be.rejectedWith('already this implementation')
+      await policyProxy.upgrade(policyImpl.address, assetMgrSig, clientMgrSig).should.be.rejectedWith('already this implementation')
     })
 
     it('and points to the new implementation', async () => {
-      const result = await fucProxy.upgrade(fucImpl2.address, assetMgrSig, clientMgrSig).should.be.fulfilled
+      const result = await policyProxy.upgrade(policyImpl2.address, assetMgrSig, clientMgrSig).should.be.fulfilled
 
       expect(extractEventArgs(result, events.Upgraded)).to.include({
-        implementation: fucImpl2.address,
+        implementation: policyImpl2.address,
         version: 'v1',
       })
     })
@@ -185,32 +185,32 @@ contract('FUC', accounts => {
     })
 
     it('cannot be created without correct ability', async () => {
-      await fuc.createTranch(tranchNumShares, tranchPricePerShare, etherToken.address, ADDRESS_ZERO).should.be.rejectedWith('unauthorized')
+      await policy.createTranch(tranchNumShares, tranchPricePerShare, etherToken.address, ADDRESS_ZERO).should.be.rejectedWith('unauthorized')
     })
 
     it('all values must be valid', async () => {
-      await fuc.createTranch(0, 100, etherToken.address, ADDRESS_ZERO, { from: accounts[2] }).should.be.rejectedWith('invalid num of shares')
-      await fuc.createTranch(100, 0, etherToken.address, ADDRESS_ZERO, { from: accounts[2] }).should.be.rejectedWith('invalid price')
-      await fuc.createTranch(1, 1, ADDRESS_ZERO, ADDRESS_ZERO, { from: accounts[2] }).should.be.rejectedWith('invalid price unit')
+      await policy.createTranch(0, 100, etherToken.address, ADDRESS_ZERO, { from: accounts[2] }).should.be.rejectedWith('invalid num of shares')
+      await policy.createTranch(100, 0, etherToken.address, ADDRESS_ZERO, { from: accounts[2] }).should.be.rejectedWith('invalid price')
+      await policy.createTranch(1, 1, ADDRESS_ZERO, ADDRESS_ZERO, { from: accounts[2] }).should.be.rejectedWith('invalid price unit')
     })
 
-    it('can be created and have initial balance auto-allocated to fuc impl', async () => {
-      const result = await fuc.createTranch(tranchNumShares, tranchPricePerShare, etherToken.address, ADDRESS_ZERO, { from: accounts[2] }).should.be.fulfilled
+    it('can be created and have initial balance auto-allocated to policy impl', async () => {
+      const result = await policy.createTranch(tranchNumShares, tranchPricePerShare, etherToken.address, ADDRESS_ZERO, { from: accounts[2] }).should.be.fulfilled
 
       const [ log ] = parseEvents(result, events.CreateTranch)
 
-      expect(log.args.fuc).to.eq(fuc.address)
-      expect(log.args.tranch).to.eq(await fuc.getTranch(0))
-      expect(log.args.initialBalanceHolder).to.eq(fuc.address)
+      expect(log.args.policy).to.eq(policy.address)
+      expect(log.args.tranch).to.eq(await policy.getTranch(0))
+      expect(log.args.initialBalanceHolder).to.eq(policy.address)
       expect(log.args.index).to.eq('0')
 
-      await fuc.getNumTranches().should.eventually.eq(1)
-      const addr = await fuc.getTranch(0)
+      await policy.getNumTranches().should.eventually.eq(1)
+      const addr = await policy.getTranch(0)
       expect(addr.length).to.eq(42)
     })
 
     it('can be created and have initial balance allocated to a specific address', async () => {
-      const result = await fuc.createTranch(tranchNumShares, tranchPricePerShare, etherToken.address, accounts[3], { from: accounts[2] }).should.be.fulfilled
+      const result = await policy.createTranch(tranchNumShares, tranchPricePerShare, etherToken.address, accounts[3], { from: accounts[2] }).should.be.fulfilled
 
       const [ log ] = parseEvents(result, events.CreateTranch)
 
@@ -218,15 +218,15 @@ contract('FUC', accounts => {
     })
 
     it('can be created more than once', async () => {
-      await fuc.createTranch(tranchNumShares, tranchPricePerShare, etherToken.address, ADDRESS_ZERO, { from: accounts[2] }).should.be.fulfilled
-      await fuc.createTranch(tranchNumShares + 1, tranchPricePerShare + 2, etherToken.address, ADDRESS_ZERO, { from: accounts[2] }).should.be.fulfilled
+      await policy.createTranch(tranchNumShares, tranchPricePerShare, etherToken.address, ADDRESS_ZERO, { from: accounts[2] }).should.be.fulfilled
+      await policy.createTranch(tranchNumShares + 1, tranchPricePerShare + 2, etherToken.address, ADDRESS_ZERO, { from: accounts[2] }).should.be.fulfilled
 
-      await fuc.getNumTranches().should.eventually.eq(2)
+      await policy.getNumTranches().should.eventually.eq(2)
 
       const addresses = {}
 
       await Promise.all(_.range(0, 2).map(async i => {
-        const addr = await fuc.getTranch(i)
+        const addr = await policy.getTranch(i)
         expect(!addresses[addr]).to.be.true
         expect(addr.length).to.eq(42)
         addresses[addr] = true
@@ -240,17 +240,17 @@ contract('FUC', accounts => {
 
       beforeEach(async () => {
         acl.assignRole("acme", accounts[0], assetMgrRole)
-        await fuc.createTranch(tranchNumShares, tranchPricePerShare, etherToken.address, accounts[0])
-        await fuc.createTranch(tranchNumShares, tranchPricePerShare, etherToken.address, accounts[0])
+        await policy.createTranch(tranchNumShares, tranchPricePerShare, etherToken.address, accounts[0])
+        await policy.createTranch(tranchNumShares, tranchPricePerShare, etherToken.address, accounts[0])
       })
 
       it('which have basic details', async () => {
         let done = 0
 
         await Promise.all(_.range(0, 2).map(async i => {
-          const tkn = await IERC20.at(await fuc.getTranch(i))
+          const tkn = await IERC20.at(await policy.getTranch(i))
 
-          const NAME = 'fuc1_tranch_\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000' + String.fromCodePoint(i)
+          const NAME = 'policy1_tranch_\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000' + String.fromCodePoint(i)
 
           await tkn.name().should.eventually.eq(NAME)
           await tkn.symbol().should.eventually.eq(NAME)
@@ -267,7 +267,7 @@ contract('FUC', accounts => {
         let done = 0
 
         await Promise.all(_.range(0, 2).map(async i => {
-          const tkn = await IERC20.at(await fuc.getTranch(i))
+          const tkn = await IERC20.at(await policy.getTranch(i))
 
           await tkn.balanceOf(accounts[0]).should.eventually.eq(await tkn.totalSupply())
 
@@ -282,7 +282,7 @@ contract('FUC', accounts => {
         let firstTknNumShares
 
         beforeEach(async () => {
-          firstTkn = await IERC20.at(await fuc.getTranch(0))
+          firstTkn = await IERC20.at(await policy.getTranch(0))
           firstTknNumShares = await firstTkn.totalSupply()
         })
 
@@ -356,17 +356,17 @@ contract('FUC', accounts => {
     describe('are ERC777 tokens', () => {
       beforeEach(async () => {
         acl.assignRole("acme", accounts[0], assetMgrRole)
-        await fuc.createTranch(tranchNumShares, tranchPricePerShare, etherToken.address, accounts[0])
-        await fuc.createTranch(tranchNumShares, tranchPricePerShare, etherToken.address, accounts[0])
+        await policy.createTranch(tranchNumShares, tranchPricePerShare, etherToken.address, accounts[0])
+        await policy.createTranch(tranchNumShares, tranchPricePerShare, etherToken.address, accounts[0])
       })
 
       it('which have basic details', async () => {
         let done = 0
 
         await Promise.all(_.range(0, 2).map(async i => {
-          const tkn = await IERC777.at(await fuc.getTranch(i))
+          const tkn = await IERC777.at(await policy.getTranch(i))
 
-          const NAME = 'fuc1_tranch_\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000' + String.fromCodePoint(i)
+          const NAME = 'policy1_tranch_\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000' + String.fromCodePoint(i)
 
           await tkn.name().should.eventually.eq(NAME)
           await tkn.symbol().should.eventually.eq(NAME)
@@ -383,7 +383,7 @@ contract('FUC', accounts => {
         let done = 0
 
         await Promise.all(_.range(0, 2).map(async i => {
-          const tkn = await IERC777.at(await fuc.getTranch(i))
+          const tkn = await IERC777.at(await policy.getTranch(i))
 
           await tkn.balanceOf(accounts[0]).should.eventually.eq(await tkn.totalSupply())
 
@@ -397,7 +397,7 @@ contract('FUC', accounts => {
         let done = 0
 
         await Promise.all(_.range(0, 2).map(async i => {
-          const tkn = await IERC777.at(await fuc.getTranch(i))
+          const tkn = await IERC777.at(await policy.getTranch(i))
 
           await tkn.defaultOperators().should.eventually.eq([])
 
@@ -412,7 +412,7 @@ contract('FUC', accounts => {
         let firstTknNumShares
 
         beforeEach(async () => {
-          firstTkn = await IERC777.at(await fuc.getTranch(0))
+          firstTkn = await IERC777.at(await policy.getTranch(0))
           firstTknNumShares = await firstTkn.totalSupply()
         })
 
@@ -583,7 +583,7 @@ contract('FUC', accounts => {
             describe('when it\'s a re-entrant handler', () => {
               beforeEach(async () => {
                 const reEntrantERC777TokenSender = await ReEntrantERC777TokensSender.new(
-                  fucProxy.address,
+                  policyProxy.address,
                   0
                 )
 
@@ -646,7 +646,7 @@ contract('FUC', accounts => {
             describe('when it\'s a re-entrant handler', () => {
               beforeEach(async () => {
                 const reEntrantERC777TokenRecipient = await ReEntrantERC777TokensRecipient.new(
-                  fucProxy.address,
+                  policyProxy.address,
                   0
                 )
 
@@ -666,7 +666,7 @@ contract('FUC', accounts => {
 
           describe('and if receiver is a contract and it has not registered a handler', () => {
             it('then it reverts', async () => {
-              await firstTkn.send(fucImpl.address, 1, DATA_BYTES).should.be.rejectedWith('has no implementer')
+              await firstTkn.send(policyImpl.address, 1, DATA_BYTES).should.be.rejectedWith('has no implementer')
             })
           })
         })

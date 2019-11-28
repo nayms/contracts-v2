@@ -1,8 +1,8 @@
 const contracts = {
   Proxy: require('./build/contracts/Proxy.json'),
   ACL: require('./build/contracts/ACL.json'),
-  FUCDeployer: require('./build/contracts/FUCDeployer.json'),
-  IFUCImpl: require('./build/contracts/IFUCImpl.json'),
+  PolicyDeployer: require('./build/contracts/PolicyDeployer.json'),
+  IPolicyImpl: require('./build/contracts/IPolicyImpl.json'),
   IERC20: require('./build/contracts/IERC20.json'),
   IERC777: require('./build/contracts/IERC777.json'),
   DummyERC777TokensSender: require('./build/contracts/DummyERC777TokensSender.json'),

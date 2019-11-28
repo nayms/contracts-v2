@@ -5,9 +5,9 @@ import './base/IERC777.sol';
 import './base/ITranchToken.sol';
 
 /**
- * @dev An FUC tranch.
+ * @dev An Policy tranch.
  */
-contract FUCTranch is IERC20, IERC777 {
+contract PolicyTranch is IERC20, IERC777 {
   ITranchToken public impl;
   uint256 public index;
 

@@ -7,16 +7,16 @@ import './base/IERC777Sender.sol';
 import './base/IERC777Recipient.sol';
 import './base/IERC1820Registry.sol';
 import "./base/IProxyImpl.sol";
-import "./base/IFUCImpl.sol";
+import "./base/IPolicyImpl.sol";
 import "./base/IMarket.sol";
 import "./base/ITranchToken.sol";
 import "./base/SafeMath.sol";
-import "./FUCTranch.sol";
+import "./PolicyTranch.sol";
 
 /**
- * @dev Business-logic for FUC
+ * @dev Business-logic for Policy
  */
-contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, ITranchToken {
+contract PolicyImpl is EternalStorage, AccessControl, IProxyImpl, IPolicyImpl, ITranchToken {
   using SafeMath for uint;
   using Address for address;
 
@@ -40,13 +40,16 @@ contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, ITranch
 
   // IProxyImpl //
 
-  function getImplementationVersion () pure public returns (string memory) {
+  function getImplementationVersion () public pure returns (string memory) {
     return "v1";
   }
 
-  // IFUCImpl //
+  // IPolicyImpl //
 
-  function setName (string memory _name) assertCanUpdatePolicyDetails public {
+  function setName (string memory _name)
+    public
+    assertInRoleGroup(ROLEGROUP_MANAGE_POLICY)
+  {
     dataString["name"] = _name;
   }
 
@@ -59,7 +62,11 @@ contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, ITranch
     uint256 _initialPricePerShare,
     address _initialPricePerShareUnit,
     address _initialBalanceHolder
-  ) assertCanCreatePolicyTranches public returns (uint256) {
+  )
+    public
+    assertInRoleGroup(ROLEGROUP_MANAGE_POLICY)
+    returns (uint256)
+  {
     require(_numShares > 0, 'invalid num of shares');
     require(_initialPricePerShare > 0, 'invalid price');
     require(_initialPricePerShareUnit != address(0), 'invalid price unit');
@@ -76,14 +83,15 @@ contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, ITranch
     dataUint256[pricePerShareKey] = _initialPricePerShare;
     dataAddress[pricePerShareUnitKey] = _initialPricePerShareUnit;
     // deploy token contract
-    FUCTranch t = new FUCTranch(address(this), i);
+    PolicyTranch t = new PolicyTranch(address(this), i);
     // work out initial holder
-    if (_initialBalanceHolder == address(0)) {
+    address holder = _initialBalanceHolder;
+    if (holder == address(0)) {
       // by default it's this conract
-      _initialBalanceHolder = address(this);
+      holder = address(this);
     }
     string memory initialHolderKey = string(abi.encodePacked(i, "initialHolder"));
-    dataAddress[initialHolderKey] = _initialBalanceHolder;
+    dataAddress[initialHolderKey] = holder;
     // set initial holder balance
     string memory contractBalanceKey = string(abi.encodePacked(i, dataAddress[initialHolderKey], "balance"));
     dataUint256[contractBalanceKey] = _numShares;
@@ -105,7 +113,10 @@ contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, ITranch
     return dataAddress[addressKey];
   }
 
-  function beginTranchSale(uint256 _index, address _market) assertCanStartTranchSale public {
+  function beginTranchSale(uint256 _index, address _market)
+    public
+    assertInRoleGroup(ROLEGROUP_APPROVE_POLICY)
+  {
     // tranch/token address
     string memory addressKey = string(abi.encodePacked(_index, "address"));
     address tranchAddress = dataAddress[addressKey];
@@ -129,7 +140,7 @@ contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, ITranch
     IMarket mkt = IMarket(_market);
     mkt.offer(totalSupply, tranchAddress, totalPrice, unit, 0, false);
 
-    emit BeginTranchSale(_index, totalSupply, totalPrice, unit);
+    // emit BeginTranchSale(_index, totalSupply, totalPrice, unit);
   }
 
   // TranchTokenImpl - queries //
@@ -201,7 +212,9 @@ contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, ITranch
     _callTokensReceived(_index, _from, _from, _to, _amount, _data, "");
   }
 
-  function tknOperatorSend(uint256 _index, address _operator, address _from, address _to, uint256 _amount, bytes memory _data, bytes memory _operatorData) public {
+  function tknOperatorSend(uint256 _index, address _operator, address _from, address _to, uint256 _amount, bytes memory _data,
+    bytes memory _operatorData) public
+  {
     require(_to != address(0), 'cannot send to zero address');
 
     string memory k = string(abi.encodePacked(_index, _from, "operator", _operator));
@@ -253,8 +266,8 @@ contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, ITranch
     bytes memory _userData,
     bytes memory _operatorData
   )
-    acquireErc777SenderMutex(_index)
     private
+    acquireErc777SenderMutex(_index)
   {
     address implementer = IERC1820Registry(ERC1820_REGISTRY_ADDRESS).getInterfaceImplementer(_from, TOKENS_SENDER_INTERFACE_HASH);
     if (implementer != address(0)) {
@@ -272,8 +285,8 @@ contract FUCImpl is EternalStorage, AccessControl, IProxyImpl, IFUCImpl, ITranch
     bytes memory _userData,
     bytes memory _operatorData
   )
-    acquireErc777ReceiverMutex(_index)
     private
+    acquireErc777ReceiverMutex(_index)
   {
     address implementer = IERC1820Registry(ERC1820_REGISTRY_ADDRESS).getInterfaceImplementer(_to, TOKENS_RECIPIENT_INTERFACE_HASH);
     if (implementer != address(0)) {

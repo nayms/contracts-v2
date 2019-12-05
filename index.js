@@ -1,7 +1,9 @@
 const contracts = {
   Proxy: require('./build/contracts/Proxy.json'),
   ACL: require('./build/contracts/ACL.json'),
+  EntityDeployer: require('./build/contracts/EntityDeployer.json'),
   PolicyDeployer: require('./build/contracts/PolicyDeployer.json'),
+  IEntityImpl: require('./build/contracts/IEntityImpl.json'),
   IPolicyImpl: require('./build/contracts/IPolicyImpl.json'),
   IERC20: require('./build/contracts/IERC20.json'),
   IERC777: require('./build/contracts/IERC777.json'),

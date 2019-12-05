@@ -1,4 +1,3 @@
-import { toHex, toWei } from './utils/web3'
 import { ensureErc1820RegistryIsDeployed } from '../migrations/utils/erc1820'
 import { extractEventArgs } from './utils'
 import { events } from '../'
@@ -36,8 +35,6 @@ contract('PolicyDeployer', accounts => {
   })
 
   it('is not destructible by non-admin', async () => {
-    const { address } = deployer
-
     await deployer.destroy({ from: accounts[1] }).should.be.rejectedWith('unauthorized')
   })
 

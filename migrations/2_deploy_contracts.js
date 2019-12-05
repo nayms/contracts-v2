@@ -7,6 +7,6 @@ const { deployAcl } = require('./utils/acl')
 
 module.exports = async deployer => {
   await deployAcl({ deployer, artifacts })
-  await deployer.deploy(PolicyImpl, ACL.address, "policyImplementation")
+  await deployer.deploy(PolicyImpl, ACL.address)
   await deployer.deploy(PolicyDeployer, ACL.address, PolicyImpl.address)
 }

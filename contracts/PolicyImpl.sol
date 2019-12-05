@@ -20,7 +20,8 @@ contract PolicyImpl is EternalStorage, AccessControl, IProxyImpl, IPolicyImpl, I
   using SafeMath for uint;
   using Address for address;
 
-  /* ERC 1820 stuff */
+  // ERC 1820 stuff //
+
   address private constant ERC1820_REGISTRY_ADDRESS =
       0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24;
   // keccak256("ERC777TokensSender")
@@ -30,11 +31,23 @@ contract PolicyImpl is EternalStorage, AccessControl, IProxyImpl, IPolicyImpl, I
   bytes32 private constant TOKENS_RECIPIENT_INTERFACE_HASH =
       0xb281fc8c12954d22544db45de3159a39272895b169a852b314f9cc762e44c53b;
 
+  // Modifiers //
+
+  modifier assertCanManagePolicy () {
+    require(inRoleGroupWithContext(dataString["entityContext"], msg.sender, ROLEGROUP_MANAGE_POLICY), 'must be policy manager');
+    _;
+  }
+
+  modifier assertCanApprovePolicy () {
+    require(inRoleGroup(msg.sender, ROLEGROUP_APPROVE_POLICY), 'must be policy approver');
+    _;
+  }
+
   /**
    * Constructor
    */
-  constructor (address _acl, string memory _aclContext)
-    AccessControl(_acl, _aclContext)
+  constructor (address _acl)
+    AccessControl(_acl)
     public
   {}
 
@@ -48,7 +61,7 @@ contract PolicyImpl is EternalStorage, AccessControl, IProxyImpl, IPolicyImpl, I
 
   function setName (string memory _name)
     public
-    assertInRoleGroup(ROLEGROUP_MANAGE_POLICY)
+    assertCanManagePolicy
   {
     dataString["name"] = _name;
   }
@@ -64,7 +77,7 @@ contract PolicyImpl is EternalStorage, AccessControl, IProxyImpl, IPolicyImpl, I
     address _initialBalanceHolder
   )
     public
-    assertInRoleGroup(ROLEGROUP_MANAGE_POLICY)
+    assertCanManagePolicy
     returns (uint256)
   {
     require(_numShares > 0, 'invalid num of shares');
@@ -115,7 +128,7 @@ contract PolicyImpl is EternalStorage, AccessControl, IProxyImpl, IPolicyImpl, I
 
   function beginTranchSale(uint256 _index, address _market)
     public
-    assertInRoleGroup(ROLEGROUP_APPROVE_POLICY)
+    assertCanApprovePolicy
   {
     // tranch/token address
     string memory addressKey = string(abi.encodePacked(_index, "address"));

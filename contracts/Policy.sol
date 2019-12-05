@@ -6,10 +6,11 @@ import "./base/Proxy.sol";
 contract Policy is AccessControl, Proxy {
   constructor (
     address _acl,
-    string memory _aclContext,
+    string memory _entityContext,
     address _policyImpl,
     string memory _name
-  ) AccessControl(_acl, _aclContext) Proxy(_policyImpl) public {
+  ) AccessControl(_acl) Proxy(_policyImpl) public {
+    dataString["entityContext"] = _entityContext;
     dataString["name"] = _name;
   }
 

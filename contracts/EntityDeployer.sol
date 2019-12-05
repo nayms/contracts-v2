@@ -3,27 +3,17 @@ pragma solidity ^0.5.4;
 import './base/AccessControl.sol';
 import './base/EternalStorage.sol';
 import './base/Destructible.sol';
+import './base/IEntityDeployer.sol';
 import './Entity.sol';
 
 /**
  * This is responsible for deploying a new Entity.
  */
-contract EntityDeployer is EternalStorage, AccessControl, Destructible {
-  /**
-   * Notify that a new Policy has been deployed.
-   */
-  event NewEntity(
-    address indexed deployedAddress,
-    address indexed deployer
-  );
-
+contract EntityDeployer is EternalStorage, AccessControl, Destructible, IEntityDeployer {
   /**
    * Constructor
    */
-  constructor (
-    address _acl,
-    address _entityImpl
-  ) Destructible(_acl, "entityDeployer") public {
+  constructor (address _acl, address _entityImpl) Destructible(_acl) public {
     dataAddress["implementation"] = _entityImpl;
   }
 

@@ -8,7 +8,7 @@ contract Entity is AccessControl, Proxy {
     address _acl,
     address _entityImpl,
     string memory _name
-  ) AccessControl(_acl, string(abi.encodePacked(address(this)))) Proxy(_entityImpl) public {
+  ) AccessControl(_acl) Proxy(_entityImpl) public {
     dataString["name"] = _name;
   }
 

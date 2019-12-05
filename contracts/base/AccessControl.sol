@@ -23,9 +23,9 @@ contract AccessControl is EternalStorage {
   // keccak256("rolegroupApprovePolicy");
   bytes32 constant public ROLEGROUP_APPROVE_POLICY = 0x4b77fccf27a3185c9dbf5072d460f22f940bb947b4e66f7e8f8be48b7f9f7473;
 
-  constructor (address _acl, string memory _aclContext) public {
+  constructor (address _acl) public {
     dataAddress["acl"] = _acl;
-    dataString["aclContext"] = _aclContext;
+    dataString["aclContext"] = string(abi.encodePacked(address(this)));
   }
 
   modifier assertIsAdmin () {
@@ -39,11 +39,19 @@ contract AccessControl is EternalStorage {
   }
 
   function inRoleGroup (address _addr, bytes32 _roleGroup) public view returns (bool) {
-    return acl().hasRoleInGroup(aclContext(), _addr, _roleGroup);
+    return inRoleGroupWithContext(aclContext(), _addr, _roleGroup);
   }
 
   function hasRole (address _addr, bytes32 _role) public view returns (bool) {
-    return acl().hasRole(aclContext(), _addr, _role);
+    return hasRoleWithContext(aclContext(), _addr, _role);
+  }
+
+  function inRoleGroupWithContext (string memory _ctx, address _addr, bytes32 _roleGroup) public view returns (bool) {
+    return acl().hasRoleInGroup(_ctx, _addr, _roleGroup);
+  }
+
+  function hasRoleWithContext (string memory _ctx, address _addr, bytes32 _role) public view returns (bool) {
+    return acl().hasRole(_ctx, _addr, _role);
   }
 
   function acl () internal view returns (IACL) {

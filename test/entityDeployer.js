@@ -13,7 +13,7 @@ contract('EntityDeployer', accounts => {
 
   beforeEach(async () => {
     acl = await ACL.new()
-    entityImpl = await EntityImpl.new(acl.address, "entityImpl")
+    entityImpl = await EntityImpl.new(acl.address)
     deployer = await EntityDeployer.new(acl.address, entityImpl.address)
   })
 

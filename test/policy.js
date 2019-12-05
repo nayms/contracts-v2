@@ -18,6 +18,7 @@ import {
 import {
   ROLE_ASSET_MANAGER,
   ROLE_CLIENT_MANAGER,
+  ROLE_ENTITY_ADMIN,
 } from '../migrations/utils/acl'
 
 import { ensureEtherTokenIsDeployed } from '../migrations/utils/etherToken'
@@ -26,6 +27,9 @@ const ACL = artifacts.require("./base/ACL")
 const IPolicyImpl = artifacts.require("./base/IPolicyImpl")
 const IERC20 = artifacts.require("./base/IERC20")
 const IERC777 = artifacts.require("./base/IERC777")
+const IEntityImpl = artifacts.require('./base/IEntityImpl')
+const EntityDeployer = artifacts.require('./EntityDeployer')
+const EntityImpl = artifacts.require('./EntityImpl')
 const Policy = artifacts.require("./Policy")
 const PolicyImpl = artifacts.require("./PolicyImpl")
 const IERC1820Registry = artifacts.require('./base/IERC1820Registry')
@@ -39,6 +43,11 @@ const DATA_BYTES_2 = asciiToHex('test2')
 
 contract('Policy', accounts => {
   let acl
+  let entityDeployer
+  let entityImpl
+  let entityProxy
+  let entity
+  let entityContext
   let policyImpl
   let policyProxy
   let policy
@@ -50,25 +59,20 @@ contract('Policy', accounts => {
     etherToken = await ensureEtherTokenIsDeployed({ artifacts, accounts, web3 })
 
     acl = await deployAcl({ artifacts })
-    policyImpl = await PolicyImpl.new(acl.address, "doom")
-    policyProxy = await Policy.new(
-      acl.address, "doom",
-      policyImpl.address,
-      "policy1"
-    )
-    // now let's speak to Policy contract using PolicyImpl ABI
+
+    entityImpl = await EntityImpl.new(acl.address)
+    entityDeployer = await EntityDeployer.new(acl.address, entityImpl.address)
+    entityProxy = await entityDeployer.deploy('acme')
+    entity = await IEntityImpl.at(entityProxy)
+    entityContext = await entityProxy.aclContext()
+
+    await acl.assignRole(entityContext, accounts[1], ROLE_ENTITY_ADMIN)
+
+    policyImpl = await PolicyImpl.new(acl.address)
+    policyProxy = await entity.createPolicy(policyImpl.address, "doom")
     policy = await IPolicyImpl.at(policyProxy.address)
 
     erc1820Registry = await IERC1820Registry.at(ERC1820_DEPLOYED_ADDRESS)
-  })
-
-  it('must be deployed with a valid implementation', async () => {
-    await Policy.new(
-      acl.address,
-      "doom",
-      ADDRESS_ZERO,
-      "policy1"
-    ).should.be.rejectedWith('implementation must be valid')
   })
 
   it('can be deployed', async () => {
@@ -76,7 +80,7 @@ contract('Policy', accounts => {
   })
 
   it('has its name set during deployment', async () => {
-    await policy.getName().should.eventually.eq('policy1')
+    await policy.getName().should.eventually.eq('doom')
   })
 
   it('can return its implementation version', async () => {
@@ -249,7 +253,7 @@ contract('Policy', accounts => {
         await Promise.all(_.range(0, 2).map(async i => {
           const tkn = await IERC20.at(await policy.getTranch(i))
 
-          const NAME = 'policy1_tranch_\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000' + String.fromCodePoint(i)
+          const NAME = 'doom_tranch_\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000' + String.fromCodePoint(i)
 
           await tkn.name().should.eventually.eq(NAME)
           await tkn.symbol().should.eventually.eq(NAME)
@@ -365,7 +369,7 @@ contract('Policy', accounts => {
         await Promise.all(_.range(0, 2).map(async i => {
           const tkn = await IERC777.at(await policy.getTranch(i))
 
-          const NAME = 'policy1_tranch_\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000' + String.fromCodePoint(i)
+          const NAME = 'doom_tranch_\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000' + String.fromCodePoint(i)
 
           await tkn.name().should.eventually.eq(NAME)
           await tkn.symbol().should.eventually.eq(NAME)

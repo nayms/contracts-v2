@@ -1,9 +1,12 @@
 pragma solidity >=0.5.8;
 
+import "./Address.sol";
 import "./EternalStorage.sol";
 import "./IACL.sol";
 
 contract AccessControl is EternalStorage {
+  using Address for address;
+
   // keccak256("roleEntityAdmin");
   bytes32 constant public ROLE_ENTITY_ADMIN = 0x2bb88364d2ea1a59005ea18e1b13006461dd300582dd99ab2c7cb5b45084031f;
   // keccak256("roleEntityManager");
@@ -25,7 +28,7 @@ contract AccessControl is EternalStorage {
 
   constructor (address _acl) public {
     dataAddress["acl"] = _acl;
-    dataString["aclContext"] = string(abi.encodePacked(address(this)));
+    dataString["aclContext"] = address(this).toString();
   }
 
   modifier assertIsAdmin () {
@@ -34,7 +37,7 @@ contract AccessControl is EternalStorage {
   }
 
   modifier assertInRoleGroup (bytes32 _roleGroup) {
-    require(inRoleGroup(msg.sender, _roleGroup), 'not in role group');
+    require(inRoleGroup(msg.sender, _roleGroup), 'must be in role group');
     _;
   }
 

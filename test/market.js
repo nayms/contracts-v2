@@ -33,7 +33,7 @@ contract('Market', accounts => {
   beforeEach(async () => {
     etherToken = await ensureEtherTokenIsDeployed({ artifacts, accounts, web3 })
 
-    acl = await ACL.new()
+    acl = await deployAcl({ artifacts })
     policyImpl = await PolicyImpl.new(acl.address, "acme")
     policyProxy = await Policy.new(
       acl.address, "acme",

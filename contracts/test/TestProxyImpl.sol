@@ -5,11 +5,13 @@ import '../base/IProxyImpl.sol';
 import './ITestProxyImpl.sol';
 
 contract TestProxyImpl is EternalStorage, IProxyImpl, ITestProxyImpl {
-  constructor () public {}
+  constructor () public {
+    // nothing
+  }
 
   // IProxyImpl //
 
-  function getImplementationVersion () pure public returns (string memory) {
+  function getImplementationVersion () public pure returns (string memory) {
     return "test";
   }
 

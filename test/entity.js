@@ -1,35 +1,37 @@
-import { toHex, toWei, sha3, asciiToHex } from './utils/web3'
+import { sha3 } from './utils/web3'
 
 import {
-  parseEvents,
   extractEventArgs,
   hdWallet,
   ADDRESS_ZERO,
 } from './utils'
+
 import { events } from '../'
 
 import {
+  deployAcl,
   ROLE_ENTITY_ADMIN,
   ROLE_ENTITY_MANAGER,
-  ROLE_ENTITY_REPRESENTATIVE
+  ROLE_ENTITY_REPRESENTATIVE,
 } from '../migrations/utils/acl'
 
-import { ensureEtherTokenIsDeployed } from '../migrations/utils/etherToken'
-
-const ACL = artifacts.require("./base/ACL")
 const IEntityImpl = artifacts.require("./base/IEntityImpl")
+const Proxy = artifacts.require('./base/Proxy')
+const TestEntityImpl = artifacts.require("./test/TestEntityImpl")
 const Entity = artifacts.require("./Entity")
 const EntityImpl = artifacts.require("./EntityImpl")
+const PolicyImpl = artifacts.require("./PolicyImpl")
 
 contract('Entity', accounts => {
   let acl
   let entityImpl
   let entityProxy
   let entity
+  let entityContext
 
   beforeEach(async () => {
-    acl = await ACL.new()
-    entityImpl = await EntityImpl.new(acl.address, "entityImpl")
+    acl = await deployAcl({ artifacts })
+    entityImpl = await EntityImpl.new(acl.address)
     entityProxy = await Entity.new(
       acl.address,
       entityImpl.address,
@@ -37,13 +39,14 @@ contract('Entity', accounts => {
     )
     // now let's speak to Entity contract using EntityImpl ABI
     entity = await IEntityImpl.at(entityProxy.address)
+    entityContext = await entityProxy.aclContext()
   })
 
   it('must be deployed with a valid implementation', async () => {
     await Entity.new(
       acl.address,
       ADDRESS_ZERO,
-      "entity1"
+      "acme"
     ).should.be.rejectedWith('implementation must be valid')
   })
 
@@ -61,93 +64,126 @@ contract('Entity', accounts => {
 
   describe('can have its name set', () => {
     it('but not just by anyone', async () => {
-      await entity.setName('entity2').should.be.rejectedWith('unauthorized');
+      await entity.setName('entity2').should.be.rejectedWith('must be in role group');
     })
 
-    it.only('if caller is entity representative', async () => {
-      await acl.assignRole("acme", accounts[2], ROLE_ENTITY_REPRESENTATIVE)
+    it('but not if caller is entity representative', async () => {
+      await acl.assignRole(entityContext, accounts[2], ROLE_ENTITY_REPRESENTATIVE)
+      await entity.setName('entity2', { from: accounts[2] }).should.be.rejectedWith('must be in role group');
+    })
+
+    it('if caller is entity admin', async () => {
+      await acl.assignRole(entityContext, accounts[2], ROLE_ENTITY_ADMIN)
       await entity.setName('entity2', { from: accounts[2] }).should.be.fulfilled;
       await entity.getName().should.eventually.eq('entity2')
     })
-  })
 
-  describe('implements access control', async () => {
-    beforeEach(async () => {
-      await Promise.all([
-        acl.assignRole("acme", accounts[3], ROLE_ASSET_MANAGER),
-        acl.assignRole("acme", accounts[5], ROLE_CLIENT_MANAGER),
-      ])
-    })
-
-    it('and can confirm if someone is an asset manager', async () => {
-      await entityProxy.hasRole(accounts[0], ROLE_ASSET_MANAGER).should.eventually.eq(false)
-      await entityProxy.hasRole(accounts[3], ROLE_ASSET_MANAGER).should.eventually.eq(true)
-      await entityProxy.hasRole(accounts[4], ROLE_ASSET_MANAGER).should.eventually.eq(false)
-      await entityProxy.hasRole(accounts[5], ROLE_ASSET_MANAGER).should.eventually.eq(false)
-      await entityProxy.hasRole(accounts[6], ROLE_ASSET_MANAGER).should.eventually.eq(false)
-    })
-
-    it('and can confirm if someone is a client manager', async () => {
-      await entityProxy.hasRole(accounts[0], ROLE_CLIENT_MANAGER).should.eventually.eq(false)
-      await entityProxy.hasRole(accounts[3], ROLE_CLIENT_MANAGER).should.eventually.eq(false)
-      await entityProxy.hasRole(accounts[4], ROLE_CLIENT_MANAGER).should.eventually.eq(false)
-      await entityProxy.hasRole(accounts[5], ROLE_CLIENT_MANAGER).should.eventually.eq(true)
-      await entityProxy.hasRole(accounts[6], ROLE_CLIENT_MANAGER).should.eventually.eq(false)
+    it('if caller is entity manager', async () => {
+      await acl.assignRole(entityContext, accounts[2], ROLE_ENTITY_MANAGER)
+      await entity.setName('entity2', { from: accounts[2] }).should.be.fulfilled;
+      await entity.getName().should.eventually.eq('entity2')
     })
   })
 
   describe('it can be upgraded', async () => {
     let entityImpl2
     let randomSig
-    let assetMgrSig
-    let clientMgrSig
+    let entityAdminSig
+    let entityManagerSig
+    let entityRepresentativeSig
 
     beforeEach(async () => {
-      // assign asset manager
-      await acl.assignRole("acme", accounts[3], ROLE_ASSET_MANAGER)
-      await acl.assignRole("acme", accounts[4], ROLE_CLIENT_MANAGER)
-
       // deploy new implementation
-      entityImpl2 = await EntityImpl.new(acl.address, "entityImplementation")
+      entityImpl2 = await TestEntityImpl.new()
 
       // generate upgrade approval signatures
       const implVersion = await entityImpl2.getImplementationVersion()
       randomSig = hdWallet.sign({ address: accounts[5], data: sha3(implVersion) })
-      assetMgrSig = hdWallet.sign({ address: accounts[3], data: sha3(implVersion) })
-      clientMgrSig = hdWallet.sign({ address: accounts[4], data: sha3(implVersion) })
+
+      await acl.assignRole(entityContext, accounts[1], ROLE_ENTITY_ADMIN)
+      entityAdminSig = hdWallet.sign({ address: accounts[1], data: sha3(implVersion) })
+
+      await acl.assignRole(entityContext, accounts[2], ROLE_ENTITY_MANAGER)
+      entityManagerSig = hdWallet.sign({ address: accounts[2], data: sha3(implVersion) })
+
+      await acl.assignRole(entityContext, accounts[3], ROLE_ENTITY_REPRESENTATIVE)
+      entityRepresentativeSig = hdWallet.sign({ address: accounts[3], data: sha3(implVersion) })
     })
 
     it('but not just by anyone', async () => {
-      await entityProxy.upgrade(entityImpl2.address, assetMgrSig, clientMgrSig, { from: accounts[1] }).should.be.rejectedWith('unauthorized')
+      await entityProxy.upgrade(entityImpl2.address, entityAdminSig, { from: accounts[1] }).should.be.rejectedWith('must be admin')
     })
 
-    it('but must have asset manager\'s approval', async () => {
-      await entityProxy.upgrade(entityImpl2.address, randomSig, clientMgrSig).should.be.rejectedWith('must be approved by asset mgr')
+    it('but not with entity manager\'s signature', async () => {
+      await entityProxy.upgrade(entityImpl2.address, entityManagerSig).should.be.rejectedWith('must be approved by entity admin')
     })
 
-    it('but must have client manager\'s approval', async () => {
-      await entityProxy.upgrade(entityImpl2.address, assetMgrSig, randomSig).should.be.rejectedWith('must be approved by client mgr')
+    it('but not with entity rep\'s signature', async () => {
+      await entityProxy.upgrade(entityImpl2.address, entityRepresentativeSig).should.be.rejectedWith('must be approved by entity admin')
     })
 
     it('but not to an empty address', async () => {
-      await entityProxy.upgrade(ADDRESS_ZERO, assetMgrSig, clientMgrSig).should.be.rejectedWith('implementation must be valid')
+      await entityProxy.upgrade(ADDRESS_ZERO, entityAdminSig).should.be.rejectedWith('implementation must be valid')
     })
 
-    it('but not if signatures are empty', async () => {
-      await entityProxy.upgrade(entityImpl.address, "0x0", "0x0").should.be.rejectedWith('valid signer not found')
-    })
-
-    it('but not to the existing implementation', async () => {
-      await entityProxy.upgrade(entityImpl.address, assetMgrSig, clientMgrSig).should.be.rejectedWith('already this implementation')
+    it.skip('but not to the existing implementation', async () => {
+      const oldVersion = await entityImpl.getImplementationVersion()
+      entityManagerSig = hdWallet.sign({ address: accounts[1], data: sha3(oldVersion) })
+      await entityProxy.upgrade(entityImpl.address, entityAdminSig).should.be.rejectedWith('already this implementation')
     })
 
     it('and points to the new implementation', async () => {
-      const result = await entityProxy.upgrade(entityImpl2.address, assetMgrSig, clientMgrSig).should.be.fulfilled
+      const result = await entityProxy.upgrade(entityImpl2.address, entityAdminSig).should.be.fulfilled
 
       expect(extractEventArgs(result, events.Upgraded)).to.include({
         implementation: entityImpl2.address,
-        version: 'v1',
+        version: 'vTest',
       })
+    })
+  })
+
+  describe('policies can be created', () => {
+    let policyImpl
+
+    beforeEach(async () => {
+      policyImpl = await PolicyImpl.new(acl.address)
+
+      await acl.assignRole(entityContext, accounts[1], ROLE_ENTITY_ADMIN)
+      await acl.assignRole(entityContext, accounts[2], ROLE_ENTITY_MANAGER)
+      await acl.assignRole(entityContext, accounts[3], ROLE_ENTITY_REPRESENTATIVE)
+    })
+
+    it('but not by entity admins', async () => {
+      await entity.createPolicy(policyImpl.address, 'policy1', { from: accounts[1] }).should.be.rejectedWith('must be in role group')
+    })
+
+    it('by entity managers', async () => {
+      const result = await entity.createPolicy(policyImpl.address, 'policy1', { from: accounts[2] }).should.be.fulfilled
+
+      const eventArgs = extractEventArgs(result, events.NewPolicy)
+
+      expect(eventArgs).to.include({
+        deployer: accounts[2],
+        entity: entityProxy.address,
+      })
+
+      await PolicyImpl.at(eventArgs.policy).should.be.fulfilled;
+    })
+
+    it('by entity representatives', async () => {
+      await entity.createPolicy(policyImpl.address, 'policy1', { from: accounts[3] }).should.be.fulfilled
+    })
+
+    it('and have their properties set', async () => {
+      const result = await entity.createPolicy(policyImpl.address, 'policy1', { from: accounts[3] })
+
+      const eventArgs = extractEventArgs(result, events.NewPolicy)
+
+      const policy = await PolicyImpl.at(eventArgs.policy)
+      await policy.getName().should.eventually.eq('policy1')
+
+      const proxy = await Proxy.at(eventArgs.policy)
+      await proxy.getImplementation().should.eventually.eq(policyImpl.address)
     })
   })
 })

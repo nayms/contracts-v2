@@ -7,7 +7,7 @@ interface IEntityDeployer {
    * Notify that a new Policy has been deployed.
    */
   event NewEntity(
-    address indexed deployedAddress,
+    address indexed entity,
     address indexed deployer
   );
 }

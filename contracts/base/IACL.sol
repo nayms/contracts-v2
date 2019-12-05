@@ -20,4 +20,14 @@ interface IACL {
   function removeAssigner(bytes32 _assignerRole, bytes32 _role) external;
   function getAssigners(bytes32 _role) external view returns (bytes32[] memory);
   function canAssign(string calldata _context, address _addr, bytes32 _role) external view returns (bool);
+
+  event RoleGroupUpdated(bytes32 indexed roleGroup);
+  event RoleAssigned(string context, address indexed addr, bytes32 indexed role);
+  event RoleUnassigned(string context, address indexed addr, bytes32 indexed role);
+  event AssignerAdded(bytes32 indexed role, bytes32 indexed assigner);
+  event AssignerRemoved(bytes32 indexed role, bytes32 indexed assigner);
+  event AdminProposed(address indexed addr);
+  event AdminProposalCancelled(address indexed addr);
+  event AdminProposalAccepted(address indexed addr);
+  event AdminRemoved(address indexed addr);
 }

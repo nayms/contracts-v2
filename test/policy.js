@@ -49,7 +49,7 @@ contract('Policy', accounts => {
     await ensureErc1820RegistryIsDeployed({ artifacts, accounts, web3 })
     etherToken = await ensureEtherTokenIsDeployed({ artifacts, accounts, web3 })
 
-    acl = await ACL.new()
+    acl = await deployAcl({ artifacts })
     policyImpl = await PolicyImpl.new(acl.address, "doom")
     policyProxy = await Policy.new(
       acl.address, "doom",

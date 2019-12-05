@@ -8,7 +8,7 @@ import "./Policy.sol";
 /**
  * @dev Business-logic for Entity
  */
-contract EntityImpl is EternalStorage, AccessControl, IEntityImpl {
+contract EntityImpl is EternalStorage, AccessControl, IEntityImpl, IProxyImpl {
 
   /**
    * Constructor
@@ -17,6 +17,13 @@ contract EntityImpl is EternalStorage, AccessControl, IEntityImpl {
     AccessControl(_acl)
     public
   {}
+
+  // IProxyImpl
+
+  function getImplementationVersion () public pure returns (string memory) {
+    return "v1";
+  }
+
 
   // IEntityImpl - basic details
 
@@ -48,6 +55,6 @@ contract EntityImpl is EternalStorage, AccessControl, IEntityImpl {
       _name
     );
 
-    emit NewPolicy(address(f), msg.sender);
+    emit NewPolicy(address(f), address(this), msg.sender);
   }
 }

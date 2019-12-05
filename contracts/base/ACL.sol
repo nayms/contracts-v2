@@ -15,16 +15,6 @@ contract ACL is IACL {
   mapping (address => bool) public pendingAdmins;
   uint256 public numAdmins;
 
-  event RoleGroupUpdated(bytes32 indexed roleGroup);
-  event RoleAssigned(string context, address indexed addr, bytes32 indexed role);
-  event RoleUnassigned(string context, address indexed addr, bytes32 indexed role);
-  event AssignerAdded(bytes32 indexed role, bytes32 indexed assigner);
-  event AssignerRemoved(bytes32 indexed role, bytes32 indexed assigner);
-  event AdminProposed(address indexed addr);
-  event AdminProposalCancelled(address indexed addr);
-  event AdminProposalAccepted(address indexed addr);
-  event AdminRemoved(address indexed addr);
-
   modifier assertIsAdmin () {
     require(admins[msg.sender], 'unauthorized - must be admin');
     _;

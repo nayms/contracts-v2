@@ -12,7 +12,8 @@ interface IEntityImpl {
    * Notify that a new Policy has been deployed.
    */
   event NewPolicy(
-    address indexed deployedAddress,
+    address indexed policy,
+    address indexed entity,
     address indexed deployer
   );
 

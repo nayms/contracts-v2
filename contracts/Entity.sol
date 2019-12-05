@@ -15,7 +15,7 @@ contract Entity is AccessControl, Proxy {
   function upgrade (address _implementation, bytes memory _sig) public assertIsAdmin {
     address signer = getUpgradeSigner(_implementation, _sig);
 
-    require(hasRole(signer, ROLE_ENTITY_ADMIN), 'must be signed by entity admin');
+    require(hasRole(signer, ROLE_ENTITY_ADMIN), 'must be approved by entity admin');
 
     setImplementation(_implementation);
   }

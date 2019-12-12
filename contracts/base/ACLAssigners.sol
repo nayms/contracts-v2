@@ -45,18 +45,6 @@ library ACLAssigners {
     }
   }
 
-  /**
-   * @dev check if given assigner can assign this role
-   * @return bool
-   */
-  function has(Role storage _role, bytes32 _assignerRole)
-    internal
-    view
-    returns (bool)
-  {
-    return 0 < _role.map[_assignerRole];
-  }
-
 
   /**
    * @dev Get all assigners.

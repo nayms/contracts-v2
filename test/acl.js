@@ -18,6 +18,8 @@ const ACL = artifacts.require("./base/ACL")
 contract('ACL', accounts => {
   const role1 = sha3('testrole1')
   const role2 = sha3('testrole2')
+  const role3 = sha3('testrole3')
+  const role4 = sha3('testrole4')
 
   let acl
 
@@ -305,6 +307,41 @@ contract('ACL', accounts => {
 
       await acl.canAssign('test', accounts[2], role1).should.eventually.eq(false)
       await acl.assignRole('test', accounts[1], role1, { from: accounts[2] }).should.be.rejectedWith('unauthorized')
+    })
+
+    it('and ensures no duplicates exist in list of all assigners for a given role', async () => {
+      await acl.addAssigner(role1, role2).should.be.fulfilled
+      await acl.addAssigner(role1, role2).should.be.fulfilled
+      await acl.getAssigners(role1).should.eventually.eq([ role2 ])
+    })
+
+    it('and ensures that an item can be removed from the list of all assigners efficiently', async () => {
+      // 3 items
+      await acl.addAssigner(role1, role2).should.be.fulfilled
+      await acl.addAssigner(role1, role3).should.be.fulfilled
+      await acl.addAssigner(role1, role4).should.be.fulfilled
+
+      await acl.getAssigners(role1).should.eventually.eq([ role2, role3, role4 ])
+
+      // remove head of list
+      await acl.removeAssigner(role1, role2).should.be.fulfilled
+
+      await acl.getAssigners(role1).should.eventually.eq([ role4, role3 ])
+
+      // remove end of list
+      await acl.removeAssigner(role1, role3).should.be.fulfilled
+
+      await acl.getAssigners(role1).should.eventually.eq([role4])
+
+      // try same again, to ensure no error is thrown
+      await acl.removeAssigner(role1, role3).should.be.fulfilled
+
+      await acl.getAssigners(role1).should.eventually.eq([role4])
+
+      // remove last item
+      await acl.removeAssigner(role1, role4).should.be.fulfilled
+
+      await acl.getAssigners(role1).should.eventually.eq([])
     })
   })
 })

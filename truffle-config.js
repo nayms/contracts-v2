@@ -1,4 +1,12 @@
-const { mnemonic, infuraKey, etherscanApiKey } = require('./.deployment.js')
+let mnemonic = 'notset'
+let infuraKey = 'notset'
+
+try {
+  ;({ mnemonic, infuraKey } = require('./.deployment.js'))
+} catch (err) {
+  // nothing to do
+}
+
 const HDWalletProvider = require('truffle-hdwallet-provider')
 
 const ProviderEngine = require("web3-provider-engine")

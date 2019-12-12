@@ -13,7 +13,7 @@ contract TestProxy is Proxy {
     setImplementation(_implementation);
   }
 
-  function getSigner(address _implementation, bytes memory _signature) pure public returns (address) {
+  function getSigner(address _implementation, bytes memory _signature) public pure returns (address) {
     return getUpgradeSigner(_implementation, _signature);
   }
 }

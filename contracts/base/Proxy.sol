@@ -73,10 +73,11 @@ contract Proxy is EternalStorage {
   * @dev Fallback function allowing to perform a delegatecall to the given implementation.
   * This function will return whatever the implementation call returns
   */
-  function () payable external {
+  function () external payable {
     address _impl = getImplementation();
     require(_impl != address(0), 'implementation not set');
 
+    // solhint-disable-next-line security/no-inline-assembly
     assembly {
       let ptr := mload(0x40)
       calldatacopy(ptr, 0, calldatasize)

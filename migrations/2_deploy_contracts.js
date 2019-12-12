@@ -1,10 +1,13 @@
 const ACL = artifacts.require("./base/ACL")
-const EtherToken = artifacts.require("./base/EtherToken")
-const FUCImpl = artifacts.require("./FUCImpl")
-const FUCDeployer = artifacts.require("./FUCDeployer")
+const EntityImpl = artifacts.require("./EntityImpl")
+const PolicyImpl = artifacts.require("./PolicyImpl")
+const EntityDeployer = artifacts.require("./EntityDeployer")
+
+const { deployAcl } = require('./utils/acl')
 
 module.exports = async deployer => {
-  await deployer.deploy(ACL)
-  await deployer.deploy(FUCImpl, ACL.address, "fucImplementation")
-  await deployer.deploy(FUCDeployer, ACL.address, FUCImpl.address)
+  await deployAcl({ deployer, artifacts })
+  await deployer.deploy(PolicyImpl, ACL.address)
+  await deployer.deploy(EntityImpl, ACL.address)
+  await deployer.deploy(EntityDeployer, ACL.address, EntityImpl.address)
 }

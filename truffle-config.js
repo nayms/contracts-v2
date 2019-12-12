@@ -1,4 +1,14 @@
-const { Compiler } = require('@0x/sol-compiler')
+let mnemonic = 'notset'
+let infuraKey = 'notset'
+
+try {
+  ;({ mnemonic, infuraKey } = require('./.deployment.js'))
+} catch (err) {
+  // nothing to do
+}
+
+const HDWalletProvider = require('truffle-hdwallet-provider')
+
 const ProviderEngine = require("web3-provider-engine")
 const WebsocketSubprovider = require("web3-provider-engine/subproviders/websocket.js")
 const { TruffleArtifactAdapter, RevertTraceSubprovider } = require("@0x/sol-trace")
@@ -48,6 +58,11 @@ provider.send = provider.sendAsync.bind(provider)
 
 module.exports = {
   networks: {
+    rinkeby: {
+      provider: (num_addresses = 1) => new HDWalletProvider(mnemonic, `https://rinkeby.infura.io/v3/${infuraKey}`, 0, num_addresses),
+      gasPrice: 50000000000, // 50 gwei,
+      network_id: 4,
+    },
     test: {
       provider,
       network_id: "*",

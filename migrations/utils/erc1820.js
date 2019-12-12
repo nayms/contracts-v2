@@ -17,10 +17,11 @@ export const TOKENS_RECIPIENT_INTERFACE_HASH = '0xb281fc8c12954d22544db45de3159a
 const log = msg => console.log(chalk.blue(msg))
 
 export const ensureErc1820RegistryIsDeployed = async ({ artifacts, accounts, web3 }) => {
+  const IERC1820Registry = artifacts.require("./base/IERC1820Registry.sol")
+
   let registry
 
   try {
-    const IERC1820Registry = artifacts.require("./base/IERC1820Registry.sol")
 
     registry = await IERC1820Registry.at(ERC1820_DEPLOYED_ADDRESS)
   } catch (_err) {

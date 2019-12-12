@@ -13,8 +13,6 @@ import {
   ROLEGROUP_APPROVE_POLICY,
 } from '../migrations/utils/acl'
 
-const ACL = artifacts.require("./base/ACL")
-
 contract('ACL', accounts => {
   const role1 = sha3('testrole1')
   const role2 = sha3('testrole2')

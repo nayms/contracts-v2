@@ -4,7 +4,13 @@ import chai from 'chai'
 import { parseLog } from 'ethereum-event-logs'
 import chaiAsPromised from 'chai-as-promised'
 
+import { extractEventsFromAbis } from '../../'
 import { toBN, isBN } from './web3'
+
+export const testEvents = extractEventsFromAbis([
+  require('../../build/contracts/DummyERC777TokensSender.json'),
+  require('../../build/contracts/DummyERC777TokensRecipient.json'),
+])
 
 chai.use((_chai, utils) => {
   const sanitizeResultVal = (result, val) => {
@@ -97,3 +103,4 @@ export const outputBNs = bn => {
     console.log(`   ${bn[k].toString(10)} => ${bn[k].toString(2)}`)
   })
 }
+

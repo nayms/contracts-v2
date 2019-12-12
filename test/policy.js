@@ -1,10 +1,11 @@
-import { toHex, toWei, sha3, asciiToHex } from './utils/web3'
+import { sha3, asciiToHex } from './utils/web3'
 
 import {
   parseEvents,
   extractEventArgs,
   hdWallet,
   ADDRESS_ZERO,
+  testEvents,
 } from './utils'
 import { events } from '../'
 
@@ -550,7 +551,7 @@ contract('Policy', accounts => {
               it('then the handler gets invoked during a transfer', async () => {
                 const result = await firstTkn.send(accounts[1], 1, DATA_BYTES).should.be.fulfilled
 
-                expect(extractEventArgs(result, events.TokensToSend)).to.include({
+                expect(extractEventArgs(result, testEvents.TokensToSend)).to.include({
                   operator: accounts[0],
                   from: accounts[0],
                   to: accounts[1],
@@ -565,7 +566,7 @@ contract('Policy', accounts => {
 
                 const result = await firstTkn.operatorSend(accounts[0], accounts[1], 1, DATA_BYTES, DATA_BYTES_2, { from: accounts[1] }).should.be.fulfilled
 
-                expect(extractEventArgs(result, events.TokensToSend)).to.include({
+                expect(extractEventArgs(result, testEvents.TokensToSend)).to.include({
                   operator: accounts[1],
                   from: accounts[0],
                   to: accounts[1],
@@ -613,7 +614,7 @@ contract('Policy', accounts => {
               it('then the handler gets invoked during a transfer', async () => {
                 const result = await firstTkn.send(accounts[1], 1, DATA_BYTES).should.be.fulfilled
 
-                expect(extractEventArgs(result, events.TokensReceived)).to.include({
+                expect(extractEventArgs(result, testEvents.TokensReceived)).to.include({
                   operator: accounts[0],
                   from: accounts[0],
                   to: accounts[1],
@@ -628,7 +629,7 @@ contract('Policy', accounts => {
 
                 const result = await firstTkn.operatorSend(accounts[0], accounts[1], 1, DATA_BYTES, DATA_BYTES_2, { from: accounts[1] }).should.be.fulfilled
 
-                expect(extractEventArgs(result, events.TokensReceived)).to.include({
+                expect(extractEventArgs(result, testEvents.TokensReceived)).to.include({
                   operator: accounts[1],
                   from: accounts[0],
                   to: accounts[1],

@@ -16,24 +16,24 @@ Then, using [truffle-contract](https://github.com/trufflesuite/truffle/tree/deve
 const promisify = require('es6-promisify')
 const TruffleContract = require('truffle-contract')
 const Web3 = require('web3')
-const { PolicyDeployer } = require('@nayms/contracts')
+const { EntityDeployer } = require('@nayms/contracts')
 
 async init = () => {
   const web3 = new Web3(/* ... */)
 
-  const contract = TruffleContract(PolicyDeployer)
+  const contract = TruffleContract(EntityDeployer)
   contract.setProvider(web3.currentProvider)
 
   const deployer = await contract.deployed()
 
-  // deploy a new Policy
+  // deploy a new Entity
   await deployer.deploy(/*...*/)
 
-  const events = await promisify(deployer.contract.getPastEvents, deployer.contract)('NewPolicy')
+  const events = await promisify(deployer.contract.getPastEvents, deployer.contract)('NewEntity')
 
-  const { returnValues: { deployedAddress } } = events.pop()
+  const { returnValues: { entity } } = events.pop()
 
-  console.log(`New contract deployed at: ${deployedAddress}`)
+  console.log(`New entity deployed at: ${entity}`)
 }
 ```
 

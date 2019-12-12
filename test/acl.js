@@ -1,7 +1,6 @@
-import { ensureErc1820RegistryIsDeployed } from '../migrations/utils/erc1820'
 import { extractEventArgs } from './utils'
 import { events } from '../'
-import { toHex, toWei, sha3 } from './utils/web3'
+import { sha3 } from './utils/web3'
 import {
   deployAcl,
   ROLE_ENTITY_ADMIN,
@@ -21,10 +20,6 @@ contract('ACL', accounts => {
   const role2 = sha3('testrole2')
 
   let acl
-
-  before(async () => {
-    await ensureErc1820RegistryIsDeployed({ artifacts, accounts, web3 })
-  })
 
   beforeEach(async () => {
     acl = await deployAcl({ artifacts })

@@ -9,10 +9,12 @@ const projectDir = path.join(__dirname, '..')
 const deployedAddressesJsonPath = path.join(projectDir, 'deployedAddresses.json')
 
 const contracts = [
-  'Storage'
+  'ACL',
+  'EntityDeployer',
+  'MatchingMarket',
 ].reduce((m, name) => {
   const jsonPath = path.join(projectDir, 'build', 'contracts', `${name}.json`)
-  const { networks } = require(deployerJsonPath)
+  const { networks } = require(jsonPath)
   Object.keys(networks).forEach(key => {
     switch (key) {
       case '1': // mainnet

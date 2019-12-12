@@ -9,7 +9,6 @@ import "./Policy.sol";
  * @dev Business-logic for Entity
  */
 contract EntityImpl is EternalStorage, AccessControl, IEntityImpl, IProxyImpl {
-
   /**
    * Constructor
    */
@@ -55,6 +54,17 @@ contract EntityImpl is EternalStorage, AccessControl, IEntityImpl, IProxyImpl {
       _name
     );
 
+    dataAddress[string(abi.encodePacked("policy", dataUint256["numPolicies"]))] = address(f);
+    dataUint256["numPolicies"] = dataUint256["numPolicies"] + 1;
+
     emit NewPolicy(address(f), address(this), msg.sender);
+  }
+
+  function getNumPolicies() public view returns (uint256) {
+    return dataUint256["numPolicies"];
+  }
+
+  function getPolicy(uint256 _index) public view returns (address) {
+    return dataAddress[string(abi.encodePacked("policy", _index))];
   }
 }

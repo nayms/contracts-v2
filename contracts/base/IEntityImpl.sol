@@ -18,4 +18,6 @@ interface IEntityImpl {
   );
 
   function createPolicy(address _impl, string calldata _name) external;
+  function getNumPolicies() external view returns (uint256);
+  function getPolicy(uint256 _index) external view returns (address);
 }

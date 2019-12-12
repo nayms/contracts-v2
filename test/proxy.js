@@ -1,7 +1,5 @@
-import { toHex, toWei, sha3 } from './utils/web3'
-import { ensureErc1820RegistryIsDeployed } from '../migrations/utils/erc1820'
+import { sha3 } from './utils/web3'
 import { ADDRESS_ZERO, hdWallet } from './utils'
-import { events } from '../'
 
 const TestProxy = artifacts.require("./test/TestProxy")
 const TestProxyImpl = artifacts.require("./test/TestProxyImpl")

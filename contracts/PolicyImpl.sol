@@ -153,7 +153,7 @@ contract PolicyImpl is EternalStorage, AccessControl, IProxyImpl, IPolicyImpl, I
     IMarket mkt = IMarket(_market);
     mkt.offer(totalSupply, tranchAddress, totalPrice, unit, 0, false);
 
-    // emit BeginTranchSale(_index, totalSupply, totalPrice, unit);
+    emit BeginTranchSale(_index, totalSupply, totalPrice, unit);
   }
 
   // TranchTokenImpl - queries //

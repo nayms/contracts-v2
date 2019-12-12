@@ -10,29 +10,30 @@ import { events } from '../'
 
 import {
   ensureErc1820RegistryIsDeployed,
-  ERC1820_DEPLOYED_ADDRESS,
   TOKENS_SENDER_INTERFACE_HASH,
   TOKENS_RECIPIENT_INTERFACE_HASH
 } from '../migrations/utils/erc1820'
 
 import {
+  deployAcl,
   ROLE_ASSET_MANAGER,
   ROLE_CLIENT_MANAGER,
   ROLE_ENTITY_ADMIN,
+  ROLE_ENTITY_MANAGER,
 } from '../migrations/utils/acl'
 
 import { ensureEtherTokenIsDeployed } from '../migrations/utils/etherToken'
 
-const ACL = artifacts.require("./base/ACL")
-const IPolicyImpl = artifacts.require("./base/IPolicyImpl")
 const IERC20 = artifacts.require("./base/IERC20")
 const IERC777 = artifacts.require("./base/IERC777")
-const IEntityImpl = artifacts.require('./base/IEntityImpl')
 const EntityDeployer = artifacts.require('./EntityDeployer')
+const IEntityImpl = artifacts.require('./base/IEntityImpl')
 const EntityImpl = artifacts.require('./EntityImpl')
-const Policy = artifacts.require("./Policy")
+const Entity = artifacts.require('./Entity')
+const IPolicyImpl = artifacts.require("./base/IPolicyImpl")
 const PolicyImpl = artifacts.require("./PolicyImpl")
-const IERC1820Registry = artifacts.require('./base/IERC1820Registry')
+const Policy = artifacts.require("./Policy")
+const TestPolicyImpl = artifacts.require("./test/TestPolicyImpl")
 const DummyERC777TokensSender = artifacts.require('./test/DummyERC777TokensSender')
 const DummyERC777TokensRecipient = artifacts.require('./test/DummyERC777TokensRecipient')
 const ReEntrantERC777TokensSender = artifacts.require('./test/ReEntrantERC777TokensSender')
@@ -51,28 +52,43 @@ contract('Policy', accounts => {
   let policyImpl
   let policyProxy
   let policy
+  let policyContext
+  let entityManagerAddress
   let erc1820Registry
   let etherToken
 
   beforeEach(async () => {
-    await ensureErc1820RegistryIsDeployed({ artifacts, accounts, web3 })
+    // registry + wrappedEth
+    erc1820Registry = await ensureErc1820RegistryIsDeployed({ artifacts, accounts, web3 })
     etherToken = await ensureEtherTokenIsDeployed({ artifacts, accounts, web3 })
 
+    // acl
     acl = await deployAcl({ artifacts })
 
+    // entity
     entityImpl = await EntityImpl.new(acl.address)
     entityDeployer = await EntityDeployer.new(acl.address, entityImpl.address)
-    entityProxy = await entityDeployer.deploy('acme')
-    entity = await IEntityImpl.at(entityProxy)
+
+    const deployEntityTx = await entityDeployer.deploy('acme')
+    const entityAddress = extractEventArgs(deployEntityTx, events.NewEntity).entity
+
+    entityProxy = await Entity.at(entityAddress)
+    entity = await IEntityImpl.at(entityAddress)
     entityContext = await entityProxy.aclContext()
 
+    // policy
     await acl.assignRole(entityContext, accounts[1], ROLE_ENTITY_ADMIN)
+    await acl.assignRole(entityContext, accounts[2], ROLE_ENTITY_MANAGER)
+    entityManagerAddress = accounts[2]
 
     policyImpl = await PolicyImpl.new(acl.address)
-    policyProxy = await entity.createPolicy(policyImpl.address, "doom")
-    policy = await IPolicyImpl.at(policyProxy.address)
 
-    erc1820Registry = await IERC1820Registry.at(ERC1820_DEPLOYED_ADDRESS)
+    const createPolicyTx = await entity.createPolicy(policyImpl.address, 'doom', { from: entityManagerAddress })
+    const policyAddress = extractEventArgs(createPolicyTx, events.NewPolicy).policy
+
+    policyProxy = await Policy.at(policyAddress)
+    policy = await IPolicyImpl.at(policyAddress)
+    policyContext = await policyProxy.aclContext()
   })
 
   it('can be deployed', async () => {
@@ -89,38 +105,12 @@ contract('Policy', accounts => {
 
   describe('can have its name set', () => {
     it('but not just by anyone', async () => {
-      await policy.setName('policy2').should.be.rejectedWith('unauthorized');
+      await policy.setName('policy2').should.be.rejectedWith('must be policy manager');
     })
 
-    it.only('if caller has correct ability', async () => {
-      await acl.assignRole("doom", accounts[2], ROLE_ASSET_MANAGER)
-      await policy.setName('policy2', { from: accounts[2] }).should.be.fulfilled;
+    it('if caller has correct ability', async () => {
+      await policy.setName('policy2', { from: entityManagerAddress }).should.be.fulfilled;
       await policy.getName().should.eventually.eq('policy2')
-    })
-  })
-
-  describe('implements access control', async () => {
-    beforeEach(async () => {
-      await Promise.all([
-        acl.assignRole("doom", accounts[3], ROLE_ASSET_MANAGER),
-        acl.assignRole("doom", accounts[5], ROLE_CLIENT_MANAGER),
-      ])
-    })
-
-    it('and can confirm if someone is an asset manager', async () => {
-      await policyProxy.hasRole(accounts[0], ROLE_ASSET_MANAGER).should.eventually.eq(false)
-      await policyProxy.hasRole(accounts[3], ROLE_ASSET_MANAGER).should.eventually.eq(true)
-      await policyProxy.hasRole(accounts[4], ROLE_ASSET_MANAGER).should.eventually.eq(false)
-      await policyProxy.hasRole(accounts[5], ROLE_ASSET_MANAGER).should.eventually.eq(false)
-      await policyProxy.hasRole(accounts[6], ROLE_ASSET_MANAGER).should.eventually.eq(false)
-    })
-
-    it('and can confirm if someone is a client manager', async () => {
-      await policyProxy.hasRole(accounts[0], ROLE_CLIENT_MANAGER).should.eventually.eq(false)
-      await policyProxy.hasRole(accounts[3], ROLE_CLIENT_MANAGER).should.eventually.eq(false)
-      await policyProxy.hasRole(accounts[4], ROLE_CLIENT_MANAGER).should.eventually.eq(false)
-      await policyProxy.hasRole(accounts[5], ROLE_CLIENT_MANAGER).should.eventually.eq(true)
-      await policyProxy.hasRole(accounts[6], ROLE_CLIENT_MANAGER).should.eventually.eq(false)
     })
   })
 
@@ -131,12 +121,12 @@ contract('Policy', accounts => {
     let clientMgrSig
 
     beforeEach(async () => {
-      // assign asset manager
-      await acl.assignRole("doom", accounts[3], ROLE_ASSET_MANAGER)
-      await acl.assignRole("doom", accounts[4], ROLE_CLIENT_MANAGER)
+      // assign roles
+      await acl.assignRole(policyContext, accounts[3], ROLE_ASSET_MANAGER)
+      await acl.assignRole(policyContext, accounts[4], ROLE_CLIENT_MANAGER)
 
       // deploy new implementation
-      policyImpl2 = await PolicyImpl.new(acl.address, "policyImplementation")
+      policyImpl2 = await TestPolicyImpl.new()
 
       // generate upgrade approval signatures
       const implVersion = await policyImpl2.getImplementationVersion()
@@ -146,15 +136,15 @@ contract('Policy', accounts => {
     })
 
     it('but not just by anyone', async () => {
-      await policyProxy.upgrade(policyImpl2.address, assetMgrSig, clientMgrSig, { from: accounts[1] }).should.be.rejectedWith('unauthorized')
+      await policyProxy.upgrade(policyImpl2.address, assetMgrSig, clientMgrSig, { from: accounts[1] }).should.be.rejectedWith('must be admin')
     })
 
     it('but must have asset manager\'s approval', async () => {
-      await policyProxy.upgrade(policyImpl2.address, randomSig, clientMgrSig).should.be.rejectedWith('must be approved by asset mgr')
+      await policyProxy.upgrade(policyImpl2.address, randomSig, clientMgrSig).should.be.rejectedWith('must be approved by asset manager')
     })
 
     it('but must have client manager\'s approval', async () => {
-      await policyProxy.upgrade(policyImpl2.address, assetMgrSig, randomSig).should.be.rejectedWith('must be approved by client mgr')
+      await policyProxy.upgrade(policyImpl2.address, assetMgrSig, randomSig).should.be.rejectedWith('must be approved by client manager')
     })
 
     it('but not to an empty address', async () => {
@@ -162,10 +152,13 @@ contract('Policy', accounts => {
     })
 
     it('but not if signatures are empty', async () => {
-      await policyProxy.upgrade(policyImpl.address, "0x0", "0x0").should.be.rejectedWith('valid signer not found')
+      await policyProxy.upgrade(policyImpl2.address, "0x0", "0x0").should.be.rejectedWith('valid signer not found')
     })
 
     it('but not to the existing implementation', async () => {
+      const vExisting = await policyImpl.getImplementationVersion()
+      assetMgrSig = hdWallet.sign({ address: accounts[3], data: sha3(vExisting) })
+      clientMgrSig = hdWallet.sign({ address: accounts[4], data: sha3(vExisting) })
       await policyProxy.upgrade(policyImpl.address, assetMgrSig, clientMgrSig).should.be.rejectedWith('already this implementation')
     })
 
@@ -174,7 +167,7 @@ contract('Policy', accounts => {
 
       expect(extractEventArgs(result, events.Upgraded)).to.include({
         implementation: policyImpl2.address,
-        version: 'v1',
+        version: 'vTest',
       })
     })
   })
@@ -184,11 +177,11 @@ contract('Policy', accounts => {
     const tranchPricePerShare = 100
 
     beforeEach(async () => {
-      acl.assignRole("doom", accounts[2], ROLE_ASSET_MANAGER)
+      await acl.assignRole(entityContext, accounts[2], ROLE_ENTITY_MANAGER)
     })
 
-    it('cannot be created without correct ability', async () => {
-      await policy.createTranch(tranchNumShares, tranchPricePerShare, etherToken.address, ADDRESS_ZERO).should.be.rejectedWith('unauthorized')
+    it('cannot be created without correct authorization', async () => {
+      await policy.createTranch(tranchNumShares, tranchPricePerShare, etherToken.address, ADDRESS_ZERO).should.be.rejectedWith('must be policy manager')
     })
 
     it('all values must be valid', async () => {
@@ -242,7 +235,7 @@ contract('Policy', accounts => {
       let initialOwnerAddress
 
       beforeEach(async () => {
-        acl.assignRole("doom", accounts[0], ROLE_ASSET_MANAGER)
+        acl.assignRole(entityContext, accounts[0], ROLE_ENTITY_MANAGER)
         await policy.createTranch(tranchNumShares, tranchPricePerShare, etherToken.address, accounts[0])
         await policy.createTranch(tranchNumShares, tranchPricePerShare, etherToken.address, accounts[0])
       })
@@ -358,7 +351,7 @@ contract('Policy', accounts => {
 
     describe('are ERC777 tokens', () => {
       beforeEach(async () => {
-        acl.assignRole("doom", accounts[0], ROLE_ASSET_MANAGER)
+        acl.assignRole(entityContext, accounts[0], ROLE_ENTITY_MANAGER)
         await policy.createTranch(tranchNumShares, tranchPricePerShare, etherToken.address, accounts[0])
         await policy.createTranch(tranchNumShares, tranchPricePerShare, etherToken.address, accounts[0])
       })

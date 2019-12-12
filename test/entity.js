@@ -174,6 +174,22 @@ contract('Entity', accounts => {
       await entity.createPolicy(policyImpl.address, 'policy1', { from: accounts[3] }).should.be.fulfilled
     })
 
+    it('and the entity records get updated accordingly', async () => {
+      await entity.getNumPolicies().should.eventually.eq(0)
+
+      const result = await entity.createPolicy(policyImpl.address, 'policy1', { from: accounts[3] })
+      const eventArgs = extractEventArgs(result, events.NewPolicy)
+
+      await entity.getNumPolicies().should.eventually.eq(1)
+      await entity.getPolicy(0).should.eventually.eq(eventArgs.policy)
+
+      const result2 = await entity.createPolicy(policyImpl.address, 'policy1', { from: accounts[3] })
+      const eventArgs2 = extractEventArgs(result2, events.NewPolicy)
+
+      await entity.getNumPolicies().should.eventually.eq(2)
+      await entity.getPolicy(1).should.eventually.eq(eventArgs2.policy)
+    })
+
     it('and have their properties set', async () => {
       const result = await entity.createPolicy(policyImpl.address, 'policy1', { from: accounts[3] })
 

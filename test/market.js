@@ -68,6 +68,9 @@ contract('Market', accounts => {
     // get market address
     market = await Market.new('0xFFFFFFFFFFFFFFFF')
 
+    // authorize market as operator for eth token
+    await etherToken.setAllowedTransferOperator(market.address, true)
+
     // setup one tranch with 100 shares at 1 WEI per share
     await policy.createTranch(100, 2, etherToken.address, ADDRESS_ZERO, { from: entityManagerAddress })
     const ta = await policy.getTranch(0)

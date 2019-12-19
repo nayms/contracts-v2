@@ -1,6 +1,6 @@
 import { extractEventArgs } from './utils'
 import { events } from '../'
-import { deployAcl } from '../migrations/utils/acl'
+import { ensureAclIsDeployed } from '../migrations/utils/acl'
 
 const Entity = artifacts.require("./Entity")
 const EntityImpl = artifacts.require("./EntityImpl")
@@ -12,7 +12,7 @@ contract('EntityDeployer', accounts => {
   let deployer
 
   beforeEach(async () => {
-    acl = await deployAcl({ artifacts })
+    acl = await ensureAclIsDeployed({ artifacts })
     entityImpl = await EntityImpl.new(acl.address)
     deployer = await EntityDeployer.new(acl.address, entityImpl.address)
   })

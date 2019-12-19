@@ -8,7 +8,7 @@ import { events } from '../'
 import { ensureEtherTokenIsDeployed } from '../migrations/utils/etherToken'
 
 import {
-  deployAcl,
+  ensureAclIsDeployed,
   ROLE_ENTITY_MANAGER,
   ROLE_ASSET_MANAGER,
 } from '../migrations/utils/acl'
@@ -36,10 +36,10 @@ contract('Market', accounts => {
 
   beforeEach(async () => {
     // wrappedEth
-    etherToken = await ensureEtherTokenIsDeployed({ artifacts, accounts, web3 })
+    etherToken = await ensureEtherTokenIsDeployed({ artifacts })
 
     // acl
-    acl = await deployAcl({ artifacts })
+    acl = await ensureAclIsDeployed({ artifacts })
 
     // entity
     const entityImpl = await EntityImpl.new(acl.address)

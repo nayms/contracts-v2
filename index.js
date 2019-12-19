@@ -1,5 +1,6 @@
 const contractsForEvents = {
   Proxy: require('./build/contracts/Proxy.json'),
+  IEtherToken: require('./build/contracts/IEtherToken.json'),
   IACL: require('./build/contracts/IACL.json'),
   IEntityDeployer: require('./build/contracts/IEntityDeployer.json'),
   IEntityImpl: require('./build/contracts/IEntityImpl.json'),
@@ -25,7 +26,6 @@ const extractEventsFromAbis = abis => abis.reduce((output, contract) => {
 
 module.exports = {
   addresses: require('./deployedAddresses.json'),
-  constants: require('./constants.js'),
   contracts: Object.assign({}, contractsForEvents, contractsThatAreEntryPoints),
   events: extractEventsFromAbis(Object.values(contractsForEvents)),
   extractEventsFromAbis,

@@ -9,7 +9,7 @@ import {
 import { events } from '../'
 
 import {
-  deployAcl,
+  ensureAclIsDeployed,
   ROLE_ENTITY_ADMIN,
   ROLE_ENTITY_MANAGER,
   ROLE_ENTITY_REPRESENTATIVE,
@@ -30,7 +30,7 @@ contract('Entity', accounts => {
   let entityContext
 
   beforeEach(async () => {
-    acl = await deployAcl({ artifacts })
+    acl = await ensureAclIsDeployed({ artifacts })
     entityImpl = await EntityImpl.new(acl.address)
     entityProxy = await Entity.new(
       acl.address,

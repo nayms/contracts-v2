@@ -35,11 +35,11 @@ contract('Market', accounts => {
   let policyApproverAddress
 
   beforeEach(async () => {
-    // wrappedEth
-    etherToken = await ensureEtherTokenIsDeployed({ artifacts })
-
     // acl
     acl = await ensureAclIsDeployed({ artifacts })
+
+    // wrappedEth
+    etherToken = await ensureEtherTokenIsDeployed({ artifacts }, acl.address)
 
     // entity
     const entityImpl = await EntityImpl.new(acl.address)

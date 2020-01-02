@@ -16,7 +16,7 @@ import {
 } from '../migrations/utils/erc1820'
 
 import {
-  deployAcl,
+  ensureAclIsDeployed,
   ROLE_ASSET_MANAGER,
   ROLE_CLIENT_MANAGER,
   ROLE_ENTITY_ADMIN,
@@ -59,12 +59,12 @@ contract('Policy', accounts => {
   let etherToken
 
   beforeEach(async () => {
+    // acl
+    acl = await ensureAclIsDeployed({ artifacts })
+
     // registry + wrappedEth
     erc1820Registry = await ensureErc1820RegistryIsDeployed({ artifacts, accounts, web3 })
-    etherToken = await ensureEtherTokenIsDeployed({ artifacts, accounts, web3 })
-
-    // acl
-    acl = await deployAcl({ artifacts })
+    etherToken = await ensureEtherTokenIsDeployed({ artifacts }, acl.address)
 
     // entity
     entityImpl = await EntityImpl.new(acl.address)

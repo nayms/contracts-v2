@@ -8,7 +8,7 @@ import { events } from '../'
 import { ensureEtherTokenIsDeployed } from '../migrations/utils/etherToken'
 
 import {
-  deployAcl,
+  ensureAclIsDeployed,
   ROLE_ENTITY_MANAGER,
   ROLE_ASSET_MANAGER,
 } from '../migrations/utils/acl'
@@ -35,11 +35,11 @@ contract('Market', accounts => {
   let policyApproverAddress
 
   beforeEach(async () => {
-    // wrappedEth
-    etherToken = await ensureEtherTokenIsDeployed({ artifacts, accounts, web3 })
-
     // acl
-    acl = await deployAcl({ artifacts })
+    acl = await ensureAclIsDeployed({ artifacts })
+
+    // wrappedEth
+    etherToken = await ensureEtherTokenIsDeployed({ artifacts }, acl.address)
 
     // entity
     const entityImpl = await EntityImpl.new(acl.address)
@@ -67,6 +67,9 @@ contract('Market', accounts => {
 
     // get market address
     market = await Market.new('0xFFFFFFFFFFFFFFFF')
+
+    // authorize market as operator for eth token
+    await etherToken.setAllowedTransferOperator(market.address, true)
 
     // setup one tranch with 100 shares at 1 WEI per share
     await policy.createTranch(100, 2, etherToken.address, ADDRESS_ZERO, { from: entityManagerAddress })

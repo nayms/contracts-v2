@@ -9,7 +9,7 @@ import {
 import { events } from '../'
 
 import {
-  deployAcl,
+  ensureAclIsDeployed,
   ROLE_ENTITY_ADMIN,
   ROLE_ENTITY_MANAGER,
   ROLE_ENTITY_REPRESENTATIVE,
@@ -30,7 +30,7 @@ contract('Entity', accounts => {
   let entityContext
 
   beforeEach(async () => {
-    acl = await deployAcl({ artifacts })
+    acl = await ensureAclIsDeployed({ artifacts })
     entityImpl = await EntityImpl.new(acl.address)
     entityProxy = await Entity.new(
       acl.address,
@@ -87,7 +87,6 @@ contract('Entity', accounts => {
 
   describe('it can be upgraded', async () => {
     let entityImpl2
-    let randomSig
     let entityAdminSig
     let entityManagerSig
     let entityRepresentativeSig
@@ -98,7 +97,6 @@ contract('Entity', accounts => {
 
       // generate upgrade approval signatures
       const implVersion = await entityImpl2.getImplementationVersion()
-      randomSig = hdWallet.sign({ address: accounts[5], data: sha3(implVersion) })
 
       await acl.assignRole(entityContext, accounts[1], ROLE_ENTITY_ADMIN)
       entityAdminSig = hdWallet.sign({ address: accounts[1], data: sha3(implVersion) })

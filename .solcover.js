@@ -6,7 +6,6 @@ module.exports = {
   skipFiles: [
     "base/Address.sol",
     "base/SafeMath.sol",
-    "base/EtherToken.sol",
     "base/ECDSA.sol",
   ],
 }

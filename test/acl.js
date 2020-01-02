@@ -2,7 +2,7 @@ import { extractEventArgs } from './utils'
 import { events } from '../'
 import { sha3 } from './utils/web3'
 import {
-  deployAcl,
+  ensureAclIsDeployed,
   ROLE_ENTITY_ADMIN,
   ROLE_ENTITY_MANAGER,
   ROLE_ENTITY_REPRESENTATIVE,
@@ -22,7 +22,7 @@ contract('ACL', accounts => {
   let acl
 
   beforeEach(async () => {
-    acl = await deployAcl({ artifacts })
+    acl = await ensureAclIsDeployed({ artifacts })
   })
 
   it('default account is initial admin', async () => {

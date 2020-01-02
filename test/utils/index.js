@@ -4,8 +4,12 @@ import chai from 'chai'
 import { parseLog } from 'ethereum-event-logs'
 import chaiAsPromised from 'chai-as-promised'
 
+import packageJson from '../../package.json'
 import { extractEventsFromAbis } from '../../'
 import { toBN, isBN } from './web3'
+
+const MNEMONIC = (packageJson.scripts.devnet.match(/\'(.+)\'/))[1]
+console.log(`Mnemonic: ${MNEMONIC}`)
 
 export const testEvents = extractEventsFromAbis([
   require('../../build/contracts/DummyERC777TokensSender.json'),
@@ -69,7 +73,7 @@ chai.use(chaiAsPromised)
 
 chai.should()
 
-export const hdWallet = EthHdWallet.fromMnemonic('funny door sample enrich female wedding stereo crane setup shop dwarf dismiss')
+export const hdWallet = EthHdWallet.fromMnemonic(MNEMONIC)
 hdWallet.generateAddresses(10)
 
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000'

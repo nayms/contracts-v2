@@ -87,7 +87,6 @@ contract('Entity', accounts => {
 
   describe('it can be upgraded', async () => {
     let entityImpl2
-    let randomSig
     let entityAdminSig
     let entityManagerSig
     let entityRepresentativeSig
@@ -98,7 +97,6 @@ contract('Entity', accounts => {
 
       // generate upgrade approval signatures
       const implVersion = await entityImpl2.getImplementationVersion()
-      randomSig = hdWallet.sign({ address: accounts[5], data: sha3(implVersion) })
 
       await acl.assignRole(entityContext, accounts[1], ROLE_ENTITY_ADMIN)
       entityAdminSig = hdWallet.sign({ address: accounts[1], data: sha3(implVersion) })

@@ -6,7 +6,6 @@ executors:
     docker:
       - image: circleci/node:12.13.0
       - image: trufflesuite/ganache-cli
-        command: ganache-cli -a 10
 
 
 commands:
@@ -39,6 +38,9 @@ jobs:
       - run:
           name: Setup submodules
           command: git submodule init && git submodule update
+      - run:
+          name: Run Ganache CLI
+          command: yarn devnet-ci
       - run:
           name: Compile
           command: yarn compile

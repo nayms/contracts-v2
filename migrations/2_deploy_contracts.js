@@ -1,5 +1,5 @@
 const Web3 = require('web3')
-const ACL = artifacts.require("./base/ACL")
+const ACL = artifacts.require("./ACL")
 const EntityImpl = artifacts.require("./EntityImpl")
 const PolicyImpl = artifacts.require("./PolicyImpl")
 const EntityDeployer = artifacts.require("./EntityDeployer")

@@ -1,9 +1,9 @@
 pragma solidity >=0.5.8;
 
-import "./IERC20.sol";
-import "./IEtherToken.sol";
-import "./SafeMath.sol";
-import "./AccessControl.sol";
+import "./base/IERC20.sol";
+import "./base/IEtherToken.sol";
+import "./base/SafeMath.sol";
+import "./base/AccessControl.sol";
 
 /**
  * Represents Wrapped ETH, see https://blog.0xproject.com/canonical-weth-a9aa7d0279dd

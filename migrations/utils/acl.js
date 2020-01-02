@@ -16,7 +16,7 @@ export const ensureAclIsDeployed = async ({ deployer, artifacts, logger }) => {
 
   log('Deploying ACL ...')
 
-  const ACL = artifacts.require("./base/ACL")
+  const ACL = artifacts.require("./ACL")
 
   let acl
   if (deployer) {

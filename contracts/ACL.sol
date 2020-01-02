@@ -1,8 +1,8 @@
 pragma solidity >=0.5.8;
 
-import "./ACLRoles.sol";
-import "./ACLAssigners.sol";
-import "./IACL.sol";
+import "./base/ACLRoles.sol";
+import "./base/ACLAssigners.sol";
+import "./base/IACL.sol";
 
 contract ACL is IACL {
   using ACLRoles for ACLRoles.Context;

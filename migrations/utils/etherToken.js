@@ -5,7 +5,7 @@ export const ensureEtherTokenIsDeployed = async ({ deployer, artifacts, logger }
 
   log('Deploying EtherToken ...')
 
-  const EtherToken = artifacts.require('./base/EtherToken')
+  const EtherToken = artifacts.require('./EtherToken')
 
   let etherToken
   if (deployer) {

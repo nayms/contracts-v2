@@ -5,6 +5,8 @@ executors:
   smart_contracts:
     docker:
       - image: circleci/node:12.13.0
+      - image: trufflesuite/ganache-cli
+        command: ganache-cli -a 10 -m "funny door sample enrich female wedding stereo crane setup shop dwarf dismiss"
 
 
 commands:
@@ -37,9 +39,6 @@ jobs:
       - run:
           name: Setup submodules
           command: git submodule init && git submodule update
-      - run:
-          name: Run Ganache CLI
-          command: yarn devnet-ci
       - run:
           name: Compile
           command: yarn compile

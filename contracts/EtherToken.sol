@@ -50,7 +50,6 @@ contract EtherToken is AccessControl, IERC20, IEtherToken {
 
   function _transfer(address sender, address recipient, uint256 amount) internal {
       require(allowedTransferOperator[msg.sender], "EtherToken: msg.sender is unauthorized");
-      require(sender != address(0), "EtherToken: transfer from the zero address");
       require(recipient != address(0), "EtherToken: transfer to the zero address");
 
       balances[sender] = balances[sender].sub(amount, "EtherToken: transfer amount exceeds balance");
@@ -59,7 +58,6 @@ contract EtherToken is AccessControl, IERC20, IEtherToken {
   }
 
   function _approve(address owner, address spender, uint256 amount) internal {
-      require(owner != address(0), "EtherToken: approve from the zero address");
       require(spender != address(0), "EtherToken: approve to the zero address");
 
       allowances[owner][spender] = amount;

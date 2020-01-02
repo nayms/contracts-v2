@@ -1,5 +1,5 @@
 import EthVal from 'ethval'
-import { extractEventArgs } from './utils'
+import { extractEventArgs, ADDRESS_ZERO } from './utils'
 import { events } from '../'
 import { ensureAclIsDeployed } from '../migrations/utils/acl'
 import { ensureEtherTokenIsDeployed } from '../migrations/utils/etherToken'
@@ -148,6 +148,10 @@ contract('EtherToken', accounts => {
         await tkn.transfer(accounts[1], tknSupply + 1).should.be.rejectedWith('EtherToken: transfer amount exceeds balance')
       })
 
+      it('but not when recipient is null', async () => {
+        await tkn.transfer(ADDRESS_ZERO, tknSupply).should.be.rejectedWith('EtherToken: transfer to the zero address')
+      })
+
       it('the entire balance of a user if need be', async () => {
         await tkn.transfer(accounts[1], tknSupply).should.be.fulfilled
 
@@ -177,6 +181,10 @@ contract('EtherToken', accounts => {
 
       it('but not if sender is not approved', async () => {
         await tkn.transferFrom(accounts[0], accounts[2], 5, { from: accounts[0] }).should.be.rejectedWith('EtherToken: transfer amount exceeds allowance')
+      })
+
+      it('but not when sender is null', async () => {
+        await tkn.approve(ADDRESS_ZERO, 5).should.be.rejectedWith('EtherToken: approve to the zero address')
       })
 
       it('but not if sender exceeds their approved limit', async () => {

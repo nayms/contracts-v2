@@ -108,3 +108,25 @@ export const outputBNs = bn => {
   })
 }
 
+export const createTranch = (policy, attrs, ...callAttrs) => {
+  const {
+    numShares = 10,
+    pricePerShareAmount = 1,
+    premiumAmount = 1,
+    premiumIntervalSeconds = 86400,
+    denominationUnit = ADDRESS_ZERO,
+    startDateSeconds = new Date(2040,0).getTime() / 1000,
+    initialBalanceHolder = ADDRESS_ZERO,
+  } = attrs
+
+  return policy.createTranch(
+    numShares,
+    pricePerShareAmount,
+    premiumAmount,
+    premiumIntervalSeconds,
+    denominationUnit,
+    startDateSeconds,
+    initialBalanceHolder,
+    ...callAttrs,
+  )
+}

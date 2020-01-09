@@ -10,8 +10,11 @@ interface IPolicyImpl {
 
   function createTranch (
     uint256 _numShares,
-    uint256 _initialPricePerShare,
-    address _initialPricePerShareUnit,
+    uint256 _pricePerShareAmount,
+    uint256 _premiumAmount,
+    uint256 _premiumIntervalSeconds,
+    address _denominationUnit,
+    uint256 _startDateSeconds,
     address _initialBalanceHolder
   ) external returns (uint256);
   function getNumTranches () external view returns (uint256);

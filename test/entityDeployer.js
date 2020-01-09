@@ -49,5 +49,21 @@ contract('EntityDeployer', accounts => {
 
       await Entity.at(eventArgs.entity).should.be.fulfilled;
     })
+
+    it('and the entity records get updated accordingly', async () => {
+      await deployer.getNumEntities().should.eventually.eq(0)
+
+      const result = await deployer.deploy('acme')
+      const eventArgs = extractEventArgs(result, events.NewEntity)
+
+      await deployer.getNumEntities().should.eventually.eq(1)
+      await deployer.getEntity(0).should.eventually.eq(eventArgs.entity)
+
+      const result2 = await deployer.deploy('acme2')
+      const eventArgs2 = extractEventArgs(result2, events.NewEntity)
+
+      await deployer.getNumEntities().should.eventually.eq(2)
+      await deployer.getEntity(1).should.eventually.eq(eventArgs2.entity)
+    })
   })
 })

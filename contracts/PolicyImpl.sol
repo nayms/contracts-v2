@@ -72,8 +72,11 @@ contract PolicyImpl is EternalStorage, AccessControl, IProxyImpl, IPolicyImpl, I
 
   function createTranch (
     uint256 _numShares,
-    uint256 _initialPricePerShare,
-    address _initialPricePerShareUnit,
+    uint256 _pricePerShareAmount,
+    uint256 _premiumAmount,
+    uint256 _premiumIntervalSeconds,
+    address _denominationUnit,
+    uint256 _startDateSeconds,
     address _initialBalanceHolder
   )
     public
@@ -81,22 +84,26 @@ contract PolicyImpl is EternalStorage, AccessControl, IProxyImpl, IPolicyImpl, I
     returns (uint256)
   {
     require(_numShares > 0, 'invalid num of shares');
-    require(_initialPricePerShare > 0, 'invalid price');
-    require(_initialPricePerShareUnit != address(0), 'invalid price unit');
+    require(_pricePerShareAmount > 0, 'invalid price');
+    require(_premiumAmount > 0, 'invalid premium');
+    require(_premiumIntervalSeconds > 0, 'invalid premium interval');
+    require(_denominationUnit != address(0), 'invalid denomination unit');
 
     // instantiate tranches
     uint256 i = dataUint256["numTranches"];
     dataUint256["numTranches"] = i + 1;
 
     // setup initial data for tranch
-    string memory numSharesKey = string(abi.encodePacked(i, "numShares"));
-    string memory pricePerShareKey = string(abi.encodePacked(i, "pricePerShare"));
-    string memory pricePerShareUnitKey = string(abi.encodePacked(i, "pricePerShareUnit"));
-    dataUint256[numSharesKey] = _numShares;
-    dataUint256[pricePerShareKey] = _initialPricePerShare;
-    dataAddress[pricePerShareUnitKey] = _initialPricePerShareUnit;
+    dataUint256[string(abi.encodePacked(i, "numShares"))] = _numShares;
+    dataUint256[string(abi.encodePacked(i, "pricePerShareAmount"))] = _pricePerShareAmount;
+    dataUint256[string(abi.encodePacked(i, "premiumAmount"))] = _premiumAmount;
+    dataUint256[string(abi.encodePacked(i, "premiumIntervalSeconds"))] = _premiumIntervalSeconds;
+    dataUint256[string(abi.encodePacked(i, "startDateSeconds"))] = _startDateSeconds;
+    dataAddress[string(abi.encodePacked(i, "denominationUnit"))] = _denominationUnit;
+
     // deploy token contract
     PolicyTranch t = new PolicyTranch(address(this), i);
+
     // work out initial holder
     address holder = _initialBalanceHolder;
     if (holder == address(0)) {
@@ -105,9 +112,11 @@ contract PolicyImpl is EternalStorage, AccessControl, IProxyImpl, IPolicyImpl, I
     }
     string memory initialHolderKey = string(abi.encodePacked(i, "initialHolder"));
     dataAddress[initialHolderKey] = holder;
+
     // set initial holder balance
     string memory contractBalanceKey = string(abi.encodePacked(i, dataAddress[initialHolderKey], "balance"));
     dataUint256[contractBalanceKey] = _numShares;
+
     // save reference
     string memory addressKey = string(abi.encodePacked(i, "address"));
     dataAddress[addressKey] = address(t);
@@ -142,18 +151,18 @@ contract PolicyImpl is EternalStorage, AccessControl, IProxyImpl, IPolicyImpl, I
     uint256 totalSupply = tknTotalSupply(_index);
     require(currentBalance == totalSupply, 'sale already started');
     // calculate sale values
-    string memory pricePerShareKey = string(abi.encodePacked(_index, "pricePerShare"));
-    string memory pricePerShareUnitKey = string(abi.encodePacked(_index, "pricePerShareUnit"));
-    uint256 pricePerShare = dataUint256[pricePerShareKey];
-    address unit = dataAddress[pricePerShareUnitKey];
+    string memory pricePerShareAmountKey = string(abi.encodePacked(_index, "pricePerShareAmount"));
+    string memory denominationUnitKey = string(abi.encodePacked(_index, "denominationUnit"));
+    uint256 pricePerShare = dataUint256[pricePerShareAmountKey];
+    address denominationUnit = dataAddress[denominationUnitKey];
     uint256 totalPrice = totalSupply.mul(pricePerShare);
     // approve the market to transfer tokens from tranch into market escrow
     tknApprove(_index, _market, initialHolder, totalSupply);
     // do the transfer
     IMarket mkt = IMarket(_market);
-    mkt.offer(totalSupply, tranchAddress, totalPrice, unit, 0, false);
+    mkt.offer(totalSupply, tranchAddress, totalPrice, denominationUnit, 0, false);
 
-    emit BeginTranchSale(_index, totalSupply, totalPrice, unit);
+    emit BeginTranchSale(_index, totalSupply, totalPrice, denominationUnit);
   }
 
   // TranchTokenImpl - queries //

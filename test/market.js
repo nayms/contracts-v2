@@ -1,6 +1,7 @@
 import {
   extractEventArgs,
   ADDRESS_ZERO,
+  createTranch,
 } from './utils'
 
 import { events } from '../'
@@ -72,7 +73,11 @@ contract('Market', accounts => {
     await etherToken.setAllowedTransferOperator(market.address, true)
 
     // setup one tranch with 100 shares at 1 WEI per share
-    await policy.createTranch(100, 2, etherToken.address, ADDRESS_ZERO, { from: entityManagerAddress })
+    await createTranch(policy, {
+      numShares: 100,
+      pricePerShareAmount: 2,
+      denominationUnit: etherToken.address,
+    }, { from: entityManagerAddress })
     const ta = await policy.getTranch(0)
     tranchToken = await IERC20.at(ta)
 
@@ -86,7 +91,13 @@ contract('Market', accounts => {
     })
 
     it('but not if initial allocation is not to parent policy', async () => {
-      await policy.createTranch(100, 2, etherToken.address, accounts[3], { from: entityManagerAddress })
+      await createTranch(policy, {
+        numShares: 100,
+        pricePerShareAmount: 2,
+        denominationUnit: etherToken.address,
+        initialBalanceHolder: accounts[3],
+      }, { from: entityManagerAddress })
+
       await policy.beginTranchSale(1, market.address, { from: policyApproverAddress }).should.be.rejectedWith('initial holder must be policy contract')
     })
 

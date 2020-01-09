@@ -6,6 +6,7 @@ import {
   hdWallet,
   ADDRESS_ZERO,
   testEvents,
+  createTranch,
 } from './utils'
 import { events } from '../'
 
@@ -182,17 +183,25 @@ contract('Policy', accounts => {
     })
 
     it('cannot be created without correct authorization', async () => {
-      await policy.createTranch(tranchNumShares, tranchPricePerShare, etherToken.address, ADDRESS_ZERO).should.be.rejectedWith('must be policy manager')
+      await createTranch(policy, { denominationUnit: etherToken.address }).should.be.rejectedWith('must be policy manager')
     })
 
     it('all values must be valid', async () => {
-      await policy.createTranch(0, 100, etherToken.address, ADDRESS_ZERO, { from: accounts[2] }).should.be.rejectedWith('invalid num of shares')
-      await policy.createTranch(100, 0, etherToken.address, ADDRESS_ZERO, { from: accounts[2] }).should.be.rejectedWith('invalid price')
-      await policy.createTranch(1, 1, ADDRESS_ZERO, ADDRESS_ZERO, { from: accounts[2] }).should.be.rejectedWith('invalid price unit')
+      await createTranch(policy, { denominationUnit: etherToken.address, numShares: 0 }, { from: accounts[2] }).should.be.rejectedWith('invalid num of shares')
+      await createTranch(policy, { denominationUnit: etherToken.address, pricePerShareAmount: 0 }, { from: accounts[2] }).should.be.rejectedWith('invalid price')
+      await createTranch(policy, { denominationUnit: etherToken.address, premiumAmount: 0 }, { from: accounts[2] }).should.be.rejectedWith('invalid premium')
+      await createTranch(policy, { denominationUnit: etherToken.address, premiumIntervalSeconds: 0 }, { from: accounts[2] }).should.be.rejectedWith('invalid premium interval')
+      await createTranch(policy, {}, { from: accounts[2] }).should.be.rejectedWith('invalid denomination unit')
     })
 
     it('can be created and have initial balance auto-allocated to policy impl', async () => {
-      const result = await policy.createTranch(tranchNumShares, tranchPricePerShare, etherToken.address, ADDRESS_ZERO, { from: accounts[2] }).should.be.fulfilled
+      const result = await createTranch(policy, {
+        numShares: tranchNumShares,
+        pricePerShareAmount: tranchPricePerShare,
+        denominationUnit: etherToken.address,
+      }, {
+        from: accounts[2]
+      }).should.be.fulfilled
 
       const [ log ] = parseEvents(result, events.CreateTranch)
 
@@ -207,7 +216,14 @@ contract('Policy', accounts => {
     })
 
     it('can be created and have initial balance allocated to a specific address', async () => {
-      const result = await policy.createTranch(tranchNumShares, tranchPricePerShare, etherToken.address, accounts[3], { from: accounts[2] }).should.be.fulfilled
+      const result = await createTranch(policy, {
+        numShares: tranchNumShares,
+        pricePerShareAmount: tranchPricePerShare,
+        denominationUnit: etherToken.address,
+        initialBalanceHolder: accounts[3],
+      }, {
+        from: accounts[2]
+      }).should.be.fulfilled
 
       const [ log ] = parseEvents(result, events.CreateTranch)
 
@@ -215,8 +231,21 @@ contract('Policy', accounts => {
     })
 
     it('can be created more than once', async () => {
-      await policy.createTranch(tranchNumShares, tranchPricePerShare, etherToken.address, ADDRESS_ZERO, { from: accounts[2] }).should.be.fulfilled
-      await policy.createTranch(tranchNumShares + 1, tranchPricePerShare + 2, etherToken.address, ADDRESS_ZERO, { from: accounts[2] }).should.be.fulfilled
+      await createTranch(policy, {
+        numShares: tranchNumShares,
+        pricePerShareAmount: tranchPricePerShare,
+        denominationUnit: etherToken.address,
+      }, {
+        from: accounts[2]
+      }).should.be.fulfilled
+
+      await createTranch(policy, {
+        numShares: tranchNumShares + 1,
+        pricePerShareAmount: tranchPricePerShare + 2,
+        denominationUnit: etherToken.address,
+      }, {
+        from: accounts[2]
+      }).should.be.fulfilled
 
       await policy.getNumTranches().should.eventually.eq(2)
 
@@ -233,12 +262,22 @@ contract('Policy', accounts => {
     })
 
     describe('are ERC20 tokens', () => {
-      let initialOwnerAddress
-
       beforeEach(async () => {
         acl.assignRole(entityContext, accounts[0], ROLE_ENTITY_MANAGER)
-        await policy.createTranch(tranchNumShares, tranchPricePerShare, etherToken.address, accounts[0])
-        await policy.createTranch(tranchNumShares, tranchPricePerShare, etherToken.address, accounts[0])
+
+        await createTranch(policy, {
+          numShares: tranchNumShares,
+          pricePerShareAmount: tranchPricePerShare,
+          denominationUnit: etherToken.address,
+          initialBalanceHolder: accounts[0],
+        }).should.be.fulfilled
+
+        await createTranch(policy, {
+          numShares: tranchNumShares,
+          pricePerShareAmount: tranchPricePerShare,
+          denominationUnit: etherToken.address,
+          initialBalanceHolder: accounts[0],
+        }).should.be.fulfilled
       })
 
       it('which have basic details', async () => {
@@ -353,8 +392,20 @@ contract('Policy', accounts => {
     describe('are ERC777 tokens', () => {
       beforeEach(async () => {
         acl.assignRole(entityContext, accounts[0], ROLE_ENTITY_MANAGER)
-        await policy.createTranch(tranchNumShares, tranchPricePerShare, etherToken.address, accounts[0])
-        await policy.createTranch(tranchNumShares, tranchPricePerShare, etherToken.address, accounts[0])
+
+        await createTranch(policy, {
+          numShares: tranchNumShares,
+          pricePerShareAmount: tranchPricePerShare,
+          denominationUnit: etherToken.address,
+          initialBalanceHolder: accounts[0],
+        }).should.be.fulfilled
+
+        await createTranch(policy, {
+          numShares: tranchNumShares,
+          pricePerShareAmount: tranchPricePerShare,
+          denominationUnit: etherToken.address,
+          initialBalanceHolder: accounts[0],
+        }).should.be.fulfilled
       })
 
       it('which have basic details', async () => {

@@ -1,14 +1,16 @@
 pragma solidity >=0.5.8;
 
 import "./base/AccessControl.sol";
+import "./base/SettingsControl.sol";
 import "./base/Proxy.sol";
 
-contract Entity is AccessControl, Proxy {
+contract Entity is AccessControl, SettingsControl, Proxy {
   constructor (
     address _acl,
+    address _settings,
     address _entityImpl,
     string memory _name
-  ) AccessControl(_acl) Proxy(_entityImpl) public {
+  ) AccessControl(_acl) SettingsControl(_settings) Proxy(_entityImpl) public {
     dataString["name"] = _name;
   }
 

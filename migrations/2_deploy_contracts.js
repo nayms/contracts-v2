@@ -13,6 +13,7 @@ module.exports = async deployer => {
   const accounts = await web3.eth.getAccounts()
 
   const acl = await ensureAclIsDeployed({ deployer, artifacts, logger: true })
+  const settings = await ensureSettingsIsDeployed({ deployer, artifacts, logger: true }, acl.address)
   await ensureEtherTokenIsDeployed({ deployer, artifacts, logger: true }, acl.address)
   await ensureErc1820RegistryIsDeployed({ artifacts, web3, accounts, logger: true })
 

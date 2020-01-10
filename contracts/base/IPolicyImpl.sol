@@ -1,12 +1,19 @@
 pragma solidity >=0.5.8;
 
-interface IPolicyImpl {
+contract IPolicyImpl {
   // basic details
 
   function getName () external view returns (string memory);
   function setName (string calldata _name) external;
 
   // tranches
+
+  uint256 public constant STATE_VOID = 0;
+  uint256 public constant STATE_CREATED = 1;
+  uint256 public constant STATE_SELLING = 2;
+  uint256 public constant STATE_SOLD = 3;
+  uint256 public constant STATE_LIVE = 4;
+  uint256 public constant STATE_EXPIRED = 5;
 
   function createTranch (
     uint256 _numShares,
@@ -18,7 +25,8 @@ interface IPolicyImpl {
     address _initialBalanceHolder
   ) external returns (uint256);
   function getNumTranches () external view returns (uint256);
-  function getTranch (uint256 _index) external view returns (address);
+  function getTranchToken (uint256 _index) external view returns (address);
+  function getTranchStatus (uint256 _index) external view returns (uint256);
   function beginTranchSale(uint256 _index, address _market) external;
 
   // events

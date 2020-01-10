@@ -78,14 +78,14 @@ contract('Market', accounts => {
       pricePerShareAmount: 2,
       denominationUnit: etherToken.address,
     }, { from: entityManagerAddress })
-    const ta = await policy.getTranch(0)
+    const ta = await policy.getTranchToken(0)
     tranchToken = await IERC20.at(ta)
 
     await acl.assignRole(policyContext, accounts[2], ROLE_ASSET_MANAGER)
     policyApproverAddress = accounts[2]
   })
 
-  describe('tranches begin trading', async () => {
+  describe('tranches begin selling', async () => {
     it('but not by an unauthorized person', async () => {
       await policy.beginTranchSale(0, market.address).should.be.rejectedWith('must be policy approver')
     })
@@ -116,6 +116,11 @@ contract('Market', accounts => {
 
       await tranchToken.balanceOf(market.address).should.eventually.eq(100)
       await tranchToken.balanceOf(policy.address).should.eventually.eq(0)
+    })
+
+    it('and their state is set to SELLING', async () => {
+      await policy.beginTranchSale(0, market.address, { from: policyApproverAddress })
+      await policy.getTranchStatus(0).should.eventually.eq(await policy.STATE_SELLING())
     })
 
     it('and can only do this once', async () => {

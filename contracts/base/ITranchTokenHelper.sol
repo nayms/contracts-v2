@@ -1,9 +1,9 @@
 pragma solidity >=0.5.8;
 
 /**
- * Implements logic for token standards: ERC20, ERC777
+ * Implements logic for tranch token
  */
-interface ITranchToken {
+interface ITranchTokenHelper {
   // ERC-20 and ERC-777 queries
   function tknName(uint256 _index) external view returns (string memory);
   function tknSymbol(uint256 _index) external view returns (string memory);

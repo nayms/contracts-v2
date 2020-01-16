@@ -1,4 +1,4 @@
-const { sha3 } = require('./functions')
+const { sha3, deploy } = require('./functions')
 const { createLog } = require('./log')
 
 export const ROLE_ENTITY_ADMIN = sha3('roleEntityAdmin')
@@ -15,18 +15,9 @@ export const ensureAclIsDeployed = async ({ deployer, artifacts, logger }) => {
   const log = createLog(logger)
 
   log('Deploying ACL ...')
-
   const ACL = artifacts.require("./ACL")
-
-  let acl
-  if (deployer) {
-    await deployer.deploy(ACL)
-    acl = await ACL.deployed()
-    log(`... deployed at ${acl.address}`)
-  } else {
-    acl = await ACL.new()
-    log(`... deployed at ${acl.address}`)
-  }
+  const acl = await deploy(deployer, ACL)
+  log(`... deployed at ${acl.address}`)
 
   log('Ensure ACL role groups and roles are setup ...')
 

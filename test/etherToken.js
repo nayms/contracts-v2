@@ -2,6 +2,7 @@ import EthVal from 'ethval'
 import { extractEventArgs, ADDRESS_ZERO } from './utils'
 import { events } from '../'
 import { ensureAclIsDeployed } from '../migrations/utils/acl'
+import { ensureSettingsIsDeployed } from '../migrations/utils/settings'
 import { ensureEtherTokenIsDeployed } from '../migrations/utils/etherToken'
 
 const IERC20 = artifacts.require("./base/IERC20")
@@ -15,11 +16,13 @@ const eth = v => new EthVal(v, 'eth').toWei().toString(10)
 
 contract('EtherToken', accounts => {
   let acl
+  let settings
   let etherToken
 
   beforeEach(async () => {
     acl = await ensureAclIsDeployed({ artifacts })
-    etherToken = await ensureEtherTokenIsDeployed({ artifacts }, acl.address)
+    settings = await ensureSettingsIsDeployed({ artifacts }, acl.address)
+    etherToken = await ensureEtherTokenIsDeployed({ artifacts }, acl.address, settings.address)
   })
 
   it('has defaults', async () => {

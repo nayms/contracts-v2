@@ -1,7 +1,7 @@
 pragma solidity >=0.5.8;
 
 import "./base/Address.sol";
-import "./base/AccessControl.sol";
+import "./base/Controller.sol";
 import "./base/EternalStorage.sol";
 import './base/IERC777Sender.sol';
 import './base/IERC777Recipient.sol';
@@ -9,26 +9,26 @@ import './base/IERC1820Registry.sol';
 import "./base/IProxyImpl.sol";
 import "./base/IPolicyImpl.sol";
 import "./base/IMarket.sol";
-import "./base/ITranchToken.sol";
+import "./base/ITranchTokenHelper.sol";
 import "./base/SafeMath.sol";
-import "./PolicyTranch.sol";
+import "./TranchToken.sol";
 
 /**
  * @dev Business-logic for Policy
  */
-contract PolicyImpl is EternalStorage, AccessControl, IProxyImpl, IPolicyImpl, ITranchToken {
+contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITranchTokenHelper {
   using SafeMath for uint;
   using Address for address;
 
   // ERC 1820 stuff //
 
-  address private constant ERC1820_REGISTRY_ADDRESS =
+  address public constant ERC1820_REGISTRY_ADDRESS =
       0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24;
   // keccak256("ERC777TokensSender")
-  bytes32 private constant TOKENS_SENDER_INTERFACE_HASH =
+  bytes32 public constant TOKENS_SENDER_INTERFACE_HASH =
       0x29ddb589b1fb5fc7cf394961c1adf5f8c6454761adf795e67fe149f658abe895;
   // keccak256("ERC777TokensRecipient")
-  bytes32 private constant TOKENS_RECIPIENT_INTERFACE_HASH =
+  bytes32 public constant TOKENS_RECIPIENT_INTERFACE_HASH =
       0xb281fc8c12954d22544db45de3159a39272895b169a852b314f9cc762e44c53b;
 
   // Modifiers //
@@ -46,8 +46,8 @@ contract PolicyImpl is EternalStorage, AccessControl, IProxyImpl, IPolicyImpl, I
   /**
    * Constructor
    */
-  constructor (address _acl)
-    AccessControl(_acl)
+  constructor (address _acl, address _settings)
+    Controller(_acl, _settings)
     public
   {}
 
@@ -94,6 +94,7 @@ contract PolicyImpl is EternalStorage, AccessControl, IProxyImpl, IPolicyImpl, I
     dataUint256["numTranches"] = i + 1;
 
     // setup initial data for tranch
+    dataUint256[string(abi.encodePacked(i, "state"))] = STATE_CREATED;
     dataUint256[string(abi.encodePacked(i, "numShares"))] = _numShares;
     dataUint256[string(abi.encodePacked(i, "pricePerShareAmount"))] = _pricePerShareAmount;
     dataUint256[string(abi.encodePacked(i, "premiumAmount"))] = _premiumAmount;
@@ -102,7 +103,7 @@ contract PolicyImpl is EternalStorage, AccessControl, IProxyImpl, IPolicyImpl, I
     dataAddress[string(abi.encodePacked(i, "denominationUnit"))] = _denominationUnit;
 
     // deploy token contract
-    PolicyTranch t = new PolicyTranch(address(this), i);
+    TranchToken t = new TranchToken(address(this), i);
 
     // work out initial holder
     address holder = _initialBalanceHolder;
@@ -121,6 +122,7 @@ contract PolicyImpl is EternalStorage, AccessControl, IProxyImpl, IPolicyImpl, I
     string memory addressKey = string(abi.encodePacked(i, "address"));
     dataAddress[addressKey] = address(t);
 
+
     emit CreateTranch(address(this), address(t), dataAddress[initialHolderKey], i);
 
     return i;
@@ -130,12 +132,16 @@ contract PolicyImpl is EternalStorage, AccessControl, IProxyImpl, IPolicyImpl, I
     return dataUint256["numTranches"];
   }
 
-  function getTranch (uint256 _index) public view returns (address) {
+  function getTranchToken (uint256 _index) public view returns (address) {
     string memory addressKey = string(abi.encodePacked(_index, "address"));
     return dataAddress[addressKey];
   }
 
-  function beginTranchSale(uint256 _index, address _market)
+  function getTranchStatus (uint256 _index) public view returns (uint256) {
+    return dataUint256[string(abi.encodePacked(_index, "state"))];
+  }
+
+  function beginTranchSale(uint256 _index)
     public
     assertCanApprovePolicy
   {
@@ -156,11 +162,14 @@ contract PolicyImpl is EternalStorage, AccessControl, IProxyImpl, IPolicyImpl, I
     uint256 pricePerShare = dataUint256[pricePerShareAmountKey];
     address denominationUnit = dataAddress[denominationUnitKey];
     uint256 totalPrice = totalSupply.mul(pricePerShare);
+    // get market
+    IMarket market = IMarket(settings().getMatchingMarket());
     // approve the market to transfer tokens from tranch into market escrow
-    tknApprove(_index, _market, initialHolder, totalSupply);
+    tknApprove(_index, address(market), initialHolder, totalSupply);
     // do the transfer
-    IMarket mkt = IMarket(_market);
-    mkt.offer(totalSupply, tranchAddress, totalPrice, denominationUnit, 0, false);
+    market.offer(totalSupply, tranchAddress, totalPrice, denominationUnit, 0, false);
+    // update state
+    dataUint256[string(abi.encodePacked(_index, "state"))] = STATE_SELLING;
 
     emit BeginTranchSale(_index, totalSupply, totalPrice, denominationUnit);
   }

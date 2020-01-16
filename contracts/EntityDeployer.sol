@@ -1,6 +1,5 @@
 pragma solidity ^0.5.4;
 
-import './base/AccessControl.sol';
 import './base/EternalStorage.sol';
 import './base/Destructible.sol';
 import './base/IEntityDeployer.sol';
@@ -9,11 +8,11 @@ import './Entity.sol';
 /**
  * This is responsible for deploying a new Entity.
  */
-contract EntityDeployer is EternalStorage, AccessControl, Destructible, IEntityDeployer {
+contract EntityDeployer is EternalStorage, Destructible, IEntityDeployer {
   /**
    * Constructor
    */
-  constructor (address _acl, address _entityImpl) Destructible(_acl) public {
+  constructor (address _acl, address _settings, address _entityImpl) Destructible(_acl, _settings) public {
     dataAddress["implementation"] = _entityImpl;
   }
 
@@ -23,6 +22,7 @@ contract EntityDeployer is EternalStorage, AccessControl, Destructible, IEntityD
   function deploy(string memory _name) public assertIsAdmin {
     Entity f = new Entity(
       address(acl()),
+      address(settings()),
       dataAddress["implementation"],
       _name
     );

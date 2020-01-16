@@ -25,6 +25,7 @@ import {
 } from '../migrations/utils/acl'
 
 import { ensureEtherTokenIsDeployed } from '../migrations/utils/etherToken'
+import { ensureSettingsIsDeployed } from '../migrations/utils/settings'
 
 const IERC20 = artifacts.require("./base/IERC20")
 const IERC777 = artifacts.require("./base/IERC777")
@@ -46,6 +47,7 @@ const DATA_BYTES_2 = asciiToHex('test2')
 
 contract('Policy', accounts => {
   let acl
+  let settings
   let entityDeployer
   let entityImpl
   let entityProxy
@@ -63,13 +65,16 @@ contract('Policy', accounts => {
     // acl
     acl = await ensureAclIsDeployed({ artifacts })
 
+    // settings
+    settings = await ensureSettingsIsDeployed({ artifacts }, acl.address)
+
     // registry + wrappedEth
     erc1820Registry = await ensureErc1820RegistryIsDeployed({ artifacts, accounts, web3 })
-    etherToken = await ensureEtherTokenIsDeployed({ artifacts }, acl.address)
+    etherToken = await ensureEtherTokenIsDeployed({ artifacts }, acl.address, settings.address)
 
     // entity
-    entityImpl = await EntityImpl.new(acl.address)
-    entityDeployer = await EntityDeployer.new(acl.address, entityImpl.address)
+    entityImpl = await EntityImpl.new(acl.address, settings.address)
+    entityDeployer = await EntityDeployer.new(acl.address, settings.address, entityImpl.address)
 
     const deployEntityTx = await entityDeployer.deploy('acme')
     const entityAddress = extractEventArgs(deployEntityTx, events.NewEntity).entity
@@ -83,7 +88,7 @@ contract('Policy', accounts => {
     await acl.assignRole(entityContext, accounts[2], ROLE_ENTITY_MANAGER)
     entityManagerAddress = accounts[2]
 
-    policyImpl = await PolicyImpl.new(acl.address)
+    policyImpl = await PolicyImpl.new(acl.address, settings.address)
 
     const createPolicyTx = await entity.createPolicy(policyImpl.address, 'doom', { from: entityManagerAddress })
     const policyAddress = extractEventArgs(createPolicyTx, events.NewPolicy).policy
@@ -206,12 +211,12 @@ contract('Policy', accounts => {
       const [ log ] = parseEvents(result, events.CreateTranch)
 
       expect(log.args.policy).to.eq(policy.address)
-      expect(log.args.tranch).to.eq(await policy.getTranch(0))
+      expect(log.args.tranch).to.eq(await policy.getTranchToken(0))
       expect(log.args.initialBalanceHolder).to.eq(policy.address)
       expect(log.args.index).to.eq('0')
 
       await policy.getNumTranches().should.eventually.eq(1)
-      const addr = await policy.getTranch(0)
+      const addr = await policy.getTranchToken(0)
       expect(addr.length).to.eq(42)
     })
 
@@ -228,6 +233,19 @@ contract('Policy', accounts => {
       const [ log ] = parseEvents(result, events.CreateTranch)
 
       expect(log.args.initialBalanceHolder).to.eq(accounts[3])
+    })
+
+    it('can be created and will have state set to CREATED', async () => {
+      await createTranch(policy, {
+        numShares: tranchNumShares,
+        pricePerShareAmount: tranchPricePerShare,
+        denominationUnit: etherToken.address,
+        initialBalanceHolder: accounts[3],
+      }, {
+        from: accounts[2]
+      }).should.be.fulfilled
+
+      await policy.getTranchStatus(0).should.eventually.eq(await policy.STATE_CREATED())
     })
 
     it('can be created more than once', async () => {
@@ -252,7 +270,7 @@ contract('Policy', accounts => {
       const addresses = {}
 
       await Promise.all(_.range(0, 2).map(async i => {
-        const addr = await policy.getTranch(i)
+        const addr = await policy.getTranchToken(i)
         expect(!addresses[addr]).to.be.true
         expect(addr.length).to.eq(42)
         addresses[addr] = true
@@ -284,7 +302,7 @@ contract('Policy', accounts => {
         let done = 0
 
         await Promise.all(_.range(0, 2).map(async i => {
-          const tkn = await IERC20.at(await policy.getTranch(i))
+          const tkn = await IERC20.at(await policy.getTranchToken(i))
 
           const NAME = 'doom_tranch_\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000' + String.fromCodePoint(i)
 
@@ -303,7 +321,7 @@ contract('Policy', accounts => {
         let done = 0
 
         await Promise.all(_.range(0, 2).map(async i => {
-          const tkn = await IERC20.at(await policy.getTranch(i))
+          const tkn = await IERC20.at(await policy.getTranchToken(i))
 
           await tkn.balanceOf(accounts[0]).should.eventually.eq(await tkn.totalSupply())
 
@@ -318,7 +336,7 @@ contract('Policy', accounts => {
         let firstTknNumShares
 
         beforeEach(async () => {
-          firstTkn = await IERC20.at(await policy.getTranch(0))
+          firstTkn = await IERC20.at(await policy.getTranchToken(0))
           firstTknNumShares = await firstTkn.totalSupply()
         })
 
@@ -412,7 +430,7 @@ contract('Policy', accounts => {
         let done = 0
 
         await Promise.all(_.range(0, 2).map(async i => {
-          const tkn = await IERC777.at(await policy.getTranch(i))
+          const tkn = await IERC777.at(await policy.getTranchToken(i))
 
           const NAME = 'doom_tranch_\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000' + String.fromCodePoint(i)
 
@@ -431,7 +449,7 @@ contract('Policy', accounts => {
         let done = 0
 
         await Promise.all(_.range(0, 2).map(async i => {
-          const tkn = await IERC777.at(await policy.getTranch(i))
+          const tkn = await IERC777.at(await policy.getTranchToken(i))
 
           await tkn.balanceOf(accounts[0]).should.eventually.eq(await tkn.totalSupply())
 
@@ -445,7 +463,7 @@ contract('Policy', accounts => {
         let done = 0
 
         await Promise.all(_.range(0, 2).map(async i => {
-          const tkn = await IERC777.at(await policy.getTranch(i))
+          const tkn = await IERC777.at(await policy.getTranchToken(i))
 
           await tkn.defaultOperators().should.eventually.eq([])
 
@@ -460,7 +478,7 @@ contract('Policy', accounts => {
         let firstTknNumShares
 
         beforeEach(async () => {
-          firstTkn = await IERC777.at(await policy.getTranch(0))
+          firstTkn = await IERC777.at(await policy.getTranchToken(0))
           firstTknNumShares = await firstTkn.totalSupply()
         })
 

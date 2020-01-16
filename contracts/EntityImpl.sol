@@ -1,6 +1,6 @@
 pragma solidity >=0.5.8;
 
-import "./base/AccessControl.sol";
+import "./base/Controller.sol";
 import "./base/EternalStorage.sol";
 import "./base/IEntityImpl.sol";
 import "./Policy.sol";
@@ -8,14 +8,16 @@ import "./Policy.sol";
 /**
  * @dev Business-logic for Entity
  */
- contract EntityImpl is EternalStorage, AccessControl, IEntityImpl, IProxyImpl {
+ contract EntityImpl is EternalStorage, Controller, IEntityImpl, IProxyImpl {
   /**
    * Constructor
    */
-  constructor (address _acl)
-    AccessControl(_acl)
+  constructor (address _acl, address _settings)
+    Controller(_acl, _settings)
     public
-  {}
+  {
+    // empty
+  }
 
   // IProxyImpl
 
@@ -49,6 +51,7 @@ import "./Policy.sol";
   {
     Policy f = new Policy(
       address(acl()),
+      address(settings()),
       aclContext(),
       _impl,
       _name

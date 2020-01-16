@@ -14,5 +14,5 @@ export const ensureSettingsIsDeployed = async ({ deployer, artifacts, logger }, 
   const settings = await deploy(deployer, Settings, aclAddress, settingsImpl.address)
   log(`... deployed at ${settings.address}`)
 
-  return settings
+  return await SettingsImpl.at(settings.address)
 }

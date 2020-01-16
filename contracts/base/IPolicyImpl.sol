@@ -27,7 +27,7 @@ contract IPolicyImpl {
   function getNumTranches () external view returns (uint256);
   function getTranchToken (uint256 _index) external view returns (address);
   function getTranchStatus (uint256 _index) external view returns (uint256);
-  function beginTranchSale(uint256 _index, address _market) external;
+  function beginTranchSale (uint256 _index) external;
 
   // events
 

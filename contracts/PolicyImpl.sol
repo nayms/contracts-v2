@@ -141,7 +141,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
     return dataUint256[string(abi.encodePacked(_index, "state"))];
   }
 
-  function beginTranchSale(uint256 _index, address _market)
+  function beginTranchSale(uint256 _index)
     public
     assertCanApprovePolicy
   {
@@ -162,11 +162,12 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
     uint256 pricePerShare = dataUint256[pricePerShareAmountKey];
     address denominationUnit = dataAddress[denominationUnitKey];
     uint256 totalPrice = totalSupply.mul(pricePerShare);
+    // get market
+    IMarket market = IMarket(settings().getMatchingMarket());
     // approve the market to transfer tokens from tranch into market escrow
-    tknApprove(_index, _market, initialHolder, totalSupply);
+    tknApprove(_index, address(market), initialHolder, totalSupply);
     // do the transfer
-    IMarket mkt = IMarket(_market);
-    mkt.offer(totalSupply, tranchAddress, totalPrice, denominationUnit, 0, false);
+    market.offer(totalSupply, tranchAddress, totalPrice, denominationUnit, 0, false);
     // update state
     dataUint256[string(abi.encodePacked(_index, "state"))] = STATE_SELLING;
 

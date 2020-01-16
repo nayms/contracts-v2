@@ -78,6 +78,9 @@ contract('Market', accounts => {
     // authorize market as operator for eth token
     await etherToken.setAllowedTransferOperator(market.address, true)
 
+    // save market to settings
+    await settings.setMatchingMarket(market.address)
+
     // setup one tranch with 100 shares at 1 WEI per share
     await createTranch(policy, {
       numShares: 100,
@@ -93,7 +96,7 @@ contract('Market', accounts => {
 
   describe('tranches begin selling', async () => {
     it('but not by an unauthorized person', async () => {
-      await policy.beginTranchSale(0, market.address).should.be.rejectedWith('must be policy approver')
+      await policy.beginTranchSale(0).should.be.rejectedWith('must be policy approver')
     })
 
     it('but not if initial allocation is not to parent policy', async () => {
@@ -104,14 +107,14 @@ contract('Market', accounts => {
         initialBalanceHolder: accounts[3],
       }, { from: entityManagerAddress })
 
-      await policy.beginTranchSale(1, market.address, { from: policyApproverAddress }).should.be.rejectedWith('initial holder must be policy contract')
+      await policy.beginTranchSale(1, { from: policyApproverAddress }).should.be.rejectedWith('initial holder must be policy contract')
     })
 
     it('by an authorized person', async () => {
       await tranchToken.balanceOf(market.address).should.eventually.eq(0)
       await tranchToken.balanceOf(policy.address).should.eventually.eq(100)
 
-      const result = await policy.beginTranchSale(0, market.address, { from: policyApproverAddress })
+      const result = await policy.beginTranchSale(0, { from: policyApproverAddress })
 
       expect(extractEventArgs(result, events.BeginTranchSale)).to.include({
         tranch: '0',
@@ -125,19 +128,19 @@ contract('Market', accounts => {
     })
 
     it('and their state is set to SELLING', async () => {
-      await policy.beginTranchSale(0, market.address, { from: policyApproverAddress })
+      await policy.beginTranchSale(0, { from: policyApproverAddress })
       await policy.getTranchStatus(0).should.eventually.eq(await policy.STATE_SELLING())
     })
 
     it('and can only do this once', async () => {
-      await policy.beginTranchSale(0, market.address, { from: policyApproverAddress }).should.be.fulfilled
-      await policy.beginTranchSale(0, market.address, { from: policyApproverAddress }).should.be.rejectedWith('sale already started')
+      await policy.beginTranchSale(0, { from: policyApproverAddress }).should.be.fulfilled
+      await policy.beginTranchSale(0, { from: policyApproverAddress }).should.be.rejectedWith('sale already started')
     })
   })
 
   describe('once a tranch begins trading', () => {
     beforeEach(async () => {
-      await policy.beginTranchSale(0, market.address, { from: policyApproverAddress })
+      await policy.beginTranchSale(0, { from: policyApproverAddress })
       await etherToken.deposit({ from: accounts[2], value: 25 })
     })
 

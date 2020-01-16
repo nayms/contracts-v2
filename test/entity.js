@@ -15,6 +15,10 @@ import {
   ROLE_ENTITY_REPRESENTATIVE,
 } from '../migrations/utils/acl'
 
+import {
+  ensureSettingsIsDeployed,
+} from '../migrations/utils/settings'
+
 const IEntityImpl = artifacts.require("./base/IEntityImpl")
 const Proxy = artifacts.require('./base/Proxy')
 const TestEntityImpl = artifacts.require("./test/TestEntityImpl")
@@ -24,6 +28,7 @@ const PolicyImpl = artifacts.require("./PolicyImpl")
 
 contract('Entity', accounts => {
   let acl
+  let settings
   let entityImpl
   let entityProxy
   let entity
@@ -31,9 +36,11 @@ contract('Entity', accounts => {
 
   beforeEach(async () => {
     acl = await ensureAclIsDeployed({ artifacts })
-    entityImpl = await EntityImpl.new(acl.address)
+    settings = await ensureSettingsIsDeployed({ artifacts }, acl.address)
+    entityImpl = await EntityImpl.new(acl.address, settings.address)
     entityProxy = await Entity.new(
       acl.address,
+      settings.address,
       entityImpl.address,
       "entity1"
     )
@@ -45,6 +52,7 @@ contract('Entity', accounts => {
   it('must be deployed with a valid implementation', async () => {
     await Entity.new(
       acl.address,
+      settings.address,
       ADDRESS_ZERO,
       "acme"
     ).should.be.rejectedWith('implementation must be valid')
@@ -144,7 +152,7 @@ contract('Entity', accounts => {
     let policyImpl
 
     beforeEach(async () => {
-      policyImpl = await PolicyImpl.new(acl.address)
+      policyImpl = await PolicyImpl.new(acl.address, settings.address)
 
       await acl.assignRole(entityContext, accounts[1], ROLE_ENTITY_ADMIN)
       await acl.assignRole(entityContext, accounts[2], ROLE_ENTITY_MANAGER)

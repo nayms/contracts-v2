@@ -1,7 +1,7 @@
 pragma solidity >=0.5.8;
 
 import "./base/Address.sol";
-import "./base/AccessControl.sol";
+import "./base/Controller.sol";
 import "./base/EternalStorage.sol";
 import './base/IERC777Sender.sol';
 import './base/IERC777Recipient.sol';
@@ -16,7 +16,7 @@ import "./TranchToken.sol";
 /**
  * @dev Business-logic for Policy
  */
-contract PolicyImpl is EternalStorage, AccessControl, IProxyImpl, IPolicyImpl, ITranchTokenHelper {
+contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITranchTokenHelper {
   using SafeMath for uint;
   using Address for address;
 
@@ -46,8 +46,8 @@ contract PolicyImpl is EternalStorage, AccessControl, IProxyImpl, IPolicyImpl, I
   /**
    * Constructor
    */
-  constructor (address _acl)
-    AccessControl(_acl)
+  constructor (address _acl, address _settings)
+    Controller(_acl, _settings)
     public
   {}
 

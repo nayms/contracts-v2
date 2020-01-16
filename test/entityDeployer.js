@@ -1,6 +1,7 @@
 import { extractEventArgs } from './utils'
 import { events } from '../'
 import { ensureAclIsDeployed } from '../migrations/utils/acl'
+import { ensureSettingsIsDeployed } from '../migrations/utils/settings'
 
 const Entity = artifacts.require("./Entity")
 const EntityImpl = artifacts.require("./EntityImpl")
@@ -8,13 +9,15 @@ const EntityDeployer = artifacts.require("./EntityDeployer")
 
 contract('EntityDeployer', accounts => {
   let acl
+  let settings
   let entityImpl
   let deployer
 
   beforeEach(async () => {
     acl = await ensureAclIsDeployed({ artifacts })
-    entityImpl = await EntityImpl.new(acl.address)
-    deployer = await EntityDeployer.new(acl.address, entityImpl.address)
+    settings = await ensureSettingsIsDeployed({ artifacts }, acl.address)
+    entityImpl = await EntityImpl.new(acl.address, settings.address)
+    deployer = await EntityDeployer.new(acl.address, settings.address, entityImpl.address)
   })
 
   it('does not accept ETH', async () => {

@@ -3,12 +3,12 @@ pragma solidity >=0.5.8;
 import "./base/IERC20.sol";
 import "./base/IEtherToken.sol";
 import "./base/SafeMath.sol";
-import "./base/AccessControl.sol";
+import "./base/Controller.sol";
 
 /**
  * Represents Wrapped ETH, see https://blog.0xproject.com/canonical-weth-a9aa7d0279dd
  */
-contract EtherToken is AccessControl, IERC20, IEtherToken {
+contract EtherToken is Controller, IERC20, IEtherToken {
   using SafeMath for *;
 
   mapping (address => bool) allowedTransferOperator;
@@ -20,7 +20,7 @@ contract EtherToken is AccessControl, IERC20, IEtherToken {
   uint8 public constant decimals = 18;
   uint256 public totalSupply;
 
-  constructor (address _acl) AccessControl(_acl) public {
+  constructor (address _acl, address _settings) Controller(_acl, _settings) public {
     // nothing needed
   }
 

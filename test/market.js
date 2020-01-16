@@ -14,6 +14,8 @@ import {
   ROLE_ASSET_MANAGER,
 } from '../migrations/utils/acl'
 
+import { ensureSettingsIsDeployed } from '../migrations/utils/settings'
+
 const EntityDeployer = artifacts.require('./EntityDeployer')
 const IEntityImpl = artifacts.require('./base/IEntityImpl')
 const EntityImpl = artifacts.require('./EntityImpl')
@@ -26,6 +28,7 @@ const Market = artifacts.require("./MatchingMarket")
 
 contract('Market', accounts => {
   let acl
+  let settings
   let policyImpl
   let policyProxy
   let policy
@@ -39,12 +42,15 @@ contract('Market', accounts => {
     // acl
     acl = await ensureAclIsDeployed({ artifacts })
 
+    // settings
+    settings = await ensureSettingsIsDeployed({ artifacts }, acl.address)
+
     // wrappedEth
-    etherToken = await ensureEtherTokenIsDeployed({ artifacts }, acl.address)
+    etherToken = await ensureEtherTokenIsDeployed({ artifacts }, acl.address, settings.address)
 
     // entity
-    const entityImpl = await EntityImpl.new(acl.address)
-    const entityDeployer = await EntityDeployer.new(acl.address, entityImpl.address)
+    const entityImpl = await EntityImpl.new(acl.address, settings.address)
+    const entityDeployer = await EntityDeployer.new(acl.address, settings.address, entityImpl.address)
 
     const deployEntityTx = await entityDeployer.deploy('acme')
     const entityAddress = extractEventArgs(deployEntityTx, events.NewEntity).entity
@@ -57,7 +63,7 @@ contract('Market', accounts => {
     await acl.assignRole(entityContext, accounts[1], ROLE_ENTITY_MANAGER)
     entityManagerAddress = accounts[1]
 
-    policyImpl = await PolicyImpl.new(acl.address)
+    policyImpl = await PolicyImpl.new(acl.address, settings.address)
 
     const createPolicyTx = await entity.createPolicy(policyImpl.address, 'doom', { from: entityManagerAddress })
     const policyAddress = extractEventArgs(createPolicyTx, events.NewPolicy).policy

@@ -25,6 +25,7 @@ import {
 } from '../migrations/utils/acl'
 
 import { ensureEtherTokenIsDeployed } from '../migrations/utils/etherToken'
+import { ensureSettingsIsDeployed } from '../migrations/utils/settings'
 
 const IERC20 = artifacts.require("./base/IERC20")
 const IERC777 = artifacts.require("./base/IERC777")
@@ -46,6 +47,7 @@ const DATA_BYTES_2 = asciiToHex('test2')
 
 contract('Policy', accounts => {
   let acl
+  let settings
   let entityDeployer
   let entityImpl
   let entityProxy
@@ -63,13 +65,16 @@ contract('Policy', accounts => {
     // acl
     acl = await ensureAclIsDeployed({ artifacts })
 
+    // settings
+    settings = await ensureSettingsIsDeployed({ artifacts }, acl.address)
+
     // registry + wrappedEth
     erc1820Registry = await ensureErc1820RegistryIsDeployed({ artifacts, accounts, web3 })
-    etherToken = await ensureEtherTokenIsDeployed({ artifacts }, acl.address)
+    etherToken = await ensureEtherTokenIsDeployed({ artifacts }, acl.address, settings.address)
 
     // entity
-    entityImpl = await EntityImpl.new(acl.address)
-    entityDeployer = await EntityDeployer.new(acl.address, entityImpl.address)
+    entityImpl = await EntityImpl.new(acl.address, settings.address)
+    entityDeployer = await EntityDeployer.new(acl.address, settings.address, entityImpl.address)
 
     const deployEntityTx = await entityDeployer.deploy('acme')
     const entityAddress = extractEventArgs(deployEntityTx, events.NewEntity).entity
@@ -83,7 +88,7 @@ contract('Policy', accounts => {
     await acl.assignRole(entityContext, accounts[2], ROLE_ENTITY_MANAGER)
     entityManagerAddress = accounts[2]
 
-    policyImpl = await PolicyImpl.new(acl.address)
+    policyImpl = await PolicyImpl.new(acl.address, settings.address)
 
     const createPolicyTx = await entity.createPolicy(policyImpl.address, 'doom', { from: entityManagerAddress })
     const policyAddress = extractEventArgs(createPolicyTx, events.NewPolicy).policy

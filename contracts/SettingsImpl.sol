@@ -25,7 +25,7 @@ import "./base/IProxyImpl.sol";
 
   // ISettingsImpl
 
-  function setMatchingMarket(address _market) public {
+  function setMatchingMarket(address _market) public assertIsAdmin {
     dataAddress["matchingMarket"] = _market;
   }
 

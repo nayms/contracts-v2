@@ -380,7 +380,7 @@ contract('Policy', accounts => {
 
         describe('such as transferring another person\'s tokens', () => {
           it('but not if sender is not approved', async () => {
-            await firstTkn.transferFrom(accounts[0], accounts[2], 5, { from: accounts[0] }).should.be.rejectedWith('unauthorized')
+            await firstTkn.transferFrom(accounts[0], accounts[2], 5, { from: accounts[1] }).should.be.rejectedWith('unauthorized')
           })
 
           it('but not if sender exceeds their approved limit', async () => {

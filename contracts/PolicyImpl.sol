@@ -211,14 +211,14 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
     dataUint256[k] = _value;
   }
 
-  function tknTransfer(uint256 _index, address _from, address _to, uint256 _value) public {
-    _transfer(_index, _from, _to, _value);
-  }
+  function tknTransfer(uint256 _index, address _spender, address _from, address _to, uint256 _value) public {
+    // if not sent by from address owner
+    if (_spender != _from) {
+      string memory k = string(abi.encodePacked(_index, _from, "allowance", _spender));
+      require(dataUint256[k] >= _value, 'unauthorized');
+    }
 
-  function tknTransferFrom(uint256 _index, address _spender, address _from, address _to, uint256 _value) public {
-    string memory k = string(abi.encodePacked(_index, _from, "allowance", _spender));
-    require(dataUint256[k] >= _value, 'unauthorized');
-    tknTransfer(_index, _from, _to, _value);
+    _transfer(_index, _from, _to, _value);
   }
 
   // TranchTokenImpl - ERC777 mutations //
@@ -233,23 +233,16 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
     dataBool[k] = false;
   }
 
-  function tknSend(uint256 _index, address _from, address _to, uint256 _amount, bytes memory _data) public {
-    require(_to != address(0), 'cannot send to zero address');
-
-    _callTokensToSend(_index, _from, _from, _to, _amount, _data, "");
-
-    _transfer(_index, _from, _to, _amount);
-
-    _callTokensReceived(_index, _from, _from, _to, _amount, _data, "");
-  }
-
-  function tknOperatorSend(uint256 _index, address _operator, address _from, address _to, uint256 _amount, bytes memory _data,
+  function tknSend(uint256 _index, address _operator, address _from, address _to, uint256 _amount, bytes memory _data,
     bytes memory _operatorData) public
   {
     require(_to != address(0), 'cannot send to zero address');
 
-    string memory k = string(abi.encodePacked(_index, _from, "operator", _operator));
-    require(dataBool[k], 'not authorized');
+    // if not sent by from address owner
+    if (_operator != _from) {
+      string memory k = string(abi.encodePacked(_index, _from, "operator", _operator));
+      require(dataBool[k], 'not authorized');
+    }
 
     _callTokensToSend(_index, _operator, _from, _to, _amount, _data, _operatorData);
 

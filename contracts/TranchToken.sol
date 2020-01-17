@@ -64,13 +64,13 @@ contract TranchToken is IERC20, IERC777 {
   }
 
   function transfer(address to, uint256 value) public returns (bool) {
-    impl.tknTransfer(index, msg.sender, to, value);
+    impl.tknTransfer(index, msg.sender, msg.sender, to, value);
     emit Transfer(msg.sender, to, value);
     return true;
   }
 
   function transferFrom(address from, address to, uint256 value) public returns (bool) {
-    impl.tknTransferFrom(index, msg.sender, from, to, value);
+    impl.tknTransfer(index, msg.sender, from, to, value);
     emit Transfer(from, to, value);
     return true;
   }
@@ -88,7 +88,7 @@ contract TranchToken is IERC20, IERC777 {
   }
 
   function send(address recipient, uint256 amount, bytes memory data) public {
-    impl.tknSend(index, msg.sender, recipient, amount, data);
+    impl.tknSend(index, msg.sender, msg.sender, recipient, amount, data, "");
     emit Transfer(msg.sender, recipient, amount);
     emit Sent(msg.sender, msg.sender, recipient, amount, data, "");
   }
@@ -100,7 +100,7 @@ contract TranchToken is IERC20, IERC777 {
       bytes memory data,
       bytes memory operatorData
   ) public {
-    impl.tknOperatorSend(index, msg.sender, sender, recipient, amount, data, operatorData);
+    impl.tknSend(index, msg.sender, sender, recipient, amount, data, operatorData);
     emit Transfer(sender, recipient, amount);
     emit Sent(msg.sender, sender, recipient, amount, data, operatorData);
   }

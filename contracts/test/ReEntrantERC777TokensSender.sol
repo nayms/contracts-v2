@@ -14,19 +14,21 @@ contract ReEntrantERC777TokensSender is ERC1820ImplementerInterface, IERC777Send
   }
 
   function tokensToSend(
-    address /*operator*/,
+    address operator,
     address from,
     address to,
     uint256 amount,
     bytes memory userData,
-    bytes memory /*operatorData*/
+    bytes memory operatorData
   ) public {
     tokenImpl.tknSend(
       index,
+      operator,
       from,
       to,
       amount,
-      userData
+      userData,
+      operatorData
     );
   }
 }

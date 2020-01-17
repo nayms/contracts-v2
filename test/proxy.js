@@ -5,7 +5,7 @@ const TestProxy = artifacts.require("./test/TestProxy")
 const TestProxyImpl = artifacts.require("./test/TestProxyImpl")
 const ITestProxyImpl = artifacts.require("./test/ITestProxyImpl")
 
-contract('Proxy (base class tests)', accounts => {
+contract('Proxy base class', accounts => {
   let testProxy
   let testProxyImpl
   let int

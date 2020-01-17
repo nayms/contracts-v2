@@ -13,13 +13,11 @@ interface ITranchTokenHelper {
   function tknIsOperatorFor(uint256 _index, address _operator, address _tokenHolder) external view returns (bool);
   // ERC-20 mutations
   function tknApprove(uint256 _index, address _spender, address _from, uint256 _value) external;
-  function tknTransfer(uint256 _index, address _from, address _to, uint256 _value) external;
-  function tknTransferFrom(uint256 _index, address _spender, address _from, address _to, uint256 _value) external;
+  function tknTransfer(uint256 _index, address _operator, address _from, address _to, uint256 _value) external;
   // ERC-777 mutations
   function tknAuthorizeOperator(uint256 _index, address _operator, address _tokenHolder) external;
   function tknRevokeOperator(uint256 _index, address _operator, address _tokenHolder) external;
-  function tknSend(uint256 _index, address _from, address _to, uint256 _amount, bytes calldata _data) external;
-  function tknOperatorSend(
+  function tknSend(
     uint256 _index,
     address _operator,
     address _from,

@@ -340,67 +340,33 @@ contract('Policy', accounts => {
           firstTknNumShares = await firstTkn.totalSupply()
         })
 
-        it('such as approving an address to send on one\'s behalf', async () => {
-          const result = await firstTkn.approve(accounts[1], 2).should.be.fulfilled
-
-          expect(extractEventArgs(result, events.Approval)).to.include({
-            owner: accounts[0],
-            spender: accounts[1],
-            value: '2',
-          })
-
-          await firstTkn.allowance(accounts[0], accounts[1]).should.eventually.eq(2)
+        it('but sending one\'s own tokens is not possible', async () => {
+          await firstTkn.transfer(accounts[0], firstTknNumShares).should.be.rejectedWith('only nayms market is allowed to transfer')
         })
 
-        describe('such as transferring one\'s own tokens', () => {
-          it('but not when sender does not have enough', async () => {
-            await firstTkn.transfer(accounts[1], firstTknNumShares + 1).should.be.rejectedWith('not enough balance')
+        it('but approving an address to send on one\'s behalf is not possible', async () => {
+          await firstTkn.approve(accounts[1], 2).should.be.rejectedWith('only nayms market is allowed to transfer')
+        })
+
+        describe('such as market sending tokens on one\' behalf', () => {
+          beforeEach(async () => {
+            await settings.setMatchingMarket(accounts[3]).should.be.fulfilled
           })
 
-          it('the entire balance of a user if need be', async () => {
-            await firstTkn.transfer(accounts[1], firstTknNumShares).should.be.fulfilled
+          it('but not when owner does not have enough', async () => {
+            await firstTkn.transferFrom(accounts[0], accounts[2], firstTknNumShares + 1, { from: accounts[3] }).should.be.rejectedWith('not enough balance')
+          })
+
+          it('when the owner has enough', async () => {
+            const result = await firstTkn.transferFrom(accounts[0], accounts[2], firstTknNumShares, { from: accounts[3] })
 
             await firstTkn.balanceOf(accounts[0]).should.eventually.eq(0)
-            await firstTkn.balanceOf(accounts[1]).should.eventually.eq(firstTknNumShares)
-          })
-
-          it('when the sender has enough', async () => {
-            const result = await firstTkn.transfer(accounts[1], 5).should.be.fulfilled
-
-            await firstTkn.balanceOf(accounts[0]).should.eventually.eq(firstTknNumShares - 5)
-            await firstTkn.balanceOf(accounts[1]).should.eventually.eq(5)
-
-            expect(extractEventArgs(result, events.Transfer)).to.include({
-              from: accounts[0],
-              to: accounts[1],
-              value: '5',
-            })
-          })
-        })
-
-        describe('such as transferring another person\'s tokens', () => {
-          it('but not if sender is not approved', async () => {
-            await firstTkn.transferFrom(accounts[0], accounts[2], 5, { from: accounts[1] }).should.be.rejectedWith('unauthorized')
-          })
-
-          it('but not if sender exceeds their approved limit', async () => {
-            await firstTkn.approve(accounts[1], 2).should.be.fulfilled
-            await firstTkn.transferFrom(accounts[0], accounts[2], 5, { from: accounts[1] }).should.be.rejectedWith('unauthorized')
-          })
-
-          it('if sender meets their approved limit', async () => {
-            await firstTkn.approve(accounts[1], 5).should.be.fulfilled
-
-            const result =
-              await firstTkn.transferFrom(accounts[0], accounts[2], 5, { from: accounts[1] }).should.be.fulfilled
-
-            await firstTkn.balanceOf(accounts[0]).should.eventually.eq(firstTknNumShares - 5)
-            await firstTkn.balanceOf(accounts[2]).should.eventually.eq(5)
+            await firstTkn.balanceOf(accounts[2]).should.eventually.eq(firstTknNumShares)
 
             expect(extractEventArgs(result, events.Transfer)).to.include({
               from: accounts[0],
               to: accounts[2],
-              value: '5',
+              value: `${firstTknNumShares}`,
             })
           })
         })
@@ -482,97 +448,58 @@ contract('Policy', accounts => {
           firstTknNumShares = await firstTkn.totalSupply()
         })
 
-        describe('such as transferring someone else\'s tokens', () => {
-          it('but not when operator is not approved', async () => {
-            await firstTkn.operatorSend(accounts[0], accounts[1], 1, DATA_BYTES, DATA_BYTES_2, { from: accounts[1] }).should.be.rejectedWith('not authorized')
-          })
+        it('but sending one\'s own tokens is not possible', async () => {
+          await firstTkn.send(accounts[0], firstTknNumShares, DATA_BYTES).should.be.rejectedWith('only nayms market is allowed to transfer')
+        })
 
-          it('when operator is approved', async () => {
-            const result1 = await firstTkn.authorizeOperator(accounts[1]).should.be.fulfilled
+        it('but approving an operator is not possible', async () => {
+          await firstTkn.authorizeOperator(accounts[1]).should.be.rejectedWith('only nayms market is allowed to transfer')
+        })
 
-            expect(extractEventArgs(result1, events.AuthorizedOperator)).to.include({
-              operator: accounts[1],
-              tokenHolder: accounts[0],
-            })
+        it('but revoking an operator is not possible', async () => {
+          await firstTkn.revokeOperator(accounts[1]).should.be.rejectedWith('only nayms market is allowed to transfer')
+        })
 
-            await firstTkn.isOperatorFor(accounts[1], accounts[0]).should.eventually.eq(true)
-
-            const result2 = await firstTkn.operatorSend(accounts[0], accounts[1], 1, DATA_BYTES, DATA_BYTES_2, { from: accounts[1] }).should.be.fulfilled
-
-            await firstTkn.balanceOf(accounts[0]).should.eventually.eq(firstTknNumShares - 1)
-            await firstTkn.balanceOf(accounts[1]).should.eventually.eq(1)
-
-            expect(extractEventArgs(result2, events.Transfer)).to.include({
-              from: accounts[0],
-              to: accounts[1],
-              value: '1',
-            })
-
-            expect(extractEventArgs(result2, events.Sent)).to.include({
-              operator: accounts[1],
-              from: accounts[0],
-              to: accounts[1],
-              amount: '1',
-              data: DATA_BYTES,
-              operatorData: DATA_BYTES_2,
-            })
+        describe('such as market sending tokens on one\' behalf', () => {
+          beforeEach(async () => {
+            await settings.setMatchingMarket(accounts[3]).should.be.fulfilled
           })
 
           it('but not when sending to null address', async () => {
-            await firstTkn.authorizeOperator(accounts[1]).should.be.fulfilled
-            await firstTkn.operatorSend(accounts[0], ADDRESS_ZERO, 1, DATA_BYTES, DATA_BYTES_2, { from: accounts[1] }).should.be.rejectedWith('cannot send to zero address')
+            await firstTkn.operatorSend(accounts[0], ADDRESS_ZERO, 1, DATA_BYTES, DATA_BYTES_2, { from: accounts[3] }).should.be.rejectedWith('cannot send to zero address')
           })
 
-          it('but not when an operator has been revoked', async () => {
-            await firstTkn.authorizeOperator(accounts[1]).should.be.fulfilled
-
-            const result = await firstTkn.revokeOperator(accounts[1]).should.be.fulfilled
-
-            expect(extractEventArgs(result, events.RevokedOperator)).to.include({
-              operator: accounts[1],
-              tokenHolder: accounts[0],
-            })
-
-            await firstTkn.isOperatorFor(accounts[1], accounts[0]).should.eventually.eq(false)
-
-            await firstTkn.operatorSend(accounts[0], accounts[1], 1, DATA_BYTES, DATA_BYTES_2, { from: accounts[1] }).should.be.rejectedWith('not authorized')
-          })
-        })
-
-        describe('such as transferring one\'s own tokens', () => {
-          it('but not when sender does not have enough', async () => {
-            await firstTkn.send(accounts[1], firstTknNumShares + 1, DATA_BYTES).should.be.rejectedWith('not enough balance')
+          it('but not when owner does not have enough', async () => {
+            await firstTkn.operatorSend(accounts[0], accounts[2], firstTknNumShares + 1, DATA_BYTES, DATA_BYTES_2, { from: accounts[3] }).should.be.rejectedWith('not enough balance')
           })
 
-          it('but not when recipient is null address', async () => {
-            await firstTkn.send(ADDRESS_ZERO, 1, DATA_BYTES).should.be.rejectedWith('cannot send to zero address')
-          })
+          it('when the owner has enough', async () => {
+            const result = await firstTkn.operatorSend(accounts[0], accounts[2], firstTknNumShares, DATA_BYTES, DATA_BYTES_2, { from: accounts[3] })
 
-          it('when the balance is enough', async () => {
-            const result = await firstTkn.send(accounts[1], 1, DATA_BYTES).should.be.fulfilled
-
-            await firstTkn.balanceOf(accounts[0]).should.eventually.eq(firstTknNumShares - 1)
-            await firstTkn.balanceOf(accounts[1]).should.eventually.eq(1)
+            await firstTkn.balanceOf(accounts[0]).should.eventually.eq(0)
+            await firstTkn.balanceOf(accounts[2]).should.eventually.eq(firstTknNumShares)
 
             expect(extractEventArgs(result, events.Transfer)).to.include({
               from: accounts[0],
-              to: accounts[1],
-              value: '1',
+              to: accounts[2],
+              value: `${firstTknNumShares}`,
             })
 
             expect(extractEventArgs(result, events.Sent)).to.include({
-              operator: accounts[0],
+              operator: accounts[3],
               from: accounts[0],
-              to: accounts[1],
-              amount: '1',
+              to: accounts[2],
+              amount: `${firstTknNumShares}`,
               data: DATA_BYTES,
-              operatorData: null,
+              operatorData: DATA_BYTES_2,
             })
           })
         })
 
         describe('involving ERC1820 registry', () => {
           beforeEach(async () => {
+            await settings.setMatchingMarket(accounts[3]).should.be.fulfilled
+
             await erc1820Registry.setInterfaceImplementer(
               accounts[0],
               TOKENS_SENDER_INTERFACE_HASH,
@@ -581,10 +508,10 @@ contract('Policy', accounts => {
             );
 
             await erc1820Registry.setInterfaceImplementer(
-              accounts[1],
+              accounts[2],
               TOKENS_RECIPIENT_INTERFACE_HASH,
               ADDRESS_ZERO,
-              { from: accounts[1] }
+              { from: accounts[2] }
             )
           })
 
@@ -597,10 +524,10 @@ contract('Policy', accounts => {
             );
 
             await erc1820Registry.setInterfaceImplementer(
-              accounts[1],
+              accounts[2],
               TOKENS_RECIPIENT_INTERFACE_HASH,
               ADDRESS_ZERO,
-              { from: accounts[1] }
+              { from: accounts[2] }
             )
           })
 
@@ -618,27 +545,12 @@ contract('Policy', accounts => {
               })
 
               it('then the handler gets invoked during a transfer', async () => {
-                const result = await firstTkn.send(accounts[1], 1, DATA_BYTES).should.be.fulfilled
+                const result = await firstTkn.operatorSend(accounts[0], accounts[2], 1, DATA_BYTES, DATA_BYTES_2, { from: accounts[3] }).should.be.fulfilled
 
                 expect(extractEventArgs(result, testEvents.TokensToSend)).to.include({
-                  operator: accounts[0],
+                  operator: accounts[3],
                   from: accounts[0],
-                  to: accounts[1],
-                  amount: '1',
-                  userData: DATA_BYTES,
-                  operatorData: null,
-                })
-              })
-
-              it('then operator data also gets passed to the handler', async () => {
-                await firstTkn.authorizeOperator(accounts[1]).should.be.fulfilled
-
-                const result = await firstTkn.operatorSend(accounts[0], accounts[1], 1, DATA_BYTES, DATA_BYTES_2, { from: accounts[1] }).should.be.fulfilled
-
-                expect(extractEventArgs(result, testEvents.TokensToSend)).to.include({
-                  operator: accounts[1],
-                  from: accounts[0],
-                  to: accounts[1],
+                  to: accounts[2],
                   amount: '1',
                   userData: DATA_BYTES,
                   operatorData: DATA_BYTES_2,
@@ -662,7 +574,7 @@ contract('Policy', accounts => {
               })
 
               it('then mutex prevents transaction succeeding', async () => {
-                await firstTkn.send(accounts[1], 1, DATA_BYTES).should.be.rejectedWith('ERC777 sender mutex already acquired')
+                await firstTkn.operatorSend(accounts[0], accounts[1], 1, DATA_BYTES, DATA_BYTES_2, { from: accounts[3] }).should.be.rejectedWith('ERC777 sender mutex already acquired')
               })
             })
           })
@@ -673,35 +585,20 @@ contract('Policy', accounts => {
                 const dummyERC777TokensRecipient = await DummyERC777TokensRecipient.new()
 
                 await erc1820Registry.setInterfaceImplementer(
-                  accounts[1],
+                  accounts[2],
                   TOKENS_RECIPIENT_INTERFACE_HASH,
                   dummyERC777TokensRecipient.address,
-                  { from: accounts[1] }
+                  { from: accounts[2] }
                 )
               })
 
-              it('then the handler gets invoked during a transfer', async () => {
-                const result = await firstTkn.send(accounts[1], 1, DATA_BYTES).should.be.fulfilled
+              it('then handler gets invoked during a transfer', async () => {
+                const result = await firstTkn.operatorSend(accounts[0], accounts[2], 1, DATA_BYTES, DATA_BYTES_2, { from: accounts[3] }).should.be.fulfilled
 
                 expect(extractEventArgs(result, testEvents.TokensReceived)).to.include({
-                  operator: accounts[0],
+                  operator: accounts[3],
                   from: accounts[0],
-                  to: accounts[1],
-                  amount: '1',
-                  userData: DATA_BYTES,
-                  operatorData: null,
-                })
-              })
-
-              it('then operator data also gets passed to the handler', async () => {
-                await firstTkn.authorizeOperator(accounts[1]).should.be.fulfilled
-
-                const result = await firstTkn.operatorSend(accounts[0], accounts[1], 1, DATA_BYTES, DATA_BYTES_2, { from: accounts[1] }).should.be.fulfilled
-
-                expect(extractEventArgs(result, testEvents.TokensReceived)).to.include({
-                  operator: accounts[1],
-                  from: accounts[0],
-                  to: accounts[1],
+                  to: accounts[2],
                   amount: '1',
                   userData: DATA_BYTES,
                   operatorData: DATA_BYTES_2,
@@ -717,22 +614,22 @@ contract('Policy', accounts => {
                 )
 
                 await erc1820Registry.setInterfaceImplementer(
-                  accounts[1],
+                  accounts[2],
                   TOKENS_RECIPIENT_INTERFACE_HASH,
                   reEntrantERC777TokenRecipient.address,
-                  { from: accounts[1] }
+                  { from: accounts[2] }
                 )
               })
 
               it('then mutex prevents transaction succeeding', async () => {
-                await firstTkn.send(accounts[1], 1, DATA_BYTES).should.be.rejectedWith('ERC777 receiver mutex already acquired')
+                await firstTkn.operatorSend(accounts[0], accounts[2], 1, DATA_BYTES, DATA_BYTES_2, { from: accounts[3] }).should.be.rejectedWith('ERC777 receiver mutex already acquired')
               })
             })
           })
 
           describe('and if receiver is a contract and it has not registered a handler', () => {
             it('then it reverts', async () => {
-              await firstTkn.send(policyImpl.address, 1, DATA_BYTES).should.be.rejectedWith('has no implementer')
+              await firstTkn.operatorSend(accounts[0], policyImpl.address, 1, DATA_BYTES, DATA_BYTES_2, { from: accounts[3] }).should.be.rejectedWith('has no implementer')
             })
           })
         })

@@ -164,8 +164,6 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
     uint256 totalPrice = totalSupply.mul(pricePerShare);
     // get market
     IMarket market = IMarket(settings().getMatchingMarket());
-    // approve the market to transfer tokens from tranch into market escrow
-    tknApprove(_index, address(market), initialHolder, totalSupply);
     // do the transfer
     market.offer(totalSupply, tranchAddress, totalPrice, denominationUnit, 0, false);
     // update state
@@ -206,43 +204,30 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
 
   // TranchTokenImpl - ERC20 mutations //
 
-  function tknApprove(uint256 _index, address _spender, address _from, uint256 _value) public {
-    string memory k = string(abi.encodePacked(_index, _from, "allowance", _spender));
-    dataUint256[k] = _value;
+  function tknApprove(uint256 /*_index*/, address /*_spender*/, address /*_from*/, uint256 /*_value*/) public {
+    revert('only nayms market is allowed to transfer');
   }
 
   function tknTransfer(uint256 _index, address _spender, address _from, address _to, uint256 _value) public {
-    // if not sent by from address owner
-    if (_spender != _from) {
-      string memory k = string(abi.encodePacked(_index, _from, "allowance", _spender));
-      require(dataUint256[k] >= _value, 'unauthorized');
-    }
-
+    require(_spender == settings().getMatchingMarket(), 'only nayms market is allowed to transfer');
     _transfer(_index, _from, _to, _value);
   }
 
   // TranchTokenImpl - ERC777 mutations //
 
-  function tknAuthorizeOperator(uint256 _index, address _operator, address _tokenHolder) public {
-    string memory k = string(abi.encodePacked(_index, _tokenHolder, "operator", _operator));
-    dataBool[k] = true;
+  function tknAuthorizeOperator(uint256 /*_index */, address /* _operator */, address /* _tokenHolder */) public {
+    revert('only nayms market is allowed to transfer');
   }
 
-  function tknRevokeOperator(uint256 _index, address _operator, address _tokenHolder) public {
-    string memory k = string(abi.encodePacked(_index, _tokenHolder, "operator", _operator));
-    dataBool[k] = false;
+  function tknRevokeOperator(uint256 /*_index */, address /* _operator */, address /* _tokenHolder */) public {
+    revert('only nayms market is allowed to transfer');
   }
 
   function tknSend(uint256 _index, address _operator, address _from, address _to, uint256 _amount, bytes memory _data,
     bytes memory _operatorData) public
   {
     require(_to != address(0), 'cannot send to zero address');
-
-    // if not sent by from address owner
-    if (_operator != _from) {
-      string memory k = string(abi.encodePacked(_index, _from, "operator", _operator));
-      require(dataBool[k], 'not authorized');
-    }
+    require(_operator == settings().getMatchingMarket(), 'only nayms market is allowed to transfer');
 
     _callTokensToSend(_index, _operator, _from, _to, _amount, _data, _operatorData);
 

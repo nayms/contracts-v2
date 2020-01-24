@@ -4,6 +4,7 @@ import {
   extractEventArgs,
   hdWallet,
   ADDRESS_ZERO,
+  createPolicy,
 } from './utils'
 
 import { events } from '../'
@@ -41,8 +42,7 @@ contract('Entity', accounts => {
     entityProxy = await Entity.new(
       acl.address,
       settings.address,
-      entityImpl.address,
-      "entity1"
+      entityImpl.address
     )
     // now let's speak to Entity contract using EntityImpl ABI
     entity = await IEntityImpl.at(entityProxy.address)
@@ -53,8 +53,7 @@ contract('Entity', accounts => {
     await Entity.new(
       acl.address,
       settings.address,
-      ADDRESS_ZERO,
-      "acme"
+      ADDRESS_ZERO
     ).should.be.rejectedWith('implementation must be valid')
   })
 
@@ -62,35 +61,8 @@ contract('Entity', accounts => {
     expect(entityProxy.address).to.exist
   })
 
-  it('has its name set during deployment', async () => {
-    await entity.getName().should.eventually.eq('entity1')
-  })
-
   it('can return its implementation version', async () => {
     await entityImpl.getImplementationVersion().should.eventually.eq('v1')
-  })
-
-  describe('can have its name set', () => {
-    it('but not just by anyone', async () => {
-      await entity.setName('entity2').should.be.rejectedWith('must be in role group');
-    })
-
-    it('but not if caller is entity representative', async () => {
-      await acl.assignRole(entityContext, accounts[2], ROLE_ENTITY_REPRESENTATIVE)
-      await entity.setName('entity2', { from: accounts[2] }).should.be.rejectedWith('must be in role group');
-    })
-
-    it('if caller is entity admin', async () => {
-      await acl.assignRole(entityContext, accounts[2], ROLE_ENTITY_ADMIN)
-      await entity.setName('entity2', { from: accounts[2] }).should.be.fulfilled;
-      await entity.getName().should.eventually.eq('entity2')
-    })
-
-    it('if caller is entity manager', async () => {
-      await acl.assignRole(entityContext, accounts[2], ROLE_ENTITY_MANAGER)
-      await entity.setName('entity2', { from: accounts[2] }).should.be.fulfilled;
-      await entity.getName().should.eventually.eq('entity2')
-    })
   })
 
   describe('it can be upgraded', async () => {
@@ -160,11 +132,11 @@ contract('Entity', accounts => {
     })
 
     it('but not by entity admins', async () => {
-      await entity.createPolicy(policyImpl.address, 'policy1', { from: accounts[1] }).should.be.rejectedWith('must be in role group')
+      await createPolicy(entity, policyImpl.address, {}, { from: accounts[1] }).should.be.rejectedWith('must be in role group')
     })
 
     it('by entity managers', async () => {
-      const result = await entity.createPolicy(policyImpl.address, 'policy1', { from: accounts[2] }).should.be.fulfilled
+      const result = await createPolicy(entity, policyImpl.address, {}, { from: accounts[2] }).should.be.fulfilled
 
       const eventArgs = extractEventArgs(result, events.NewPolicy)
 
@@ -177,19 +149,19 @@ contract('Entity', accounts => {
     })
 
     it('by entity representatives', async () => {
-      await entity.createPolicy(policyImpl.address, 'policy1', { from: accounts[3] }).should.be.fulfilled
+      await createPolicy(entity, policyImpl.address, {}, { from: accounts[3] }).should.be.fulfilled
     })
 
     it('and the entity records get updated accordingly', async () => {
       await entity.getNumPolicies().should.eventually.eq(0)
 
-      const result = await entity.createPolicy(policyImpl.address, 'policy1', { from: accounts[3] })
+      const result = await createPolicy(entity, policyImpl.address, {}, { from: accounts[3] })
       const eventArgs = extractEventArgs(result, events.NewPolicy)
 
       await entity.getNumPolicies().should.eventually.eq(1)
       await entity.getPolicy(0).should.eventually.eq(eventArgs.policy)
 
-      const result2 = await entity.createPolicy(policyImpl.address, 'policy1', { from: accounts[3] })
+      const result2 = await createPolicy(entity, policyImpl.address, {}, { from: accounts[3] })
       const eventArgs2 = extractEventArgs(result2, events.NewPolicy)
 
       await entity.getNumPolicies().should.eventually.eq(2)
@@ -197,12 +169,16 @@ contract('Entity', accounts => {
     })
 
     it('and have their properties set', async () => {
-      const result = await entity.createPolicy(policyImpl.address, 'policy1', { from: accounts[3] })
+      const startDate = ~~(Date.now() / 1000) + 1
+
+      const result = await createPolicy(entity, policyImpl.address, {
+        startDate,
+      }, { from: accounts[3] })
 
       const eventArgs = extractEventArgs(result, events.NewPolicy)
 
       const policy = await PolicyImpl.at(eventArgs.policy)
-      await policy.getName().should.eventually.eq('policy1')
+      await policy.getStartDate().should.eventually.eq(startDate)
 
       const proxy = await Proxy.at(eventArgs.policy)
       await proxy.getImplementation().should.eventually.eq(policyImpl.address)

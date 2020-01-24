@@ -9,10 +9,18 @@ contract Policy is Controller, Proxy {
     address _settings,
     string memory _entityContext,
     address _policyImpl,
-    string memory _name
+    uint256 _initiationDate,
+    uint256 _startDate,
+    uint256 _maturationDate,
+    address _unit,
+    uint256 _premiumIntervalSeconds
   ) Controller(_acl, _settings) Proxy(_policyImpl) public {
     dataString["entityContext"] = _entityContext;
-    dataString["name"] = _name;
+    dataUint256["initiationDate"] = _initiationDate;
+    dataUint256["startDate"] = _startDate;
+    dataUint256["maturationDate"] = _maturationDate;
+    dataUint256["premiumIntervalSeconds"] = _premiumIntervalSeconds;
+    dataAddress["unit"] = _unit;
   }
 
   function upgrade (address _implementation, bytes memory _assetMgrSig, bytes memory _clientMgrSig) public assertIsAdmin {

@@ -113,9 +113,6 @@ export const createTranch = (policy, attrs, ...callAttrs) => {
     numShares = 10,
     pricePerShareAmount = 1,
     premiumAmount = 1,
-    premiumIntervalSeconds = 86400,
-    denominationUnit = ADDRESS_ZERO,
-    startDateSeconds = new Date(2040,0).getTime() / 1000,
     initialBalanceHolder = ADDRESS_ZERO,
   } = attrs
 
@@ -123,10 +120,43 @@ export const createTranch = (policy, attrs, ...callAttrs) => {
     numShares,
     pricePerShareAmount,
     premiumAmount,
-    premiumIntervalSeconds,
-    denominationUnit,
-    startDateSeconds,
     initialBalanceHolder,
     ...callAttrs,
   )
+}
+
+export const createPolicy = (entity, policyImpl, attrs, ...callAttrs) => {
+  const currentTime = ~~(Date.now() / 1000)
+
+  const {
+    initiationDate = currentTime,
+    startDate = currentTime + 120,
+    maturationDate = currentTime + 300,
+    unit = ADDRESS_ZERO,
+    premiumIntervalSeconds = 30,
+  } = attrs
+
+  return entity.createPolicy(
+    policyImpl,
+    initiationDate,
+    startDate,
+    maturationDate,
+    unit,
+    premiumIntervalSeconds,
+    ...callAttrs,
+  )
+}
+
+export const web3EvmIncreaseTime = (web3, ts) => {
+  return new Promise((resolve, reject) => {
+    return web3.currentProvider.send({
+      jsonrpc: '2.0',
+      method: 'evm_increaseTime',
+      params: [ts],
+      id: new Date().getTime()
+    }, (err, result) => {
+      if (err) { return reject(err) }
+      return resolve(result)
+    })
+  })
 }

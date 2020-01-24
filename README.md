@@ -99,3 +99,7 @@ Now you can run the tests:
 ```
 yarn test
 ```
+
+## Notes
+
+* We use `block.timestamp (now)` in the code. We assume this is safe to do since our timescales occur across days and months rather than seconds, see https://medium.com/@phillipgoldberg/smart-contract-best-practices-revisited-block-number-vs-timestamp-648905104323

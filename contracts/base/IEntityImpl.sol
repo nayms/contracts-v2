@@ -1,13 +1,6 @@
 pragma solidity >=0.5.8;
 
 interface IEntityImpl {
-  // basic details
-
-  function getName () external view returns (string memory);
-  function setName (string calldata _name) external;
-
-  // policies
-
   /**
    * Notify that a new Policy has been deployed.
    */
@@ -17,7 +10,14 @@ interface IEntityImpl {
     address indexed deployer
   );
 
-  function createPolicy(address _impl, string calldata _name) external;
+  function createPolicy(
+    address _impl,
+    uint256 _initiationDate,
+    uint256 _startDate,
+    uint256 _maturationDate,
+    address _unit,
+    uint256 _premiumIntervalSeconds
+  ) external;
   function getNumPolicies() external view returns (uint256);
   function getPolicy(uint256 _index) external view returns (address);
 }

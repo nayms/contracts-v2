@@ -32,4 +32,8 @@ import "./base/IProxyImpl.sol";
   function getMatchingMarket() public view returns (address) {
     return dataAddress["matchingMarket"];
   }
+
+  function getTime() public view returns (uint256) {
+    return now;
+  }
 }

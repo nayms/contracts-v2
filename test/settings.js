@@ -47,6 +47,10 @@ contract('Settings', accounts => {
     await settingsImpl.getImplementationVersion().should.eventually.eq('v1')
   })
 
+  it('can return current block time', async () => {
+    await settingsImpl.getTime().should.be.fulfilled
+  })
+
   describe('can have matching market set', () => {
     it('but not just by anyone', async () => {
       await settings.setMatchingMarket(accounts[2], { from: accounts[2] }).should.be.rejectedWith('must be admin');

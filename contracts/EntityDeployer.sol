@@ -19,12 +19,11 @@ contract EntityDeployer is EternalStorage, Destructible, IEntityDeployer {
   /**
    * @dev Deploy a new Entity.
    */
-  function deploy(string memory _name) public assertIsAdmin {
+  function deploy() public assertIsAdmin {
     Entity f = new Entity(
       address(acl()),
       address(settings()),
-      dataAddress["implementation"],
-      _name
+      dataAddress["implementation"]
     );
 
     uint256 numEntities = dataUint256["numEntities"];

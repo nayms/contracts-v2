@@ -7,11 +7,8 @@ contract Entity is Controller, Proxy {
   constructor (
     address _acl,
     address _settings,
-    address _entityImpl,
-    string memory _name
-  ) Controller(_acl, _settings) Proxy(_entityImpl) public {
-    dataString["name"] = _name;
-  }
+    address _entityImpl
+  ) Controller(_acl, _settings) Proxy(_entityImpl) public {}
 
   function upgrade (address _implementation, bytes memory _sig) public assertIsAdmin {
     address signer = getUpgradeSigner(_implementation, _sig);

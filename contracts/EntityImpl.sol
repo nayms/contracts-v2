@@ -26,26 +26,16 @@ import "./Policy.sol";
   }
 
 
-  // IEntityImpl - basic details
+  // IEntityImpl
 
-  function setName (string memory _name)
-    public
-    assertInRoleGroup(ROLEGROUP_MANAGE_ENTITY)
-  {
-    dataString["name"] = _name;
-  }
-
-  function getName ()
-    public
-    view
-    returns (string memory)
-  {
-    return dataString["name"];
-  }
-
-  // IEntityImpl - policies
-
-  function createPolicy(address _impl, string memory _name)
+  function createPolicy(
+    address _impl,
+    uint256 _initiationDate,
+    uint256 _startDate,
+    uint256 _maturationDate,
+    address _unit,
+    uint256 _premiumIntervalSeconds
+  )
     public
     assertInRoleGroup(ROLEGROUP_MANAGE_POLICY)
   {
@@ -54,7 +44,11 @@ import "./Policy.sol";
       address(settings()),
       aclContext(),
       _impl,
-      _name
+      _initiationDate,
+      _startDate,
+      _maturationDate,
+      _unit,
+      _premiumIntervalSeconds
     );
 
     uint256 numPolicies = dataUint256["numPolicies"];

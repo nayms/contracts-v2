@@ -43,6 +43,17 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
     _;
   }
 
+  modifier assertDraftState () {
+    require(dataUint256["state"] == STATE_DRAFT, 'must be in draft state');
+    _;
+  }
+
+  modifier assertPendingState () {
+    require(dataUint256["state"] == STATE_PENDING, 'must be in pending state');
+    _;
+  }
+
+
   /**
    * Constructor
    */
@@ -59,48 +70,37 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
 
   // IPolicyImpl //
 
-  function setName (string memory _name)
-    public
-    assertCanManagePolicy
-  {
-    dataString["name"] = _name;
+  function getStartDate () public view returns (uint256) {
+    return dataUint256["startDate"];
   }
 
-  function getName () public view returns (string memory) {
-    return dataString["name"];
+  function getState () public view returns (uint256) {
+    return dataUint256["state"];
   }
 
   function createTranch (
     uint256 _numShares,
     uint256 _pricePerShareAmount,
     uint256 _premiumAmount,
-    uint256 _premiumIntervalSeconds,
-    address _denominationUnit,
-    uint256 _startDateSeconds,
     address _initialBalanceHolder
   )
     public
     assertCanManagePolicy
+    assertDraftState
     returns (uint256)
   {
     require(_numShares > 0, 'invalid num of shares');
     require(_pricePerShareAmount > 0, 'invalid price');
     require(_premiumAmount > 0, 'invalid premium');
-    require(_premiumIntervalSeconds > 0, 'invalid premium interval');
-    require(_denominationUnit != address(0), 'invalid denomination unit');
 
     // instantiate tranches
     uint256 i = dataUint256["numTranches"];
     dataUint256["numTranches"] = i + 1;
 
     // setup initial data for tranch
-    dataUint256[string(abi.encodePacked(i, "state"))] = STATE_CREATED;
     dataUint256[string(abi.encodePacked(i, "numShares"))] = _numShares;
     dataUint256[string(abi.encodePacked(i, "pricePerShareAmount"))] = _pricePerShareAmount;
     dataUint256[string(abi.encodePacked(i, "premiumAmount"))] = _premiumAmount;
-    dataUint256[string(abi.encodePacked(i, "premiumIntervalSeconds"))] = _premiumIntervalSeconds;
-    dataUint256[string(abi.encodePacked(i, "startDateSeconds"))] = _startDateSeconds;
-    dataAddress[string(abi.encodePacked(i, "denominationUnit"))] = _denominationUnit;
 
     // deploy token contract
     TranchToken t = new TranchToken(address(this), i);
@@ -122,7 +122,6 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
     string memory addressKey = string(abi.encodePacked(i, "address"));
     dataAddress[addressKey] = address(t);
 
-
     emit CreateTranch(address(this), address(t), dataAddress[initialHolderKey], i);
 
     return i;
@@ -133,49 +132,85 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
   }
 
   function getTranchToken (uint256 _index) public view returns (address) {
-    string memory addressKey = string(abi.encodePacked(_index, "address"));
-    return dataAddress[addressKey];
+    return dataAddress[string(abi.encodePacked(_index, "address"))];
   }
 
-  function getTranchStatus (uint256 _index) public view returns (uint256) {
+  function getTranchState (uint256 _index) public view returns (uint256) {
     return dataUint256[string(abi.encodePacked(_index, "state"))];
   }
 
-  function beginTranchSale(uint256 _index)
+
+  function beginSale()
     public
     assertCanApprovePolicy
+    assertDraftState
   {
-    // tranch/token address
-    string memory addressKey = string(abi.encodePacked(_index, "address"));
-    address tranchAddress = dataAddress[addressKey];
-    // initial token holder must be contract address
-    string memory initialHolderKey = string(abi.encodePacked(_index, "initialHolder"));
-    address initialHolder = dataAddress[initialHolderKey];
-    require(initialHolder == address(this), "initial holder must be policy contract");
-    // check balance
-    uint256 currentBalance = tknBalanceOf(_index, address(this));
-    uint256 totalSupply = tknTotalSupply(_index);
-    require(currentBalance == totalSupply, 'sale already started');
-    // calculate sale values
-    string memory pricePerShareAmountKey = string(abi.encodePacked(_index, "pricePerShareAmount"));
-    string memory denominationUnitKey = string(abi.encodePacked(_index, "denominationUnit"));
-    uint256 pricePerShare = dataUint256[pricePerShareAmountKey];
-    address denominationUnit = dataAddress[denominationUnitKey];
-    uint256 totalPrice = totalSupply.mul(pricePerShare);
-    // get market
-    IMarket market = IMarket(settings().getMatchingMarket());
-    // do the transfer
-    market.offer(totalSupply, tranchAddress, totalPrice, denominationUnit, 0, false);
-    // update state
-    dataUint256[string(abi.encodePacked(_index, "state"))] = STATE_SELLING;
+    // solhint-disable-next-line security/no-block-members
+    require(now >= dataUint256["initiationDate"], 'not yet time to begin sale');
+    // solhint-disable-next-line security/no-block-members
+    require(now < dataUint256["startDate"], 'start date already passed');
 
-    emit BeginTranchSale(_index, totalSupply, totalPrice, denominationUnit);
+    IMarket market = IMarket(settings().getMatchingMarket());
+
+    for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
+      // tranch/token address
+      address tranchAddress = dataAddress[string(abi.encodePacked(i, "address"))];
+      // initial token holder must be contract address
+      address initialHolder = dataAddress[string(abi.encodePacked(i, "initialHolder"))];
+      require(initialHolder == address(this), "initial holder must be policy contract");
+      // check balance
+      uint256 currentBalance = tknBalanceOf(i, address(this));
+      uint256 totalSupply = tknTotalSupply(i);
+      require(currentBalance == totalSupply, 'sale already started');
+      // calculate sale values
+      uint256 pricePerShare = dataUint256[string(abi.encodePacked(i, "pricePerShareAmount"))];
+      uint256 totalPrice = totalSupply.mul(pricePerShare);
+      // do the transfer
+      market.offer(totalSupply, tranchAddress, totalPrice, dataAddress["unit"], 0, false);
+      // set tranch state
+      dataUint256[string(abi.encodePacked(i, "state"))] = STATE_PENDING;
+    }
+
+    dataUint256["state"] = STATE_PENDING;
+
+    emit BeginSale(msg.sender);
   }
+
+
+  function endSale()
+    public
+    assertCanApprovePolicy
+    assertPendingState
+  {
+    // solhint-disable-next-line security/no-block-members
+    require(now < dataUint256["startDate"], 'start date already passed');
+
+    bool atleastOneActiveTranch = false;
+
+    for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
+      uint256 state = dataUint256[string(abi.encodePacked(i, "state"))];
+
+      if (state == STATE_ACTIVE) {
+        atleastOneActiveTranch = true;
+      } else {
+        dataUint256[string(abi.encodePacked(i, "state"))] = STATE_CANCELLED;
+      }
+    }
+
+    if (atleastOneActiveTranch) {
+      dataUint256["state"] = STATE_ACTIVE;
+      emit PolicyActive(msg.sender);
+    } else {
+      dataUint256["state"] = STATE_CANCELLED;
+      emit PolicyCancelled(msg.sender);
+    }
+  }
+
 
   // TranchTokenImpl - queries //
 
   function tknName(uint256 _index) public view returns (string memory) {
-    return string(abi.encodePacked(dataString["name"], "_tranch_", _index));
+    return string(abi.encodePacked(address(this).toString(), "_tranch_", _index));
   }
 
   function tknSymbol(uint256 _index) public view returns (string memory) {
@@ -239,6 +274,14 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
   // Helpers
 
   function _transfer(uint _index, address _from, address _to, uint256 _value) private {
+    // address market = settings().getMatchingMarket();
+    // uint256 state = dataUint256[string(abi.encodePacked(_index, "state"))];
+
+    // // whilst tranch sale is in progress dont allow tranch token owners to trade their tokens on the market
+    // if (state == STATE_SELLING && _to == market) {
+    //   revert('cannot trade during initial tranch sale');
+    // }
+
     string memory fromKey = string(abi.encodePacked(_index, _from, "balance"));
     string memory toKey = string(abi.encodePacked(_index, _to, "balance"));
 
@@ -246,6 +289,11 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
 
     dataUint256[fromKey] = dataUint256[fromKey].sub(_value);
     dataUint256[toKey] = dataUint256[toKey].add(_value);
+
+    // if we are in the initial sale period and the tranch has fully sold out then flip its state to ACTIVE
+    if (dataUint256[string(abi.encodePacked(_index, "state"))] == STATE_PENDING && dataUint256[fromKey] == 0) {
+      dataUint256[string(abi.encodePacked(_index, "state"))] = STATE_ACTIVE;
+    }
   }
 
   // re-entrancy protection

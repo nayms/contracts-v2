@@ -7,6 +7,7 @@ import {
   ADDRESS_ZERO,
   testEvents,
   createTranch,
+  createPolicy,
 } from './utils'
 import { events } from '../'
 
@@ -53,6 +54,7 @@ contract('Policy', accounts => {
   let entityProxy
   let entity
   let entityContext
+  let policyStartDate
   let policyImpl
   let policyProxy
   let policy
@@ -76,7 +78,7 @@ contract('Policy', accounts => {
     entityImpl = await EntityImpl.new(acl.address, settings.address)
     entityDeployer = await EntityDeployer.new(acl.address, settings.address, entityImpl.address)
 
-    const deployEntityTx = await entityDeployer.deploy('acme')
+    const deployEntityTx = await entityDeployer.deploy()
     const entityAddress = extractEventArgs(deployEntityTx, events.NewEntity).entity
 
     entityProxy = await Entity.at(entityAddress)
@@ -90,7 +92,11 @@ contract('Policy', accounts => {
 
     policyImpl = await PolicyImpl.new(acl.address, settings.address)
 
-    const createPolicyTx = await entity.createPolicy(policyImpl.address, 'doom', { from: entityManagerAddress })
+    policyStartDate = ~~(Date.now() / 1000)
+
+    const createPolicyTx = await createPolicy(entity, policyImpl.address, {
+      startDate: policyStartDate,
+    }, { from: entityManagerAddress })
     const policyAddress = extractEventArgs(createPolicyTx, events.NewPolicy).policy
 
     policyProxy = await Policy.at(policyAddress)
@@ -102,23 +108,12 @@ contract('Policy', accounts => {
     expect(policyProxy.address).to.exist
   })
 
-  it('has its name set during deployment', async () => {
-    await policy.getName().should.eventually.eq('doom')
+  it('has its start date set during deployment', async () => {
+    await policy.getStartDate().should.eventually.eq(policyStartDate)
   })
 
   it('can return its implementation version', async () => {
     await policyImpl.getImplementationVersion().should.eventually.eq('v1')
-  })
-
-  describe('can have its name set', () => {
-    it('but not just by anyone', async () => {
-      await policy.setName('policy2').should.be.rejectedWith('must be policy manager');
-    })
-
-    it('if caller has correct ability', async () => {
-      await policy.setName('policy2', { from: entityManagerAddress }).should.be.fulfilled;
-      await policy.getName().should.eventually.eq('policy2')
-    })
   })
 
   describe('it can be upgraded', async () => {
@@ -192,18 +187,15 @@ contract('Policy', accounts => {
     })
 
     it('all values must be valid', async () => {
-      await createTranch(policy, { denominationUnit: etherToken.address, numShares: 0 }, { from: accounts[2] }).should.be.rejectedWith('invalid num of shares')
-      await createTranch(policy, { denominationUnit: etherToken.address, pricePerShareAmount: 0 }, { from: accounts[2] }).should.be.rejectedWith('invalid price')
-      await createTranch(policy, { denominationUnit: etherToken.address, premiumAmount: 0 }, { from: accounts[2] }).should.be.rejectedWith('invalid premium')
-      await createTranch(policy, { denominationUnit: etherToken.address, premiumIntervalSeconds: 0 }, { from: accounts[2] }).should.be.rejectedWith('invalid premium interval')
-      await createTranch(policy, {}, { from: accounts[2] }).should.be.rejectedWith('invalid denomination unit')
+      await createTranch(policy, { numShares: 0 }, { from: accounts[2] }).should.be.rejectedWith('invalid num of shares')
+      await createTranch(policy, { pricePerShareAmount: 0 }, { from: accounts[2] }).should.be.rejectedWith('invalid price')
+      await createTranch(policy, { premiumAmount: 0 }, { from: accounts[2] }).should.be.rejectedWith('invalid premium')
     })
 
     it('can be created and have initial balance auto-allocated to policy impl', async () => {
       const result = await createTranch(policy, {
         numShares: tranchNumShares,
         pricePerShareAmount: tranchPricePerShare,
-        denominationUnit: etherToken.address,
       }, {
         from: accounts[2]
       }).should.be.fulfilled
@@ -224,7 +216,6 @@ contract('Policy', accounts => {
       const result = await createTranch(policy, {
         numShares: tranchNumShares,
         pricePerShareAmount: tranchPricePerShare,
-        denominationUnit: etherToken.address,
         initialBalanceHolder: accounts[3],
       }, {
         from: accounts[2]
@@ -235,24 +226,23 @@ contract('Policy', accounts => {
       expect(log.args.initialBalanceHolder).to.eq(accounts[3])
     })
 
-    it('can be created and will have state set to CREATED', async () => {
+    it('can be created and will have state set to DRAFT', async () => {
       await createTranch(policy, {
         numShares: tranchNumShares,
         pricePerShareAmount: tranchPricePerShare,
-        denominationUnit: etherToken.address,
         initialBalanceHolder: accounts[3],
       }, {
         from: accounts[2]
       }).should.be.fulfilled
 
-      await policy.getTranchStatus(0).should.eventually.eq(await policy.STATE_CREATED())
+      const draftState = await policy.STATE_DRAFT()
+      await policy.getTranchState(0).should.eventually.eq(draftState)
     })
 
     it('can be created more than once', async () => {
       await createTranch(policy, {
         numShares: tranchNumShares,
         pricePerShareAmount: tranchPricePerShare,
-        denominationUnit: etherToken.address,
       }, {
         from: accounts[2]
       }).should.be.fulfilled
@@ -260,7 +250,6 @@ contract('Policy', accounts => {
       await createTranch(policy, {
         numShares: tranchNumShares + 1,
         pricePerShareAmount: tranchPricePerShare + 2,
-        denominationUnit: etherToken.address,
       }, {
         from: accounts[2]
       }).should.be.fulfilled
@@ -286,14 +275,12 @@ contract('Policy', accounts => {
         await createTranch(policy, {
           numShares: tranchNumShares,
           pricePerShareAmount: tranchPricePerShare,
-          denominationUnit: etherToken.address,
           initialBalanceHolder: accounts[0],
         }).should.be.fulfilled
 
         await createTranch(policy, {
           numShares: tranchNumShares,
           pricePerShareAmount: tranchPricePerShare,
-          denominationUnit: etherToken.address,
           initialBalanceHolder: accounts[0],
         }).should.be.fulfilled
       })
@@ -304,7 +291,7 @@ contract('Policy', accounts => {
         await Promise.all(_.range(0, 2).map(async i => {
           const tkn = await IERC20.at(await policy.getTranchToken(i))
 
-          const NAME = 'doom_tranch_\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000' + String.fromCodePoint(i)
+          const NAME = `${policyProxy.address.toLowerCase()}_tranch_\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000` + String.fromCodePoint(i)
 
           await tkn.name().should.eventually.eq(NAME)
           await tkn.symbol().should.eventually.eq(NAME)
@@ -380,14 +367,12 @@ contract('Policy', accounts => {
         await createTranch(policy, {
           numShares: tranchNumShares,
           pricePerShareAmount: tranchPricePerShare,
-          denominationUnit: etherToken.address,
           initialBalanceHolder: accounts[0],
         }).should.be.fulfilled
 
         await createTranch(policy, {
           numShares: tranchNumShares,
           pricePerShareAmount: tranchPricePerShare,
-          denominationUnit: etherToken.address,
           initialBalanceHolder: accounts[0],
         }).should.be.fulfilled
       })
@@ -398,7 +383,7 @@ contract('Policy', accounts => {
         await Promise.all(_.range(0, 2).map(async i => {
           const tkn = await IERC777.at(await policy.getTranchToken(i))
 
-          const NAME = 'doom_tranch_\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000' + String.fromCodePoint(i)
+          const NAME = `${policyProxy.address.toLowerCase()}_tranch_\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000` + String.fromCodePoint(i)
 
           await tkn.name().should.eventually.eq(NAME)
           await tkn.symbol().should.eventually.eq(NAME)

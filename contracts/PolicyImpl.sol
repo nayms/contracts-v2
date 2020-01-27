@@ -161,7 +161,6 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
       // check balance
       uint256 currentBalance = tknBalanceOf(i, address(this));
       uint256 totalSupply = tknTotalSupply(i);
-      require(currentBalance == totalSupply, 'sale already started');
       // calculate sale values
       uint256 pricePerShare = dataUint256[string(abi.encodePacked(i, "pricePerShareAmount"))];
       uint256 totalPrice = totalSupply.mul(pricePerShare);

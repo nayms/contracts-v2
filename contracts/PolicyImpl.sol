@@ -158,10 +158,8 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
       // initial token holder must be contract address
       address initialHolder = dataAddress[string(abi.encodePacked(i, "initialHolder"))];
       require(initialHolder == address(this), "initial holder must be policy contract");
-      // check balance
-      uint256 currentBalance = tknBalanceOf(i, address(this));
+      // get supply
       uint256 totalSupply = tknTotalSupply(i);
-      require(currentBalance == totalSupply, 'sale already started');
       // calculate sale values
       uint256 pricePerShare = dataUint256[string(abi.encodePacked(i, "pricePerShareAmount"))];
       uint256 totalPrice = totalSupply.mul(pricePerShare);

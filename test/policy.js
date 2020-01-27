@@ -297,6 +297,7 @@ contract('Policy', accounts => {
           await tkn.symbol().should.eventually.eq(NAME)
           await tkn.totalSupply().should.eventually.eq(tranchNumShares)
           await tkn.decimals().should.eventually.eq(18)
+          await tkn.allowance(accounts[0], accounts[1]).should.eventually.eq(0)
 
           done++
         }))
@@ -389,6 +390,7 @@ contract('Policy', accounts => {
           await tkn.symbol().should.eventually.eq(NAME)
           await tkn.totalSupply().should.eventually.eq(tranchNumShares)
           await tkn.granularity().should.eventually.eq(1)
+          await tkn.isOperatorFor(accounts[0], accounts[1]).should.eventually.eq(false)
 
           done++
         }))

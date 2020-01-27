@@ -253,6 +253,16 @@ contract('Policy flow', accounts => {
       await tranchToken.balanceOf(policy.address).should.eventually.eq(0)
       await tranchToken.balanceOf(market.address).should.eventually.eq(95)
     })
+
+    it('new token owners cannot then trade their tokens whilst tranch is still selling', async () => {
+      // get tranch tokens
+      await etherToken.approve(market.address, 10, { from: accounts[2] })
+      await market.offer(10, etherToken.address, 5, tranchToken.address, 0, true, { from: accounts[2] })
+      // check balance
+      await tranchToken.balanceOf(accounts[2]).should.eventually.eq(5)
+      // try trading again
+      await market.offer(1, tranchToken.address, 1, etherToken.address, 0, true, { from: accounts[2] }).should.be.rejectedWith('can only trade when policy is active')
+    })
   })
 
   describe('policy sale can be ended', async () => {
@@ -285,7 +295,7 @@ contract('Policy flow', accounts => {
         await policy.getTranchState(1).should.eventually.eq(STATE_CANCELLED)
       })
 
-      it('if atleast one of the tranches is active then the policy is cancelled, but other tranches are cancelled', async () => {
+      it('if atleast one of the tranches is active then the policy is active, but other tranches are cancelled', async () => {
         // make the offer on the market
         const tranchToken = await getTranchToken(0)
 
@@ -301,6 +311,25 @@ contract('Policy flow', accounts => {
         await policy.getState().should.eventually.eq(STATE_ACTIVE)
         await policy.getTranchState(0).should.eventually.eq(STATE_ACTIVE)
         await policy.getTranchState(1).should.eventually.eq(STATE_CANCELLED)
+      })
+
+      it('if policy becomes active, then token owners can start trading', async () => {
+        // make the offer on the market
+        const tranchToken = await getTranchToken(0)
+
+        // buy the whole tranch
+        await etherToken.deposit({ from: accounts[2], value: 200 })
+        await etherToken.approve(market.address, 200, { from: accounts[2] })
+        await market.offer(200, etherToken.address, 100, tranchToken.address, 0, true, { from: accounts[2] })
+
+        // end sale
+        await policy.endSale({ from: policyApproverAddress })
+
+        // try trading
+        await market.offer(1, tranchToken.address, 1, etherToken.address, 0, true, { from: accounts[2] }).should.be.fulfilled
+
+        // check balance
+        await tranchToken.balanceOf(accounts[2]).should.eventually.eq(99)
       })
     })
   })

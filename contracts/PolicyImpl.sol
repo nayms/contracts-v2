@@ -272,13 +272,16 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
   // Helpers
 
   function _transfer(uint _index, address _from, address _to, uint256 _value) private {
-    // address market = settings().getMatchingMarket();
-    // uint256 state = dataUint256[string(abi.encodePacked(_index, "state"))];
-
-    // // whilst tranch sale is in progress dont allow tranch token owners to trade their tokens on the market
-    // if (state == STATE_SELLING && _to == market) {
-    //   revert('cannot trade during initial tranch sale');
-    // }
+    // when token holder is sending to the market
+    address market = settings().getMatchingMarket();
+    if (market == _to) {
+      // and they're not the initial balance holder of the token
+      address initialHolder = dataAddress[string(abi.encodePacked(_index, "initialHolder"))];
+      if (initialHolder != _from) {
+        // then ony allow them to do this when policy is active
+        require(dataUint256["state"] == STATE_ACTIVE, 'can only trade when policy is active');
+      }
+    }
 
     string memory fromKey = string(abi.encodePacked(_index, _from, "balance"));
     string memory toKey = string(abi.encodePacked(_index, _to, "balance"));

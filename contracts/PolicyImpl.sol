@@ -141,41 +141,60 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
   }
 
   function tranchPremiumsAreUptoDate (uint256 _index) public view returns (bool) {
-    uint256 expectedPaid = 0;
+    uint256 expectedPaid = 1;
 
     // if inititation date has not yet passed
-    if (!initiationDateHasPassed()) {
-      expectedPaid = 1;
-    }
-    // if start date has not yet passed
-    else if (!startDateHasPassed()) {
-      expectedPaid = 2;
-    }
-    // policy is active, so work out which payment
-    else {
-      // calculate index
-      expectedPaid = 2 + (now - dataUint256["startDate"]) / dataUint256["premiumIntervalSeconds"];
+    if (initiationDateHasPassed()) {
+      expectedPaid++;
+
+      if (startDateHasPassed()) {
+        // add more
+        expectedPaid += (now - dataUint256["startDate"]) / dataUint256["premiumIntervalSeconds"];
+      }
     }
 
+    // cap to no .of available premiums
+    uint256[] storage premiums = dataManyUint256[string(abi.encodePacked(_index, "premiums"))];
+    if (expectedPaid > premiums.length) {
+      expectedPaid = premiums.length;
+    }
+
+    // now check
     return (dataUint256[string(abi.encodePacked(_index, "premiumsPaid"))] >= expectedPaid);
+  }
+
+  function tranchPaymentsAllMade (uint256 _index) public view returns (bool) {
+    uint256[] storage premiums = dataManyUint256[string(abi.encodePacked(_index, "premiums"))];
+    uint256 done = dataUint256[string(abi.encodePacked(_index, "premiumsPaid"))];
+
+    return (done >= premiums.length);
   }
 
   function getNextTranchPremiumAmount (uint256 _index) public view returns (uint256) {
     uint256[] storage premiums = dataManyUint256[string(abi.encodePacked(_index, "premiums"))];
     uint256 numPremiumsAlreadyPaid = dataUint256[string(abi.encodePacked(_index, "premiumsPaid"))];
-    return premiums[numPremiumsAlreadyPaid];
+
+    if (numPremiumsAlreadyPaid >= premiums.length) {
+      return 0;
+    } else {
+      return premiums[numPremiumsAlreadyPaid];
+    }
   }
 
   function payTranchPremium (uint256 _index) public {
+    require(!tranchPaymentsAllMade(_index), 'all payments already made');
+
     uint256 expectedAmount = getNextTranchPremiumAmount(_index);
 
-    // premium token
-    IERC20 tkn = IERC20(dataAddress["unit"]);
+    if (expectedAmount > 0) {
+      // premium token
+      IERC20 tkn = IERC20(dataAddress["unit"]);
 
-    // transfer
-    require(tkn.allowance(msg.sender, address(this)) >= expectedAmount, "need permission");
-    require(tkn.balanceOf(msg.sender) >= expectedAmount, "need balance");
-    tkn.transferFrom(msg.sender, address(this), expectedAmount);
+      // transfer
+      require(tkn.allowance(msg.sender, address(this)) >= expectedAmount, "need permission");
+      require(tkn.balanceOf(msg.sender) >= expectedAmount, "need balance");
+      tkn.transferFrom(msg.sender, address(this), expectedAmount);
+    }
 
     // record the transfer
     uint256 paymentsMade = dataUint256[string(abi.encodePacked(_index, "premiumsPaid"))];

@@ -63,6 +63,8 @@ contract('Policy', accounts => {
   let erc1820Registry
   let etherToken
 
+  let setupPolicy
+
   beforeEach(async () => {
     // acl
     acl = await ensureAclIsDeployed({ artifacts })
@@ -92,33 +94,41 @@ contract('Policy', accounts => {
 
     policyImpl = await PolicyImpl.new(acl.address, settings.address)
 
-    // get current evm time
-    const currentBlockTime = parseInt((await settings.getTime()).toString(10))
-    initiationDate = currentBlockTime + 1000
+    setupPolicy = async ({ initiationDateDiff = 1000, startDateDiff = 2000, maturationDateDiff = 3000, premiumIntervalSeconds = undefined } = {}) => {
+      // get current evm time
+      const t = await settings.getTime()
+      const currentBlockTime = parseInt(t.toString(10))
 
-    const createPolicyTx = await createPolicy(entity, policyImpl.address, {
-      initiationDate: initiationDate,
-      startDate: initiationDate + 100,
-      endDate: initiationDate + 200,
-      unit: etherToken.address,
-    }, { from: entityManagerAddress })
-    const policyAddress = extractEventArgs(createPolicyTx, events.NewPolicy).policy
+      const createPolicyTx = await createPolicy(entity, policyImpl.address, {
+        initiationDate: currentBlockTime + initiationDateDiff,
+        startDate: currentBlockTime + startDateDiff,
+        maturationDate: currentBlockTime + maturationDateDiff,
+        unit: etherToken.address,
+        premiumIntervalSeconds,
+      }, { from: entityManagerAddress })
+      const policyAddress = extractEventArgs(createPolicyTx, events.NewPolicy).policy
 
-    policyProxy = await Policy.at(policyAddress)
-    policy = await IPolicyImpl.at(policyAddress)
-    policyContext = await policyProxy.aclContext()
+      policyProxy = await Policy.at(policyAddress)
+      policy = await IPolicyImpl.at(policyAddress)
+      policyContext = await policyProxy.aclContext()
+
+      // allow policy to transfer wrapped ETH tokens
+      await etherToken.setAllowedTransferOperator(policy.address, true)
+    }
   })
 
-  it('can be deployed', async () => {
-    expect(policyProxy.address).to.exist
-  })
+  describe('basic tests', () => {
+    beforeEach(async () => {
+      await setupPolicy()
+    })
 
-  it('has its start date set during deployment', async () => {
-    await policy.getStartDate().should.eventually.eq(initiationDate)
-  })
+    it('can be deployed', async () => {
+      expect(policyProxy.address).to.exist
+    })
 
-  it('can return its implementation version', async () => {
-    await policyImpl.getImplementationVersion().should.eventually.eq('v1')
+    it('can return its implementation version', async () => {
+      await policyImpl.getImplementationVersion().should.eventually.eq('v1')
+    })
   })
 
   describe('it can be upgraded', async () => {
@@ -128,6 +138,8 @@ contract('Policy', accounts => {
     let clientMgrSig
 
     beforeEach(async () => {
+      await setupPolicy()
+
       // assign roles
       await acl.assignRole(policyContext, accounts[3], ROLE_ASSET_MANAGER)
       await acl.assignRole(policyContext, accounts[4], ROLE_CLIENT_MANAGER)
@@ -187,107 +199,113 @@ contract('Policy', accounts => {
       await acl.assignRole(entityContext, accounts[2], ROLE_ENTITY_MANAGER)
     })
 
-    it('cannot be created without correct authorization', async () => {
-      await createTranch(policy).should.be.rejectedWith('must be policy manager')
-    })
+    describe('basic tests', () => {
+      it('cannot be created without correct authorization', async () => {
+        await setupPolicy()
+        await createTranch(policy, {}).should.be.rejectedWith('must be policy manager')
+      })
 
-    it('all basic values must be valid', async () => {
-      await createTranch(policy, { numShares: 0 }, { from: accounts[2] }).should.be.rejectedWith('invalid num of shares')
-      await createTranch(policy, { pricePerShareAmount: 0 }, { from: accounts[2] }).should.be.rejectedWith('invalid price')
-    })
+      it('all basic values must be valid', async () => {
+        await setupPolicy()
+        await createTranch(policy, { numShares: 0 }, { from: accounts[2] }).should.be.rejectedWith('invalid num of shares')
+        await createTranch(policy, { pricePerShareAmount: 0 }, { from: accounts[2] }).should.be.rejectedWith('invalid price')
+      })
 
-    it('and premium array is valid', async () => {
-      initiationDate = ~~(Date.now() / 1000)
+      it('and premium array is valid', async () => {
+        await setupPolicy({ initiationDateDiff: 0, startDateDiff: 0, maturationDateDiff: 30, premiumIntervalSeconds: 20 })
 
-      const createPolicyTx = await createPolicy(entity, policyImpl.address, {
-        startDate: initiationDate,
-        maturationDate: initiationDate + 30,
-        premiumIntervalSeconds: 20,
-      }, { from: entityManagerAddress })
-      const policyAddress = extractEventArgs(createPolicyTx, events.NewPolicy).policy
-      policy = await IPolicyImpl.at(policyAddress)
+        await createTranch(policy, { premiums: [1, 2, 3, 4, 5] }, { from: accounts[2] }).should.be.rejectedWith('too many premiums')
+      })
 
-      await createTranch(policy, { premiums: [1, 2, 3, 4, 5] }, { from: accounts[2] }).should.be.rejectedWith('too many premiums')
-    })
+      it('can be created and have initial balance auto-allocated to policy impl', async () => {
+        await setupPolicy()
 
-    it('can be created and have initial balance auto-allocated to policy impl', async () => {
-      const result = await createTranch(policy, {
-        numShares: tranchNumShares,
-        pricePerShareAmount: tranchPricePerShare,
-      }, {
-        from: accounts[2]
-      }).should.be.fulfilled
+        const result = await createTranch(policy, {
+          numShares: tranchNumShares,
+          pricePerShareAmount: tranchPricePerShare,
+        }, {
+          from: accounts[2]
+        }).should.be.fulfilled
 
-      const [ log ] = parseEvents(result, events.CreateTranch)
+        const [log] = parseEvents(result, events.CreateTranch)
 
-      expect(log.args.policy).to.eq(policy.address)
-      expect(log.args.tranch).to.eq(await policy.getTranchToken(0))
-      expect(log.args.initialBalanceHolder).to.eq(policy.address)
-      expect(log.args.index).to.eq('0')
+        expect(log.args.policy).to.eq(policy.address)
+        expect(log.args.tranch).to.eq(await policy.getTranchToken(0))
+        expect(log.args.initialBalanceHolder).to.eq(policy.address)
+        expect(log.args.index).to.eq('0')
 
-      await policy.getNumTranches().should.eventually.eq(1)
-      const addr = await policy.getTranchToken(0)
-      expect(addr.length).to.eq(42)
-    })
-
-    it('can be created and have initial balance allocated to a specific address', async () => {
-      const result = await createTranch(policy, {
-        numShares: tranchNumShares,
-        pricePerShareAmount: tranchPricePerShare,
-        initialBalanceHolder: accounts[3],
-      }, {
-        from: accounts[2]
-      }).should.be.fulfilled
-
-      const [ log ] = parseEvents(result, events.CreateTranch)
-
-      expect(log.args.initialBalanceHolder).to.eq(accounts[3])
-    })
-
-    it('can be created and will have state set to DRAFT', async () => {
-      await createTranch(policy, {
-        numShares: tranchNumShares,
-        pricePerShareAmount: tranchPricePerShare,
-        initialBalanceHolder: accounts[3],
-      }, {
-        from: accounts[2]
-      }).should.be.fulfilled
-
-      const draftState = await policy.STATE_DRAFT()
-      await policy.getTranchState(0).should.eventually.eq(draftState)
-    })
-
-    it('can be created more than once', async () => {
-      await createTranch(policy, {
-        numShares: tranchNumShares,
-        pricePerShareAmount: tranchPricePerShare,
-      }, {
-        from: accounts[2]
-      }).should.be.fulfilled
-
-      await createTranch(policy, {
-        numShares: tranchNumShares + 1,
-        pricePerShareAmount: tranchPricePerShare + 2,
-      }, {
-        from: accounts[2]
-      }).should.be.fulfilled
-
-      await policy.getNumTranches().should.eventually.eq(2)
-
-      const addresses = {}
-
-      await Promise.all(_.range(0, 2).map(async i => {
-        const addr = await policy.getTranchToken(i)
-        expect(!addresses[addr]).to.be.true
+        await policy.getNumTranches().should.eventually.eq(1)
+        const addr = await policy.getTranchToken(0)
         expect(addr.length).to.eq(42)
-        addresses[addr] = true
-      }))
+      })
 
-      expect(Object.keys(addresses).length).to.eq(2)
+      it('can be created and have initial balance allocated to a specific address', async () => {
+        await setupPolicy()
+
+        const result = await createTranch(policy, {
+          numShares: tranchNumShares,
+          pricePerShareAmount: tranchPricePerShare,
+          initialBalanceHolder: accounts[3],
+        }, {
+          from: accounts[2]
+        }).should.be.fulfilled
+
+        const [log] = parseEvents(result, events.CreateTranch)
+
+        expect(log.args.initialBalanceHolder).to.eq(accounts[3])
+      })
+
+      it('can be created and will have state set to DRAFT', async () => {
+        await setupPolicy()
+
+        await createTranch(policy, {
+          numShares: tranchNumShares,
+          pricePerShareAmount: tranchPricePerShare,
+          initialBalanceHolder: accounts[3],
+        }, {
+          from: accounts[2]
+        }).should.be.fulfilled
+
+        const draftState = await policy.STATE_DRAFT()
+        await policy.getTranchState(0).should.eventually.eq(draftState)
+      })
+
+      it('can be created more than once', async () => {
+        await setupPolicy()
+
+        await createTranch(policy, {
+          numShares: tranchNumShares,
+          pricePerShareAmount: tranchPricePerShare,
+        }, {
+          from: accounts[2]
+        }).should.be.fulfilled
+
+        await createTranch(policy, {
+          numShares: tranchNumShares + 1,
+          pricePerShareAmount: tranchPricePerShare + 2,
+        }, {
+          from: accounts[2]
+        }).should.be.fulfilled
+
+        await policy.getNumTranches().should.eventually.eq(2)
+
+        const addresses = {}
+
+        await Promise.all(_.range(0, 2).map(async i => {
+          const addr = await policy.getTranchToken(i)
+          expect(!addresses[addr]).to.be.true
+          expect(addr.length).to.eq(42)
+          addresses[addr] = true
+        }))
+
+        expect(Object.keys(addresses).length).to.eq(2)
+      })
     })
 
     describe('are ERC20 tokens', () => {
       beforeEach(async () => {
+        await setupPolicy()
+
         acl.assignRole(entityContext, accounts[0], ROLE_ENTITY_MANAGER)
 
         await createTranch(policy, {
@@ -381,6 +399,8 @@ contract('Policy', accounts => {
 
     describe('are ERC777 tokens', () => {
       beforeEach(async () => {
+        await setupPolicy()
+
         acl.assignRole(entityContext, accounts[0], ROLE_ENTITY_MANAGER)
 
         await createTranch(policy, {
@@ -641,66 +661,188 @@ contract('Policy', accounts => {
       })
     })
 
-    describe.only('premiums', () => {
+    describe('premiums', () => {
       beforeEach(async () => {
         acl.assignRole(entityContext, accounts[0], ROLE_ENTITY_MANAGER)
-        // allow policy to transfer wrapped ETH tokens
-        await etherToken.setAllowedTransferOperator(policy.address, true)
       })
 
-      it('initially the first premium is expected', async () => {
-        await createTranch(policy, {
-          premiums: [2, 3, 4]
+      describe('basic tests', () => {
+        beforeEach(async () => {
+          await setupPolicy()
         })
 
-        await policy.getNextTranchPremiumAmount(0).should.eventually.eq(2)
-        await policy.tranchPremiumsAreUptoDate(0).should.eventually.eq(false)
+        it('initially the first premium is expected', async () => {
+          await createTranch(policy, {
+            premiums: [2, 3, 4]
+          })
+
+          await policy.getNextTranchPremiumAmount(0).should.eventually.eq(2)
+          await policy.tranchPremiumsAreUptoDate(0).should.eventually.eq(false)
+          await policy.tranchPaymentsAllMade(0).should.eventually.eq(false)
+        })
+
+        it('policy must have permission to receive premium payment token', async () => {
+          await createTranch(policy, {
+            premiums: [2, 3, 4]
+          })
+
+          await etherToken.deposit({ value: 10 })
+          await policy.payTranchPremium(0).should.be.rejectedWith('need permission')
+        })
+
+        it('sender must have enough tokens to make the payment', async () => {
+          await createTranch(policy, {
+            premiums: [2, 3, 4]
+          })
+
+          await etherToken.deposit({ value: 1 })
+          await etherToken.approve(policy.address, 2)
+          await policy.payTranchPremium(0).should.be.rejectedWith('need balance')
+        })
+
+        it('updates the internal stats once first payment is made', async () => {
+          await createTranch(policy, {
+            premiums: [2, 3, 4]
+          })
+
+          await etherToken.deposit({ value: 2 })
+          await etherToken.approve(policy.address, 2)
+          await policy.payTranchPremium(0).should.be.fulfilled
+
+          await policy.getNextTranchPremiumAmount(0).should.eventually.eq(3)
+          await policy.tranchPremiumsAreUptoDate(0).should.eventually.eq(true)
+          await policy.tranchPaymentsAllMade(0).should.eventually.eq(false)
+        })
+
+        it('updates the internal stats once subsequent payment is made', async () => {
+          await createTranch(policy, {
+            premiums: [2, 3, 4]
+          })
+
+          await etherToken.deposit({ value: 5 })
+          await etherToken.approve(policy.address, 5)
+          await policy.payTranchPremium(0).should.be.fulfilled
+          await policy.payTranchPremium(0).should.be.fulfilled
+
+          await policy.getNextTranchPremiumAmount(0).should.eventually.eq(4)
+          await policy.tranchPremiumsAreUptoDate(0).should.eventually.eq(true)
+          await policy.tranchPaymentsAllMade(0).should.eventually.eq(false)
+        })
       })
 
-      it('policy must have permission to receive premium payment token', async () => {
-        await createTranch(policy, {
-          premiums: [2, 3, 4]
+      describe('once initiation date has passed', () => {
+        beforeEach(async () => {
+          await setupPolicy({ initiationDateDiff: 0, startDateDiff: 2000, maturationDateDiff: 3000 })
+
+          await createTranch(policy, {
+            premiums: [2, 3, 4]
+          })
         })
 
-        await etherToken.deposit({ value: 10 })
-        await policy.payTranchPremium(0).should.be.rejectedWith('need permission')
+        it('it requires first 2 payments to have been made', async () => {
+          await etherToken.deposit({ value: 5 })
+          await etherToken.approve(policy.address, 5)
+          await policy.payTranchPremium(0).should.be.fulfilled
+
+          await policy.tranchPremiumsAreUptoDate(0).should.eventually.eq(false)
+          await policy.getNextTranchPremiumAmount(0).should.eventually.eq(3)
+          await policy.tranchPaymentsAllMade(0).should.eventually.eq(false)
+        })
       })
 
-      it('sender must have enough tokens to make the payment', async () => {
-        await createTranch(policy, {
-          premiums: [2, 3, 4]
+      describe('once start date has passed', () => {
+        beforeEach(async () => {
+          await setupPolicy({ initiationDateDiff: -100, startDateDiff: 0, maturationDateDiff: 2000 })
+
+          await createTranch(policy, {
+            premiums: [2, 3, 4]
+          })
         })
 
-        await etherToken.deposit({ value: 1 })
-        await etherToken.approve(policy.address, 2)
-        await policy.payTranchPremium(0).should.be.rejectedWith('need balance')
+        it('it requires first 3 payments to have been made', async () => {
+          await etherToken.deposit({ value: 100 })
+          await etherToken.approve(policy.address, 5)
+          await policy.payTranchPremium(0).should.be.fulfilled
+
+          await policy.tranchPremiumsAreUptoDate(0).should.eventually.eq(false)
+          await policy.getNextTranchPremiumAmount(0).should.eventually.eq(3)
+          await policy.tranchPaymentsAllMade(0).should.eventually.eq(false)
+        })
       })
 
-      it('updates the internal stats once first payment is made', async () => {
-        await createTranch(policy, {
-          premiums: [2, 3, 4]
+      describe('once policy has been active for a while', () => {
+        beforeEach(async () => {
+          // set it up so that we expect 10 payments to have been made since start date
+          await setupPolicy({ initiationDateDiff: -200, startDateDiff: -100, maturationDateDiff: 2000, premiumIntervalSeconds: 10 })
+
+          await createTranch(policy, {
+            premiums: [2, 3, 4, 5]
+          })
         })
 
-        await etherToken.deposit({ value: 2 })
-        await etherToken.approve(policy.address, 2)
-        await policy.payTranchPremium(0).should.be.fulfilled
+        it('it will return 0 if no more payments are to be made', async () => {
+          await etherToken.deposit({ value: 100 })
+          await etherToken.approve(policy.address, 100)
+          await policy.payTranchPremium(0).should.be.fulfilled // 2
+          await policy.payTranchPremium(0).should.be.fulfilled // 3
+          await policy.payTranchPremium(0).should.be.fulfilled // 4
+          await policy.payTranchPremium(0).should.be.fulfilled // 5
 
-        await policy.getNextTranchPremiumAmount(0).should.eventually.eq(3)
+          await policy.tranchPremiumsAreUptoDate(0).should.eventually.eq(true)
+          await policy.getNextTranchPremiumAmount(0).should.eventually.eq(0)
+          await policy.tranchPaymentsAllMade(0).should.eventually.eq(true)
+        })
+
+        it('it will not accept extra payments', async () => {
+          await etherToken.deposit({ value: 100 })
+          await etherToken.approve(policy.address, 100)
+          await policy.payTranchPremium(0).should.be.fulfilled // 2
+          await policy.payTranchPremium(0).should.be.fulfilled // 3
+          await policy.payTranchPremium(0).should.be.fulfilled // 4
+          await policy.payTranchPremium(0).should.be.fulfilled // 5
+
+          await policy.payTranchPremium(0).should.be.rejectedWith('all payments already made')
+        })
+      })
+
+      it('if one of the premiums is 0 it still counts', async () => {
+        // set it up so that we expect 10 payments to have been made since start date
+        await setupPolicy({ initiationDateDiff: -200, startDateDiff: -100, maturationDateDiff: 2000, premiumIntervalSeconds: 10 })
+
+        await createTranch(policy, {
+          premiums: [2, 3, 0, 5]
+        })
+
+        await etherToken.deposit({ value: 100 })
+        await etherToken.approve(policy.address, 100)
+        await policy.payTranchPremium(0).should.be.fulfilled // 2
+        await policy.payTranchPremium(0).should.be.fulfilled // 3
+        await policy.payTranchPremium(0).should.be.fulfilled // 0
+        await policy.payTranchPremium(0).should.be.fulfilled // 5
+
         await policy.tranchPremiumsAreUptoDate(0).should.eventually.eq(true)
+        await policy.getNextTranchPremiumAmount(0).should.eventually.eq(0)
+        await policy.tranchPaymentsAllMade(0).should.eventually.eq(true)
       })
 
-      it('updates the internal stats once subsequent payment is made', async () => {
+      it('if all premiums are paid before inititiation that is ok', async () => {
+        // set it up so that we expect 10 payments to have been made since start date
+        await setupPolicy({ initiationDateDiff: 200, startDateDiff: 400, maturationDateDiff: 6000, premiumIntervalSeconds: 10 })
+
         await createTranch(policy, {
-          premiums: [2, 3, 4]
+          premiums: [2, 3, 0, 5]
         })
 
-        await etherToken.deposit({ value: 5 })
-        await etherToken.approve(policy.address, 5)
-        await policy.payTranchPremium(0).should.be.fulfilled
-        await policy.payTranchPremium(0).should.be.fulfilled
+        await etherToken.deposit({ value: 100 })
+        await etherToken.approve(policy.address, 100)
+        await policy.payTranchPremium(0).should.be.fulfilled // 2
+        await policy.payTranchPremium(0).should.be.fulfilled // 3
+        await policy.payTranchPremium(0).should.be.fulfilled // 0
+        await policy.payTranchPremium(0).should.be.fulfilled // 5
 
-        await policy.getNextTranchPremiumAmount(0).should.eventually.eq(4)
         await policy.tranchPremiumsAreUptoDate(0).should.eventually.eq(true)
+        await policy.getNextTranchPremiumAmount(0).should.eventually.eq(0)
+        await policy.tranchPaymentsAllMade(0).should.eventually.eq(true)
       })
     })
   })

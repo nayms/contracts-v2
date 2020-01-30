@@ -168,6 +168,7 @@ contract ACL is IACL {
   uint256 public numAdmins;
 
   mapping (uint256 => string) public contexts;
+  mapping (string => bool) public isContext;
   uint256 public numContexts;
 
   modifier assertIsAdmin () {
@@ -307,6 +308,13 @@ contract ACL is IACL {
     public
     assertIsAssigner(_context, _role)
   {
+    // record new context if necessary
+    if (!isContext[_context]) {
+      contexts[numContexts] = _context;
+      isContext[_context] = true;
+      numContexts++;
+    }
+
     assignments[_context].add(_role, _addr);
     emit RoleAssigned(_context, _addr, _role);
   }

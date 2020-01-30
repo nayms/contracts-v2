@@ -394,4 +394,27 @@ contract('ACL', accounts => {
       await acl.getAssigners(role1).should.eventually.eq([])
     })
   })
+
+  describe('stores list of all created contexts', () => {
+    it('that gets updated when a role is assigned', async () => {
+      await acl.getNumContexts().should.eventually.eq(0)
+
+      await acl.assignRole('test', accounts[2], role1).should.be.fulfilled
+
+      await acl.getNumContexts().should.eventually.eq(1)
+      await acl.getContext(0).should.eventually.eq('test')
+
+      await acl.assignRole('test', accounts[2], role2).should.be.fulfilled
+
+      // should be no change in context count
+      await acl.getNumContexts().should.eventually.eq(1)
+
+      await acl.assignRole('test2', accounts[2], role2).should.be.fulfilled
+
+      // now we expect a change
+      await acl.getNumContexts().should.eventually.eq(2)
+      await acl.getContext(0).should.eventually.eq('test')
+      await acl.getContext(1).should.eventually.eq('test2')
+    })
+  })
 })

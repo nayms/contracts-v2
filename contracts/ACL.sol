@@ -1,8 +1,147 @@
 pragma solidity >=0.5.8;
 
-import "./base/ACLRoles.sol";
-import "./base/ACLAssigners.sol";
 import "./base/IACL.sol";
+
+/**
+ * @title ACLRoles
+ * @dev Library for managing addresses assigned to a Role within a context.
+ */
+library ACLRoles {
+  struct User {
+    mapping (bytes32 => uint256) map;
+    bytes32[] list;
+  }
+
+  struct Context {
+    mapping (address => User) users;
+  }
+
+  /**
+   * @dev give an address access to this role
+   */
+  function add(Context storage _context, bytes32 _role, address _addr)
+    internal
+  {
+    User storage u = _context.users[_addr];
+
+    if (0 == u.map[_role]) {
+      u.list.push(_role);
+      u.map[_role] = u.list.length;
+    }
+  }
+
+  /**
+   * @dev remove an address' access to this role
+   */
+  function remove(Context storage _context, bytes32 _role, address _addr)
+    internal
+  {
+    User storage u = _context.users[_addr];
+
+    uint256 idx = u.map[_role];
+
+    if (0 < idx) {
+      uint256 actualIdx = idx - 1;
+
+      // replace item to remove with last item in list and update mappings
+      if (u.list.length - 1 > actualIdx) {
+        u.list[actualIdx] = u.list[u.list.length - 1];
+        u.map[u.list[actualIdx]] = actualIdx + 1;
+      }
+
+      u.list.length--;
+      u.map[_role] = 0;
+    }
+  }
+
+  /**
+   * @dev check if an address has this role
+   * @return bool
+   */
+  function has(Context storage _context, bytes32 _role, address _addr)
+    internal
+    view
+    returns (bool)
+  {
+    User storage u = _context.users[_addr];
+
+    return (0 < u.map[_role]);
+  }
+
+
+  /**
+   * @dev get all roles for address
+   * @return bytes32[]
+   */
+  function getRolesForUser(Context storage _context, address _addr)
+    internal
+    view
+    returns (bytes32[] storage)
+  {
+    User storage u = _context.users[_addr];
+
+    return u.list;
+  }
+}
+
+
+/**
+ * @title ACLAssigners
+ * @dev Library for managing assigners of a Role.
+ */
+library ACLAssigners {
+  struct Role {
+    mapping (bytes32 => uint256) map;
+    bytes32[] list;
+  }
+
+  /**
+   * @dev add an assigner for this role
+   */
+  function add(Role storage _role, bytes32 _assignerRole)
+    internal
+  {
+    if (0 == _role.map[_assignerRole]) {
+      _role.list.push(_assignerRole);
+      _role.map[_assignerRole] = _role.list.length;
+    }
+  }
+
+  /**
+   * @dev remove an assigner for this role
+   */
+  function remove(Role storage _role, bytes32 _assignerRole)
+    internal
+  {
+    uint256 idx = _role.map[_assignerRole];
+
+    if (0 < idx) {
+      uint256 actualIdx = idx - 1;
+
+      // replace item to remove with last item in list and update mappings
+      if (_role.list.length - 1 > actualIdx) {
+        _role.list[actualIdx] = _role.list[_role.list.length - 1];
+        _role.map[_role.list[actualIdx]] = actualIdx + 1;
+      }
+
+      _role.list.length--;
+      _role.map[_assignerRole] = 0;
+    }
+  }
+
+
+  /**
+   * @dev Get all assigners.
+   */
+  function getAll(Role storage _role)
+    internal
+    view
+    returns (bytes32[] storage)
+  {
+    return _role.list;
+  }
+}
+
 
 contract ACL is IACL {
   using ACLRoles for ACLRoles.Context;
@@ -134,6 +273,10 @@ contract ACL is IACL {
     emit RoleUnassigned(_context, _addr, _role);
   }
 
+  function getRolesForUser(string memory _context, address _addr) public view returns (bytes32[] memory) {
+    return assignments[_context].getRolesForUser(_addr);
+  }
+
   // Role assigners
 
   function addAssigner(bytes32 _role, bytes32 _assignerRole)
@@ -157,7 +300,7 @@ contract ACL is IACL {
     view
     returns (bytes32[] memory)
   {
-    return assigners[_role].all();
+    return assigners[_role].getAll();
   }
 
   function canAssign(string memory _context, address _addr, bytes32 _role)

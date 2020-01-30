@@ -189,6 +189,7 @@ contract('ACL', accounts => {
 
   describe('can have a role group set', async () => {
     const group1 = sha3('group1')
+    const group2 = sha3('group2')
 
     it('but not by a non-admin', async () => {
       await acl.setRoleGroup(group1, [ role1, role2 ], { from: accounts[1] }).should.be.rejectedWith('unauthorized')
@@ -196,8 +197,25 @@ contract('ACL', accounts => {
 
     it('by an admin', async () => {
       await acl.setRoleGroup(group1, [ role1, role2 ]).should.be.fulfilled
-      await acl.roleGroups(group1, 0).should.eventually.eq(role1)
-      await acl.roleGroups(group1, 1).should.eventually.eq(role2)
+      await acl.getRoleGroup(group1).should.eventually.eq([ role1, role2 ])
+    })
+
+    it('and it updates its internal data correctly', async () => {
+      await acl.setRoleGroup(group1, [role1, role2]).should.be.fulfilled
+      await acl.setRoleGroup(group2, [role2, role3]).should.be.fulfilled
+
+      await acl.getRoleGroupsForRole(role1).should.eventually.eq([ group1 ])
+      await acl.getRoleGroupsForRole(role2).should.eventually.eq([ group1, group2 ])
+      await acl.getRoleGroupsForRole(role3).should.eventually.eq([ group2])
+
+      await acl.setRoleGroup(group1, [role3]).should.be.fulfilled
+
+      await acl.getRoleGroupsForRole(role1).should.eventually.eq([])
+      await acl.getRoleGroupsForRole(role2).should.eventually.eq([group2])
+      await acl.getRoleGroupsForRole(role3).should.eventually.eq([group2, group1])
+
+      await acl.getRoleGroup(group1).should.eventually.eq([role3])
+      await acl.getRoleGroup(group2).should.eventually.eq([role2, role3])
     })
 
     it('and it works with role checking', async () => {

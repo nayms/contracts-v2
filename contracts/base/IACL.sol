@@ -7,9 +7,14 @@ interface IACL {
   function cancelNewAdminProposal(address _addr) external;
   function acceptAdminRole() external;
   function removeAdmin(address _addr) external;
+  // contexts
+  function getNumContexts() external view returns (uint256);
+  function getContext(uint256 _index) external view returns (string memory);
   // role groups
   function hasRoleInGroup(string calldata _context, address _addr, bytes32 _roleGroup) external view returns (bool);
   function setRoleGroup(bytes32 _roleGroup, bytes32[] calldata _roles) external;
+  function getRoleGroup(bytes32 _roleGroup) external view returns (bytes32[] memory);
+  function getRoleGroupsForRole(bytes32 _role) external view returns (bytes32[] memory);
   // roles
   function hasRole(string calldata _context, address _addr, bytes32 _role) external view returns (bool);
   function hasAnyRole(string calldata _context, address _addr, bytes32[] calldata _roles) external view returns (bool);

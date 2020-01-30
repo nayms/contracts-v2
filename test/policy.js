@@ -174,7 +174,7 @@ contract('Policy', accounts => {
     })
   })
 
-  describe.only('tranches', () => {
+  describe('tranches', () => {
     const tranchNumShares = 10
     const tranchPricePerShare = 100
 
@@ -183,7 +183,7 @@ contract('Policy', accounts => {
     })
 
     it('cannot be created without correct authorization', async () => {
-      await createTranch(policy, { denominationUnit: etherToken.address }).should.be.rejectedWith('must be policy manager')
+      await createTranch(policy).should.be.rejectedWith('must be policy manager')
     })
 
     it('all basic values must be valid', async () => {
@@ -633,6 +633,55 @@ contract('Policy', accounts => {
             })
           })
         })
+      })
+    })
+
+    describe.only('premiums', () => {
+      beforeEach(async () => {
+        acl.assignRole(entityContext, accounts[0], ROLE_ENTITY_MANAGER)
+        // allow policy to transfer wrapped ETH tokens
+        await etherToken.setAllowedTransferOperator(policy.address, true)
+      })
+
+      it('initially the first premium is expected', async () => {
+        await createTranch(policy, {
+          premiums: [2, 3, 4]
+        })
+
+        await policy.getNextTranchPremiumAmount(0).should.eventually.eq(2)
+        await policy.tranchPremiumPaymentsAreUptoDate(0).should.eventually.eq(false)
+      })
+
+      it('policy must have permission to receive premium payment token', async () => {
+        await createTranch(policy, {
+          premiums: [2, 3, 4]
+        })
+
+        await etherToken.deposit({ value: 10 })
+        await policy.payTranchPremium(0).should.be.rejectedWith('need permission')
+      })
+
+      it('sender must have enough tokens to make the payment', async () => {
+        await createTranch(policy, {
+          premiums: [2, 3, 4]
+        })
+
+        await etherToken.deposit({ value: 1 })
+        await etherToken.approve(policy.address, 2)
+        await policy.payTranchPremium(0).should.be.rejectedWith('need balance')
+      })
+
+      it('updates the internal stats once first payment is made', async () => {
+        await createTranch(policy, {
+          premiums: [2, 3, 4]
+        })
+
+        await etherToken.deposit({ value: 2 })
+        await etherToken.approve(policy.address, 2)
+        await policy.payTranchPremium(0).should.be.fulfilled
+
+        await policy.getNextTranchPremiumAmount(0).should.eventually.eq(3)
+        await policy.tranchPremiumPaymentsAreUptoDate(0).should.eventually.eq(true)
       })
     })
   })

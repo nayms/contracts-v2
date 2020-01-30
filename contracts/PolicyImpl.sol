@@ -3,6 +3,7 @@ pragma solidity >=0.5.8;
 import "./base/Address.sol";
 import "./base/Controller.sol";
 import "./base/EternalStorage.sol";
+import './base/IERC20.sol';
 import './base/IERC777Sender.sol';
 import './base/IERC777Recipient.sol';
 import './base/IERC1820Registry.sol';
@@ -139,6 +140,58 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
     return dataUint256[string(abi.encodePacked(_index, "state"))];
   }
 
+  function tranchPremiumPaymentsAreUptoDate (uint256 _index) public view returns (bool) {
+    uint256 expectedPaid = 0;
+
+    // if inititation date has not yet passed
+    if (!initiationDateHasPassed()) {
+      expectedPaid = 1;
+    }
+    // if start date has not yet passed
+    else if (!startDateHasPassed()) {
+      expectedPaid = 2;
+    }
+    // policy is active, so work out which payment
+    else {
+      // calculate index
+      expectedPaid = 2 + (now - dataUint256["startDate"]) / dataUint256["premiumIntervalSeconds"];
+    }
+
+    return (dataUint256[string(abi.encodePacked(_index, "premiumsPaid"))] >= expectedPaid);
+  }
+
+  function getNextTranchPremiumAmount (uint256 _index) public view returns (uint256) {
+    uint256[] storage premiums = dataManyUint256[string(abi.encodePacked(_index, "premiums"))];
+    uint256 numPremiumsAlreadyPaid = dataUint256[string(abi.encodePacked(_index, "premiumsPaid"))];
+    return premiums[numPremiumsAlreadyPaid];
+  }
+
+  function payTranchPremium (uint256 _index) public {
+    uint256 expectedAmount = getNextTranchPremiumAmount(_index);
+
+    // premium token
+    IERC20 tkn = IERC20(dataAddress["unit"]);
+
+    // transfer
+    require(tkn.allowance(msg.sender, address(this)) >= expectedAmount, "need permission");
+    require(tkn.balanceOf(msg.sender) >= expectedAmount, "need balance");
+    // tkn.transferFrom(msg.sender, address(this), expectedAmount);
+
+    // record the transfer
+    uint256 paymentsMade = dataUint256[string(abi.encodePacked(_index, "premiumsPaid"))];
+    dataUint256[string(abi.encodePacked(_index, "premiumPayment", paymentsMade))] = expectedAmount;
+    dataAddress[string(abi.encodePacked(_index, "premiumPayer", paymentsMade))] = msg.sender;
+    dataUint256[string(abi.encodePacked(_index, "premiumsPaid"))] = paymentsMade + 1;
+  }
+
+
+  function initiationDateHasPassed () public view returns (bool) {
+    return now >= dataUint256["initiationDate"];
+  }
+
+  function startDateHasPassed () public view returns (bool) {
+    return now >= dataUint256["startDate"];
+  }
 
   function beginSale()
     public
@@ -146,9 +199,9 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
     assertDraftState
   {
     // solhint-disable-next-line security/no-block-members
-    require(now >= dataUint256["initiationDate"], 'not yet time to begin sale');
+    require(initiationDateHasPassed(), 'not yet time to begin sale');
     // solhint-disable-next-line security/no-block-members
-    require(now < dataUint256["startDate"], 'start date already passed');
+    require(!startDateHasPassed(), 'start date already passed');
 
     IMarket market = IMarket(settings().getMatchingMarket());
 
@@ -181,7 +234,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
     assertPendingState
   {
     // solhint-disable-next-line security/no-block-members
-    require(now < dataUint256["startDate"], 'start date already passed');
+    require(!startDateHasPassed(), 'start date already passed');
 
     bool atleastOneActiveTranch = false;
 
@@ -295,9 +348,15 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
     dataUint256[fromKey] = dataUint256[fromKey].sub(_value);
     dataUint256[toKey] = dataUint256[toKey].add(_value);
 
-    // if we are in the initial sale period and the tranch has fully sold out then flip its state to ACTIVE
-    if (dataUint256[string(abi.encodePacked(_index, "state"))] == STATE_PENDING && dataUint256[fromKey] == 0) {
-      dataUint256[string(abi.encodePacked(_index, "state"))] = STATE_ACTIVE;
+    // if we are in the initial sale period and this is a transfer from the market to the buyer
+    if (dataUint256[string(abi.encodePacked(_index, "state"))] == STATE_PENDING && market == _from) {
+      // TODO: update pay token balance for tranch
+
+      // if the tranch has fully sold out (i.e market no longer holds any tranch tokens)
+      if (dataUint256[fromKey] == 0) {
+        // flip tranch state to ACTIVE
+        dataUint256[string(abi.encodePacked(_index, "state"))] = STATE_ACTIVE;
+      }
     }
   }
 

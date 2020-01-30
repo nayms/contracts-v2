@@ -84,7 +84,7 @@ contract('Policy flow', accounts => {
     const createPolicyTx = await createPolicy(entity, policyImpl.address, {
       initiationDate: initiationTime,
       startDate: initiationTime + 1000,
-      maturationDate: initiationTime + 1000,
+      maturationDate: initiationTime + 2000,
       unit: etherToken.address,
       premiumIntervalSeconds: 5,
     }, { from: entityManagerAddress })
@@ -107,13 +107,11 @@ contract('Policy flow', accounts => {
     await createTranch(policy, {
       numShares: 100,
       pricePerShareAmount: 2,
-      premiumAmount: 1,
     }, { from: entityManagerAddress })
 
     await createTranch(policy, {
       numShares: 50,
       pricePerShareAmount: 2,
-      premiumAmount: 1,
     }, { from: entityManagerAddress })
 
     getTranchToken = async idx => {
@@ -232,7 +230,7 @@ contract('Policy flow', accounts => {
       await tranchToken.balanceOf(market.address).should.eventually.eq(100)
     })
 
-    it('another party can make an offer that does match', async () => {
+    it('another party can make an offer that does match, but tranch status is unchanged because still some left to sell', async () => {
       // check initial balances
       await etherToken.balanceOf(accounts[2]).should.eventually.eq(25)
       await etherToken.balanceOf(policy.address).should.eventually.eq(0)
@@ -252,6 +250,9 @@ contract('Policy flow', accounts => {
       await tranchToken.balanceOf(accounts[2]).should.eventually.eq(5)
       await tranchToken.balanceOf(policy.address).should.eventually.eq(0)
       await tranchToken.balanceOf(market.address).should.eventually.eq(95)
+
+      // tranch status unchanged
+      await policy.getTranchState(0).should.eventually.eq(STATE_PENDING)
     })
 
     it('new token owners cannot then trade their tokens whilst tranch is still selling', async () => {
@@ -262,6 +263,19 @@ contract('Policy flow', accounts => {
       await tranchToken.balanceOf(accounts[2]).should.eventually.eq(5)
       // try trading again
       await market.offer(1, tranchToken.address, 1, etherToken.address, 0, true, { from: accounts[2] }).should.be.rejectedWith('can only trade when policy is active')
+    })
+
+    it('if a tranch fully sells out then its status is set to active and its unit balance gets updated', async () => {
+      // make the offer on the market
+      const tranchToken = await getTranchToken(0)
+
+      // buy the whole tranch
+      await etherToken.deposit({ from: accounts[2], value: 200 })
+      await etherToken.approve(market.address, 200, { from: accounts[2] })
+      await market.offer(200, etherToken.address, 100, tranchToken.address, 0, true, { from: accounts[2] })
+
+      // tranch status updated to ACTIVE since it's fully sold
+      await policy.getTranchState(0).should.eventually.eq(STATE_ACTIVE)
     })
   })
 

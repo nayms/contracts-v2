@@ -140,7 +140,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
     return dataUint256[string(abi.encodePacked(_index, "state"))];
   }
 
-  function tranchPremiumPaymentsAreUptoDate (uint256 _index) public view returns (bool) {
+  function tranchPremiumsAreUptoDate (uint256 _index) public view returns (bool) {
     uint256 expectedPaid = 0;
 
     // if inititation date has not yet passed
@@ -175,7 +175,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
     // transfer
     require(tkn.allowance(msg.sender, address(this)) >= expectedAmount, "need permission");
     require(tkn.balanceOf(msg.sender) >= expectedAmount, "need balance");
-    // tkn.transferFrom(msg.sender, address(this), expectedAmount);
+    tkn.transferFrom(msg.sender, address(this), expectedAmount);
 
     // record the transfer
     uint256 paymentsMade = dataUint256[string(abi.encodePacked(_index, "premiumsPaid"))];

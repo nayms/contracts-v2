@@ -19,7 +19,7 @@ contract IPolicyImpl {
   function getNumTranches () public view returns (uint256);
   function getTranchToken (uint256 _index) public view returns (address);
   function getTranchState (uint256 _index) public view returns (uint256);
-  function tranchPremiumPaymentsAreUptoDate (uint256 _index) public view returns (bool);
+  function tranchPremiumsAreUptoDate (uint256 _index) public view returns (bool);
   function getNextTranchPremiumAmount (uint256 _index) public view returns (uint256);
   function payTranchPremium (uint256 _index) public;
 

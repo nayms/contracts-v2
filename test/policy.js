@@ -54,7 +54,7 @@ contract('Policy', accounts => {
   let entityProxy
   let entity
   let entityContext
-  let policyStartDate
+  let initiationDate
   let policyImpl
   let policyProxy
   let policy
@@ -92,10 +92,15 @@ contract('Policy', accounts => {
 
     policyImpl = await PolicyImpl.new(acl.address, settings.address)
 
-    policyStartDate = ~~(Date.now() / 1000)
+    // get current evm time
+    const currentBlockTime = parseInt((await settings.getTime()).toString(10))
+    initiationDate = currentBlockTime + 1000
 
     const createPolicyTx = await createPolicy(entity, policyImpl.address, {
-      startDate: policyStartDate,
+      initiationDate: initiationDate,
+      startDate: initiationDate + 100,
+      endDate: initiationDate + 200,
+      unit: etherToken.address,
     }, { from: entityManagerAddress })
     const policyAddress = extractEventArgs(createPolicyTx, events.NewPolicy).policy
 
@@ -109,7 +114,7 @@ contract('Policy', accounts => {
   })
 
   it('has its start date set during deployment', async () => {
-    await policy.getStartDate().should.eventually.eq(policyStartDate)
+    await policy.getStartDate().should.eventually.eq(initiationDate)
   })
 
   it('can return its implementation version', async () => {
@@ -192,11 +197,11 @@ contract('Policy', accounts => {
     })
 
     it('and premium array is valid', async () => {
-      policyStartDate = ~~(Date.now() / 1000)
+      initiationDate = ~~(Date.now() / 1000)
 
       const createPolicyTx = await createPolicy(entity, policyImpl.address, {
-        startDate: policyStartDate,
-        maturationDate: policyStartDate + 30,
+        startDate: initiationDate,
+        maturationDate: initiationDate + 30,
         premiumIntervalSeconds: 20,
       }, { from: entityManagerAddress })
       const policyAddress = extractEventArgs(createPolicyTx, events.NewPolicy).policy
@@ -649,7 +654,7 @@ contract('Policy', accounts => {
         })
 
         await policy.getNextTranchPremiumAmount(0).should.eventually.eq(2)
-        await policy.tranchPremiumPaymentsAreUptoDate(0).should.eventually.eq(false)
+        await policy.tranchPremiumsAreUptoDate(0).should.eventually.eq(false)
       })
 
       it('policy must have permission to receive premium payment token', async () => {
@@ -681,7 +686,21 @@ contract('Policy', accounts => {
         await policy.payTranchPremium(0).should.be.fulfilled
 
         await policy.getNextTranchPremiumAmount(0).should.eventually.eq(3)
-        await policy.tranchPremiumPaymentsAreUptoDate(0).should.eventually.eq(true)
+        await policy.tranchPremiumsAreUptoDate(0).should.eventually.eq(true)
+      })
+
+      it('updates the internal stats once subsequent payment is made', async () => {
+        await createTranch(policy, {
+          premiums: [2, 3, 4]
+        })
+
+        await etherToken.deposit({ value: 5 })
+        await etherToken.approve(policy.address, 5)
+        await policy.payTranchPremium(0).should.be.fulfilled
+        await policy.payTranchPremium(0).should.be.fulfilled
+
+        await policy.getNextTranchPremiumAmount(0).should.eventually.eq(4)
+        await policy.tranchPremiumsAreUptoDate(0).should.eventually.eq(true)
       })
     })
   })

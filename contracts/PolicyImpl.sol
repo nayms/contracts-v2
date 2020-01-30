@@ -81,7 +81,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
   function createTranch (
     uint256 _numShares,
     uint256 _pricePerShareAmount,
-    uint256 _premiumAmount,
+    uint256[] memory _premiums,
     address _initialBalanceHolder
   )
     public
@@ -91,7 +91,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
   {
     require(_numShares > 0, 'invalid num of shares');
     require(_pricePerShareAmount > 0, 'invalid price');
-    require(_premiumAmount > 0, 'invalid premium');
+    require(_premiums.length < calculateMaxNumOfPremiums(), 'too many premiums');
 
     // instantiate tranches
     uint256 i = dataUint256["numTranches"];
@@ -100,7 +100,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
     // setup initial data for tranch
     dataUint256[string(abi.encodePacked(i, "numShares"))] = _numShares;
     dataUint256[string(abi.encodePacked(i, "pricePerShareAmount"))] = _pricePerShareAmount;
-    dataUint256[string(abi.encodePacked(i, "premiumAmount"))] = _premiumAmount;
+    dataManyUint256[string(abi.encodePacked(i, "premiums"))] = _premiums;
 
     // deploy token contract
     TranchToken t = new TranchToken(address(this), i);
@@ -204,6 +204,10 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
     }
   }
 
+  function calculateMaxNumOfPremiums() public view returns (uint256) {
+    // first 2 payments + (endDate - startDate) / paymentInterval - 1
+    return (dataUint256["maturationDate"] - dataUint256["startDate"]) / dataUint256["premiumIntervalSeconds"] + 1;
+  }
 
   // TranchTokenImpl - queries //
 

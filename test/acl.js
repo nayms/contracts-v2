@@ -189,6 +189,7 @@ contract('ACL', accounts => {
 
   describe('can have a role group set', async () => {
     const group1 = sha3('group1')
+    const group2 = sha3('group2')
 
     it('but not by a non-admin', async () => {
       await acl.setRoleGroup(group1, [ role1, role2 ], { from: accounts[1] }).should.be.rejectedWith('unauthorized')
@@ -196,8 +197,25 @@ contract('ACL', accounts => {
 
     it('by an admin', async () => {
       await acl.setRoleGroup(group1, [ role1, role2 ]).should.be.fulfilled
-      await acl.roleGroups(group1, 0).should.eventually.eq(role1)
-      await acl.roleGroups(group1, 1).should.eventually.eq(role2)
+      await acl.getRoleGroup(group1).should.eventually.eq([ role1, role2 ])
+    })
+
+    it('and it updates its internal data correctly', async () => {
+      await acl.setRoleGroup(group1, [role1, role2]).should.be.fulfilled
+      await acl.setRoleGroup(group2, [role2, role3]).should.be.fulfilled
+
+      await acl.getRoleGroupsForRole(role1).should.eventually.eq([ group1 ])
+      await acl.getRoleGroupsForRole(role2).should.eventually.eq([ group1, group2 ])
+      await acl.getRoleGroupsForRole(role3).should.eventually.eq([ group2])
+
+      await acl.setRoleGroup(group1, [role3]).should.be.fulfilled
+
+      await acl.getRoleGroupsForRole(role1).should.eventually.eq([])
+      await acl.getRoleGroupsForRole(role2).should.eventually.eq([group2])
+      await acl.getRoleGroupsForRole(role3).should.eventually.eq([group2, group1])
+
+      await acl.getRoleGroup(group1).should.eventually.eq([role3])
+      await acl.getRoleGroup(group2).should.eventually.eq([role2, role3])
     })
 
     it('and it works with role checking', async () => {
@@ -231,6 +249,19 @@ contract('ACL', accounts => {
       await acl.hasRole('test', accounts[2], role1).should.eventually.eq(false)
       await acl.assignRole('test', accounts[2], role1).should.be.fulfilled
       await acl.hasRole('test', accounts[2], role1).should.eventually.eq(true)
+      await acl.getRolesForUser('test', accounts[2]).should.eventually.eq([ role1 ])
+    })
+
+    it('multiple times', async () => {
+      await acl.assignRole('test', accounts[2], role1).should.be.fulfilled
+      await acl.assignRole('test', accounts[2], role1).should.be.fulfilled
+      await acl.getRolesForUser('test', accounts[2]).should.eventually.eq([role1])
+    })
+
+    it('and another assigned', async () => {
+      await acl.assignRole('test', accounts[2], role1).should.be.fulfilled
+      await acl.assignRole('test', accounts[2], role2).should.be.fulfilled
+      await acl.getRolesForUser('test', accounts[2]).should.eventually.eq([role1, role2])
     })
 
     it('and emits an event when successful', async () => {
@@ -254,8 +285,33 @@ contract('ACL', accounts => {
     })
 
     it('by an admin', async () => {
+      await acl.getRolesForUser('test', accounts[2]).should.eventually.eq([role1])
       await acl.unassignRole('test', accounts[2], role1).should.be.fulfilled
       await acl.hasRole('test', accounts[2], role1).should.eventually.eq(false)
+      await acl.getRolesForUser('test', accounts[2]).should.eventually.eq([])
+    })
+
+    it('and the internal list or assigned roles is updated efficiently', async () => {
+      await acl.assignRole('test', accounts[2], role2).should.be.fulfilled
+      await acl.assignRole('test', accounts[2], role3).should.be.fulfilled
+
+      await acl.getRolesForUser('test', accounts[2]).should.eventually.eq([ role1, role2, role3 ])
+
+      // remove head of list
+      await acl.unassignRole('test', accounts[2], role1).should.be.fulfilled
+      await acl.getRolesForUser('test', accounts[2]).should.eventually.eq([role3, role2])
+
+      // remove end of list
+      await acl.unassignRole('test', accounts[2], role2).should.be.fulfilled
+      await acl.getRolesForUser('test', accounts[2]).should.eventually.eq([role3])
+
+      // remove same again, to ensure no error end of list
+      await acl.unassignRole('test', accounts[2], role2).should.be.fulfilled
+      await acl.getRolesForUser('test', accounts[2]).should.eventually.eq([role3])
+
+      // remove last item
+      await acl.unassignRole('test', accounts[2], role3).should.be.fulfilled
+      await acl.getRolesForUser('test', accounts[2]).should.eventually.eq([])
     })
 
     it('and emits an event when successful', async () => {
@@ -323,23 +379,42 @@ contract('ACL', accounts => {
 
       // remove head of list
       await acl.removeAssigner(role1, role2).should.be.fulfilled
-
       await acl.getAssigners(role1).should.eventually.eq([ role4, role3 ])
 
       // remove end of list
       await acl.removeAssigner(role1, role3).should.be.fulfilled
-
       await acl.getAssigners(role1).should.eventually.eq([role4])
 
       // try same again, to ensure no error is thrown
       await acl.removeAssigner(role1, role3).should.be.fulfilled
-
       await acl.getAssigners(role1).should.eventually.eq([role4])
 
       // remove last item
       await acl.removeAssigner(role1, role4).should.be.fulfilled
-
       await acl.getAssigners(role1).should.eventually.eq([])
+    })
+  })
+
+  describe('stores list of all created contexts', () => {
+    it('that gets updated when a role is assigned', async () => {
+      await acl.getNumContexts().should.eventually.eq(0)
+
+      await acl.assignRole('test', accounts[2], role1).should.be.fulfilled
+
+      await acl.getNumContexts().should.eventually.eq(1)
+      await acl.getContext(0).should.eventually.eq('test')
+
+      await acl.assignRole('test', accounts[2], role2).should.be.fulfilled
+
+      // should be no change in context count
+      await acl.getNumContexts().should.eventually.eq(1)
+
+      await acl.assignRole('test2', accounts[2], role2).should.be.fulfilled
+
+      // now we expect a change
+      await acl.getNumContexts().should.eventually.eq(2)
+      await acl.getContext(0).should.eventually.eq('test')
+      await acl.getContext(1).should.eventually.eq('test2')
     })
   })
 })

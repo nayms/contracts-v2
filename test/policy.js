@@ -174,7 +174,7 @@ contract('Policy', accounts => {
     })
   })
 
-  describe('tranches', () => {
+  describe.only('tranches', () => {
     const tranchNumShares = 10
     const tranchPricePerShare = 100
 
@@ -186,10 +186,23 @@ contract('Policy', accounts => {
       await createTranch(policy, { denominationUnit: etherToken.address }).should.be.rejectedWith('must be policy manager')
     })
 
-    it('all values must be valid', async () => {
+    it('all basic values must be valid', async () => {
       await createTranch(policy, { numShares: 0 }, { from: accounts[2] }).should.be.rejectedWith('invalid num of shares')
       await createTranch(policy, { pricePerShareAmount: 0 }, { from: accounts[2] }).should.be.rejectedWith('invalid price')
-      await createTranch(policy, { premiumAmount: 0 }, { from: accounts[2] }).should.be.rejectedWith('invalid premium')
+    })
+
+    it('and premium array is valid', async () => {
+      policyStartDate = ~~(Date.now() / 1000)
+
+      const createPolicyTx = await createPolicy(entity, policyImpl.address, {
+        startDate: policyStartDate,
+        maturationDate: policyStartDate + 30,
+        premiumIntervalSeconds: 20,
+      }, { from: entityManagerAddress })
+      const policyAddress = extractEventArgs(createPolicyTx, events.NewPolicy).policy
+      policy = await IPolicyImpl.at(policyAddress)
+
+      await createTranch(policy, { premiums: [1, 2, 3, 4, 5] }, { from: accounts[2] }).should.be.rejectedWith('too many premiums')
     })
 
     it('can be created and have initial balance auto-allocated to policy impl', async () => {

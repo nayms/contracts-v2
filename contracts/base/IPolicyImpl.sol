@@ -13,7 +13,7 @@ contract IPolicyImpl {
   function createTranch (
     uint256 _numShares,
     uint256 _pricePerShareAmount,
-    uint256 _premiumAmount,
+    uint256[] memory _premiums,
     address _initialBalanceHolder
   ) public returns (uint256);
   function getNumTranches () public view returns (uint256);

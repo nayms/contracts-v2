@@ -19,9 +19,16 @@ contract IPolicyImpl {
   function getNumTranches () public view returns (uint256);
   function getTranchToken (uint256 _index) public view returns (address);
   function getTranchState (uint256 _index) public view returns (uint256);
+  function tranchPremiumsAreUptoDate (uint256 _index) public view returns (bool);
+  function tranchPaymentsAllMade (uint256 _index) public view returns (bool);
+  function getNextTranchPremiumAmount (uint256 _index) public view returns (uint256);
+  function payTranchPremium (uint256 _index) public;
 
-  function beginSale () external;
-  function endSale () external;
+  function beginSale () public;
+  function endSale () public;
+
+  function initiationDateHasPassed () public view returns (bool);
+  function startDateHasPassed () public view returns (bool);
 
   // events
 

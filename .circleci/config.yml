@@ -99,7 +99,7 @@ workflows:
                 - master
       - publish_to_npm:
           requires:
-            - build_contracts
+            - deploy_contracts
           filters:
             branches:
               only:

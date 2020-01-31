@@ -661,7 +661,7 @@ contract('Policy', accounts => {
       })
     })
 
-    describe.only('premiums', () => {
+    describe('premiums', () => {
       beforeEach(async () => {
         acl.assignRole(entityContext, accounts[0], ROLE_ENTITY_MANAGER)
       })
@@ -671,13 +671,13 @@ contract('Policy', accounts => {
           await setupPolicy()
         })
 
-        it('initially the first premium is expected', async () => {
+        it('initially no premium is expected', async () => {
           await createTranch(policy, {
             premiums: [2, 3, 4]
           })
 
           await policy.getNextTranchPremiumAmount(0).should.eventually.eq(2)
-          await policy.tranchPremiumsAreUptoDate(0).should.eventually.eq(true)
+          await policy.getNumberOfTranchPaymentsMissed(0).should.eventually.eq(0)
           await policy.tranchPaymentsAllMade(0).should.eventually.eq(false)
         })
 
@@ -710,7 +710,7 @@ contract('Policy', accounts => {
           await policy.payTranchPremium(0).should.be.fulfilled
 
           await policy.getNextTranchPremiumAmount(0).should.eventually.eq(3)
-          await policy.tranchPremiumsAreUptoDate(0).should.eventually.eq(true)
+          await policy.getNumberOfTranchPaymentsMissed(0).should.eventually.eq(0)
           await policy.tranchPaymentsAllMade(0).should.eventually.eq(false)
         })
 
@@ -725,7 +725,7 @@ contract('Policy', accounts => {
           await policy.payTranchPremium(0).should.be.fulfilled
 
           await policy.getNextTranchPremiumAmount(0).should.eventually.eq(4)
-          await policy.tranchPremiumsAreUptoDate(0).should.eventually.eq(true)
+          await policy.getNumberOfTranchPaymentsMissed(0).should.eventually.eq(0)
           await policy.tranchPaymentsAllMade(0).should.eventually.eq(false)
         })
       })
@@ -740,7 +740,7 @@ contract('Policy', accounts => {
         })
 
         it('it requires first payment to have been made', async () => {
-          await policy.tranchPremiumsAreUptoDate(0).should.eventually.eq(false)
+          await policy.getNumberOfTranchPaymentsMissed(0).should.eventually.eq(1)
           await policy.getNextTranchPremiumAmount(0).should.eventually.eq(2)
           await policy.tranchPaymentsAllMade(0).should.eventually.eq(false)
 
@@ -748,7 +748,7 @@ contract('Policy', accounts => {
           await etherToken.approve(policy.address, 5)
           await policy.payTranchPremium(0).should.be.fulfilled
 
-          await policy.tranchPremiumsAreUptoDate(0).should.eventually.eq(true)
+          await policy.getNumberOfTranchPaymentsMissed(0).should.eventually.eq(0)
           await policy.getNextTranchPremiumAmount(0).should.eventually.eq(3)
           await policy.tranchPaymentsAllMade(0).should.eventually.eq(false)
         })
@@ -768,13 +768,13 @@ contract('Policy', accounts => {
           await etherToken.approve(policy.address, 100)
           await policy.payTranchPremium(0).should.be.fulfilled
 
-          await policy.tranchPremiumsAreUptoDate(0).should.eventually.eq(false)
+          await policy.getNumberOfTranchPaymentsMissed(0).should.eventually.eq(1)
           await policy.getNextTranchPremiumAmount(0).should.eventually.eq(3)
           await policy.tranchPaymentsAllMade(0).should.eventually.eq(false)
 
           await policy.payTranchPremium(0).should.be.fulfilled
 
-          await policy.tranchPremiumsAreUptoDate(0).should.eventually.eq(true)
+          await policy.getNumberOfTranchPaymentsMissed(0).should.eventually.eq(0)
           await policy.getNextTranchPremiumAmount(0).should.eventually.eq(4)
           await policy.tranchPaymentsAllMade(0).should.eventually.eq(false)
         })
@@ -798,7 +798,7 @@ contract('Policy', accounts => {
           await policy.payTranchPremium(0).should.be.fulfilled // 4
           await policy.payTranchPremium(0).should.be.fulfilled // 5
 
-          await policy.tranchPremiumsAreUptoDate(0).should.eventually.eq(true)
+          await policy.getNumberOfTranchPaymentsMissed(0).should.eventually.eq(0)
           await policy.getNextTranchPremiumAmount(0).should.eventually.eq(0)
           await policy.tranchPaymentsAllMade(0).should.eventually.eq(true)
         })
@@ -830,7 +830,7 @@ contract('Policy', accounts => {
         await policy.payTranchPremium(0).should.be.fulfilled // 0
         await policy.payTranchPremium(0).should.be.fulfilled // 5
 
-        await policy.tranchPremiumsAreUptoDate(0).should.eventually.eq(true)
+        await policy.getNumberOfTranchPaymentsMissed(0).should.eventually.eq(0)
         await policy.getNextTranchPremiumAmount(0).should.eventually.eq(0)
         await policy.tranchPaymentsAllMade(0).should.eventually.eq(true)
       })
@@ -850,7 +850,7 @@ contract('Policy', accounts => {
         await policy.payTranchPremium(0).should.be.fulfilled // 0
         await policy.payTranchPremium(0).should.be.fulfilled // 5
 
-        await policy.tranchPremiumsAreUptoDate(0).should.eventually.eq(true)
+        await policy.getNumberOfTranchPaymentsMissed(0).should.eventually.eq(0)
         await policy.getNextTranchPremiumAmount(0).should.eventually.eq(0)
         await policy.tranchPaymentsAllMade(0).should.eventually.eq(true)
       })

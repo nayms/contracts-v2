@@ -49,11 +49,10 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
     _;
   }
 
-  modifier assertPendingState () {
-    require(dataUint256["state"] == STATE_PENDING, 'must be in pending state');
+  modifier assertPendingOrActiveState () {
+    require(dataUint256["state"] == STATE_PENDING || dataUint256["state"] == STATE_ACTIVE, 'must be in pending state');
     _;
   }
-
 
   /**
    * Constructor
@@ -140,7 +139,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
     return dataUint256[string(abi.encodePacked(_index, "state"))];
   }
 
-  function tranchPremiumsAreUptoDate (uint256 _index) public view returns (bool) {
+  function getNumberOfTranchPaymentsMissed (uint256 _index) public view returns (uint256) {
     uint256 expectedPaid = 0;
 
     // if inititation date has not yet passed
@@ -151,18 +150,31 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
         expectedPaid++;
 
         // add more
-        expectedPaid += (now - dataUint256["startDate"]) / dataUint256["premiumIntervalSeconds"];
+        uint256 diff;
+        uint256 startDate = dataUint256["startDate"];
+
+        if (now >= startDate) {
+          diff = now.sub(startDate).div(dataUint256["premiumIntervalSeconds"]);
+        }
+
+        expectedPaid = expectedPaid.add(diff);
       }
     }
 
     // cap to no .of available premiums
     uint256[] storage premiums = dataManyUint256[string(abi.encodePacked(_index, "premiums"))];
+
     if (expectedPaid > premiums.length) {
       expectedPaid = premiums.length;
     }
 
-    // now check
-    return (dataUint256[string(abi.encodePacked(_index, "premiumsPaid"))] >= expectedPaid);
+    uint256 premiumsPaid = dataUint256[string(abi.encodePacked(_index, "premiumsPaid"))];
+
+    if (expectedPaid >= premiumsPaid) {
+      return expectedPaid.sub(premiumsPaid);
+    } else {
+      return 0;
+    }
   }
 
   function tranchPaymentsAllMade (uint256 _index) public view returns (bool) {
@@ -227,7 +239,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
     IMarket market = IMarket(settings().getMatchingMarket());
 
     for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
-      require(tranchPremiumsAreUptoDate(i), 'tranch premiums are not up-to-date');
+      require(0 >= getNumberOfTranchPaymentsMissed(i), 'tranch premiums are not up-to-date');
 
       // tranch/token address
       address tranchAddress = dataAddress[string(abi.encodePacked(i, "address"))];
@@ -247,38 +259,32 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
 
     dataUint256["state"] = STATE_PENDING;
 
-    emit BeginSale(msg.sender);
+    emit BeginSale(address(this), msg.sender);
   }
 
 
-  function endSale()
+  function checkAndUpdateState()
     public
     assertCanApprovePolicy
-    assertPendingState
+    assertPendingOrActiveState
   {
     // solhint-disable-next-line security/no-block-members
     require(startDateHasPassed(), 'start date not yet passed');
 
-    bool atleastOneActiveTranch = false;
-
     for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
       uint256 state = dataUint256[string(abi.encodePacked(i, "state"))];
 
-      if (state == STATE_ACTIVE && tranchPremiumsAreUptoDate(i)) {
-        atleastOneActiveTranch = true;
-      } else {
+      if (state != STATE_ACTIVE || 0 < getNumberOfTranchPaymentsMissed(i)) {
         dataUint256[string(abi.encodePacked(i, "state"))] = STATE_CANCELLED;
       }
     }
 
-    if (atleastOneActiveTranch) {
+    if (dataUint256["state"] != STATE_ACTIVE) {
       dataUint256["state"] = STATE_ACTIVE;
-      emit PolicyActive(msg.sender);
-    } else {
-      dataUint256["state"] = STATE_CANCELLED;
-      emit PolicyCancelled(msg.sender);
+      emit PolicyActive(address(this), msg.sender);
     }
   }
+
 
   function calculateMaxNumOfPremiums() public view returns (uint256) {
     // first 2 payments + (endDate - startDate) / paymentInterval - 1

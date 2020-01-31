@@ -19,13 +19,13 @@ contract IPolicyImpl {
   function getNumTranches () public view returns (uint256);
   function getTranchToken (uint256 _index) public view returns (address);
   function getTranchState (uint256 _index) public view returns (uint256);
-  function tranchPremiumsAreUptoDate (uint256 _index) public view returns (bool);
+  function getNumberOfTranchPaymentsMissed (uint256 _index) public view returns (uint256);
   function tranchPaymentsAllMade (uint256 _index) public view returns (bool);
   function getNextTranchPremiumAmount (uint256 _index) public view returns (uint256);
   function payTranchPremium (uint256 _index) public;
 
   function beginSale () public;
-  function endSale () public;
+  function checkAndUpdateState () public;
 
   function initiationDateHasPassed () public view returns (bool);
   function startDateHasPassed () public view returns (bool);
@@ -39,7 +39,6 @@ contract IPolicyImpl {
     uint256 index
   );
 
-  event BeginSale(address indexed caller);
-  event PolicyActive(address indexed caller);
-  event PolicyCancelled(address indexed caller);
+  event BeginSale(address indexed policy, address indexed caller);
+  event PolicyActive(address indexed policy, address indexed caller);
 }

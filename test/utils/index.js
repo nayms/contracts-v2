@@ -90,7 +90,11 @@ export const parseEvents = (result, e) => {
 }
 
 export const extractEventArgs = (result, eventAbi) => {
-  const { args } = parseEvents(result, eventAbi).pop()
+  const { args } = parseEvents(result, eventAbi).pop() || {}
+
+  if (!args) {
+    return null
+  }
 
   for (let key in args) {
     if (isBN(args[key])) {

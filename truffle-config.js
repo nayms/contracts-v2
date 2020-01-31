@@ -1,11 +1,5 @@
-let mnemonic = 'notset'
-let infuraKey = 'notset'
-
-try {
-  ;({ mnemonic, infuraKey } = require('./.deployment.js'))
-} catch (err) {
-  // nothing to do
-}
+const mnemonic = process.env.MNEMONIC || 'notset'
+const infuraKey = process.env.INFURA_KEY || 'notset'
 
 const HDWalletProvider = require('truffle-hdwallet-provider')
 

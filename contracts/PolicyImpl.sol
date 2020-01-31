@@ -142,21 +142,16 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
   function getNumberOfTranchPaymentsMissed (uint256 _index) public view returns (uint256) {
     uint256 expectedPaid = 0;
 
-    // if inititation date has not yet passed
+    // if inititation date has passed
     if (initiationDateHasPassed()) {
       expectedPaid++;
 
+      // if start date has passed
       if (startDateHasPassed()) {
         expectedPaid++;
 
-        // add more
-        uint256 diff;
-        uint256 startDate = dataUint256["startDate"];
-
-        if (now >= startDate) {
-          diff = now.sub(startDate).div(dataUint256["premiumIntervalSeconds"]);
-        }
-
+        // calculate the extra payments that should have been made by now
+        uint256 diff = now.sub(dataUint256["startDate"]).div(dataUint256["premiumIntervalSeconds"]);
         expectedPaid = expectedPaid.add(diff);
       }
     }

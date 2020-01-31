@@ -34,6 +34,7 @@ contract('Policy flow', accounts => {
   let policyImpl
   let policyProxy
   let policy
+  let premiumIntervalSeconds
   let initiationDate
   let market
   let etherToken
@@ -80,13 +81,14 @@ contract('Policy flow', accounts => {
 
     // initiation time is 20 seconds from now
     initiationDate = currentBlockTime + 1000
+    premiumIntervalSeconds = 100
 
     const createPolicyTx = await createPolicy(entity, policyImpl.address, {
       initiationDate: initiationDate,
       startDate: initiationDate + 1000,
       maturationDate: initiationDate + 2000,
       unit: etherToken.address,
-      premiumIntervalSeconds: 5,
+      premiumIntervalSeconds,
     }, { from: entityManagerAddress })
     const policyAddress = extractEventArgs(createPolicyTx, events.NewPolicy).policy
 
@@ -495,7 +497,7 @@ contract('Policy flow', accounts => {
       await policy.getTranchState(1).should.eventually.eq(STATE_ACTIVE)
 
       // pass time: 2 x premiumIntervalSeconds
-      await web3EvmIncreaseTime(web3, 10)
+      await web3EvmIncreaseTime(web3, premiumIntervalSeconds * 2)
     })
 
     it('but not by an unauthorized person', async () => {

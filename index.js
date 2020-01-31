@@ -1,4 +1,7 @@
-const deployedAddresses = require('./deployedAddresses.json')
+let deployedAddresses
+try {
+  deployedAddresses = require('./deployedAddresses.json')
+} catch (_ignore) {}
 
 const rawContracts = require('./contracts.generated.js')
 
@@ -28,10 +31,9 @@ const extractEventsFromAbis = abis => abis.reduce((output, contract) => {
 }, {})
 
 module.exports = {
-  addresses: require('./deployedAddresses.json'),
+  addresses: deployedAddresses,
   contracts: coreContracts,
   rawContracts,
   events: extractEventsFromAbis(Object.values(coreContracts)),
   extractEventsFromAbis,
-  deployedAddresses,
 }

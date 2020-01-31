@@ -1,26 +1,26 @@
 {
   "ACL": {
     "4": {
-      "address": "0x7fEeF711dc9c9eFBC90Ddf872e3131435DA1F52B",
-      "transactionHash": "0xddbef5b51a908d9917626e5b75ba7a938210961c3831cd789df2ed4e1e2d3e4c"
+      "address": "0xc19A22de5053DE1932Ef8652ef3e8150a73950A3",
+      "transactionHash": "0x7066f13412cae9efebc4ff5ff576c5e5315d6384afa35d5d527f6c41495a4722"
     }
   },
   "EntityDeployer": {
     "4": {
-      "address": "0x27b26FB9Ca4943860F137d7FF40F2f01f384bEF8",
-      "transactionHash": "0xac88aeb69410d93d86836c729e7fbda18826990b0936e26e74ae66cfe44c8c55"
+      "address": "0x53ba659fAAA869c05556E111f6B6A179B3429273",
+      "transactionHash": "0x0ec3e23a7ad5e05eacbaebc4078c02cc6c99cadcf5d6f108ee44302e810a5d41"
     }
   },
   "Settings": {
     "4": {
-      "address": "0xeF8a1869F88e3f6eFFE8E7D3eFa59650557253f7",
-      "transactionHash": "0x91242e81640eabbe849f061836ef40c038127d43b45a47a5e11f5fe43407eac9"
+      "address": "0x01C24B51d53e967BD952f6E8EFB5Ebb11C618089",
+      "transactionHash": "0x54e671147788e1ff3cb00644b9714dc981a37667cad0b1ae71a0cffabdb3b455"
     }
   },
   "EtherToken": {
     "4": {
-      "address": "0xBb2f33E8823166658e58aF94F0f75e24113EC309",
-      "transactionHash": "0x11126c52ee7646295022cfd9a3c4dd5d6803244be178ce054e27b188cdfdbf4d"
+      "address": "0xD074A4818Dc6f561C172cb5966D83185dD59C069",
+      "transactionHash": "0x04fe3a1b1dfd38a00f849e9f9407f06968ea9eb1e230cb241a4b2fc3e0fca3df"
     }
   }
 }

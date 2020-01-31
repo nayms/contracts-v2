@@ -661,7 +661,7 @@ contract('Policy', accounts => {
       })
     })
 
-    describe('premiums', () => {
+    describe.only('premiums', () => {
       beforeEach(async () => {
         acl.assignRole(entityContext, accounts[0], ROLE_ENTITY_MANAGER)
       })
@@ -677,7 +677,7 @@ contract('Policy', accounts => {
           })
 
           await policy.getNextTranchPremiumAmount(0).should.eventually.eq(2)
-          await policy.tranchPremiumsAreUptoDate(0).should.eventually.eq(false)
+          await policy.tranchPremiumsAreUptoDate(0).should.eventually.eq(true)
           await policy.tranchPaymentsAllMade(0).should.eventually.eq(false)
         })
 
@@ -739,12 +739,16 @@ contract('Policy', accounts => {
           })
         })
 
-        it('it requires first 2 payments to have been made', async () => {
+        it('it requires first payment to have been made', async () => {
+          await policy.tranchPremiumsAreUptoDate(0).should.eventually.eq(false)
+          await policy.getNextTranchPremiumAmount(0).should.eventually.eq(2)
+          await policy.tranchPaymentsAllMade(0).should.eventually.eq(false)
+
           await etherToken.deposit({ value: 5 })
           await etherToken.approve(policy.address, 5)
           await policy.payTranchPremium(0).should.be.fulfilled
 
-          await policy.tranchPremiumsAreUptoDate(0).should.eventually.eq(false)
+          await policy.tranchPremiumsAreUptoDate(0).should.eventually.eq(true)
           await policy.getNextTranchPremiumAmount(0).should.eventually.eq(3)
           await policy.tranchPaymentsAllMade(0).should.eventually.eq(false)
         })
@@ -759,13 +763,19 @@ contract('Policy', accounts => {
           })
         })
 
-        it('it requires first 3 payments to have been made', async () => {
+        it('it requires first 2 payments to have been made', async () => {
           await etherToken.deposit({ value: 100 })
-          await etherToken.approve(policy.address, 5)
+          await etherToken.approve(policy.address, 100)
           await policy.payTranchPremium(0).should.be.fulfilled
 
           await policy.tranchPremiumsAreUptoDate(0).should.eventually.eq(false)
           await policy.getNextTranchPremiumAmount(0).should.eventually.eq(3)
+          await policy.tranchPaymentsAllMade(0).should.eventually.eq(false)
+
+          await policy.payTranchPremium(0).should.be.fulfilled
+
+          await policy.tranchPremiumsAreUptoDate(0).should.eventually.eq(true)
+          await policy.getNextTranchPremiumAmount(0).should.eventually.eq(4)
           await policy.tranchPaymentsAllMade(0).should.eventually.eq(false)
         })
       })

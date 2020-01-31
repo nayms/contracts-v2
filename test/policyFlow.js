@@ -97,8 +97,9 @@ contract('Policy flow', accounts => {
     // get market address
     market = await Market.new('0xFFFFFFFFFFFFFFFF')
 
-    // authorize market as operator for eth token
+    // authorize operators for eth token
     await etherToken.setAllowedTransferOperator(market.address, true)
+    await etherToken.setAllowedTransferOperator(policy.address, true)
 
     // save market to settings
     await settings.setMatchingMarket(market.address)
@@ -107,11 +108,13 @@ contract('Policy flow', accounts => {
     await createTranch(policy, {
       numShares: 100,
       pricePerShareAmount: 2,
+      premiums: [1, 2, 3],
     }, { from: entityManagerAddress })
 
     await createTranch(policy, {
       numShares: 50,
       pricePerShareAmount: 2,
+      premiums: [1, 2, 3],
     }, { from: entityManagerAddress })
 
     getTranchToken = async idx => {
@@ -148,52 +151,78 @@ contract('Policy flow', accounts => {
         await web3EvmIncreaseTime(web3, 1000)
       })
 
-      it('but not if this has already taken place before', async () => {
-        await policy.beginSale({ from: policyApproverAddress }).should.be.fulfilled
-        await policy.beginSale({ from: policyApproverAddress }).should.be.rejectedWith('must be in draft state')
-      })
-
-      it('but not if initial allocation is not to parent policy', async () => {
+      it('but not if tranch premiums have not been paid', async () => {
         await createTranch(policy, {
-          numShares: 100,
+          numShares: 50,
           pricePerShareAmount: 2,
-          initialBalanceHolder: accounts[3],
+          premiums: [1, 2, 3],
         }, { from: entityManagerAddress })
 
-        await policy.beginSale({ from: policyApproverAddress }).should.be.rejectedWith('initial holder must be policy contract')
+        await etherToken.deposit({ value: 100 })
+        await etherToken.approve(policy.address, 100)
+
+        // pay all tranches except the second one
+        await policy.payTranchPremium(0)
+        await policy.payTranchPremium(2)
+
+        await policy.beginSale({ from: policyApproverAddress }).should.be.rejectedWith('tranch premiums are not up-to-date')
       })
 
-      it('and then tranches get put on the market', async () => {
-        const tranchTokens = await Promise.all([ getTranchToken(0), getTranchToken(1) ])
-
-        await tranchTokens[0].balanceOf(market.address).should.eventually.eq(0)
-        await tranchTokens[1].balanceOf(market.address).should.eventually.eq(0)
-
-        await tranchTokens[0].balanceOf(policy.address).should.eventually.eq(100)
-        await tranchTokens[1].balanceOf(policy.address).should.eventually.eq(50)
-
-        const result = await policy.beginSale({ from: policyApproverAddress })
-
-        expect(extractEventArgs(result, events.BeginSale)).to.include({
-          caller: policyApproverAddress,
+      describe('once tranch premiums are up-to-date', () => {
+        beforeEach(async () => {
+          await etherToken.deposit({ value: 100 })
+          await etherToken.approve(policy.address, 100)
+          await policy.payTranchPremium(0)
+          await policy.payTranchPremium(1)
         })
 
-        await tranchTokens[0].balanceOf(market.address).should.eventually.eq(100)
-        await tranchTokens[1].balanceOf(market.address).should.eventually.eq(50)
+        it('but not if this has already taken place before', async () => {
+          await policy.beginSale({ from: policyApproverAddress }).should.be.fulfilled
+          await policy.beginSale({ from: policyApproverAddress }).should.be.rejectedWith('must be in draft state')
+        })
 
-        await tranchTokens[0].balanceOf(policy.address).should.eventually.eq(0)
-        await tranchTokens[1].balanceOf(policy.address).should.eventually.eq(0)
-      })
+        it('but not if initial allocation is not to parent policy', async () => {
+          await createTranch(policy, {
+            numShares: 100,
+            pricePerShareAmount: 2,
+            initialBalanceHolder: accounts[3],
+          }, { from: entityManagerAddress })
 
-      it('and then policy state gets updated', async () => {
-        await policy.beginSale({ from: policyApproverAddress })
-        await policy.getState().should.eventually.eq(STATE_PENDING)
-      })
+          await policy.beginSale({ from: policyApproverAddress }).should.be.rejectedWith('initial holder must be policy contract')
+        })
 
-      it('and then tranch states get updated', async () => {
-        await policy.beginSale({ from: policyApproverAddress })
-        await policy.getTranchState(0).should.eventually.eq(STATE_PENDING)
-        await policy.getTranchState(1).should.eventually.eq(STATE_PENDING)
+        it('and then tranches get put on the market', async () => {
+          const tranchTokens = await Promise.all([getTranchToken(0), getTranchToken(1)])
+
+          await tranchTokens[0].balanceOf(market.address).should.eventually.eq(0)
+          await tranchTokens[1].balanceOf(market.address).should.eventually.eq(0)
+
+          await tranchTokens[0].balanceOf(policy.address).should.eventually.eq(100)
+          await tranchTokens[1].balanceOf(policy.address).should.eventually.eq(50)
+
+          const result = await policy.beginSale({ from: policyApproverAddress })
+
+          expect(extractEventArgs(result, events.BeginSale)).to.include({
+            caller: policyApproverAddress,
+          })
+
+          await tranchTokens[0].balanceOf(market.address).should.eventually.eq(100)
+          await tranchTokens[1].balanceOf(market.address).should.eventually.eq(50)
+
+          await tranchTokens[0].balanceOf(policy.address).should.eventually.eq(0)
+          await tranchTokens[1].balanceOf(policy.address).should.eventually.eq(0)
+        })
+
+        it('and then policy state gets updated', async () => {
+          await policy.beginSale({ from: policyApproverAddress })
+          await policy.getState().should.eventually.eq(STATE_PENDING)
+        })
+
+        it('and then tranch states get updated', async () => {
+          await policy.beginSale({ from: policyApproverAddress })
+          await policy.getTranchState(0).should.eventually.eq(STATE_PENDING)
+          await policy.getTranchState(1).should.eventually.eq(STATE_PENDING)
+        })
       })
     })
   })
@@ -203,15 +232,24 @@ contract('Policy flow', accounts => {
 
     beforeEach(async () => {
       await web3EvmIncreaseTime(web3, 1000)
+
+      await etherToken.deposit({ value: 100 })
+      await etherToken.approve(policy.address, 100)
+      await policy.payTranchPremium(0)
+      await policy.payTranchPremium(1)
+
       await policy.beginSale({ from: policyApproverAddress })
-      await etherToken.deposit({ from: accounts[2], value: 25 })
+
       tranchToken = await getTranchToken(0)
+
+      // get some wrapped ETH for buyer account
+      await etherToken.deposit({ from: accounts[2], value: 25 })
     })
 
     it('another party can make an offer that does not match', async () => {
       // check initial balances
       await etherToken.balanceOf(accounts[2]).should.eventually.eq(25)
-      await etherToken.balanceOf(policy.address).should.eventually.eq(0)
+      await etherToken.balanceOf(policy.address).should.eventually.eq(2) // 2 tranch premiums already paid
       await etherToken.balanceOf(market.address).should.eventually.eq(0)
       await tranchToken.balanceOf(accounts[2]).should.eventually.eq(0)
       await tranchToken.balanceOf(policy.address).should.eventually.eq(0)
@@ -223,7 +261,7 @@ contract('Policy flow', accounts => {
 
       // check balances again
       await etherToken.balanceOf(accounts[2]).should.eventually.eq(15)
-      await etherToken.balanceOf(policy.address).should.eventually.eq(0)
+      await etherToken.balanceOf(policy.address).should.eventually.eq(2)
       await etherToken.balanceOf(market.address).should.eventually.eq(10)
       await tranchToken.balanceOf(accounts[2]).should.eventually.eq(0)
       await tranchToken.balanceOf(policy.address).should.eventually.eq(0)
@@ -233,7 +271,7 @@ contract('Policy flow', accounts => {
     it('another party can make an offer that does match, but tranch status is unchanged because still some left to sell', async () => {
       // check initial balances
       await etherToken.balanceOf(accounts[2]).should.eventually.eq(25)
-      await etherToken.balanceOf(policy.address).should.eventually.eq(0)
+      await etherToken.balanceOf(policy.address).should.eventually.eq(2) // 2 tranch premiums already paid
       await etherToken.balanceOf(market.address).should.eventually.eq(0)
       await tranchToken.balanceOf(accounts[2]).should.eventually.eq(0)
       await tranchToken.balanceOf(policy.address).should.eventually.eq(0)
@@ -245,7 +283,7 @@ contract('Policy flow', accounts => {
 
       // check balances again
       await etherToken.balanceOf(accounts[2]).should.eventually.eq(15)
-      await etherToken.balanceOf(policy.address).should.eventually.eq(10)
+      await etherToken.balanceOf(policy.address).should.eventually.eq(12)
       await etherToken.balanceOf(market.address).should.eventually.eq(0)
       await tranchToken.balanceOf(accounts[2]).should.eventually.eq(5)
       await tranchToken.balanceOf(policy.address).should.eventually.eq(0)
@@ -255,7 +293,7 @@ contract('Policy flow', accounts => {
       await policy.getTranchState(0).should.eventually.eq(STATE_PENDING)
     })
 
-    it('new token owners cannot then trade their tokens whilst tranch is still selling', async () => {
+    it('new token owners cannot trade their tokens whilst tranch is still selling', async () => {
       // get tranch tokens
       await etherToken.approve(market.address, 10, { from: accounts[2] })
       await market.offer(10, etherToken.address, 5, tranchToken.address, 0, true, { from: accounts[2] })
@@ -265,7 +303,7 @@ contract('Policy flow', accounts => {
       await market.offer(1, tranchToken.address, 1, etherToken.address, 0, true, { from: accounts[2] }).should.be.rejectedWith('can only trade when policy is active')
     })
 
-    it('if a tranch fully sells out then its status is set to active and its unit balance gets updated', async () => {
+    it('if a tranch fully sells out then its status is set to active', async () => {
       // make the offer on the market
       const tranchToken = await getTranchToken(0)
 
@@ -288,17 +326,29 @@ contract('Policy flow', accounts => {
       await policy.endSale({ from: policyApproverAddress }).should.be.rejectedWith('must be in pending state');
     })
 
-    it('but not if start date has already passed', async () => {
+    it('but only if start date has passed', async () => {
       await web3EvmIncreaseTime(web3, 1000)
+
+      await etherToken.deposit({ value: 100 })
+      await etherToken.approve(policy.address, 100)
+      await policy.payTranchPremium(0)
+      await policy.payTranchPremium(1)
       await policy.beginSale({ from: policyApproverAddress })
-      await web3EvmIncreaseTime(web3, 1000)
-      await policy.endSale({ from: policyApproverAddress }).should.be.rejectedWith('start date already passed');
+
+      await policy.endSale({ from: policyApproverAddress }).should.be.rejectedWith('start date not yet passed');
     })
 
     describe('and when this happens', () => {
       beforeEach(async () => {
         await web3EvmIncreaseTime(web3, 1000)
+
+        await etherToken.deposit({ value: 100 })
+        await etherToken.approve(policy.address, 100)
+        await policy.payTranchPremium(0)
+        await policy.payTranchPremium(1)
         await policy.beginSale({ from: policyApproverAddress })
+
+        await web3EvmIncreaseTime(web3, 1000)
       })
 
       it('if none of the tranches are active then the policy gets cancelled', async () => {
@@ -309,14 +359,35 @@ contract('Policy flow', accounts => {
         await policy.getTranchState(1).should.eventually.eq(STATE_CANCELLED)
       })
 
-      it('if atleast one of the tranches is active then the policy is active, but other tranches are cancelled', async () => {
+      it('if atleast one of the tranches has sold out but its premiums are not up-to-date then the policy is still cancelled', async () => {
         // make the offer on the market
         const tranchToken = await getTranchToken(0)
 
         // buy the whole tranch
-        await etherToken.deposit({ from: accounts[2], value: 200 })
+        await etherToken.deposit({ from: accounts[2], value: 1000 })
         await etherToken.approve(market.address, 200, { from: accounts[2] })
         await market.offer(200, etherToken.address, 100, tranchToken.address, 0, true, { from: accounts[2] })
+
+        // end sale
+        await policy.endSale({ from: policyApproverAddress })
+
+        // now check
+        await policy.getState().should.eventually.eq(STATE_CANCELLED)
+        await policy.getTranchState(0).should.eventually.eq(STATE_CANCELLED)
+        await policy.getTranchState(1).should.eventually.eq(STATE_CANCELLED)
+      })
+
+      it('if atleast one of the tranches has sold out and its premiums are up-to-date then the policy is active but other tranches are cancelled', async () => {
+        // make the offer on the market
+        const tranchToken = await getTranchToken(0)
+
+        // buy the whole tranch
+        await etherToken.deposit({ from: accounts[2], value: 1000 })
+        await etherToken.approve(market.address, 200, { from: accounts[2] })
+        await market.offer(200, etherToken.address, 100, tranchToken.address, 0, true, { from: accounts[2] })
+        // pay its premiums
+        await etherToken.approve(policy.address, 100, { from: accounts[2] })
+        await policy.payTranchPremium(0, { from: accounts[2] })
 
         // end sale
         await policy.endSale({ from: policyApproverAddress })
@@ -332,9 +403,11 @@ contract('Policy flow', accounts => {
         const tranchToken = await getTranchToken(0)
 
         // buy the whole tranch
-        await etherToken.deposit({ from: accounts[2], value: 200 })
+        await etherToken.deposit({ from: accounts[2], value: 1000 })
         await etherToken.approve(market.address, 200, { from: accounts[2] })
         await market.offer(200, etherToken.address, 100, tranchToken.address, 0, true, { from: accounts[2] })
+        await etherToken.approve(policy.address, 100, { from: accounts[2] })
+        await policy.payTranchPremium(0, { from: accounts[2] })
 
         // end sale
         await policy.endSale({ from: policyApproverAddress })

@@ -112,7 +112,7 @@ export const createTranch = (policy, attrs, ...callAttrs) => {
   const {
     numShares = 10,
     pricePerShareAmount = 1,
-    premiums = [1, 1, 1],
+    premiums = [],
     initialBalanceHolder = ADDRESS_ZERO,
   } = attrs
 

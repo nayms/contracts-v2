@@ -141,13 +141,15 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
   }
 
   function tranchPremiumsAreUptoDate (uint256 _index) public view returns (bool) {
-    uint256 expectedPaid = 1;
+    uint256 expectedPaid = 0;
 
     // if inititation date has not yet passed
     if (initiationDateHasPassed()) {
       expectedPaid++;
 
       if (startDateHasPassed()) {
+        expectedPaid++;
+
         // add more
         expectedPaid += (now - dataUint256["startDate"]) / dataUint256["premiumIntervalSeconds"];
       }
@@ -225,6 +227,8 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
     IMarket market = IMarket(settings().getMatchingMarket());
 
     for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
+      require(tranchPremiumsAreUptoDate(i), 'tranch premiums are not up-to-date');
+
       // tranch/token address
       address tranchAddress = dataAddress[string(abi.encodePacked(i, "address"))];
       // initial token holder must be contract address
@@ -253,14 +257,14 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
     assertPendingState
   {
     // solhint-disable-next-line security/no-block-members
-    require(!startDateHasPassed(), 'start date already passed');
+    require(startDateHasPassed(), 'start date not yet passed');
 
     bool atleastOneActiveTranch = false;
 
     for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
       uint256 state = dataUint256[string(abi.encodePacked(i, "state"))];
 
-      if (state == STATE_ACTIVE) {
+      if (state == STATE_ACTIVE && tranchPremiumsAreUptoDate(i)) {
         atleastOneActiveTranch = true;
       } else {
         dataUint256[string(abi.encodePacked(i, "state"))] = STATE_CANCELLED;

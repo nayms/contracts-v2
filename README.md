@@ -88,6 +88,12 @@ First, run the dev network in a separate terminal:
 yarn devnet
 ```
 
+Compile the contracts:
+
+```
+yarn compile
+```
+
 Now deploy the contracts to it:
 
 ```
@@ -98,6 +104,14 @@ Now you can run the tests:
 
 ```
 yarn test
+```
+
+### Deployments
+
+Assuming you've followed the previous compilation step, deploy to rinkeby using:
+
+```
+MNEMONIC="..." INFURA_KEY="..." yarn deploy:rinkeby
 ```
 
 ## Notes

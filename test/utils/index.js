@@ -90,7 +90,11 @@ export const parseEvents = (result, e) => {
 }
 
 export const extractEventArgs = (result, eventAbi) => {
-  const { args } = parseEvents(result, eventAbi).pop()
+  const { args } = parseEvents(result, eventAbi).pop() || {}
+
+  if (!args) {
+    return null
+  }
 
   for (let key in args) {
     if (isBN(args[key])) {
@@ -147,12 +151,24 @@ export const createPolicy = (entity, policyImpl, attrs, ...callAttrs) => {
   )
 }
 
-export const web3EvmIncreaseTime = (web3, ts) => {
-  return new Promise((resolve, reject) => {
+export const web3EvmIncreaseTime = async (web3, ts) => {
+  await new Promise((resolve, reject) => {
     return web3.currentProvider.send({
       jsonrpc: '2.0',
       method: 'evm_increaseTime',
       params: [ts],
+      id: new Date().getTime()
+    }, (err, result) => {
+      if (err) { return reject(err) }
+      return resolve(result)
+    })
+  })
+
+  await new Promise((resolve, reject) => {
+    return web3.currentProvider.send({
+      jsonrpc: '2.0',
+      method: 'evm_mine',
+      params: [],
       id: new Date().getTime()
     }, (err, result) => {
       if (err) { return reject(err) }

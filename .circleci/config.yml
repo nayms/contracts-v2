@@ -57,6 +57,18 @@ jobs:
       - persist_to_workspace:
           root: ~/repo
           paths: .
+  deploy_contracts:
+    executor: smart_contracts
+    working_directory: ~/repo
+    steps:
+      - attach_workspace:
+          at: ~/repo
+      - run:
+          name: Deploy to Rinkeby
+          command: yarn deploy:rinkeby
+      - persist_to_workspace:
+          root: ~/repo
+          paths: .
   publish_to_npm:
     executor: smart_contracts
     working_directory: ~/repo
@@ -78,9 +90,16 @@ workflows:
   ci:
     jobs:
       - build_contracts
-      - publish_to_npm:
+      - deploy_contracts:
           requires:
             - build_contracts
+          filters:
+            branches:
+              only:
+                - master
+      - publish_to_npm:
+          requires:
+            - deploy_contracts
           filters:
             branches:
               only:

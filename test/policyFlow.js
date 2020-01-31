@@ -17,6 +17,7 @@ import {
 } from '../migrations/utils/acl'
 
 import { ensureSettingsIsDeployed } from '../migrations/utils/settings'
+import { ensureMarketIsDeployed } from '../migrations/utils/market'
 
 const EntityDeployer = artifacts.require('./EntityDeployer')
 const IEntityImpl = artifacts.require('./base/IEntityImpl')
@@ -26,7 +27,6 @@ const IPolicyImpl = artifacts.require("./base/IPolicyImpl")
 const PolicyImpl = artifacts.require("./PolicyImpl")
 const Policy = artifacts.require("./Policy")
 const IERC20 = artifacts.require("./base/IERC20")
-const Market = artifacts.require("./MatchingMarket")
 
 contract('Policy flow', accounts => {
   let acl
@@ -34,7 +34,8 @@ contract('Policy flow', accounts => {
   let policyImpl
   let policyProxy
   let policy
-  let initiationTime
+  let premiumIntervalSeconds
+  let initiationDate
   let market
   let etherToken
   let entityManagerAddress
@@ -79,14 +80,15 @@ contract('Policy flow', accounts => {
     const currentBlockTime = parseInt((await settings.getTime()).toString(10))
 
     // initiation time is 20 seconds from now
-    initiationTime = currentBlockTime + 1000
+    initiationDate = currentBlockTime + 1000
+    premiumIntervalSeconds = 100
 
     const createPolicyTx = await createPolicy(entity, policyImpl.address, {
-      initiationDate: initiationTime,
-      startDate: initiationTime + 1000,
-      maturationDate: initiationTime + 2000,
+      initiationDate: initiationDate,
+      startDate: initiationDate + 1000,
+      maturationDate: initiationDate + 2000,
       unit: etherToken.address,
-      premiumIntervalSeconds: 5,
+      premiumIntervalSeconds,
     }, { from: entityManagerAddress })
     const policyAddress = extractEventArgs(createPolicyTx, events.NewPolicy).policy
 
@@ -95,26 +97,23 @@ contract('Policy flow', accounts => {
     const policyContext = await policyProxy.aclContext()
 
     // get market address
-    market = await Market.new('0xFFFFFFFFFFFFFFFF')
+    market = await ensureMarketIsDeployed({ artifacts }, settings.address)
 
     // authorize operators for eth token
     await etherToken.setAllowedTransferOperator(market.address, true)
     await etherToken.setAllowedTransferOperator(policy.address, true)
 
-    // save market to settings
-    await settings.setMatchingMarket(market.address)
-
     // setup two tranches
     await createTranch(policy, {
       numShares: 100,
       pricePerShareAmount: 2,
-      premiums: [1, 2, 3],
+      premiums: [1, 2, 3, 4, 5, 6, 7],
     }, { from: entityManagerAddress })
 
     await createTranch(policy, {
       numShares: 50,
       pricePerShareAmount: 2,
-      premiums: [1, 2, 3],
+      premiums: [1, 2, 3, 4, 5, 6, 7],
     }, { from: entityManagerAddress })
 
     getTranchToken = async idx => {
@@ -203,6 +202,7 @@ contract('Policy flow', accounts => {
           const result = await policy.beginSale({ from: policyApproverAddress })
 
           expect(extractEventArgs(result, events.BeginSale)).to.include({
+            policy: policy.address,
             caller: policyApproverAddress,
           })
 
@@ -317,13 +317,13 @@ contract('Policy flow', accounts => {
     })
   })
 
-  describe('policy sale can be ended', async () => {
+  describe('sale can be ended', async () => {
     it('but not by an unauthorized person', async () => {
-      await policy.endSale().should.be.rejectedWith('must be policy approver')
+      await policy.checkAndUpdateState().should.be.rejectedWith('must be policy approver')
     })
 
     it('but not if sale wasn\'t started', async () => {
-      await policy.endSale({ from: policyApproverAddress }).should.be.rejectedWith('must be in pending state');
+      await policy.checkAndUpdateState({ from: policyApproverAddress }).should.be.rejectedWith('must be in pending state');
     })
 
     it('but only if start date has passed', async () => {
@@ -335,10 +335,10 @@ contract('Policy flow', accounts => {
       await policy.payTranchPremium(1)
       await policy.beginSale({ from: policyApproverAddress })
 
-      await policy.endSale({ from: policyApproverAddress }).should.be.rejectedWith('start date not yet passed');
+      await policy.checkAndUpdateState({ from: policyApproverAddress }).should.be.rejectedWith('start date not yet passed');
     })
 
-    describe('and when this happens', () => {
+    describe('once start date has passed', () => {
       beforeEach(async () => {
         await web3EvmIncreaseTime(web3, 1000)
 
@@ -351,66 +351,102 @@ contract('Policy flow', accounts => {
         await web3EvmIncreaseTime(web3, 1000)
       })
 
-      it('if none of the tranches are active then the policy gets cancelled', async () => {
-        await policy.endSale({ from: policyApproverAddress })
+      describe('if none of the tranches are active then the policy still gets made active', () => {
+        it('and updates internal state', async () => {
+          await policy.checkAndUpdateState({ from: policyApproverAddress })
 
-        await policy.getState().should.eventually.eq(STATE_CANCELLED)
-        await policy.getTranchState(0).should.eventually.eq(STATE_CANCELLED)
-        await policy.getTranchState(1).should.eventually.eq(STATE_CANCELLED)
+          await policy.getState().should.eventually.eq(STATE_ACTIVE)
+          await policy.getTranchState(0).should.eventually.eq(STATE_CANCELLED)
+          await policy.getTranchState(1).should.eventually.eq(STATE_CANCELLED)
+        })
+
+        it('and it emits an event', async () => {
+          const result = await policy.checkAndUpdateState({ from: policyApproverAddress })
+
+          expect(extractEventArgs(result, events.PolicyActive)).to.include({
+            policy: policy.address,
+          })
+        })
       })
 
-      it('if atleast one of the tranches has sold out but its premiums are not up-to-date then the policy is still cancelled', async () => {
+      describe('one of the tranches can be active but its premiums might not be up-to-date, in which case it gets cancelled', () => {
+        beforeEach(async () => {
+          // make the offer on the market
+          const tranchToken = await getTranchToken(0)
+
+          // buy the whole tranch to make it active
+          await etherToken.deposit({ from: accounts[2], value: 1000 })
+          await etherToken.approve(market.address, 200, { from: accounts[2] })
+          await market.offer(200, etherToken.address, 100, tranchToken.address, 0, true, { from: accounts[2] })
+        })
+
+        it('and updates internal state', async () => {
+          // end sale
+          await policy.checkAndUpdateState({ from: policyApproverAddress })
+
+          // now check
+          await policy.getState().should.eventually.eq(STATE_ACTIVE)
+          await policy.getTranchState(0).should.eventually.eq(STATE_CANCELLED)
+          await policy.getTranchState(1).should.eventually.eq(STATE_CANCELLED)
+        })
+
+        it('and it emits an event', async () => {
+          // end sale
+          const result = await policy.checkAndUpdateState({ from: policyApproverAddress })
+
+          expect(extractEventArgs(result, events.PolicyActive)).to.include({
+            policy: policy.address,
+          })
+        })
+      })
+
+      describe('atleast one of the tranches can be active and its premiums can be up-to-date, in which case it stays active', () => {
+        beforeEach(async () => {
+          // make the offer on the market
+          const tranchToken = await getTranchToken(0)
+
+          // buy the whole tranch to make it active
+          await etherToken.deposit({ from: accounts[2], value: 1000 })
+          await etherToken.approve(market.address, 200, { from: accounts[2] })
+          await market.offer(200, etherToken.address, 100, tranchToken.address, 0, true, { from: accounts[2] })
+          // pay its premiums
+          await etherToken.approve(policy.address, 100, { from: accounts[2] })
+          await policy.payTranchPremium(0, { from: accounts[2] })
+        })
+
+        it('updates internal state', async () => {
+          // end sale
+          await policy.checkAndUpdateState({ from: policyApproverAddress })
+
+          // now check
+          await policy.getState().should.eventually.eq(STATE_ACTIVE)
+          await policy.getTranchState(0).should.eventually.eq(STATE_ACTIVE)
+          await policy.getTranchState(1).should.eventually.eq(STATE_CANCELLED)
+        })
+
+        it('emits an event', async () => {
+          // end sale
+          const result = await policy.checkAndUpdateState({ from: policyApproverAddress })
+
+          expect(extractEventArgs(result, events.PolicyActive)).to.include({
+            policy: policy.address,
+          })
+        })
+      })
+
+      it('once policy becomes active, then token owners can start trading', async () => {
         // make the offer on the market
         const tranchToken = await getTranchToken(0)
 
-        // buy the whole tranch
+        // buy the whole tranch to make it active
         await etherToken.deposit({ from: accounts[2], value: 1000 })
         await etherToken.approve(market.address, 200, { from: accounts[2] })
         await market.offer(200, etherToken.address, 100, tranchToken.address, 0, true, { from: accounts[2] })
-
-        // end sale
-        await policy.endSale({ from: policyApproverAddress })
-
-        // now check
-        await policy.getState().should.eventually.eq(STATE_CANCELLED)
-        await policy.getTranchState(0).should.eventually.eq(STATE_CANCELLED)
-        await policy.getTranchState(1).should.eventually.eq(STATE_CANCELLED)
-      })
-
-      it('if atleast one of the tranches has sold out and its premiums are up-to-date then the policy is active but other tranches are cancelled', async () => {
-        // make the offer on the market
-        const tranchToken = await getTranchToken(0)
-
-        // buy the whole tranch
-        await etherToken.deposit({ from: accounts[2], value: 1000 })
-        await etherToken.approve(market.address, 200, { from: accounts[2] })
-        await market.offer(200, etherToken.address, 100, tranchToken.address, 0, true, { from: accounts[2] })
-        // pay its premiums
         await etherToken.approve(policy.address, 100, { from: accounts[2] })
         await policy.payTranchPremium(0, { from: accounts[2] })
 
         // end sale
-        await policy.endSale({ from: policyApproverAddress })
-
-        // now check
-        await policy.getState().should.eventually.eq(STATE_ACTIVE)
-        await policy.getTranchState(0).should.eventually.eq(STATE_ACTIVE)
-        await policy.getTranchState(1).should.eventually.eq(STATE_CANCELLED)
-      })
-
-      it('if policy becomes active, then token owners can start trading', async () => {
-        // make the offer on the market
-        const tranchToken = await getTranchToken(0)
-
-        // buy the whole tranch
-        await etherToken.deposit({ from: accounts[2], value: 1000 })
-        await etherToken.approve(market.address, 200, { from: accounts[2] })
-        await market.offer(200, etherToken.address, 100, tranchToken.address, 0, true, { from: accounts[2] })
-        await etherToken.approve(policy.address, 100, { from: accounts[2] })
-        await policy.payTranchPremium(0, { from: accounts[2] })
-
-        // end sale
-        await policy.endSale({ from: policyApproverAddress })
+        await policy.checkAndUpdateState({ from: policyApproverAddress })
 
         // try trading
         await market.offer(1, tranchToken.address, 1, etherToken.address, 0, true, { from: accounts[2] }).should.be.fulfilled
@@ -418,6 +454,86 @@ contract('Policy flow', accounts => {
         // check balance
         await tranchToken.balanceOf(accounts[2]).should.eventually.eq(99)
       })
+    })
+  })
+
+  describe('if policy has been active for a while state can be checked again', async () => {
+    beforeEach(async () => {
+      // pass the inititation date
+      await web3EvmIncreaseTime(web3, 1000)
+
+      // pay first premiums
+      await etherToken.deposit({ value: 100 })
+      await etherToken.approve(policy.address, 100)
+      await policy.payTranchPremium(0)
+      await policy.payTranchPremium(1)
+
+      // start the sale
+      await policy.beginSale({ from: policyApproverAddress })
+
+      // sell-out the tranches
+      await etherToken.deposit({ from: accounts[2], value: 2000 })
+      await etherToken.approve(market.address, 2000, { from: accounts[2] })
+
+      const tranch0Address = await policy.getTranchToken(0)
+      await market.offer(200, etherToken.address, 100, tranch0Address, 0, true, { from: accounts[2] })
+
+      const tranch1Address = await policy.getTranchToken(1)
+      await market.offer(100, etherToken.address, 50, tranch1Address, 0, true, { from: accounts[2] })
+
+      // pass the start date
+      await web3EvmIncreaseTime(web3, 1000)
+
+      // pay 2nd premiums
+      await policy.payTranchPremium(0)
+      await policy.payTranchPremium(1)
+
+      // end the sale
+      await policy.checkAndUpdateState({ from: policyApproverAddress })
+
+      // sanity check
+      await policy.getState().should.eventually.eq(STATE_ACTIVE)
+      await policy.getTranchState(0).should.eventually.eq(STATE_ACTIVE)
+      await policy.getTranchState(1).should.eventually.eq(STATE_ACTIVE)
+
+      // pass time: 2 x premiumIntervalSeconds
+      await web3EvmIncreaseTime(web3, premiumIntervalSeconds * 2)
+    })
+
+    it('but not by an unauthorized person', async () => {
+      await policy.checkAndUpdateState().should.be.rejectedWith('must be policy approver')
+    })
+
+    it('and it remains active if all premium payments are up to date', async () => {
+      await policy.payTranchPremium(0)
+      await policy.payTranchPremium(0)
+
+      await policy.payTranchPremium(1)
+      await policy.payTranchPremium(1)
+
+      const result = await policy.checkAndUpdateState({ from: policyApproverAddress })
+
+      await policy.getState().should.eventually.eq(STATE_ACTIVE)
+      await policy.getTranchState(0).should.eventually.eq(STATE_ACTIVE)
+      await policy.getTranchState(1).should.eventually.eq(STATE_ACTIVE)
+
+      expect(extractEventArgs(result, events.PolicyActive)).to.eq(null)
+    })
+
+    it('and it still stays active if any tranch premium payments have been missed, though that tranch gets cancelled', async () => {
+      await policy.payTranchPremium(0)
+      await policy.payTranchPremium(0)
+
+      await policy.payTranchPremium(1)
+      // await policy.payTranchPremium(1) - deliberately miss this payment
+
+      const result = await policy.checkAndUpdateState({ from: policyApproverAddress })
+
+      await policy.getState().should.eventually.eq(STATE_ACTIVE)
+      await policy.getTranchState(0).should.eventually.eq(STATE_ACTIVE)
+      await policy.getTranchState(1).should.eventually.eq(STATE_CANCELLED)
+
+      expect(extractEventArgs(result, events.PolicyActive)).to.eq(null)
     })
   })
 })

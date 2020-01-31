@@ -11,7 +11,8 @@ coverageEnv
 coverage.json
 tmp
 log/*.log
-.deployment.js
 ganache.log
 .0x*
 scTopics
+contracts.generated.js
+deployedAddresses.json

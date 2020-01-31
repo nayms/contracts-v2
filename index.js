@@ -1,32 +1,39 @@
-const contractsForEvents = {
-  Proxy: require('./build/contracts/Proxy.json'),
-  IEtherToken: require('./build/contracts/IEtherToken.json'),
-  IACL: require('./build/contracts/IACL.json'),
-  IEntityDeployer: require('./build/contracts/IEntityDeployer.json'),
-  IEntityImpl: require('./build/contracts/IEntityImpl.json'),
-  IPolicyImpl: require('./build/contracts/IPolicyImpl.json'),
-  IERC20: require('./build/contracts/IERC20.json'),
-  IERC777: require('./build/contracts/IERC777.json'),
-}
+let deployedAddresses
+try {
+  deployedAddresses = require('./deployedAddresses.json')
+} catch (_ignore) {}
 
-const contractsThatAreEntryPoints = {
-  ACL: require('./build/contracts/ACL.json'),
-  EntityDeployer: require('./build/contracts/EntityDeployer.json'),
-}
+const rawContracts = require('./contracts.generated.js')
+
+const coreContracts = [
+  { name: 'Settings', actual: 'ISettingsImpl' },
+  { name: 'ACL', actual: 'IACL' },
+  { name: 'Policy', actual: 'IPolicyImpl' },
+  { name: 'EntityDeployer', actual: 'IEntityDeployer' },
+  { name: 'Entity', actual: 'IEntityImpl' },
+  { name: 'MatchingMarket', actual: 'IMarket' },
+  { name: 'EtherToken', actual: 'IEtherToken' },
+  { name: 'Proxy', actual: 'Proxy' },
+  { name: 'ERC20', actual: 'IERC20' },
+  { name: 'ERC777', actual: 'IERC777' },
+].reduce((m, n) => {
+  m[n.name] = rawContracts[n.actual]
+  return m
+}, {})
 
 const extractEventsFromAbis = abis => abis.reduce((output, contract) => {
   contract.abi.filter(({ type, name }) => type === 'event').forEach(e => {
-    if (output[e.name]) {
-      throw new Error(`Already got an event named ${e.name}`)
+    if (!output[e.name]) {
+      output[e.name] = e
     }
-    output[e.name] = e
   })
   return output
 }, {})
 
 module.exports = {
-  addresses: require('./deployedAddresses.json'),
-  contracts: Object.assign({}, contractsForEvents, contractsThatAreEntryPoints),
-  events: extractEventsFromAbis(Object.values(contractsForEvents)),
+  addresses: deployedAddresses,
+  contracts: coreContracts,
+  rawContracts,
+  events: extractEventsFromAbis(Object.values(coreContracts)),
   extractEventsFromAbis,
 }

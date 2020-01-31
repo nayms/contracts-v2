@@ -90,7 +90,7 @@ workflows:
   ci:
     jobs:
       - build_contracts
-      - deploy_contracts
+      - deploy_contracts:
           requires:
             - build_contracts
           filters:

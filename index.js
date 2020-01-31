@@ -8,7 +8,7 @@ const coreContracts = [
   { name: 'Policy', actual: 'IPolicyImpl' },
   { name: 'EntityDeployer', actual: 'IEntityDeployer' },
   { name: 'Entity', actual: 'IEntityImpl' },
-  { name: 'Market', actual: 'IMarket' },
+  { name: 'MatchingMarket', actual: 'IMarket' },
   { name: 'EtherToken', actual: 'IEtherToken' },
   { name: 'Proxy', actual: 'Proxy' },
   { name: 'ERC20', actual: 'IERC20' },

@@ -7,10 +7,13 @@
     "access": "public"
   },
   "files": [
-    "constants.js",
+    "index.js",
+    "contracts.generated.js",
     "build/**",
     "contracts/**",
-    "deployedAddresses.json"
+    "deployedAddresses.json",
+    "README.md",
+    "LICENSE.md"
   ],
   "scripts": {
     "devnet": "ganache-cli -a 10 -m 'funny door sample enrich female wedding stereo crane setup shop dwarf dismiss'",
@@ -23,9 +26,8 @@
     "profile": "MODE=profile yarn test && istanbul report lcov",
     "copy-maker-otc-artifacts": "./scripts/copyMakerOtcArtifacts.js",
     "generate-index": "./scripts/generateIndex.js",
-    "compile": "yarn truffle compile --network test && yarn copy-maker-otc-artifacts && yarn generate-index",
-    "deploy:mainnet": "yarn truffle networks --clean && yarn truffle migrate --network mainnet && scripts/extractDeployedAddresses.js",
-    "deploy:rinkeby": "yarn truffle networks --clean && yarn truffle migrate --network rinkeby && scripts/extractDeployedAddresses.js",
+    "compile": "rm -rf build && yarn truffle compile --network test && yarn copy-maker-otc-artifacts && yarn generate-index",
+    "deploy:rinkeby": "yarn truffle networks --clean && yarn truffle migrate --network rinkeby && yarn extract-deployed-addresses",
     "deploy:local": "yarn truffle migrate --network test",
     "extract-deployed-addresses": "./scripts/extractDeployedAddresses.js",
     "setup": "[[ -f .deployment.js ]] || cp .deployment-sample.js .deployment.js",

@@ -17,6 +17,7 @@ import {
 } from '../migrations/utils/acl'
 
 import { ensureSettingsIsDeployed } from '../migrations/utils/settings'
+import { ensureMarketIsDeployed } from '../migrations/utils/market'
 
 const EntityDeployer = artifacts.require('./EntityDeployer')
 const IEntityImpl = artifacts.require('./base/IEntityImpl')
@@ -26,7 +27,6 @@ const IPolicyImpl = artifacts.require("./base/IPolicyImpl")
 const PolicyImpl = artifacts.require("./PolicyImpl")
 const Policy = artifacts.require("./Policy")
 const IERC20 = artifacts.require("./base/IERC20")
-const Market = artifacts.require("./MatchingMarket")
 
 contract('Policy flow', accounts => {
   let acl
@@ -95,14 +95,11 @@ contract('Policy flow', accounts => {
     const policyContext = await policyProxy.aclContext()
 
     // get market address
-    market = await Market.new('0xFFFFFFFFFFFFFFFF')
+    market = await ensureMarketIsDeployed({ artifacts }, settings.address)
 
     // authorize operators for eth token
     await etherToken.setAllowedTransferOperator(market.address, true)
     await etherToken.setAllowedTransferOperator(policy.address, true)
-
-    // save market to settings
-    await settings.setMatchingMarket(market.address)
 
     // setup two tranches
     await createTranch(policy, {
@@ -534,7 +531,7 @@ contract('Policy flow', accounts => {
       await policy.getTranchState(0).should.eventually.eq(STATE_ACTIVE)
       await policy.getTranchState(1).should.eventually.eq(STATE_CANCELLED)
 
-      expect(extractEventArgs(result, events.PolicyCancelled)).to.eq(null)
+      expect(extractEventArgs(result, events.PolicyActive)).to.eq(null)
     })
   })
 })

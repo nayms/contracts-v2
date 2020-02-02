@@ -10,59 +10,55 @@ Install the package:
 npm install @nayms/contracts
 ```
 
-Then, using [truffle-contract](https://github.com/trufflesuite/truffle/tree/develop/packages/truffle-contract) you can import and use the deployer:
+Then, using [truffle-contract](https://github.com/trufflesuite/truffle/tree/develop/packages/truffle-contract) you can use the contract already deployed to e.g. Rinkeby:
 
 ```js
-const promisify = require('es6-promisify')
-const TruffleContract = require('truffle-contract')
-const Web3 = require('web3')
-const { EntityDeployer } = require('@nayms/contracts')
+const ethers = require('ethers')
+const { parseLog } = require('ethereum-event-logs')
+const { contracts, addresses, events } = require('@nayms/contracts')
 
-async init = () => {
-  const web3 = new Web3(/* ... */)
+const mnemonic = '<mnemonic pass phrase>'
 
-  const contract = TruffleContract(EntityDeployer)
-  contract.setProvider(web3.currentProvider)
+const init = async () => {
+  const provider = new ethers.providers.InfuraProvider('rinkeby', '<infura token>')
 
-  const deployer = await contract.deployed()
+  const wallet = ethers.Wallet.fromMnemonic(mnemonic).connect(provider)
+
+  const deployer = new ethers.Contract(
+    // '4' is Rinkeby (see https://chainid.network/chains/)
+    addresses.EntityDeployer['4'].address,
+    contracts.EntityDeployer.abi,
+    wallet
+  )
 
   // deploy a new Entity
-  await deployer.deploy(/*...*/)
+  const tx = await deployer.deploy({
+    gasPrice: '0x3B9ACA00', // 1,000,000,000
+    gasLimit: '0x2DC6C0', // 1,500,000
+  })
 
-  const events = await promisify(deployer.contract.getPastEvents, deployer.contract)('NewEntity')
+  console.log(`Tx hash: ${tx.hash}`)
 
-  const { returnValues: { entity } } = events.pop()
+  const receipt = await provider.waitForTransaction(tx.hash)
+
+  const [ newEntityEvent ] = parseLog(receipt.logs, [ events.NewEntity ])
+  const { args: { entity } } = newEntityEvent
 
   console.log(`New entity deployed at: ${entity}`)
 }
+
+init().catch(err => {
+  console.error(err)
+  process.exit(-1)
+})
 ```
 
-Using [ethereum-events-logs](https://github.com/hiddentao/ethereum-event-logs) you can
-parse logs for events:
+To deploy and use the contracts on your local chain please clone this repository and run the following deployment commands:
 
-```js
-// import the parser
-const { parseLog } = require('ethereum-event-logs')
-const { events: { NewPolicy } } = require('@nayms/contracts')
-
-const receipt = /* execute tx on chain and wait for receipt */
-
-// we can parse all events in the contract by passing through the ABI:
-const events = parseLog(receipt.logs, [ NewPolicy ])
-
-console.log(events)
-/*
-  [
-    {
-      name: 'NewPolicy',
-      address: '0x...',
-      blockNumber: 123...,
-      blockHash: '0x...',
-      transactionHash: '0x...',
-      ...
-    },
-  ]
-*/
+```shell
+yarn compile
+yarn deploy:local
+# The addresses at which the contract are deployed will be output in the terminal.
 ```
 
 ## Development

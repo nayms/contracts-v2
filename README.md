@@ -2,7 +2,7 @@
 
 [Nayms](https://nayms.io) Smart contracts.
 
-## Usage
+## General usage
 
 Install the package:
 
@@ -10,7 +10,7 @@ Install the package:
 npm install @nayms/contracts
 ```
 
-Then, using [truffle-contract](https://github.com/trufflesuite/truffle/tree/develop/packages/truffle-contract) you can use the contract already deployed to e.g. Rinkeby:
+Then you can use the contract already deployed to e.g. Rinkeby:
 
 ```js
 const ethers = require('ethers')
@@ -60,6 +60,29 @@ yarn compile
 yarn deploy:local
 # The addresses at which the contract are deployed will be output in the terminal.
 ```
+
+## Package contents
+
+The package exposes the following properties:
+
+* `contracts` - the key contracts (see below)
+* `rawContracts` - ABIs of all Solidity contracts in the repo
+* `addresses` - on-chain addresses of contracts in `contracts`
+* `events` - ABIs for events to listen for
+* `extractEventsFromAbis()` - given an array of contract ABIs, this will extract the event ABIs within.
+
+The key contracts are:
+
+* `ACL (IACL.sol)` - Interface for our access control system. We have a single global ACL for our platform.
+* `EntityDeployer (IEntityDeployer.sol)` - Interface for the entity deployer. We have a single global deployer for our platform.
+* `Entity (IEntityImpl.sol)` - Interface for interacting with entities.
+* `ERC20 (IERC20.sol)` - Interface for interacting with ERC-20 contracts.
+* `ERC777 (IERC777.sol)` - Interface for interacting with ERC-777 contracts.
+* `EtherToken (IEtherToken.sol)` - Interface for interacting with wrapped ETH token contract. We have a single global instance for our platform.
+* `Market (IMarket.sol)` - Interface for interacting with [our MakerOTC matching market](https://github.com/nayms/maker-otc). We have a single global instance for our platform.
+* `Policy (IPolicyImpl.sol)` - Interface for interacting with policies.
+* `Proxy (Proxy.sol)` - Interface for interacting with all upgradeable contracts (policies, entities, etc).
+* `Settings (ISettingsImpl.sol)` - Interface for global settings. We have a single global settings instance for our platform.
 
 ## Development
 

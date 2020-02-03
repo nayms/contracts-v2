@@ -10,7 +10,7 @@ Install the package:
 npm install @nayms/contracts
 ```
 
-Then, using [truffle-contract](https://github.com/trufflesuite/truffle/tree/develop/packages/truffle-contract) you can use the contract already deployed to e.g. Rinkeby:
+Then you can use the contract already deployed to e.g. Rinkeby:
 
 ```js
 const ethers = require('ethers')

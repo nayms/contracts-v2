@@ -1,0 +1,174 @@
+{
+  "version": 1,
+  "id": "nayms-acdl",
+  "title": "Nayms ACL",
+  "description": "Manage the Nayms ACL.",
+  "aboutUrl": "https://github.com/nayms/contracts/blob/master/contracts/base/IACL.sol",
+  "panels": [
+    {
+      "id": "isAdmin",
+      "title": "Check if user is admin",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "ACL contract address",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "address",
+          "title": "Address",
+          "type": "address"
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "ACL",
+          "method": "isAdmin",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_addr": "@input[address]"
+          },
+          "saveResultAsInput": "isAdmin"
+        }
+      ],
+      "outputs": [
+        {
+          "title": "Is admin",
+          "type": "bool",
+          "value": "@input[isAdmin]"
+        }
+      ]
+    },
+    {
+      "id": "proposeAdmin",
+      "title": "Propose new admin",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "ACL contract address",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "address",
+          "title": "Address",
+          "type": "address"
+        }
+      ],
+      "execs": [
+        {
+          "type": "send",
+          "contract": "ACL",
+          "method": "proposeNewAdmin",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_addr": "@input[address]"
+          }
+        }
+      ]
+    },
+    {
+      "id": "cancelAdminProposal",
+      "title": "Cancel admin proposal",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "ACL contract address",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "address",
+          "title": "Address",
+          "type": "address"
+        }
+      ],
+      "execs": [
+        {
+          "type": "send",
+          "contract": "ACL",
+          "method": "cancelNewAdminProposal",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_addr": "@input[address]"
+          }
+        }
+      ]
+    },
+    {
+      "id": "acceptAdminRole",
+      "title": "Accept admin proposal",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "ACL contract address",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "send",
+          "contract": "ACL",
+          "method": "acceptAdminRole",
+          "address": "@input[contractAddress]"
+        }
+      ]
+    },
+    {
+      "id": "removeAdmin",
+      "title": "Remove admin",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "ACL contract address",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "address",
+          "title": "Address",
+          "type": "address"
+        }
+      ],
+      "execs": [
+        {
+          "type": "send",
+          "contract": "ACL",
+          "method": "removeAdmin",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_addr": "@input[address]"
+          }
+        }
+      ]
+    }
+  ]
+}

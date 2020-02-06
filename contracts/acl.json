@@ -41,7 +41,7 @@
       "outputs": [
         {
           "title": "Is admin",
-          "type": "bool",
+          "type": "string",
           "value": "@input[isAdmin]"
         }
       ]
@@ -167,6 +167,86 @@
           "args": {
             "_addr": "@input[address]"
           }
+        }
+      ]
+    },
+    {
+      "id": "getNumContexts",
+      "title": "Get no. of contexts",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "ACL contract address",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "ACL",
+          "method": "getNumContexts",
+          "address": "@input[contractAddress]",
+          "saveResultAsInput": "numContexts"
+        }
+      ],
+      "outputs": [
+        {
+          "title": "No. of contexts",
+          "type": "string",
+          "value": "@input[numContexts]"
+        }
+      ]
+    },
+    {
+      "id": "getContext",
+      "title": "Get context",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "ACL contract address",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "index",
+          "title": "Index",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "ACL",
+          "method": "getContext",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_index": "@input[index]"
+          },
+          "saveResultAsInput": "context"
+        }
+      ],
+      "outputs": [
+        {
+          "title": "Context",
+          "type": "string",
+          "value": "@input[context]"
         }
       ]
     }

@@ -41,7 +41,7 @@
       "outputs": [
         {
           "title": "Is admin",
-          "type": "string",
+          "type": "bool",
           "value": "@input[isAdmin]"
         }
       ]

@@ -13,6 +13,8 @@ const raw = [
   'EntityDeployer',
   'Settings',
   'EtherToken',
+  'PolicyImpl',
+  'EntityImpl',
 ].reduce((m, name) => {
   const jsonPath = path.join(projectDir, 'build', 'contracts', `${name}.json`)
   const { networks } = require(jsonPath)

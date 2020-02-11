@@ -1,5 +1,6 @@
 const Web3 = require('web3')
 const EntityImpl = artifacts.require("./EntityImpl")
+const PolicyImpl = artifacts.require("./PolicyImpl")
 const EntityDeployer = artifacts.require("./EntityDeployer")
 
 const { ensureAclIsDeployed } = require('./utils/acl')
@@ -21,4 +22,5 @@ module.exports = async deployer => {
 
   await deployer.deploy(EntityImpl, acl.address, settings.address)
   await deployer.deploy(EntityDeployer, acl.address, settings.address, EntityImpl.address)
+  await deployer.deploy(PolicyImpl, acl.address, settings.address)
 }

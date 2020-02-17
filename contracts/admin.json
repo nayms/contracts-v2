@@ -1,18 +1,25 @@
 {
   "version": 1,
-  "id": "nayms-acdl",
-  "title": "Nayms ACL",
-  "description": "Manage the Nayms ACL.",
-  "aboutUrl": "https://github.com/nayms/contracts/blob/master/contracts/base/IACL.sol",
+  "id": "nayms-admin",
+  "title": "Nayms Admin",
+  "description": "The Nayms admin interface, for the overlords.",
+  "aboutUrl": "https://github.com/nayms/contracts",
+  "constants": {
+    "aclAddress": {
+      "default": ""
+    }
+  },
   "panels": [
     {
       "id": "isAdmin",
-      "title": "Check if user is admin",
+      "title": "ACL: Check if user is admin",
       "inputs": [
         {
           "name": "contractAddress",
           "title": "ACL contract address",
+          "description": "The address of the ACL contract",
           "type": "address",
+          "initialValue": "@constant[aclAddress]",
           "validation": [
             {
               "type": "allowedTypes",
@@ -48,11 +55,12 @@
     },
     {
       "id": "proposeAdmin",
-      "title": "Propose new admin",
+      "title": "ACL: Propose new admin",
       "inputs": [
         {
           "name": "contractAddress",
           "title": "ACL contract address",
+          "initialValue": "@constant[aclAddress]",
           "type": "address",
           "validation": [
             {
@@ -81,12 +89,13 @@
     },
     {
       "id": "cancelAdminProposal",
-      "title": "Cancel admin proposal",
+      "title": "ACL: Cancel admin proposal",
       "inputs": [
         {
           "name": "contractAddress",
           "title": "ACL contract address",
           "type": "address",
+          "initialValue": "@constant[aclAddress]",
           "validation": [
             {
               "type": "allowedTypes",
@@ -114,12 +123,13 @@
     },
     {
       "id": "acceptAdminRole",
-      "title": "Accept admin proposal",
+      "title": "ACL: Accept admin proposal",
       "inputs": [
         {
           "name": "contractAddress",
           "title": "ACL contract address",
           "type": "address",
+          "initialValue": "@constant[aclAddress]",
           "validation": [
             {
               "type": "allowedTypes",
@@ -139,12 +149,13 @@
     },
     {
       "id": "removeAdmin",
-      "title": "Remove admin",
+      "title": "ACL: Remove admin",
       "inputs": [
         {
           "name": "contractAddress",
           "title": "ACL contract address",
           "type": "address",
+          "initialValue": "@constant[aclAddress]",
           "validation": [
             {
               "type": "allowedTypes",
@@ -172,12 +183,13 @@
     },
     {
       "id": "getNumContexts",
-      "title": "Get no. of contexts",
+      "title": "ACL: Get no. of contexts",
       "inputs": [
         {
           "name": "contractAddress",
           "title": "ACL contract address",
           "type": "address",
+          "initialValue": "@constant[aclAddress]",
           "validation": [
             {
               "type": "allowedTypes",
@@ -205,12 +217,13 @@
     },
     {
       "id": "getContext",
-      "title": "Get context",
+      "title": "ACL: Get context",
       "inputs": [
         {
           "name": "contractAddress",
           "title": "ACL contract address",
           "type": "address",
+          "initialValue": "@constant[aclAddress]",
           "validation": [
             {
               "type": "allowedTypes",

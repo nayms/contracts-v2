@@ -10,11 +10,9 @@ import { events } from '../'
 
 import { ensureEtherTokenIsDeployed } from '../migrations/utils/etherToken'
 
-import {
-  ensureAclIsDeployed,
-  ROLE_ENTITY_MANAGER,
-  ROLE_ASSET_MANAGER,
-} from '../migrations/utils/acl'
+import { ROLES, ROLEGROUPS } from '../migrations/utils/constants'
+
+import { ensureAclIsDeployed } from '../migrations/utils/acl'
 
 import { ensureSettingsIsDeployed } from '../migrations/utils/settings'
 import { ensureMarketIsDeployed } from '../migrations/utils/market'
@@ -71,7 +69,7 @@ contract('Policy flow', accounts => {
     const entityContext = await entityProxy.aclContext()
 
     // policy
-    await acl.assignRole(entityContext, accounts[1], ROLE_ENTITY_MANAGER)
+    await acl.assignRole(entityContext, accounts[1], ROLES.ENTITY_MANAGER)
     entityManagerAddress = accounts[1]
 
     policyImpl = await PolicyImpl.new(acl.address, settings.address)
@@ -121,7 +119,7 @@ contract('Policy flow', accounts => {
       return await IERC20.at(tt)
     }
 
-    await acl.assignRole(policyContext, accounts[2], ROLE_ASSET_MANAGER)
+    await acl.assignRole(policyContext, accounts[2], ROLES.ASSET_MANAGER)
     policyApproverAddress = accounts[2]
 
     STATE_DRAFT = await policy.STATE_DRAFT()

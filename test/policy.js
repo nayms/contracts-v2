@@ -17,13 +17,9 @@ import {
   TOKENS_RECIPIENT_INTERFACE_HASH
 } from '../migrations/utils/erc1820'
 
-import {
-  ensureAclIsDeployed,
-  ROLE_ASSET_MANAGER,
-  ROLE_CLIENT_MANAGER,
-  ROLE_ENTITY_ADMIN,
-  ROLE_ENTITY_MANAGER,
-} from '../migrations/utils/acl'
+import { ROLES, ROLEGROUPS } from '../migrations/utils/constants'
+
+import { ensureAclIsDeployed } from '../migrations/utils/acl'
 
 import { ensureEtherTokenIsDeployed } from '../migrations/utils/etherToken'
 import { ensureSettingsIsDeployed } from '../migrations/utils/settings'
@@ -88,8 +84,8 @@ contract('Policy', accounts => {
     entityContext = await entityProxy.aclContext()
 
     // policy
-    await acl.assignRole(entityContext, accounts[1], ROLE_ENTITY_ADMIN)
-    await acl.assignRole(entityContext, accounts[2], ROLE_ENTITY_MANAGER)
+    await acl.assignRole(entityContext, accounts[1], ROLES.ENTITY_ADMIN)
+    await acl.assignRole(entityContext, accounts[2], ROLES.ENTITY_MANAGER)
     entityManagerAddress = accounts[2]
 
     policyImpl = await PolicyImpl.new(acl.address, settings.address)
@@ -141,8 +137,8 @@ contract('Policy', accounts => {
       await setupPolicy()
 
       // assign roles
-      await acl.assignRole(policyContext, accounts[3], ROLE_ASSET_MANAGER)
-      await acl.assignRole(policyContext, accounts[4], ROLE_CLIENT_MANAGER)
+      await acl.assignRole(policyContext, accounts[3], ROLES.ASSET_MANAGER)
+      await acl.assignRole(policyContext, accounts[4], ROLES.CLIENT_MANAGER)
 
       // deploy new implementation
       policyImpl2 = await TestPolicyImpl.new()
@@ -196,7 +192,7 @@ contract('Policy', accounts => {
     const tranchPricePerShare = 100
 
     beforeEach(async () => {
-      await acl.assignRole(entityContext, accounts[2], ROLE_ENTITY_MANAGER)
+      await acl.assignRole(entityContext, accounts[2], ROLES.ENTITY_MANAGER)
     })
 
     describe('basic tests', () => {
@@ -306,7 +302,7 @@ contract('Policy', accounts => {
       beforeEach(async () => {
         await setupPolicy()
 
-        acl.assignRole(entityContext, accounts[0], ROLE_ENTITY_MANAGER)
+        acl.assignRole(entityContext, accounts[0], ROLES.ENTITY_MANAGER)
 
         await createTranch(policy, {
           numShares: tranchNumShares,
@@ -401,7 +397,7 @@ contract('Policy', accounts => {
       beforeEach(async () => {
         await setupPolicy()
 
-        acl.assignRole(entityContext, accounts[0], ROLE_ENTITY_MANAGER)
+        acl.assignRole(entityContext, accounts[0], ROLES.ENTITY_MANAGER)
 
         await createTranch(policy, {
           numShares: tranchNumShares,
@@ -663,7 +659,7 @@ contract('Policy', accounts => {
 
     describe('premiums', () => {
       beforeEach(async () => {
-        acl.assignRole(entityContext, accounts[0], ROLE_ENTITY_MANAGER)
+        acl.assignRole(entityContext, accounts[0], ROLES.ENTITY_MANAGER)
       })
 
       describe('basic tests', () => {

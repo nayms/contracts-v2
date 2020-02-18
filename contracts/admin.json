@@ -271,6 +271,172 @@
       ]
     },
     {
+      "id": "assignRole",
+      "title": "ACL: Assign role",
+      "description": "You must be an admin or an assigner for the role to do this",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "ACL contract address",
+          "type": "address",
+          "initialValue": "@constant[aclAddress]",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "context",
+          "title": "Context",
+          "type": "string",
+          "validation": [
+            {
+              "type": "length",
+              "min": "0"
+            }
+          ]
+        },
+        {
+          "name": "address",
+          "title": "Address",
+          "type": "address"
+        },
+        {
+          "name": "role",
+          "title": "Role",
+          "type": "bytes32"
+        }
+      ],
+      "execs": [
+        {
+          "type": "send",
+          "contract": "ACL",
+          "method": "assignRole",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_context": "@input[context]",
+            "_addr": "@input[address]",
+            "_role": "@input[role]"
+          }
+        }
+      ]
+    },
+    {
+      "id": "unassignRole",
+      "title": "ACL: Un-assign role",
+      "description": "You must be an admin or an assigner for the role to do this",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "ACL contract address",
+          "type": "address",
+          "initialValue": "@constant[aclAddress]",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "context",
+          "title": "Context",
+          "type": "string",
+          "validation": [
+            {
+              "type": "length",
+              "min": "0"
+            }
+          ]
+        },
+        {
+          "name": "address",
+          "title": "Address",
+          "type": "address"
+        },
+        {
+          "name": "role",
+          "title": "Role",
+          "type": "bytes32"
+        }
+      ],
+      "execs": [
+        {
+          "type": "send",
+          "contract": "ACL",
+          "method": "unassignRole",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_context": "@input[context]",
+            "_addr": "@input[address]",
+            "_role": "@input[role]"
+          }
+        }
+      ]
+    },
+    {
+      "id": "hasRole",
+      "title": "ACL: Does user have role?",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "ACL contract address",
+          "type": "address",
+          "initialValue": "@constant[aclAddress]",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "context",
+          "title": "Context",
+          "type": "string",
+          "validation": [
+            {
+              "type": "length",
+              "min": "0"
+            }
+          ]
+        },
+        {
+          "name": "address",
+          "title": "Address",
+          "type": "address"
+        },
+        {
+          "name": "role",
+          "title": "Role",
+          "type": "bytes32"
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "ACL",
+          "method": "hasRole",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_context": "@input[context]",
+            "_addr": "@input[address]",
+            "_role": "@input[role]"
+          },
+          "saveResultAsInput": "has"
+        }
+      ],
+      "outputs": [
+        {
+          "title": "Has role",
+          "type": "bool",
+          "value": "@input[has]"
+        }
+      ]
+    },
+    {
       "id": "deployEntity",
       "title": "EntityDeployer: Deploy entity",
       "description": "You must be an admin to do this",

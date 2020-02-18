@@ -70,6 +70,8 @@ The package exposes the following properties:
 * `addresses` - on-chain addresses of contracts in `contracts`
 * `events` - ABIs for events to listen for
 * `extractEventsFromAbis()` - given an array of contract ABIs, this will extract the event ABIs within.
+* `ROLES` - role constants
+* `ROLEGROUPS` - rolegroup constants
 
 The key contracts are:
 

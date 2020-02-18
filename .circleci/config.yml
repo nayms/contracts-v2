@@ -76,6 +76,9 @@ jobs:
       - attach_workspace:
           at: ~/repo
       - run:
+          name: Add SSH fingerprint
+          command: mkdir -p ~/.ssh && ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+      - run:
           name: Build and deploy admin dapp
           command: yarn deploy-admin-dapp
   publish_to_npm:

@@ -69,6 +69,15 @@ jobs:
       - persist_to_workspace:
           root: ~/repo
           paths: .
+  deploy_admin_dapp:
+    executor: smart_contracts
+    working_directory: ~/repo
+    steps:
+      - attach_workspace:
+          at: ~/repo
+      - run:
+          name: Build and deploy admin dapp
+          command: yarn deploy-admin-dapp
   publish_to_npm:
     executor: smart_contracts
     working_directory: ~/repo
@@ -89,7 +98,11 @@ workflows:
   version: 2
   ci:
     jobs:
-      - build_contracts
+      - build_contracts:
+          filters:
+            branches:
+              ignore:
+                - gh-pages
       - deploy_contracts:
           requires:
             - build_contracts
@@ -98,6 +111,13 @@ workflows:
               only:
                 - master
       - publish_to_npm:
+          requires:
+            - deploy_contracts
+          filters:
+            branches:
+              only:
+                - master
+      - deploy_admin_dapp:
           requires:
             - deploy_contracts
           filters:

@@ -1,0 +1,383 @@
+{
+  "version": 1,
+  "id": "nayms-admin",
+  "title": "Nayms Admin",
+  "description": "The Nayms admin interface, for the overlords.",
+  "aboutUrl": "https://github.com/nayms/contracts",
+  "constants": {
+    "aclAddress": {
+      "default": ""
+    },
+    "entityDeployerAddress": {
+      "default": ""
+    }
+  },
+  "panels": [
+    {
+      "id": "isAdmin",
+      "title": "ACL: Check if user is admin",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "ACL contract address",
+          "description": "The address of the ACL contract",
+          "type": "address",
+          "initialValue": "@constant[aclAddress]",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "address",
+          "title": "Address",
+          "type": "address"
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "ACL",
+          "method": "isAdmin",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_addr": "@input[address]"
+          },
+          "saveResultAsInput": "isAdmin"
+        }
+      ],
+      "outputs": [
+        {
+          "title": "Is admin",
+          "type": "bool",
+          "value": "@input[isAdmin]"
+        }
+      ]
+    },
+    {
+      "id": "proposeAdmin",
+      "title": "ACL: Propose new admin",
+      "description": "You must be an admin to do this",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "ACL contract address",
+          "initialValue": "@constant[aclAddress]",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "address",
+          "title": "Address",
+          "type": "address"
+        }
+      ],
+      "execs": [
+        {
+          "type": "send",
+          "contract": "ACL",
+          "method": "proposeNewAdmin",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_addr": "@input[address]"
+          }
+        }
+      ]
+    },
+    {
+      "id": "cancelAdminProposal",
+      "title": "ACL: Cancel admin proposal",
+      "description": "You must be an admin to do this",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "ACL contract address",
+          "type": "address",
+          "initialValue": "@constant[aclAddress]",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "address",
+          "title": "Address",
+          "type": "address"
+        }
+      ],
+      "execs": [
+        {
+          "type": "send",
+          "contract": "ACL",
+          "method": "cancelNewAdminProposal",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_addr": "@input[address]"
+          }
+        }
+      ]
+    },
+    {
+      "id": "acceptAdminRole",
+      "title": "ACL: Accept admin proposal",
+      "description": "You must the proposed admin to do this",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "ACL contract address",
+          "type": "address",
+          "initialValue": "@constant[aclAddress]",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "send",
+          "contract": "ACL",
+          "method": "acceptAdminRole",
+          "address": "@input[contractAddress]"
+        }
+      ]
+    },
+    {
+      "id": "removeAdmin",
+      "title": "ACL: Remove admin",
+      "description": "You must be an admin to do this",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "ACL contract address",
+          "type": "address",
+          "initialValue": "@constant[aclAddress]",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "address",
+          "title": "Address",
+          "type": "address"
+        }
+      ],
+      "execs": [
+        {
+          "type": "send",
+          "contract": "ACL",
+          "method": "removeAdmin",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_addr": "@input[address]"
+          }
+        }
+      ]
+    },
+    {
+      "id": "getNumContexts",
+      "title": "ACL: Get no. of contexts",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "ACL contract address",
+          "type": "address",
+          "initialValue": "@constant[aclAddress]",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "ACL",
+          "method": "getNumContexts",
+          "address": "@input[contractAddress]",
+          "saveResultAsInput": "numContexts"
+        }
+      ],
+      "outputs": [
+        {
+          "title": "No. of contexts",
+          "type": "string",
+          "value": "@input[numContexts]"
+        }
+      ]
+    },
+    {
+      "id": "getContext",
+      "title": "ACL: Get context",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "ACL contract address",
+          "type": "address",
+          "initialValue": "@constant[aclAddress]",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "index",
+          "title": "Index",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "ACL",
+          "method": "getContext",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_index": "@input[index]"
+          },
+          "saveResultAsInput": "context"
+        }
+      ],
+      "outputs": [
+        {
+          "title": "Context",
+          "type": "string",
+          "value": "@input[context]"
+        }
+      ]
+    },
+    {
+      "id": "deployEntity",
+      "title": "EntityDeployer: Deploy entity",
+      "description": "You must be an admin to do this",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "EntityDeployer contract address",
+          "type": "address",
+          "initialValue": "@constant[entityDeployerAddress]",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "send",
+          "contract": "EntityDeployer",
+          "method": "deploy",
+          "address": "@input[contractAddress]"
+        }
+      ]
+    },
+    {
+      "id": "getEntityCount",
+      "title": "EntityDeployer: Get no. of entities",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "EntityDeployer contract address",
+          "type": "address",
+          "initialValue": "@constant[entityDeployerAddress]",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "EntityDeployer",
+          "method": "getNumEntities",
+          "address": "@input[contractAddress]",
+          "saveResultAsInput": "numEntities"
+        }
+      ],
+      "outputs": [
+        {
+          "title": "No. of entities",
+          "type": "int",
+          "value": "@input[numEntities]"
+        }
+      ]
+    },
+    {
+      "id": "getEntity",
+      "title": "EntityDeployer: Get entity",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "EntityDeployer contract address",
+          "type": "address",
+          "initialValue": "@constant[entityDeployerAddress]",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "index",
+          "title": "Index",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "EntityDeployer",
+          "method": "getEntity",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_index": "@input[index]"
+          },
+          "saveResultAsInput": "entityAddress"
+        }
+      ],
+      "outputs": [
+        {
+          "title": "Entity",
+          "type": "address",
+          "value": "@input[entityAddress]"
+        }
+      ]
+    }
+  ]
+}

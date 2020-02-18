@@ -75,7 +75,7 @@ jobs:
     steps:
       - attach_workspace:
           at: ~/repo
-      - run: 
+      - run:
           name: Add SSH fingerprint
           command: mkdir -p ~/.ssh && ssh-keyscan -H github.com >> ~/.ssh/known_hosts
       - run:

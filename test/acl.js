@@ -1,17 +1,8 @@
 import { extractEventArgs } from './utils'
 import { events } from '../'
 import { sha3 } from './utils/web3'
-import {
-  ensureAclIsDeployed,
-  ROLE_ENTITY_ADMIN,
-  ROLE_ENTITY_MANAGER,
-  ROLE_ENTITY_REPRESENTATIVE,
-  ROLE_ASSET_MANAGER,
-  ROLE_CLIENT_MANAGER,
-  ROLEGROUP_MANAGE_ENTITY,
-  ROLEGROUP_MANAGE_POLICY,
-  ROLEGROUP_APPROVE_POLICY,
-} from '../migrations/utils/acl'
+import { ensureAclIsDeployed } from '../migrations/utils/acl'
+import { ROLES, ROLEGROUPS } from '../migrations/utils/constants'
 
 contract('ACL', accounts => {
   const role1 = sha3('testrole1')
@@ -33,34 +24,34 @@ contract('ACL', accounts => {
 
   describe('default roles and role groups', async () => {
     it('entity admins', async () => {
-      await acl.assignRole("test", accounts[1], ROLE_ENTITY_ADMIN)
-      await acl.hasRoleInGroup("test", accounts[1], ROLEGROUP_MANAGE_ENTITY).should.eventually.eq(true)
+      await acl.assignRole("test", accounts[1], ROLES.ENTITY_ADMIN)
+      await acl.hasRoleInGroup("test", accounts[1], ROLEGROUPS.MANAGE_ENTITY).should.eventually.eq(true)
     })
 
     it('entity managers', async () => {
-      await acl.assignRole("test", accounts[1], ROLE_ENTITY_MANAGER)
-      await acl.hasRoleInGroup("test", accounts[1], ROLEGROUP_MANAGE_ENTITY).should.eventually.eq(true)
-      await acl.getAssigners(ROLE_ENTITY_MANAGER).should.eventually.eq([ROLE_ENTITY_ADMIN])
+      await acl.assignRole("test", accounts[1], ROLES.ENTITY_MANAGER)
+      await acl.hasRoleInGroup("test", accounts[1], ROLEGROUPS.MANAGE_ENTITY).should.eventually.eq(true)
+      await acl.getAssigners(ROLES.ENTITY_MANAGER).should.eventually.eq([ROLES.ENTITY_ADMIN])
     })
 
     it('entity reps', async () => {
-      await acl.assignRole("test", accounts[1], ROLE_ENTITY_REPRESENTATIVE)
-      await acl.hasRoleInGroup("test", accounts[1], ROLEGROUP_MANAGE_POLICY).should.eventually.eq(true)
-      await acl.getAssigners(ROLE_ENTITY_REPRESENTATIVE).should.eventually.eq([ROLE_ENTITY_MANAGER])
+      await acl.assignRole("test", accounts[1], ROLES.ENTITY_REPRESENTATIVE)
+      await acl.hasRoleInGroup("test", accounts[1], ROLEGROUPS.MANAGE_POLICY).should.eventually.eq(true)
+      await acl.getAssigners(ROLES.ENTITY_REPRESENTATIVE).should.eventually.eq([ROLES.ENTITY_MANAGER])
     })
 
     it('assset managers', async () => {
-      await acl.assignRole("test", accounts[1], ROLE_ASSET_MANAGER)
-      await acl.hasRoleInGroup("test", accounts[1], ROLEGROUP_MANAGE_POLICY).should.eventually.eq(false)
-      await acl.hasRoleInGroup("test", accounts[1], ROLEGROUP_APPROVE_POLICY).should.eventually.eq(true)
-      await acl.getAssigners(ROLE_ASSET_MANAGER).should.eventually.eq([ROLE_ENTITY_REPRESENTATIVE])
+      await acl.assignRole("test", accounts[1], ROLES.ASSET_MANAGER)
+      await acl.hasRoleInGroup("test", accounts[1], ROLEGROUPS.MANAGE_POLICY).should.eventually.eq(false)
+      await acl.hasRoleInGroup("test", accounts[1], ROLEGROUPS.APPROVE_POLICY).should.eventually.eq(true)
+      await acl.getAssigners(ROLES.ASSET_MANAGER).should.eventually.eq([ROLES.ENTITY_REPRESENTATIVE])
     })
 
     it('client managers', async () => {
-      await acl.assignRole("test", accounts[1], ROLE_CLIENT_MANAGER)
-      await acl.hasRoleInGroup("test", accounts[1], ROLEGROUP_MANAGE_POLICY).should.eventually.eq(false)
-      await acl.hasRoleInGroup("test", accounts[1], ROLEGROUP_APPROVE_POLICY).should.eventually.eq(true)
-      await acl.getAssigners(ROLE_CLIENT_MANAGER).should.eventually.eq([ROLE_ENTITY_REPRESENTATIVE])
+      await acl.assignRole("test", accounts[1], ROLES.CLIENT_MANAGER)
+      await acl.hasRoleInGroup("test", accounts[1], ROLEGROUPS.MANAGE_POLICY).should.eventually.eq(false)
+      await acl.hasRoleInGroup("test", accounts[1], ROLEGROUPS.APPROVE_POLICY).should.eventually.eq(true)
+      await acl.getAssigners(ROLES.CLIENT_MANAGER).should.eventually.eq([ROLES.ENTITY_REPRESENTATIVE])
     })
   })
 

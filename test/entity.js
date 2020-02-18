@@ -9,12 +9,9 @@ import {
 
 import { events } from '../'
 
-import {
-  ensureAclIsDeployed,
-  ROLE_ENTITY_ADMIN,
-  ROLE_ENTITY_MANAGER,
-  ROLE_ENTITY_REPRESENTATIVE,
-} from '../migrations/utils/acl'
+import { ROLES, ROLEGROUPS } from '../migrations/utils/constants'
+
+import { ensureAclIsDeployed } from '../migrations/utils/acl'
 
 import {
   ensureSettingsIsDeployed,
@@ -78,13 +75,13 @@ contract('Entity', accounts => {
       // generate upgrade approval signatures
       const implVersion = await entityImpl2.getImplementationVersion()
 
-      await acl.assignRole(entityContext, accounts[1], ROLE_ENTITY_ADMIN)
+      await acl.assignRole(entityContext, accounts[1], ROLES.ENTITY_ADMIN)
       entityAdminSig = hdWallet.sign({ address: accounts[1], data: sha3(implVersion) })
 
-      await acl.assignRole(entityContext, accounts[2], ROLE_ENTITY_MANAGER)
+      await acl.assignRole(entityContext, accounts[2], ROLES.ENTITY_MANAGER)
       entityManagerSig = hdWallet.sign({ address: accounts[2], data: sha3(implVersion) })
 
-      await acl.assignRole(entityContext, accounts[3], ROLE_ENTITY_REPRESENTATIVE)
+      await acl.assignRole(entityContext, accounts[3], ROLES.ENTITY_REPRESENTATIVE)
       entityRepresentativeSig = hdWallet.sign({ address: accounts[3], data: sha3(implVersion) })
     })
 
@@ -126,9 +123,9 @@ contract('Entity', accounts => {
     beforeEach(async () => {
       policyImpl = await PolicyImpl.new(acl.address, settings.address)
 
-      await acl.assignRole(entityContext, accounts[1], ROLE_ENTITY_ADMIN)
-      await acl.assignRole(entityContext, accounts[2], ROLE_ENTITY_MANAGER)
-      await acl.assignRole(entityContext, accounts[3], ROLE_ENTITY_REPRESENTATIVE)
+      await acl.assignRole(entityContext, accounts[1], ROLES.ENTITY_ADMIN)
+      await acl.assignRole(entityContext, accounts[2], ROLES.ENTITY_MANAGER)
+      await acl.assignRole(entityContext, accounts[3], ROLES.ENTITY_REPRESENTATIVE)
     })
 
     it('but not by entity admins', async () => {

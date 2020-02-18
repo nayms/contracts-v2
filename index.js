@@ -5,6 +5,8 @@ try {
 
 const rawContracts = require('./contracts.generated.js')
 
+const { ROLES, ROLEGROUPS } = require('./migrations/utils/constants')
+
 const coreContracts = [
   { name: 'Settings', actual: 'ISettingsImpl' },
   { name: 'ACL', actual: 'IACL' },
@@ -36,4 +38,6 @@ module.exports = {
   rawContracts,
   events: extractEventsFromAbis(Object.values(coreContracts)),
   extractEventsFromAbis,
+  ROLES,
+  ROLEGROUPS,
 }

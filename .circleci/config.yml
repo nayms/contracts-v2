@@ -75,6 +75,7 @@ jobs:
     steps:
       - attach_workspace:
           at: ~/repo
+      - add_ssh_keys
       - run:
           name: Build and deploy admin dapp
           command: yarn deploy-admin-dapp

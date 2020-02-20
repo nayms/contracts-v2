@@ -282,7 +282,7 @@ contract('ACL', accounts => {
       await acl.getRolesForUser('test', accounts[2]).should.eventually.eq([])
     })
 
-    it('and the internal list or assigned roles is updated efficiently', async () => {
+    it('and the internal list of assigned roles is updated efficiently', async () => {
       await acl.assignRole('test', accounts[2], role2).should.be.fulfilled
       await acl.assignRole('test', accounts[2], role3).should.be.fulfilled
 
@@ -393,7 +393,7 @@ contract('ACL', accounts => {
       await acl.assignRole('test', accounts[2], role1).should.be.fulfilled
 
       await acl.getNumContexts().should.eventually.eq(1)
-      await acl.getContext(0).should.eventually.eq('test')
+      await acl.getContextAtIndex(0).should.eventually.eq('test')
 
       await acl.assignRole('test', accounts[2], role2).should.be.fulfilled
 
@@ -404,8 +404,36 @@ contract('ACL', accounts => {
 
       // now we expect a change
       await acl.getNumContexts().should.eventually.eq(2)
-      await acl.getContext(0).should.eventually.eq('test')
-      await acl.getContext(1).should.eventually.eq('test2')
+      await acl.getContextAtIndex(0).should.eventually.eq('test')
+      await acl.getContextAtIndex(1).should.eventually.eq('test2')
+    })
+  })
+
+  describe('can return the the list of users for a context', () => {
+    it('and ensures the list stays up-to-date', async () => {
+      await acl.assignRole('test', accounts[2], role1).should.be.fulfilled
+      await acl.assignRole('test', accounts[2], role2).should.be.fulfilled
+      await acl.assignRole('test', accounts[3], role1).should.be.fulfilled
+      await acl.assignRole('test', accounts[3], role2).should.be.fulfilled
+      await acl.assignRole('test', accounts[4], role1).should.be.fulfilled
+      await acl.assignRole('test', accounts[4], role2).should.be.fulfilled
+
+      await acl.getNumUsersInContext('test').should.eventually.eq(3)
+      await acl.getUserInContextAtIndex('test', 0).should.eventually.eq(accounts[2])
+      await acl.getUserInContextAtIndex('test', 1).should.eventually.eq(accounts[3])
+      await acl.getUserInContextAtIndex('test', 2).should.eventually.eq(accounts[4])
+
+      await acl.unassignRole('test', accounts[2], role2).should.be.fulfilled
+      await acl.getNumUsersInContext('test').should.eventually.eq(3)
+      await acl.unassignRole('test', accounts[2], role1).should.be.fulfilled
+      await acl.getNumUsersInContext('test').should.eventually.eq(2)
+      await acl.getUserInContextAtIndex('test', 0).should.eventually.eq(accounts[4])
+      await acl.getUserInContextAtIndex('test', 1).should.eventually.eq(accounts[3])
+
+      await acl.unassignRole('test', accounts[4], role2).should.be.fulfilled
+      await acl.unassignRole('test', accounts[4], role1).should.be.fulfilled
+      await acl.getNumUsersInContext('test').should.eventually.eq(1)
+      await acl.getUserInContextAtIndex('test', 0).should.eventually.eq(accounts[3])
     })
   })
 })

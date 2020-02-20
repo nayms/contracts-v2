@@ -6,65 +6,88 @@ import "./base/IACL.sol";
  * @dev Library for managing addresses assigned to a Role within a context.
  */
 library Assignments {
-  struct User {
+  struct UserRoles {
     mapping (bytes32 => uint256) map;
     bytes32[] list;
   }
 
   struct Context {
-    mapping (address => User) users;
+    mapping (address => UserRoles) userRoles;
+    mapping (address => uint256) userMap;
+    address[] userList;
   }
 
   /**
-   * @dev give an address access to this role
+   * @dev give an address access to a role
    */
   function add(Context storage _context, bytes32 _role, address _addr)
     internal
   {
-    User storage u = _context.users[_addr];
+    UserRoles storage ur = _context.userRoles[_addr];
 
-    if (0 == u.map[_role]) {
-      u.list.push(_role);
-      u.map[_role] = u.list.length;
+    // new user?
+    if (0 == _context.userMap[_addr]) {
+      _context.userList.push(_addr);
+      _context.userMap[_addr] = _context.userList.length;
+    }
+
+    // set role for user
+    if (0 == ur.map[_role]) {
+      ur.list.push(_role);
+      ur.map[_role] = ur.list.length;
     }
   }
 
   /**
-   * @dev remove an address' access to this role
+   * @dev remove an address' access to a role
    */
   function remove(Context storage _context, bytes32 _role, address _addr)
     internal
   {
-    User storage u = _context.users[_addr];
+    UserRoles storage ur = _context.userRoles[_addr];
 
-    uint256 idx = u.map[_role];
+    uint256 idx = ur.map[_role];
 
     if (0 < idx) {
       uint256 actualIdx = idx - 1;
 
       // replace item to remove with last item in list and update mappings
-      if (u.list.length - 1 > actualIdx) {
-        u.list[actualIdx] = u.list[u.list.length - 1];
-        u.map[u.list[actualIdx]] = actualIdx + 1;
+      if (ur.list.length - 1 > actualIdx) {
+        ur.list[actualIdx] = ur.list[ur.list.length - 1];
+        ur.map[ur.list[actualIdx]] = actualIdx + 1;
       }
 
-      u.list.length--;
-      u.map[_role] = 0;
+      ur.list.length--;
+      ur.map[_role] = 0;
+    }
+
+    // remove user if they don't have roles anymore
+    if (0 == ur.list.length) {
+      uint256 actualIdx = _context.userMap[_addr] - 1;
+
+      // replace item to remove with last item in list and update mappings
+      if (_context.userList.length - 1 > actualIdx) {
+        _context.userList[actualIdx] = _context.userList[_context.userList.length - 1];
+        _context.userMap[_context.userList[actualIdx]] = actualIdx + 1;
+      }
+
+      _context.userList.length--;
+      _context.userMap[_addr] = 0;
     }
   }
 
   /**
-   * @dev check if an address has this role
+   * @dev check if an address has a role
    * @return bool
    */
-  function has(Context storage _context, bytes32 _role, address _addr)
+  function hasRole(Context storage _context, bytes32 _role, address _addr)
     internal
     view
     returns (bool)
   {
-    User storage u = _context.users[_addr];
+    UserRoles storage ur = _context.userRoles[_addr];
 
-    return (0 < u.map[_role]);
+    return (0 < ur.map[_role]);
   }
 
 
@@ -77,9 +100,35 @@ library Assignments {
     view
     returns (bytes32[] storage)
   {
-    User storage u = _context.users[_addr];
+    UserRoles storage ur = _context.userRoles[_addr];
 
-    return u.list;
+    return ur.list;
+  }
+
+
+  /**
+   * @dev get number of addresses with roles
+   * @return uint256
+   */
+  function getNumUsers(Context storage _context)
+    internal
+    view
+    returns (uint256)
+  {
+    return _context.userList.length;
+  }
+
+
+  /**
+   * @dev get addresses at given index in list of addresses
+   * @return uint256
+   */
+  function getUserAtIndex(Context storage _context, uint256 _index)
+    internal
+    view
+    returns (address)
+  {
+    return _context.userList[_index];
   }
 }
 
@@ -232,8 +281,16 @@ contract ACL is IACL {
     return numContexts;
   }
 
-  function getContext(uint256 _index) public view returns (string memory) {
+  function getContextAtIndex(uint256 _index) public view returns (string memory) {
     return contexts[_index];
+  }
+
+  function getNumUsersInContext(string memory _context) public view returns (uint) {
+    return assignments[_context].getNumUsers();
+  }
+
+  function getUserInContextAtIndex(string memory _context, uint _index) public view returns (address) {
+    return assignments[_context].getUserAtIndex(_index);
   }
 
   // Role groups
@@ -281,7 +338,7 @@ contract ACL is IACL {
     view
     returns (bool)
   {
-    return assignments[_context].has(_role, _addr);
+    return assignments[_context].hasRole(_role, _addr);
   }
 
   function hasAnyRole(string memory _context, address _addr, bytes32[] memory _roles)

@@ -9,7 +9,9 @@ interface IACL {
   function removeAdmin(address _addr) external;
   // contexts
   function getNumContexts() external view returns (uint256);
-  function getContext(uint256 _index) external view returns (string memory);
+  function getContextAtIndex(uint256 _index) external view returns (string memory);
+  function getNumUsersInContext(string calldata _context) external view returns (uint);
+  function getUserInContextAtIndex(string calldata _context, uint _index) external view returns (address);
   // role groups
   function hasRoleInGroup(string calldata _context, address _addr, bytes32 _roleGroup) external view returns (bool);
   function setRoleGroup(bytes32 _roleGroup, bytes32[] calldata _roles) external;

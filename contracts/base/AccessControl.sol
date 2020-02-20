@@ -28,7 +28,7 @@ contract AccessControl is EternalStorage {
 
   constructor (address _acl) public {
     dataAddress["acl"] = _acl;
-    dataString["aclContext"] = address(this).toString();
+    dataBytes32["aclContext"] = keccak256(abi.encodePacked(address(this)));
   }
 
   modifier assertIsAdmin () {
@@ -49,11 +49,11 @@ contract AccessControl is EternalStorage {
     return hasRoleWithContext(aclContext(), _addr, _role);
   }
 
-  function inRoleGroupWithContext (string memory _ctx, address _addr, bytes32 _roleGroup) public view returns (bool) {
+  function inRoleGroupWithContext (bytes32 _ctx, address _addr, bytes32 _roleGroup) public view returns (bool) {
     return acl().hasRoleInGroup(_ctx, _addr, _roleGroup);
   }
 
-  function hasRoleWithContext (string memory _ctx, address _addr, bytes32 _role) public view returns (bool) {
+  function hasRoleWithContext (bytes32 _ctx, address _addr, bytes32 _role) public view returns (bool) {
     return acl().hasRole(_ctx, _addr, _role);
   }
 
@@ -61,7 +61,7 @@ contract AccessControl is EternalStorage {
     return IACL(dataAddress["acl"]);
   }
 
-  function aclContext () public view returns (string memory) {
-    return dataString["aclContext"];
+  function aclContext () public view returns (bytes32) {
+    return dataBytes32["aclContext"];
   }
 }

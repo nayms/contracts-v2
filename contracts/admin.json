@@ -254,7 +254,7 @@
         {
           "type": "call",
           "contract": "ACL",
-          "method": "getContext",
+          "method": "getContextAtIndex",
           "address": "@input[contractAddress]",
           "args": {
             "_index": "@input[index]"
@@ -343,7 +343,8 @@
         {
           "name": "context",
           "title": "Context",
-          "type": "string",
+          "type": "bytes32",
+          "placeholder": "A bytes32 value",
           "validation": [
             {
               "type": "length",
@@ -395,7 +396,8 @@
         {
           "name": "context",
           "title": "Context",
-          "type": "string",
+          "type": "bytes32",
+          "placeholder": "A bytes32 value",
           "validation": [
             {
               "type": "length",

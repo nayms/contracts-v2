@@ -35,7 +35,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
   // Modifiers //
 
   modifier assertCanManagePolicy () {
-    require(inRoleGroupWithContext(dataString["entityContext"], msg.sender, ROLEGROUP_MANAGE_POLICY), 'must be policy manager');
+    require(inRoleGroupWithContext(dataBytes32["entityContext"], msg.sender, ROLEGROUP_MANAGE_POLICY), 'must be policy manager');
     _;
   }
 

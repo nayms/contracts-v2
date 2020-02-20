@@ -9,27 +9,32 @@ interface IACL {
   function removeAdmin(address _addr) external;
   // contexts
   function getNumContexts() external view returns (uint256);
-  function getContext(uint256 _index) external view returns (string memory);
+  function getContextAtIndex(uint256 _index) external view returns (bytes32);
+  function getNumUsersInContext(bytes32 _context) external view returns (uint256);
+  function getUserInContextAtIndex(bytes32 _context, uint _index) external view returns (address);
+  // users
+  function getNumContextsForUser(address _addr) external view returns (uint256);
+  function getContextForUserAtIndex(address _addr, uint256 _index) external view returns (bytes32);
   // role groups
-  function hasRoleInGroup(string calldata _context, address _addr, bytes32 _roleGroup) external view returns (bool);
+  function hasRoleInGroup(bytes32 _context, address _addr, bytes32 _roleGroup) external view returns (bool);
   function setRoleGroup(bytes32 _roleGroup, bytes32[] calldata _roles) external;
   function getRoleGroup(bytes32 _roleGroup) external view returns (bytes32[] memory);
   function getRoleGroupsForRole(bytes32 _role) external view returns (bytes32[] memory);
   // roles
-  function hasRole(string calldata _context, address _addr, bytes32 _role) external view returns (bool);
-  function hasAnyRole(string calldata _context, address _addr, bytes32[] calldata _roles) external view returns (bool);
-  function assignRole(string calldata _context, address _addr, bytes32 _role) external;
-  function unassignRole(string calldata _context, address _addr, bytes32 _role) external;
-  function getRolesForUser(string calldata _context, address _addr) external view returns (bytes32[] memory);
+  function hasRole(bytes32 _context, address _addr, bytes32 _role) external view returns (bool);
+  function hasAnyRole(bytes32 _context, address _addr, bytes32[] calldata _roles) external view returns (bool);
+  function assignRole(bytes32 _context, address _addr, bytes32 _role) external;
+  function unassignRole(bytes32 _context, address _addr, bytes32 _role) external;
+  function getRolesForUser(bytes32 _context, address _addr) external view returns (bytes32[] memory);
   // who can assign roles
   function addAssigner(bytes32 _assignerRole, bytes32 _role) external;
   function removeAssigner(bytes32 _assignerRole, bytes32 _role) external;
   function getAssigners(bytes32 _role) external view returns (bytes32[] memory);
-  function canAssign(string calldata _context, address _addr, bytes32 _role) external view returns (bool);
+  function canAssign(bytes32 _context, address _addr, bytes32 _role) external view returns (bool);
 
   event RoleGroupUpdated(bytes32 indexed roleGroup);
-  event RoleAssigned(string context, address indexed addr, bytes32 indexed role);
-  event RoleUnassigned(string context, address indexed addr, bytes32 indexed role);
+  event RoleAssigned(bytes32 indexed context, address indexed addr, bytes32 indexed role);
+  event RoleUnassigned(bytes32 indexed context, address indexed addr, bytes32 indexed role);
   event AssignerAdded(bytes32 indexed role, bytes32 indexed assigner);
   event AssignerRemoved(bytes32 indexed role, bytes32 indexed assigner);
   event AdminProposed(address indexed addr);

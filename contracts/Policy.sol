@@ -7,7 +7,7 @@ contract Policy is Controller, Proxy {
   constructor (
     address _acl,
     address _settings,
-    string memory _entityContext,
+    bytes32 _entityContext,
     address _policyImpl,
     uint256 _initiationDate,
     uint256 _startDate,
@@ -15,7 +15,7 @@ contract Policy is Controller, Proxy {
     address _unit,
     uint256 _premiumIntervalSeconds
   ) Controller(_acl, _settings) Proxy(_policyImpl) public {
-    dataString["entityContext"] = _entityContext;
+    dataBytes32["entityContext"] = _entityContext;
     dataUint256["initiationDate"] = _initiationDate;
     dataUint256["startDate"] = _startDate;
     dataUint256["maturationDate"] = _maturationDate;

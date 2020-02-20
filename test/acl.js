@@ -10,174 +10,100 @@ contract('ACL', accounts => {
   const role3 = sha3('testrole3')
   const role4 = sha3('testrole4')
 
+  const roleGroup1 = sha3('rolegroup1')
+  const roleGroup2 = sha3('rolegroup2')
+  const roleGroup3 = sha3('rolegroup3')
+
   const context1 = sha3('test1')
   const context2 = sha3('test2')
   const context3 = sha3('test3')
 
   let acl
+  let systemContext
+  let adminRole
+  let adminRoleGroup
 
   beforeEach(async () => {
     acl = await ensureAclIsDeployed({ artifacts })
+    systemContext = await acl.systemContext()
+    adminRole = await acl.adminRole()
+    adminRoleGroup = await acl.adminRoleGroup()
   })
 
   it('default account is initial admin', async () => {
-    await acl.numAdmins().should.eventually.eq(1)
     await acl.isAdmin(accounts[0]).should.eventually.eq(true)
     await acl.isAdmin(accounts[1]).should.eventually.eq(false)
   })
 
-  describe('default roles and role groups', async () => {
-    it('entity admins', async () => {
-      await acl.assignRole(context1, accounts[1], ROLES.ENTITY_ADMIN)
-      await acl.hasRoleInGroup(context1, accounts[1], ROLEGROUPS.MANAGE_ENTITY).should.eventually.eq(true)
-    })
-
-    it('entity managers', async () => {
-      await acl.assignRole(context1, accounts[1], ROLES.ENTITY_MANAGER)
-      await acl.hasRoleInGroup(context1, accounts[1], ROLEGROUPS.MANAGE_ENTITY).should.eventually.eq(true)
-      await acl.getAssigners(ROLES.ENTITY_MANAGER).should.eventually.eq([ROLES.ENTITY_ADMIN])
-    })
-
-    it('entity reps', async () => {
-      await acl.assignRole(context1, accounts[1], ROLES.ENTITY_REPRESENTATIVE)
-      await acl.hasRoleInGroup(context1, accounts[1], ROLEGROUPS.MANAGE_POLICY).should.eventually.eq(true)
-      await acl.getAssigners(ROLES.ENTITY_REPRESENTATIVE).should.eventually.eq([ROLES.ENTITY_MANAGER])
-    })
-
-    it('assset managers', async () => {
-      await acl.assignRole(context1, accounts[1], ROLES.ASSET_MANAGER)
-      await acl.hasRoleInGroup(context1, accounts[1], ROLEGROUPS.MANAGE_POLICY).should.eventually.eq(false)
-      await acl.hasRoleInGroup(context1, accounts[1], ROLEGROUPS.APPROVE_POLICY).should.eventually.eq(true)
-      await acl.getAssigners(ROLES.ASSET_MANAGER).should.eventually.eq([ROLES.ENTITY_REPRESENTATIVE])
-    })
-
-    it('client managers', async () => {
-      await acl.assignRole(context1, accounts[1], ROLES.CLIENT_MANAGER)
-      await acl.hasRoleInGroup(context1, accounts[1], ROLEGROUPS.MANAGE_POLICY).should.eventually.eq(false)
-      await acl.hasRoleInGroup(context1, accounts[1], ROLEGROUPS.APPROVE_POLICY).should.eventually.eq(true)
-      await acl.getAssigners(ROLES.CLIENT_MANAGER).should.eventually.eq([ROLES.ENTITY_REPRESENTATIVE])
-    })
-  })
-
-  describe('can have new admin proposed', () => {
+  describe('can have new admin added', () => {
     it('but not by a non-admin', async () => {
-      await acl.proposeNewAdmin(accounts[1], { from: accounts[2] }).should.be.rejectedWith('unauthorized')
-    })
-
-    it('unless they have already been proposed', async () => {
-      await acl.proposeNewAdmin(accounts[1]).should.be.fulfilled
-      await acl.proposeNewAdmin(accounts[1]).should.be.rejectedWith('already proposed')
-    })
-
-    it('unless they are already an admin', async () => {
-      await acl.proposeNewAdmin(accounts[0]).should.be.rejectedWith('already an admin')
+      await acl.assignRole(systemContext, accounts[1], adminRole, { from: accounts[2] }).should.be.rejectedWith('unauthorized')
     })
 
     it('by an admin', async () => {
-      await acl.proposeNewAdmin(accounts[1]).should.be.fulfilled
-      await acl.pendingAdmins(accounts[1]).should.eventually.eq(true)
+      await acl.isAdmin(accounts[1]).should.eventually.eq(false)
+      await acl.assignRole(systemContext, accounts[1], adminRole).should.be.fulfilled
+      await acl.getNumUsersInContext(systemContext).should.eventually.eq(2)
+      await acl.isAdmin(accounts[1]).should.eventually.eq(true)
+    })
+
+    it('and makes no difference if they get added again', async () => {
+      await acl.isAdmin(accounts[1]).should.eventually.eq(false)
+      await acl.assignRole(systemContext, accounts[1], adminRole).should.be.fulfilled
+      await acl.assignRole(systemContext, accounts[1], adminRole).should.be.fulfilled
+      await acl.getNumUsersInContext(systemContext).should.eventually.eq(2)
+      await acl.isAdmin(accounts[1]).should.eventually.eq(true)
     })
 
     it('and emits an event when successful', async () => {
-      const result = await acl.proposeNewAdmin(accounts[1])
+      const result = await acl.assignRole(systemContext, accounts[1], adminRole)
 
-      expect(extractEventArgs(result, events.AdminProposed)).to.include({
-        addr: accounts[1]
-      })
-    })
-  })
-
-  describe('can have new admin proposal cancelled', () => {
-    beforeEach(async () => {
-      await acl.proposeNewAdmin(accounts[1]).should.be.fulfilled
-    })
-
-    it('but not by a non-admin', async () => {
-      await acl.cancelNewAdminProposal(accounts[1], { from: accounts[2] }).should.be.rejectedWith('unauthorized')
-    })
-
-    it('but not if not proposed', async () => {
-      await acl.cancelNewAdminProposal(accounts[2]).should.be.rejectedWith('not proposed')
-    })
-
-    it('by an admin', async () => {
-      await acl.cancelNewAdminProposal(accounts[1]).should.be.fulfilled
-      await acl.pendingAdmins(accounts[1]).should.eventually.eq(false)
-    })
-
-    it('and emits an event when successful', async () => {
-      const result = await acl.cancelNewAdminProposal(accounts[1]).should.be.fulfilled
-
-      expect(extractEventArgs(result, events.AdminProposalCancelled)).to.include({
-        addr: accounts[1]
-      })
-    })
-  })
-
-  describe('can have someone accept their proposed new admin role', () => {
-    beforeEach(async () => {
-      await acl.proposeNewAdmin(accounts[2]).should.be.fulfilled
-    })
-
-    it('but not if they haven\'t been proposed', async () => {
-      await acl.acceptAdminRole({ from: accounts[1] }).should.be.rejectedWith('not proposed')
-    })
-
-    it('but not if their proposal has been cancelled', async () => {
-      await acl.cancelNewAdminProposal(accounts[2]).should.be.fulfilled
-      await acl.acceptAdminRole({ from: accounts[2] }).should.be.rejectedWith('not proposed')
-    })
-
-    it('if they have actually been proposed', async () => {
-      await acl.acceptAdminRole({ from: accounts[2] }).should.be.fulfilled
-      await acl.isAdmin(accounts[2]).should.eventually.eq(true)
-      await acl.numAdmins().should.eventually.eq(2)
-    })
-
-    it('and emits an event when successful', async () => {
-      const result = await acl.acceptAdminRole({ from: accounts[2] }).should.be.fulfilled
-
-      expect(extractEventArgs(result, events.AdminProposalAccepted)).to.include({
-        addr: accounts[2]
+      expect(extractEventArgs(result, events.RoleAssigned)).to.include({
+        context: systemContext,
+        addr: accounts[1],
+        role: adminRole,
       })
     })
   })
 
   describe('can have someone removed as admin', () => {
     beforeEach(async () => {
-      await acl.proposeNewAdmin(accounts[2]).should.be.fulfilled
-      await acl.acceptAdminRole({ from: accounts[2] }).should.be.fulfilled
-      await acl.numAdmins().should.eventually.eq(2)
+      await acl.assignRole(systemContext, accounts[2], adminRole).should.be.fulfilled
+      await acl.getNumUsersInContext(systemContext).should.eventually.eq(2)
+      await acl.isAdmin(accounts[0]).should.eventually.eq(true)
     })
 
     it('but not by a non-admin', async () => {
-      await acl.removeAdmin(accounts[2], { from: accounts[1] }).should.be.rejectedWith('unauthorized')
-    })
-
-    it('but not if the person being removed is not an admin', async () => {
-      await acl.removeAdmin(accounts[1]).should.be.rejectedWith('not an admin')
-    })
-
-    it('but not if they try to remove themselves', async () => {
-      await acl.removeAdmin(accounts[0]).should.be.rejectedWith('cannot remove oneself')
-    })
-
-    it('but not if they are the last admin', async () => {
-      await acl.removeAdmin(accounts[0], { from: accounts[2] }).should.be.fulfilled
-      await acl.removeAdmin(accounts[2], { from: accounts[2] }).should.be.rejectedWith('cannot remove last admin')
+      await acl.unassignRole(systemContext, accounts[2], adminRole, { from: accounts[1] }).should.be.rejectedWith('unauthorized')
     })
 
     it('by another admin', async () => {
-      await acl.removeAdmin(accounts[0], { from: accounts[2] }).should.be.fulfilled
+      await acl.unassignRole(systemContext, accounts[0], adminRole, { from: accounts[2] }).should.be.fulfilled
       await acl.isAdmin(accounts[0]).should.eventually.eq(false)
-      await acl.numAdmins().should.eventually.eq(1)
+      await acl.getNumUsersInContext(systemContext).should.eventually.eq(1)
+    })
+
+    it('and it makes no difference if they are removed twice', async () => {
+      await acl.unassignRole(systemContext, accounts[0], adminRole, { from: accounts[2] }).should.be.fulfilled
+      await acl.unassignRole(systemContext, accounts[0], adminRole, { from: accounts[2] }).should.be.fulfilled
+      await acl.isAdmin(accounts[0]).should.eventually.eq(false)
+      await acl.getNumUsersInContext(systemContext).should.eventually.eq(1)
+    })
+
+    it('and it makes no difference if they removed themselves', async () => {
+      await acl.unassignRole(systemContext, accounts[0], adminRole).should.be.fulfilled
+      await acl.isAdmin(accounts[0]).should.eventually.eq(false)
+      await acl.getNumUsersInContext(systemContext).should.eventually.eq(1)
+      await acl.getUserInContextAtIndex(systemContext, 0).should.eventually.eq(accounts[2])
     })
 
     it('and emits an event when successful', async () => {
-      const result = await acl.removeAdmin(accounts[0], { from: accounts[2] }).should.be.fulfilled
+      const result = await acl.unassignRole(systemContext, accounts[0], adminRole, { from: accounts[2] })
 
-      expect(extractEventArgs(result, events.AdminRemoved)).to.include({
-        addr: accounts[0]
+      expect(extractEventArgs(result, events.RoleUnassigned)).to.include({
+        context: systemContext,
+        addr: accounts[0],
+        role: adminRole,
       })
     })
   })
@@ -338,78 +264,93 @@ contract('ACL', accounts => {
     })
   })
 
-  describe('allows for an assigning role to be added and removed for a role', () => {
+  describe('allows for an assigning rolegroup to be added and removed for a role', () => {
     beforeEach(async () => {
+      await acl.setRoleGroup(roleGroup1, [role1, role2, role3])
+      await acl.setRoleGroup(roleGroup2, [role1, role2, role3])
+      await acl.setRoleGroup(roleGroup3, [role1, role2, role3])
+
       await acl.assignRole(context1, accounts[2], role2).should.be.fulfilled
+    })
+
+    it('fails to add as assigner if role group doesn\'t exist', async () => {
+      await acl.setRoleGroup(roleGroup1, [])
+      await acl.addAssigner(role1, roleGroup1).should.be.rejectedWith('must be role group')
+    })
+
+    it('fails to remove as assigner if role group doesn\'t exist', async () => {
+      await acl.setRoleGroup(roleGroup1, [])
+      await acl.removeAssigner(role1, roleGroup1).should.be.rejectedWith('must be role group')
     })
 
     it('works', async () => {
       await acl.canAssign(context1, accounts[2], role1).should.eventually.eq(false)
       await acl.assignRole(context1, accounts[1], role1, { from: accounts[2] }).should.be.rejectedWith('unauthorized')
 
-      await acl.addAssigner(role1, role2).should.be.fulfilled
+      await acl.addAssigner(role1, roleGroup1).should.be.fulfilled
 
       await acl.canAssign(context1, accounts[2], role1).should.eventually.eq(true)
       await acl.assignRole(context1, accounts[1], role1, { from: accounts[2] }).should.be.fulfilled
 
-      await acl.removeAssigner(role1, role2).should.be.fulfilled
+      await acl.removeAssigner(role1, roleGroup1).should.be.fulfilled
 
       await acl.canAssign(context1, accounts[2], role1).should.eventually.eq(false)
       await acl.assignRole(context1, accounts[1], role1, { from: accounts[2] }).should.be.rejectedWith('unauthorized')
     })
 
     it('and ensures no duplicates exist in list of all assigners for a given role', async () => {
-      await acl.addAssigner(role1, role2).should.be.fulfilled
-      await acl.addAssigner(role1, role2).should.be.fulfilled
-      await acl.getAssigners(role1).should.eventually.eq([ role2 ])
+      await acl.addAssigner(role1, roleGroup1).should.be.fulfilled
+      await acl.addAssigner(role1, roleGroup1).should.be.fulfilled
+      await acl.getAssigners(role1).should.eventually.eq([ roleGroup1 ])
     })
 
     it('and ensures that an item can be removed from the list of all assigners efficiently', async () => {
       // 3 items
-      await acl.addAssigner(role1, role2).should.be.fulfilled
-      await acl.addAssigner(role1, role3).should.be.fulfilled
-      await acl.addAssigner(role1, role4).should.be.fulfilled
+      await acl.addAssigner(role1, roleGroup1).should.be.fulfilled
+      await acl.addAssigner(role1, roleGroup2).should.be.fulfilled
+      await acl.addAssigner(role1, roleGroup3).should.be.fulfilled
 
-      await acl.getAssigners(role1).should.eventually.eq([ role2, role3, role4 ])
+      await acl.getAssigners(role1).should.eventually.eq([ roleGroup1, roleGroup2, roleGroup3 ])
 
       // remove head of list
-      await acl.removeAssigner(role1, role2).should.be.fulfilled
-      await acl.getAssigners(role1).should.eventually.eq([ role4, role3 ])
+      await acl.removeAssigner(role1, roleGroup1).should.be.fulfilled
+      await acl.getAssigners(role1).should.eventually.eq([ roleGroup3, roleGroup2 ])
 
       // remove end of list
-      await acl.removeAssigner(role1, role3).should.be.fulfilled
-      await acl.getAssigners(role1).should.eventually.eq([role4])
+      await acl.removeAssigner(role1, roleGroup2).should.be.fulfilled
+      await acl.getAssigners(role1).should.eventually.eq([ roleGroup3 ])
 
       // try same again, to ensure no error is thrown
-      await acl.removeAssigner(role1, role3).should.be.fulfilled
-      await acl.getAssigners(role1).should.eventually.eq([role4])
+      await acl.removeAssigner(role1, roleGroup2).should.be.fulfilled
+      await acl.getAssigners(role1).should.eventually.eq([roleGroup3])
 
       // remove last item
-      await acl.removeAssigner(role1, role4).should.be.fulfilled
+      await acl.removeAssigner(role1, roleGroup3).should.be.fulfilled
       await acl.getAssigners(role1).should.eventually.eq([])
     })
   })
 
   describe('stores list of all created contexts', () => {
     it('that gets updated when a role is assigned', async () => {
-      await acl.getNumContexts().should.eventually.eq(0)
+      await acl.getNumContexts().should.eventually.eq(1)
 
       await acl.assignRole(context1, accounts[2], role1).should.be.fulfilled
 
-      await acl.getNumContexts().should.eventually.eq(1)
-      await acl.getContextAtIndex(0).should.eventually.eq(context1)
+      await acl.getNumContexts().should.eventually.eq(2)
+      await acl.getContextAtIndex(0).should.eventually.eq(systemContext)
+      await acl.getContextAtIndex(1).should.eventually.eq(context1)
 
       await acl.assignRole(context1, accounts[2], role2).should.be.fulfilled
 
       // should be no change in context count
-      await acl.getNumContexts().should.eventually.eq(1)
+      await acl.getNumContexts().should.eventually.eq(2)
 
       await acl.assignRole(context2, accounts[2], role2).should.be.fulfilled
 
       // now we expect a change
-      await acl.getNumContexts().should.eventually.eq(2)
-      await acl.getContextAtIndex(0).should.eventually.eq(context1)
-      await acl.getContextAtIndex(1).should.eventually.eq(context2)
+      await acl.getNumContexts().should.eventually.eq(3)
+      await acl.getContextAtIndex(1).should.eventually.eq(context1)
+      await acl.getContextAtIndex(2).should.eventually.eq(context2)
     })
   })
 
@@ -422,22 +363,37 @@ contract('ACL', accounts => {
       await acl.assignRole(context1, accounts[4], role1).should.be.fulfilled
       await acl.assignRole(context1, accounts[4], role2).should.be.fulfilled
 
+      // initial state
       await acl.getNumUsersInContext(context1).should.eventually.eq(3)
       await acl.getUserInContextAtIndex(context1, 0).should.eventually.eq(accounts[2])
       await acl.getUserInContextAtIndex(context1, 1).should.eventually.eq(accounts[3])
       await acl.getUserInContextAtIndex(context1, 2).should.eventually.eq(accounts[4])
 
+      // remove user's first role
       await acl.unassignRole(context1, accounts[2], role2).should.be.fulfilled
       await acl.getNumUsersInContext(context1).should.eventually.eq(3)
+      // remove user's other role
       await acl.unassignRole(context1, accounts[2], role1).should.be.fulfilled
       await acl.getNumUsersInContext(context1).should.eventually.eq(2)
       await acl.getUserInContextAtIndex(context1, 0).should.eventually.eq(accounts[4])
       await acl.getUserInContextAtIndex(context1, 1).should.eventually.eq(accounts[3])
 
+      // remove another user
       await acl.unassignRole(context1, accounts[4], role2).should.be.fulfilled
       await acl.unassignRole(context1, accounts[4], role1).should.be.fulfilled
       await acl.getNumUsersInContext(context1).should.eventually.eq(1)
       await acl.getUserInContextAtIndex(context1, 0).should.eventually.eq(accounts[3])
+
+      // do same again to ensure no difference or error
+      await acl.unassignRole(context1, accounts[4], role2).should.be.fulfilled
+      await acl.unassignRole(context1, accounts[4], role1).should.be.fulfilled
+      await acl.getNumUsersInContext(context1).should.eventually.eq(1)
+      await acl.getUserInContextAtIndex(context1, 0).should.eventually.eq(accounts[3])
+
+      // remove final user
+      await acl.unassignRole(context1, accounts[3], role2).should.be.fulfilled
+      await acl.unassignRole(context1, accounts[3], role1).should.be.fulfilled
+      await acl.getNumUsersInContext(context1).should.eventually.eq(0)
     })
 
     it('and ensures the list of contexts for a user stays up-to-date', async () => {
@@ -446,21 +402,34 @@ contract('ACL', accounts => {
       await acl.assignRole(context2, accounts[2], role1).should.be.fulfilled
       await acl.assignRole(context3, accounts[2], role1).should.be.fulfilled
 
+      // check initial state
       await acl.getNumContextsForUser(accounts[2]).should.eventually.eq(3)
       await acl.getContextForUserAtIndex(accounts[2], 0).should.eventually.eq(context1)
       await acl.getContextForUserAtIndex(accounts[2], 1).should.eventually.eq(context2)
       await acl.getContextForUserAtIndex(accounts[2], 2).should.eventually.eq(context3)
 
+      // remove one role in a context
       await acl.unassignRole(context1, accounts[2], role2).should.be.fulfilled
       await acl.getNumContextsForUser(accounts[2]).should.eventually.eq(3)
+      // remove the other role in the context
       await acl.unassignRole(context1, accounts[2], role1).should.be.fulfilled
       await acl.getNumContextsForUser(accounts[2]).should.eventually.eq(2)
       await acl.getContextForUserAtIndex(accounts[2], 0).should.eventually.eq(context3)
       await acl.getContextForUserAtIndex(accounts[2], 1).should.eventually.eq(context2)
 
+      // remove second context
       await acl.unassignRole(context2, accounts[2], role1).should.be.fulfilled
       await acl.getNumContextsForUser(accounts[2]).should.eventually.eq(1)
       await acl.getContextForUserAtIndex(accounts[2], 0).should.eventually.eq(context3)
+
+      // try same again, to ensure no difference or error
+      await acl.unassignRole(context2, accounts[2], role1).should.be.fulfilled
+      await acl.getNumContextsForUser(accounts[2]).should.eventually.eq(1)
+      await acl.getContextForUserAtIndex(accounts[2], 0).should.eventually.eq(context3)
+
+      // remove final context
+      await acl.unassignRole(context3, accounts[2], role1).should.be.fulfilled
+      await acl.getNumContextsForUser(accounts[2]).should.eventually.eq(0)
     })
   })
 })

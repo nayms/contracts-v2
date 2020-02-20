@@ -9,7 +9,7 @@ import {
 
 import { events } from '../'
 
-import { ROLES, ROLEGROUPS } from '../migrations/utils/constants'
+import { ROLES } from '../migrations/utils/constants'
 
 import { ensureAclIsDeployed } from '../migrations/utils/acl'
 
@@ -81,7 +81,7 @@ contract('Entity', accounts => {
       await acl.assignRole(entityContext, accounts[2], ROLES.ENTITY_MANAGER)
       entityManagerSig = hdWallet.sign({ address: accounts[2], data: sha3(implVersion) })
 
-      await acl.assignRole(entityContext, accounts[3], ROLES.ENTITY_REPRESENTATIVE)
+      await acl.assignRole(entityContext, accounts[3], ROLES.ENTITY_REP)
       entityRepresentativeSig = hdWallet.sign({ address: accounts[3], data: sha3(implVersion) })
     })
 
@@ -125,28 +125,28 @@ contract('Entity', accounts => {
 
       await acl.assignRole(entityContext, accounts[1], ROLES.ENTITY_ADMIN)
       await acl.assignRole(entityContext, accounts[2], ROLES.ENTITY_MANAGER)
-      await acl.assignRole(entityContext, accounts[3], ROLES.ENTITY_REPRESENTATIVE)
+      await acl.assignRole(entityContext, accounts[3], ROLES.ENTITY_REP)
     })
 
     it('but not by entity admins', async () => {
       await createPolicy(entity, policyImpl.address, {}, { from: accounts[1] }).should.be.rejectedWith('must be in role group')
     })
 
-    it('by entity managers', async () => {
-      const result = await createPolicy(entity, policyImpl.address, {}, { from: accounts[2] }).should.be.fulfilled
+    it('by entity reps', async () => {
+      const result = await createPolicy(entity, policyImpl.address, {}, { from: accounts[3] }).should.be.fulfilled
 
       const eventArgs = extractEventArgs(result, events.NewPolicy)
 
       expect(eventArgs).to.include({
-        deployer: accounts[2],
+        deployer: accounts[3],
         entity: entityProxy.address,
       })
 
       await PolicyImpl.at(eventArgs.policy).should.be.fulfilled;
     })
 
-    it('by entity representatives', async () => {
-      await createPolicy(entity, policyImpl.address, {}, { from: accounts[3] }).should.be.fulfilled
+    it('but not by entity managers', async () => {
+      await createPolicy(entity, policyImpl.address, {}, { from: accounts[2] }).should.be.rejectedWith('must be in role group')
     })
 
     it('and the entity records get updated accordingly', async () => {

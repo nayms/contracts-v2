@@ -1,11 +1,14 @@
 pragma solidity >=0.5.8;
 
 import "./base/IACL.sol";
+import "./base/SafeMath.sol";
 
 /**
  * @dev Library for managing addresses assigned to a Role within a context.
  */
 library Assignments {
+  using SafeMath for *;
+
   struct UserRoles {
     mapping (bytes32 => uint256) map;
     bytes32[] list;
@@ -26,13 +29,13 @@ library Assignments {
     UserRoles storage ur = _context.userRoles[_addr];
 
     // new user?
-    if (0 == _context.userMap[_addr]) {
+    if (_context.userMap[_addr] == 0) {
       _context.userList.push(_addr);
       _context.userMap[_addr] = _context.userList.length;
     }
 
     // set role for user
-    if (0 == ur.map[_role]) {
+    if (ur.map[_role] == 0) {
       ur.list.push(_role);
       ur.map[_role] = ur.list.length;
     }
@@ -48,30 +51,30 @@ library Assignments {
 
     uint256 idx = ur.map[_role];
 
-    if (0 < idx) {
-      uint256 actualIdx = idx - 1;
+    if (idx > 0) {
+      uint256 actualIdx = idx.sub(1);
 
       // replace item to remove with last item in list and update mappings
-      if (ur.list.length - 1 > actualIdx) {
-        ur.list[actualIdx] = ur.list[ur.list.length - 1];
-        ur.map[ur.list[actualIdx]] = actualIdx + 1;
+      if (ur.list.length.sub(1) > actualIdx) {
+        ur.list[actualIdx] = ur.list[ur.list.length.sub(1)];
+        ur.map[ur.list[actualIdx]] = actualIdx.add(1);
       }
 
-      ur.list.length--;
+      ur.list.length = ur.list.length.sub(1);
       ur.map[_role] = 0;
     }
 
     // remove user if they don't have roles anymore
-    if (0 == ur.list.length) {
-      uint256 actualIdx = _context.userMap[_addr] - 1;
+    if (ur.list.length == 0) {
+      uint256 actualIdx = _context.userMap[_addr].sub(1);
 
       // replace item to remove with last item in list and update mappings
-      if (_context.userList.length - 1 > actualIdx) {
-        _context.userList[actualIdx] = _context.userList[_context.userList.length - 1];
-        _context.userMap[_context.userList[actualIdx]] = actualIdx + 1;
+      if (_context.userList.length.sub(1) > actualIdx) {
+        _context.userList[actualIdx] = _context.userList[_context.userList.length.sub(1)];
+        _context.userMap[_context.userList[actualIdx]] = actualIdx.add(1);
       }
 
-      _context.userList.length--;
+      _context.userList.length = _context.userList.length.sub(1);
       _context.userMap[_addr] = 0;
     }
   }
@@ -87,7 +90,7 @@ library Assignments {
   {
     UserRoles storage ur = _context.userRoles[_addr];
 
-    return (0 < ur.map[_role]);
+    return (ur.map[_role] > 0);
   }
 
 
@@ -150,6 +153,8 @@ library Assignments {
  * @dev Library for lists of byte32 value.
  */
 library Bytes32 {
+  using SafeMath for *;
+
   struct Set {
     mapping (bytes32 => uint256) map;
     bytes32[] list;
@@ -161,7 +166,7 @@ library Bytes32 {
   function add(Set storage _obj, bytes32 _assignerRole)
     internal
   {
-    if (0 == _obj.map[_assignerRole]) {
+    if (_obj.map[_assignerRole] == 0) {
       _obj.list.push(_assignerRole);
       _obj.map[_assignerRole] = _obj.list.length;
     }
@@ -175,16 +180,16 @@ library Bytes32 {
   {
     uint256 idx = _obj.map[_assignerRole];
 
-    if (0 < idx) {
-      uint256 actualIdx = idx - 1;
+    if (idx > 0) {
+      uint256 actualIdx = idx.sub(1);
 
       // replace item to remove with last item in list and update mappings
-      if (_obj.list.length - 1 > actualIdx) {
-        _obj.list[actualIdx] = _obj.list[_obj.list.length - 1];
-        _obj.map[_obj.list[actualIdx]] = actualIdx + 1;
+      if (_obj.list.length.sub(1) > actualIdx) {
+        _obj.list[actualIdx] = _obj.list[_obj.list.length.sub(1)];
+        _obj.map[_obj.list[actualIdx]] = actualIdx.add(1);
       }
 
-      _obj.list.length--;
+      _obj.list.length = _obj.list.length.sub(1);
       _obj.map[_assignerRole] = 0;
     }
   }
@@ -246,68 +251,57 @@ contract ACL is IACL {
   mapping (bytes32 => Bytes32.Set) private roleToGroups;
   mapping (bytes32 => Bytes32.Set) private groupToRoles;
   mapping (address => Bytes32.Set) private userContexts;
-  mapping (address => bool) public admins;
-  mapping (address => bool) public pendingAdmins;
-  uint256 public numAdmins;
-
 
   mapping (uint256 => bytes32) public contexts;
   mapping (bytes32 => bool) public isContext;
   uint256 public numContexts;
 
+  bytes32 public adminRole;
+  bytes32 public adminRoleGroup;
+  bytes32 public systemContext;
+
   modifier assertIsAdmin () {
-    require(admins[msg.sender], 'unauthorized - must be admin');
+    require(isAdmin(msg.sender), 'unauthorized - must be admin');
     _;
   }
 
   modifier assertIsAssigner (bytes32 _context, bytes32 _role) {
     // either they have the permission to assign or they're an admin
-    require(canAssign(_context, msg.sender, _role) || isAdmin(msg.sender), 'unauthorized');
+    require(isAdmin(msg.sender) || canAssign(_context, msg.sender, _role), 'unauthorized');
     _;
   }
 
-  constructor () public {
-    admins[msg.sender] = true;
-    numAdmins = 1;
+  modifier assertIsRoleGroup (bytes32 _roleGroup) {
+    require(isRoleGroup(_roleGroup), 'must be role group');
+    _;
+  }
+
+  constructor (bytes32 _adminRole, bytes32 _adminRoleGroup) public {
+    adminRole = _adminRole;
+    adminRoleGroup = _adminRoleGroup;
+    systemContext = keccak256(abi.encodePacked(address(this)));
+
+    // setup admin rolegroup
+    bytes32[] memory roles = new bytes32[](1);
+    roles[0] = _adminRole;
+    _setRoleGroup(adminRoleGroup, roles);
+
+    // set creator as admin
+    _assignRole(systemContext, msg.sender, _adminRole);
   }
 
   // Admins
 
-  /**
-   * @dev determine if addr is an admin
-   */
   function isAdmin(address _addr) public view returns (bool) {
-    return admins[_addr];
+    return hasRoleInGroup(systemContext, _addr, adminRoleGroup);
   }
 
-  function proposeNewAdmin(address _addr) public assertIsAdmin {
-    require(!admins[_addr], 'already an admin');
-    require(!pendingAdmins[_addr], 'already proposed as an admin');
-    pendingAdmins[_addr] = true;
-    emit AdminProposed(_addr);
+  function addAdmin(address _addr) public {
+    assignRole(systemContext, _addr, adminRole);
   }
 
-  function cancelNewAdminProposal(address _addr) public assertIsAdmin {
-    require(pendingAdmins[_addr], 'not proposed as an admin');
-    pendingAdmins[_addr] = false;
-    emit AdminProposalCancelled(_addr);
-  }
-
-  function acceptAdminRole() public {
-    require(pendingAdmins[msg.sender], 'not proposed as an admin');
-    pendingAdmins[msg.sender] = false;
-    admins[msg.sender] = true;
-    numAdmins++;
-    emit AdminProposalAccepted(msg.sender);
-  }
-
-  function removeAdmin(address _addr) public assertIsAdmin {
-    require(1 < numAdmins, 'cannot remove last admin');
-    require(_addr != msg.sender, 'cannot remove oneself');
-    require(admins[_addr], 'not an admin');
-    admins[_addr] = false;
-    numAdmins--;
-    emit AdminRemoved(_addr);
+  function removeAdmin(address _addr) public {
+    unassignRole(systemContext, _addr, adminRole);
   }
 
   // Contexts
@@ -345,28 +339,15 @@ contract ACL is IACL {
   }
 
   function setRoleGroup(bytes32 _roleGroup, bytes32[] memory _roles) public assertIsAdmin {
-    // remove old roles
-    bytes32[] storage oldRoles = groupToRoles[_roleGroup].getAll();
-
-    for (uint256 i = 0; i < oldRoles.length; i += 1) {
-      bytes32 r = oldRoles[i];
-      roleToGroups[r].remove(_roleGroup);
-    }
-
-    groupToRoles[_roleGroup].clear();
-
-    // set new roles
-    for (uint256 i = 0; i < _roles.length; i += 1) {
-      bytes32 r = _roles[i];
-      roleToGroups[r].add(_roleGroup);
-      groupToRoles[_roleGroup].add(r);
-    }
-
-    emit RoleGroupUpdated(_roleGroup);
+    _setRoleGroup(_roleGroup, _roles);
   }
 
   function getRoleGroup(bytes32 _roleGroup) public view returns (bytes32[] memory) {
     return groupToRoles[_roleGroup].getAll();
+  }
+
+  function isRoleGroup(bytes32 _roleGroup) public view returns (bool) {
+    return getRoleGroup(_roleGroup).length > 0;
   }
 
   function getRoleGroupsForRole(bytes32 _role) public view returns (bytes32[] memory) {
@@ -383,7 +364,7 @@ contract ACL is IACL {
     view
     returns (bool)
   {
-    return assignments[_context].hasRoleForUser(_role, _addr);
+    return assignments[_context].hasRoleForUser(_role, _addr) || assignments[systemContext].hasRoleForUser(_role, _addr);
   }
 
   function hasAnyRole(bytes32 _context, address _addr, bytes32[] memory _roles)
@@ -410,20 +391,9 @@ contract ACL is IACL {
     public
     assertIsAssigner(_context, _role)
   {
-    // record new context if necessary
-    if (!isContext[_context]) {
-      contexts[numContexts] = _context;
-      isContext[_context] = true;
-      numContexts++;
-    }
-
-    assignments[_context].addRoleForUser(_role, _addr);
-
-    // update user's context list
-    userContexts[_addr].add(_context);
-
-    emit RoleAssigned(_context, _addr, _role);
+    _assignRole(_context, _addr, _role);
   }
+
 
   /**
    * @dev remove a role from an address
@@ -432,7 +402,9 @@ contract ACL is IACL {
     public
     assertIsAssigner(_context, _role)
   {
-    assignments[_context].removeRoleForUser(_role, _addr);
+    if (assignments[_context].hasRoleForUser(_role, _addr)) {
+      assignments[_context].removeRoleForUser(_role, _addr);
+    }
 
     // update user's context list?
     if (!assignments[_context].hasUser(_addr)) {
@@ -448,20 +420,22 @@ contract ACL is IACL {
 
   // Role assigners
 
-  function addAssigner(bytes32 _role, bytes32 _assignerRole)
+  function addAssigner(bytes32 _roleToAssign, bytes32 _assignerRoleGroup)
     public
     assertIsAdmin
+    assertIsRoleGroup(_assignerRoleGroup)
   {
-    assigners[_role].add(_assignerRole);
-    emit AssignerAdded(_role, _assignerRole);
+    assigners[_roleToAssign].add(_assignerRoleGroup);
+    emit AssignerAdded(_roleToAssign, _assignerRoleGroup);
   }
 
-  function removeAssigner(bytes32 _role, bytes32 _assignerRole)
+  function removeAssigner(bytes32 _roleToAssign, bytes32 _assignerRoleGroup)
     public
     assertIsAdmin
+    assertIsRoleGroup(_assignerRoleGroup)
   {
-    assigners[_role].remove(_assignerRole);
-    emit AssignerRemoved(_role, _assignerRole);
+    assigners[_roleToAssign].remove(_assignerRoleGroup);
+    emit AssignerRemoved(_roleToAssign, _assignerRoleGroup);
   }
 
   function getAssigners(bytes32 _role)
@@ -481,6 +455,58 @@ contract ACL is IACL {
       return true;
     }
 
-    return hasAnyRole(_context, _addr, getAssigners(_role));
+    bytes32[] memory roleGroups = getAssigners(_role);
+
+    for (uint256 i = 0; i < roleGroups.length; i++) {
+      bytes32[] memory roles = getRoleGroup(roleGroups[i]);
+
+      if (hasAnyRole(_context, _addr, roles)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  // Internal functions
+
+  /**
+   * @dev assign a role to an address
+   */
+  function _assignRole(bytes32 _context, address _addr, bytes32 _role) private {
+    // record new context if necessary
+    if (!isContext[_context]) {
+      contexts[numContexts] = _context;
+      isContext[_context] = true;
+      numContexts++;
+    }
+
+    assignments[_context].addRoleForUser(_role, _addr);
+
+    // update user's context list
+    userContexts[_addr].add(_context);
+
+    emit RoleAssigned(_context, _addr, _role);
+  }
+
+  function _setRoleGroup(bytes32 _roleGroup, bytes32[] memory _roles) private {
+    // remove old roles
+    bytes32[] storage oldRoles = groupToRoles[_roleGroup].getAll();
+
+    for (uint256 i = 0; i < oldRoles.length; i += 1) {
+      bytes32 r = oldRoles[i];
+      roleToGroups[r].remove(_roleGroup);
+    }
+
+    groupToRoles[_roleGroup].clear();
+
+    // set new roles
+    for (uint256 i = 0; i < _roles.length; i += 1) {
+      bytes32 r = _roles[i];
+      roleToGroups[r].add(_roleGroup);
+      groupToRoles[_roleGroup].add(r);
+    }
+
+    emit RoleGroupUpdated(_roleGroup);
   }
 }

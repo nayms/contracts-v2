@@ -57,8 +57,8 @@
       ]
     },
     {
-      "id": "proposeAdmin",
-      "title": "ACL: Propose new admin",
+      "id": "addAdmin",
+      "title": "ACL: Add admin",
       "description": "You must be an admin to do this",
       "inputs": [
         {
@@ -83,104 +83,7 @@
         {
           "type": "send",
           "contract": "ACL",
-          "method": "proposeNewAdmin",
-          "address": "@input[contractAddress]",
-          "args": {
-            "_addr": "@input[address]"
-          }
-        }
-      ]
-    },
-    {
-      "id": "cancelAdminProposal",
-      "title": "ACL: Cancel admin proposal",
-      "description": "You must be an admin to do this",
-      "inputs": [
-        {
-          "name": "contractAddress",
-          "title": "ACL contract address",
-          "type": "address",
-          "initialValue": "@constant[aclAddress]",
-          "validation": [
-            {
-              "type": "allowedTypes",
-              "contract": true
-            }
-          ]
-        },
-        {
-          "name": "address",
-          "title": "Address",
-          "type": "address"
-        }
-      ],
-      "execs": [
-        {
-          "type": "send",
-          "contract": "ACL",
-          "method": "cancelNewAdminProposal",
-          "address": "@input[contractAddress]",
-          "args": {
-            "_addr": "@input[address]"
-          }
-        }
-      ]
-    },
-    {
-      "id": "acceptAdminRole",
-      "title": "ACL: Accept admin proposal",
-      "description": "You must the proposed admin to do this",
-      "inputs": [
-        {
-          "name": "contractAddress",
-          "title": "ACL contract address",
-          "type": "address",
-          "initialValue": "@constant[aclAddress]",
-          "validation": [
-            {
-              "type": "allowedTypes",
-              "contract": true
-            }
-          ]
-        }
-      ],
-      "execs": [
-        {
-          "type": "send",
-          "contract": "ACL",
-          "method": "acceptAdminRole",
-          "address": "@input[contractAddress]"
-        }
-      ]
-    },
-    {
-      "id": "removeAdmin",
-      "title": "ACL: Remove admin",
-      "description": "You must be an admin to do this",
-      "inputs": [
-        {
-          "name": "contractAddress",
-          "title": "ACL contract address",
-          "type": "address",
-          "initialValue": "@constant[aclAddress]",
-          "validation": [
-            {
-              "type": "allowedTypes",
-              "contract": true
-            }
-          ]
-        },
-        {
-          "name": "address",
-          "title": "Address",
-          "type": "address"
-        }
-      ],
-      "execs": [
-        {
-          "type": "send",
-          "contract": "ACL",
-          "method": "removeAdmin",
+          "method": "addAdmin",
           "address": "@input[contractAddress]",
           "args": {
             "_addr": "@input[address]"

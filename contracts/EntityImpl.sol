@@ -37,7 +37,7 @@ import "./Policy.sol";
     uint256 _premiumIntervalSeconds
   )
     public
-    assertInRoleGroup(ROLEGROUP_MANAGE_POLICY)
+    assertInRoleGroup(ROLEGROUP_POLICY_MANAGERS)
   {
     Policy f = new Policy(
       address(acl()),

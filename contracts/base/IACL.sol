@@ -3,6 +3,8 @@ pragma solidity >=0.5.8;
 interface IACL {
   // admin
   function isAdmin(address _addr) external view returns (bool);
+  function addAdmin(address _addr) external;
+  function removeAdmin(address _addr) external;
   // contexts
   function getNumContexts() external view returns (uint256);
   function getContextAtIndex(uint256 _index) external view returns (bytes32);

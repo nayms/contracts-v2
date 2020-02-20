@@ -55,7 +55,7 @@ contract('Policy', accounts => {
   let policyProxy
   let policy
   let policyContext
-  let entityManagerAddress
+  let entityRepAddress
   let erc1820Registry
   let etherToken
 
@@ -85,8 +85,8 @@ contract('Policy', accounts => {
 
     // policy
     await acl.assignRole(entityContext, accounts[1], ROLES.ENTITY_ADMIN)
-    await acl.assignRole(entityContext, accounts[2], ROLES.ENTITY_MANAGER)
-    entityManagerAddress = accounts[2]
+    await acl.assignRole(entityContext, accounts[2], ROLES.ENTITY_REP)
+    entityRepAddress = accounts[2]
 
     policyImpl = await PolicyImpl.new(acl.address, settings.address)
 
@@ -101,7 +101,7 @@ contract('Policy', accounts => {
         maturationDate: currentBlockTime + maturationDateDiff,
         unit: etherToken.address,
         premiumIntervalSeconds,
-      }, { from: entityManagerAddress })
+      }, { from: entityRepAddress })
       const policyAddress = extractEventArgs(createPolicyTx, events.NewPolicy).policy
 
       policyProxy = await Policy.at(policyAddress)
@@ -192,7 +192,7 @@ contract('Policy', accounts => {
     const tranchPricePerShare = 100
 
     beforeEach(async () => {
-      await acl.assignRole(entityContext, accounts[2], ROLES.ENTITY_MANAGER)
+      await acl.assignRole(entityContext, accounts[2], ROLES.ENTITY_REP)
     })
 
     describe('basic tests', () => {
@@ -302,7 +302,7 @@ contract('Policy', accounts => {
       beforeEach(async () => {
         await setupPolicy()
 
-        acl.assignRole(entityContext, accounts[0], ROLES.ENTITY_MANAGER)
+        acl.assignRole(entityContext, accounts[0], ROLES.ENTITY_REP)
 
         await createTranch(policy, {
           numShares: tranchNumShares,
@@ -397,7 +397,7 @@ contract('Policy', accounts => {
       beforeEach(async () => {
         await setupPolicy()
 
-        acl.assignRole(entityContext, accounts[0], ROLES.ENTITY_MANAGER)
+        acl.assignRole(entityContext, accounts[0], ROLES.ENTITY_REP)
 
         await createTranch(policy, {
           numShares: tranchNumShares,
@@ -659,7 +659,7 @@ contract('Policy', accounts => {
 
     describe('premiums', () => {
       beforeEach(async () => {
-        acl.assignRole(entityContext, accounts[0], ROLES.ENTITY_MANAGER)
+        acl.assignRole(entityContext, accounts[0], ROLES.ENTITY_REP)
       })
 
       describe('basic tests', () => {

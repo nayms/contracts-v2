@@ -37,26 +37,26 @@ contract('ACL', accounts => {
 
   describe('can have new admin added', () => {
     it('but not by a non-admin', async () => {
-      await acl.assignRole(systemContext, accounts[1], adminRole, { from: accounts[2] }).should.be.rejectedWith('unauthorized')
+      await acl.addAdmin(accounts[1], { from: accounts[2] }).should.be.rejectedWith('unauthorized')
     })
 
     it('by an admin', async () => {
       await acl.isAdmin(accounts[1]).should.eventually.eq(false)
-      await acl.assignRole(systemContext, accounts[1], adminRole).should.be.fulfilled
+      await acl.addAdmin(accounts[1]).should.be.fulfilled
       await acl.getNumUsersInContext(systemContext).should.eventually.eq(2)
       await acl.isAdmin(accounts[1]).should.eventually.eq(true)
     })
 
     it('and makes no difference if they get added again', async () => {
       await acl.isAdmin(accounts[1]).should.eventually.eq(false)
-      await acl.assignRole(systemContext, accounts[1], adminRole).should.be.fulfilled
-      await acl.assignRole(systemContext, accounts[1], adminRole).should.be.fulfilled
+      await acl.addAdmin(accounts[1]).should.be.fulfilled
+      await acl.addAdmin(accounts[1]).should.be.fulfilled
       await acl.getNumUsersInContext(systemContext).should.eventually.eq(2)
       await acl.isAdmin(accounts[1]).should.eventually.eq(true)
     })
 
     it('and emits an event when successful', async () => {
-      const result = await acl.assignRole(systemContext, accounts[1], adminRole)
+      const result = await acl.addAdmin(accounts[1])
 
       expect(extractEventArgs(result, events.RoleAssigned)).to.include({
         context: systemContext,
@@ -68,37 +68,37 @@ contract('ACL', accounts => {
 
   describe('can have someone removed as admin', () => {
     beforeEach(async () => {
-      await acl.assignRole(systemContext, accounts[2], adminRole).should.be.fulfilled
+      await acl.addAdmin(accounts[2]).should.be.fulfilled
       await acl.getNumUsersInContext(systemContext).should.eventually.eq(2)
-      await acl.isAdmin(accounts[0]).should.eventually.eq(true)
+      await acl.isAdmin(accounts[2]).should.eventually.eq(true)
     })
 
     it('but not by a non-admin', async () => {
-      await acl.unassignRole(systemContext, accounts[2], adminRole, { from: accounts[1] }).should.be.rejectedWith('unauthorized')
+      await acl.removeAdmin(accounts[2], { from: accounts[1] }).should.be.rejectedWith('unauthorized')
     })
 
     it('by another admin', async () => {
-      await acl.unassignRole(systemContext, accounts[0], adminRole, { from: accounts[2] }).should.be.fulfilled
+      await acl.removeAdmin(accounts[0], { from: accounts[2] }).should.be.fulfilled
       await acl.isAdmin(accounts[0]).should.eventually.eq(false)
       await acl.getNumUsersInContext(systemContext).should.eventually.eq(1)
     })
 
     it('and it makes no difference if they are removed twice', async () => {
-      await acl.unassignRole(systemContext, accounts[0], adminRole, { from: accounts[2] }).should.be.fulfilled
-      await acl.unassignRole(systemContext, accounts[0], adminRole, { from: accounts[2] }).should.be.fulfilled
+      await acl.removeAdmin(accounts[0], { from: accounts[2] }).should.be.fulfilled
+      await acl.removeAdmin(accounts[0], { from: accounts[2] }).should.be.fulfilled
       await acl.isAdmin(accounts[0]).should.eventually.eq(false)
       await acl.getNumUsersInContext(systemContext).should.eventually.eq(1)
     })
 
     it('and it makes no difference if they removed themselves', async () => {
-      await acl.unassignRole(systemContext, accounts[0], adminRole).should.be.fulfilled
+      await acl.removeAdmin(accounts[0]).should.be.fulfilled
       await acl.isAdmin(accounts[0]).should.eventually.eq(false)
       await acl.getNumUsersInContext(systemContext).should.eventually.eq(1)
       await acl.getUserInContextAtIndex(systemContext, 0).should.eventually.eq(accounts[2])
     })
 
     it('and emits an event when successful', async () => {
-      const result = await acl.unassignRole(systemContext, accounts[0], adminRole, { from: accounts[2] })
+      const result = await acl.removeAdmin(accounts[0], { from: accounts[2] })
 
       expect(extractEventArgs(result, events.RoleUnassigned)).to.include({
         context: systemContext,
@@ -193,6 +193,15 @@ contract('ACL', accounts => {
         addr: accounts[2],
         role: role1,
       })
+    })
+
+    it('and if assigned in the system context then it automatically applies to all other contexts', async () => {
+      await acl.hasRole(context1, accounts[2], role1).should.eventually.eq(false)
+
+      await acl.assignRole(systemContext, accounts[2], role1).should.be.fulfilled
+
+      await acl.hasRole(context1, accounts[2], role1).should.eventually.eq(true)
+      await acl.hasRole(context2, accounts[2], role1).should.eventually.eq(true)
     })
   })
 

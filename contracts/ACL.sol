@@ -296,6 +296,14 @@ contract ACL is IACL {
     return hasRoleInGroup(systemContext, _addr, adminRoleGroup);
   }
 
+  function addAdmin(address _addr) public {
+    assignRole(systemContext, _addr, adminRole);
+  }
+
+  function removeAdmin(address _addr) public {
+    unassignRole(systemContext, _addr, adminRole);
+  }
+
   // Contexts
 
   function getNumContexts() public view returns (uint256) {
@@ -356,7 +364,7 @@ contract ACL is IACL {
     view
     returns (bool)
   {
-    return assignments[_context].hasRoleForUser(_role, _addr);
+    return assignments[_context].hasRoleForUser(_role, _addr) || assignments[systemContext].hasRoleForUser(_role, _addr);
   }
 
   function hasAnyRole(bytes32 _context, address _addr, bytes32[] memory _roles)

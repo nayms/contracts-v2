@@ -35,12 +35,12 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
   // Modifiers //
 
   modifier assertCanManagePolicy () {
-    require(inRoleGroupWithContext(dataBytes32["entityContext"], msg.sender, ROLEGROUP_MANAGE_POLICY), 'must be policy manager');
+    require(inRoleGroupWithContext(dataBytes32["entityContext"], msg.sender, ROLEGROUP_POLICY_MANAGERS), 'must be policy manager');
     _;
   }
 
   modifier assertCanApprovePolicy () {
-    require(inRoleGroup(msg.sender, ROLEGROUP_APPROVE_POLICY), 'must be policy approver');
+    require(inRoleGroup(msg.sender, ROLEGROUP_POLICY_APPROVERS), 'must be policy approver');
     _;
   }
 

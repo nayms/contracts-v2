@@ -36,7 +36,7 @@ contract('Policy flow', accounts => {
   let initiationDate
   let market
   let etherToken
-  let entityManagerAddress
+  let entityRepAddress
   let policyApproverAddress
 
   let STATE_DRAFT
@@ -69,8 +69,8 @@ contract('Policy flow', accounts => {
     const entityContext = await entityProxy.aclContext()
 
     // policy
-    await acl.assignRole(entityContext, accounts[1], ROLES.ENTITY_MANAGER)
-    entityManagerAddress = accounts[1]
+    await acl.assignRole(entityContext, accounts[1], ROLES.ENTITY_REP)
+    entityRepAddress = accounts[1]
 
     policyImpl = await PolicyImpl.new(acl.address, settings.address)
 
@@ -87,7 +87,7 @@ contract('Policy flow', accounts => {
       maturationDate: initiationDate + 2000,
       unit: etherToken.address,
       premiumIntervalSeconds,
-    }, { from: entityManagerAddress })
+    }, { from: entityRepAddress })
     const policyAddress = extractEventArgs(createPolicyTx, events.NewPolicy).policy
 
     policyProxy = await Policy.at(policyAddress)
@@ -106,13 +106,13 @@ contract('Policy flow', accounts => {
       numShares: 100,
       pricePerShareAmount: 2,
       premiums: [1, 2, 3, 4, 5, 6, 7],
-    }, { from: entityManagerAddress })
+    }, { from: entityRepAddress })
 
     await createTranch(policy, {
       numShares: 50,
       pricePerShareAmount: 2,
       premiums: [1, 2, 3, 4, 5, 6, 7],
-    }, { from: entityManagerAddress })
+    }, { from: entityRepAddress })
 
     getTranchToken = async idx => {
       const tt = await policy.getTranchToken(idx)
@@ -153,7 +153,7 @@ contract('Policy flow', accounts => {
           numShares: 50,
           pricePerShareAmount: 2,
           premiums: [1, 2, 3],
-        }, { from: entityManagerAddress })
+        }, { from: entityRepAddress })
 
         await etherToken.deposit({ value: 100 })
         await etherToken.approve(policy.address, 100)
@@ -183,7 +183,7 @@ contract('Policy flow', accounts => {
             numShares: 100,
             pricePerShareAmount: 2,
             initialBalanceHolder: accounts[3],
-          }, { from: entityManagerAddress })
+          }, { from: entityRepAddress })
 
           await policy.beginSale({ from: policyApproverAddress }).should.be.rejectedWith('initial holder must be policy contract')
         })

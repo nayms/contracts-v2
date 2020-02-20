@@ -20,7 +20,7 @@ library Assignments {
   /**
    * @dev give an address access to a role
    */
-  function add(Context storage _context, bytes32 _role, address _addr)
+  function addRoleForUser(Context storage _context, bytes32 _role, address _addr)
     internal
   {
     UserRoles storage ur = _context.userRoles[_addr];
@@ -41,7 +41,7 @@ library Assignments {
   /**
    * @dev remove an address' access to a role
    */
-  function remove(Context storage _context, bytes32 _role, address _addr)
+  function removeRoleForUser(Context storage _context, bytes32 _role, address _addr)
     internal
   {
     UserRoles storage ur = _context.userRoles[_addr];
@@ -80,7 +80,7 @@ library Assignments {
    * @dev check if an address has a role
    * @return bool
    */
-  function hasRole(Context storage _context, bytes32 _role, address _addr)
+  function hasRoleForUser(Context storage _context, bytes32 _role, address _addr)
     internal
     view
     returns (bool)
@@ -130,6 +130,19 @@ library Assignments {
   {
     return _context.userList[_index];
   }
+
+
+  /**
+   * @dev get whether given addresses has a role in this context
+   * @return uint256
+   */
+  function hasUser(Context storage _context, address _addr)
+    internal
+    view
+    returns (bool)
+  {
+    return _context.userMap[_addr] != 0;
+  }
 }
 
 
@@ -137,7 +150,7 @@ library Assignments {
  * @dev Library for lists of byte32 value.
  */
 library Bytes32 {
-  struct List {
+  struct Set {
     mapping (bytes32 => uint256) map;
     bytes32[] list;
   }
@@ -145,7 +158,7 @@ library Bytes32 {
   /**
    * @dev add a value
    */
-  function add(List storage _obj, bytes32 _assignerRole)
+  function add(Set storage _obj, bytes32 _assignerRole)
     internal
   {
     if (0 == _obj.map[_assignerRole]) {
@@ -157,7 +170,7 @@ library Bytes32 {
   /**
    * @dev remove an value for this role
    */
-  function remove(List storage _obj, bytes32 _assignerRole)
+  function remove(Set storage _obj, bytes32 _assignerRole)
     internal
   {
     uint256 idx = _obj.map[_assignerRole];
@@ -179,7 +192,7 @@ library Bytes32 {
   /**
    * @dev remove all values
    */
-  function clear(List storage _obj)
+  function clear(Set storage _obj)
     internal
   {
     for (uint i = 0; i < _obj.list.length; i += 1) {
@@ -190,9 +203,31 @@ library Bytes32 {
   }
 
   /**
+   * @dev get no. of values
+   */
+  function size(Set storage _obj)
+    internal
+    view
+    returns (uint256)
+  {
+    return _obj.list.length;
+  }
+
+  /**
+   * @dev get value at index.
+   */
+  function get(Set storage _obj, uint256 _index)
+    internal
+    view
+    returns (bytes32)
+  {
+    return _obj.list[_index];
+  }
+
+  /**
    * @dev Get all values.
    */
-  function getAll(List storage _obj)
+  function getAll(Set storage _obj)
     internal
     view
     returns (bytes32[] storage)
@@ -202,22 +237,22 @@ library Bytes32 {
 }
 
 
-
-
 contract ACL is IACL {
   using Assignments for Assignments.Context;
-  using Bytes32 for Bytes32.List;
+  using Bytes32 for Bytes32.Set;
 
-  mapping (string => Assignments.Context) private assignments;
-  mapping (bytes32 => Bytes32.List) private assigners;
-  mapping (bytes32 => Bytes32.List) private roleToGroups;
-  mapping (bytes32 => Bytes32.List) private groupToRoles;
+  mapping (bytes32 => Assignments.Context) private assignments;
+  mapping (bytes32 => Bytes32.Set) private assigners;
+  mapping (bytes32 => Bytes32.Set) private roleToGroups;
+  mapping (bytes32 => Bytes32.Set) private groupToRoles;
+  mapping (address => Bytes32.Set) private userContexts;
   mapping (address => bool) public admins;
   mapping (address => bool) public pendingAdmins;
   uint256 public numAdmins;
 
-  mapping (uint256 => string) public contexts;
-  mapping (string => bool) public isContext;
+
+  mapping (uint256 => bytes32) public contexts;
+  mapping (bytes32 => bool) public isContext;
   uint256 public numContexts;
 
   modifier assertIsAdmin () {
@@ -225,7 +260,7 @@ contract ACL is IACL {
     _;
   }
 
-  modifier assertIsAssigner (string memory _context, bytes32 _role) {
+  modifier assertIsAssigner (bytes32 _context, bytes32 _role) {
     // either they have the permission to assign or they're an admin
     require(canAssign(_context, msg.sender, _role) || isAdmin(msg.sender), 'unauthorized');
     _;
@@ -281,21 +316,31 @@ contract ACL is IACL {
     return numContexts;
   }
 
-  function getContextAtIndex(uint256 _index) public view returns (string memory) {
+  function getContextAtIndex(uint256 _index) public view returns (bytes32) {
     return contexts[_index];
   }
 
-  function getNumUsersInContext(string memory _context) public view returns (uint) {
+  function getNumUsersInContext(bytes32 _context) public view returns (uint256) {
     return assignments[_context].getNumUsers();
   }
 
-  function getUserInContextAtIndex(string memory _context, uint _index) public view returns (address) {
+  function getUserInContextAtIndex(bytes32 _context, uint _index) public view returns (address) {
     return assignments[_context].getUserAtIndex(_index);
+  }
+
+  // Users
+
+  function getNumContextsForUser(address _addr) public view returns (uint256) {
+    return userContexts[_addr].size();
+  }
+
+  function getContextForUserAtIndex(address _addr, uint256 _index) public view returns (bytes32) {
+    return userContexts[_addr].get(_index);
   }
 
   // Role groups
 
-  function hasRoleInGroup(string memory _context, address _addr, bytes32 _roleGroup) public view returns (bool) {
+  function hasRoleInGroup(bytes32 _context, address _addr, bytes32 _roleGroup) public view returns (bool) {
     return hasAnyRole(_context, _addr, groupToRoles[_roleGroup].getAll());
   }
 
@@ -333,15 +378,15 @@ contract ACL is IACL {
   /**
    * @dev determine if addr has role
    */
-  function hasRole(string memory _context, address _addr, bytes32 _role)
+  function hasRole(bytes32 _context, address _addr, bytes32 _role)
     public
     view
     returns (bool)
   {
-    return assignments[_context].hasRole(_role, _addr);
+    return assignments[_context].hasRoleForUser(_role, _addr);
   }
 
-  function hasAnyRole(string memory _context, address _addr, bytes32[] memory _roles)
+  function hasAnyRole(bytes32 _context, address _addr, bytes32[] memory _roles)
     public
     view
     returns (bool)
@@ -361,7 +406,7 @@ contract ACL is IACL {
   /**
    * @dev assign a role to an address
    */
-  function assignRole(string memory _context, address _addr, bytes32 _role)
+  function assignRole(bytes32 _context, address _addr, bytes32 _role)
     public
     assertIsAssigner(_context, _role)
   {
@@ -372,22 +417,32 @@ contract ACL is IACL {
       numContexts++;
     }
 
-    assignments[_context].add(_role, _addr);
+    assignments[_context].addRoleForUser(_role, _addr);
+
+    // update user's context list
+    userContexts[_addr].add(_context);
+
     emit RoleAssigned(_context, _addr, _role);
   }
 
   /**
    * @dev remove a role from an address
    */
-  function unassignRole(string memory _context, address _addr, bytes32 _role)
+  function unassignRole(bytes32 _context, address _addr, bytes32 _role)
     public
     assertIsAssigner(_context, _role)
   {
-    assignments[_context].remove(_role, _addr);
+    assignments[_context].removeRoleForUser(_role, _addr);
+
+    // update user's context list?
+    if (!assignments[_context].hasUser(_addr)) {
+      userContexts[_addr].remove(_context);
+    }
+
     emit RoleUnassigned(_context, _addr, _role);
   }
 
-  function getRolesForUser(string memory _context, address _addr) public view returns (bytes32[] memory) {
+  function getRolesForUser(bytes32 _context, address _addr) public view returns (bytes32[] memory) {
     return assignments[_context].getRolesForUser(_addr);
   }
 
@@ -417,7 +472,7 @@ contract ACL is IACL {
     return assigners[_role].getAll();
   }
 
-  function canAssign(string memory _context, address _addr, bytes32 _role)
+  function canAssign(bytes32 _context, address _addr, bytes32 _role)
     public
     view
     returns (bool)

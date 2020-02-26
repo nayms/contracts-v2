@@ -5,7 +5,7 @@ import {
 
 import {
   ensureAclIsDeployed,
-} from '../migrations/utils/acl'
+} from '../migrations/modules/acl'
 
 import { events } from '../'
 

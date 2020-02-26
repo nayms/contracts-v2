@@ -1,5 +1,5 @@
-const { createLog } = require('./log')
-const { deploy } = require('./functions')
+const { createLog } = require('../../utils/log')
+const { deploy } = require('../../utils/functions')
 
 export const ensureSettingsIsDeployed = async ({ deployer, artifacts, logger }, aclAddress) => {
   const log = createLog(logger)

@@ -3,11 +3,11 @@ const EntityImpl = artifacts.require("./EntityImpl")
 const PolicyImpl = artifacts.require("./PolicyImpl")
 const EntityDeployer = artifacts.require("./EntityDeployer")
 
-const { ensureAclIsDeployed } = require('./utils/acl')
-const { ensureMarketIsDeployed } = require('./utils/market')
-const { ensureSettingsIsDeployed } = require('./utils/settings')
-const { ensureEtherTokenIsDeployed } = require('./utils/etherToken')
-const { ensureErc1820RegistryIsDeployed } = require('./utils/erc1820')
+const { ensureAclIsDeployed } = require('./modules/acl')
+const { ensureMarketIsDeployed } = require('./modules/market')
+const { ensureSettingsIsDeployed } = require('./modules/settings')
+const { ensureEtherTokenIsDeployed } = require('./modules/etherToken')
+const { ensureErc1820RegistryIsDeployed } = require('./modules/erc1820')
 
 module.exports = async deployer => {
   const web3 = new Web3(deployer.provider)

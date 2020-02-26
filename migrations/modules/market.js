@@ -1,5 +1,5 @@
-const { createLog } = require('./log')
-const { deploy } = require('./functions')
+const { createLog } = require('../../utils/log')
+const { deploy } = require('../../utils/functions')
 
 export const ensureMarketIsDeployed = async ({ deployer, artifacts, logger }, settingsAddress) => {
   const log = createLog(logger)

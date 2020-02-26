@@ -486,6 +486,11 @@ contract ACL is IACL {
     // update user's context list
     userContexts[_addr].add(_context);
 
+    // only admin should be able to assign somebody in the system context
+    if (_context == systemContext) {
+      require(isAdmin(msg.sender), 'only admin can assign role in system context');
+    }
+
     emit RoleAssigned(_context, _addr, _role);
   }
 

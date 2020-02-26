@@ -8,14 +8,14 @@ import {
 
 import { events } from '../'
 
-import { ensureEtherTokenIsDeployed } from '../migrations/utils/etherToken'
+import { ensureEtherTokenIsDeployed } from '../migrations/modules/etherToken'
 
-import { ROLES, ROLEGROUPS } from '../migrations/utils/constants'
+import { ROLES, ROLEGROUPS } from '../utils/constants'
 
-import { ensureAclIsDeployed } from '../migrations/utils/acl'
+import { ensureAclIsDeployed } from '../migrations/modules/acl'
 
-import { ensureSettingsIsDeployed } from '../migrations/utils/settings'
-import { ensureMarketIsDeployed } from '../migrations/utils/market'
+import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
+import { ensureMarketIsDeployed } from '../migrations/modules/market'
 
 const EntityDeployer = artifacts.require('./EntityDeployer')
 const IEntityImpl = artifacts.require('./base/IEntityImpl')

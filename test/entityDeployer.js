@@ -1,7 +1,7 @@
 import { extractEventArgs } from './utils'
 import { events } from '../'
-import { ensureAclIsDeployed } from '../migrations/utils/acl'
-import { ensureSettingsIsDeployed } from '../migrations/utils/settings'
+import { ensureAclIsDeployed } from '../migrations/modules/acl'
+import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
 
 const Entity = artifacts.require("./Entity")
 const EntityImpl = artifacts.require("./EntityImpl")

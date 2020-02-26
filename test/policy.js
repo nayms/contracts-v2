@@ -15,14 +15,14 @@ import {
   ensureErc1820RegistryIsDeployed,
   TOKENS_SENDER_INTERFACE_HASH,
   TOKENS_RECIPIENT_INTERFACE_HASH
-} from '../migrations/utils/erc1820'
+} from '../migrations/modules/erc1820'
 
-import { ROLES, ROLEGROUPS } from '../migrations/utils/constants'
+import { ROLES, ROLEGROUPS } from '../utils/constants'
 
-import { ensureAclIsDeployed } from '../migrations/utils/acl'
+import { ensureAclIsDeployed } from '../migrations/modules/acl'
 
-import { ensureEtherTokenIsDeployed } from '../migrations/utils/etherToken'
-import { ensureSettingsIsDeployed } from '../migrations/utils/settings'
+import { ensureEtherTokenIsDeployed } from '../migrations/modules/etherToken'
+import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
 
 const IERC20 = artifacts.require("./base/IERC20")
 const IERC777 = artifacts.require("./base/IERC777")

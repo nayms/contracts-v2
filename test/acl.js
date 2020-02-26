@@ -1,8 +1,7 @@
 import { extractEventArgs } from './utils'
 import { events } from '../'
 import { sha3 } from './utils/web3'
-import { ensureAclIsDeployed } from '../migrations/utils/acl'
-import { ROLES, ROLEGROUPS } from '../migrations/utils/constants'
+import { ensureAclIsDeployed } from '../migrations/modules/acl'
 
 contract('ACL', accounts => {
   const role1 = sha3('testrole1')
@@ -185,6 +184,17 @@ contract('ACL', accounts => {
       await acl.getRolesForUser(context1, accounts[2]).should.eventually.eq([role1, role2])
     })
 
+    it('by someone who can assign', async () => {
+      await acl.setRoleGroup(roleGroup1, [ role2 ])
+      await acl.addAssigner(role1, roleGroup1)
+      await acl.assignRole(context1, accounts[3], role2)
+
+      await acl.hasRole(context1, accounts[2], role1).should.eventually.eq(false)
+      await acl.assignRole(context1, accounts[2], role1, { from: accounts[3] }).should.be.fulfilled
+      await acl.hasRole(context1, accounts[2], role1).should.eventually.eq(true)
+      await acl.getRolesForUser(context1, accounts[2]).should.eventually.eq([role1])
+    })
+
     it('and emits an event when successful', async () => {
       const result = await acl.assignRole(context1, accounts[2], role1).should.be.fulfilled
 
@@ -202,6 +212,16 @@ contract('ACL', accounts => {
 
       await acl.hasRole(context1, accounts[2], role1).should.eventually.eq(true)
       await acl.hasRole(context2, accounts[2], role1).should.eventually.eq(true)
+    })
+
+    it('cannot be assigned in the system context by a non-admin', async () => {
+      // remove admin role but become assigner via rolegroup
+      await acl.setRoleGroup(roleGroup1, [role2])
+      await acl.addAssigner(role1, roleGroup1)
+      await acl.assignRole(systemContext, accounts[0], role2)
+      await acl.unassignRole(systemContext, accounts[0], adminRole)
+
+      await acl.assignRole(systemContext, accounts[2], role1, { from: accounts[0] }).should.be.rejectedWith('only admin can assign role in system context')
     })
   })
 

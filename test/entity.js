@@ -9,13 +9,13 @@ import {
 
 import { events } from '../'
 
-import { ROLES } from '../migrations/utils/constants'
+import { ROLES } from '../utils/constants'
 
-import { ensureAclIsDeployed } from '../migrations/utils/acl'
+import { ensureAclIsDeployed } from '../migrations/modules/acl'
 
 import {
   ensureSettingsIsDeployed,
-} from '../migrations/utils/settings'
+} from '../migrations/modules/settings'
 
 const IEntityImpl = artifacts.require("./base/IEntityImpl")
 const Proxy = artifacts.require('./base/Proxy')

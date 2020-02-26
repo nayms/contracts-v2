@@ -5,7 +5,7 @@ try {
 
 const rawContracts = require('./contracts.generated.js')
 
-const { ROLES, ROLEGROUPS } = require('./migrations/utils/constants')
+const { ROLES, ROLEGROUPS } = require('./utils/constants')
 
 const coreContracts = [
   { name: 'Settings', actual: 'ISettingsImpl' },

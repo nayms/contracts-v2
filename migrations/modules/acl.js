@@ -1,7 +1,7 @@
-const { deploy } = require('./functions')
-const { createLog } = require('./log')
+const { deploy } = require('../../utils/functions')
+const { createLog } = require('../../utils/log')
 
-const { ROLES, ROLEGROUPS } = require('./constants')
+const { ROLES, ROLEGROUPS } = require('../../utils/constants')
 
 export const ensureAclIsDeployed = async ({ deployer, artifacts, logger }) => {
   const log = createLog(logger)

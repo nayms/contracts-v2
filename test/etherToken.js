@@ -1,9 +1,9 @@
 import EthVal from 'ethval'
 import { extractEventArgs, ADDRESS_ZERO } from './utils'
 import { events } from '../'
-import { ensureAclIsDeployed } from '../migrations/utils/acl'
-import { ensureSettingsIsDeployed } from '../migrations/utils/settings'
-import { ensureEtherTokenIsDeployed } from '../migrations/utils/etherToken'
+import { ensureAclIsDeployed } from '../migrations/modules/acl'
+import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
+import { ensureEtherTokenIsDeployed } from '../migrations/modules/etherToken'
 
 const IERC20 = artifacts.require("./base/IERC20")
 

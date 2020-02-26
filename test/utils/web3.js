@@ -1,5 +1,5 @@
 const web3 = require('web3')
-const { sha3 } = require('../../migrations/utils/functions')
+const { sha3 } = require('../../utils/functions')
 
 ;[
   'toBN',

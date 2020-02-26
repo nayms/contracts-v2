@@ -10,6 +10,7 @@
     "index.js",
     "contracts.generated.js",
     "build/**",
+    "utils/**",
     "contracts/**",
     "deployedAddresses.json",
     "README.md",

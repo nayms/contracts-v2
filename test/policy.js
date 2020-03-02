@@ -677,13 +677,13 @@ contract('Policy', accounts => {
           await policy.tranchPaymentsAllMade(0).should.eventually.eq(false)
         })
 
-        it.only('policy must have permission to receive premium payment token', async () => {
+        it('policy must have permission to receive premium payment token', async () => {
           await createTranch(policy, {
             premiums: [2, 3, 4]
           })
 
           await etherToken.deposit({ value: 10 })
-          await policy.payTranchPremium(0).should.be.rejectedWith('need permission')
+          await policy.payTranchPremium(0).should.be.rejectedWith('amount exceeds allowance')
         })
 
         it('sender must have enough tokens to make the payment', async () => {
@@ -693,7 +693,7 @@ contract('Policy', accounts => {
 
           await etherToken.deposit({ value: 1 })
           await etherToken.approve(policy.address, 2)
-          await policy.payTranchPremium(0).should.be.rejectedWith('need balance')
+          await policy.payTranchPremium(0).should.be.rejectedWith('amount exceeds balance')
         })
 
         it('updates the internal stats once first payment is made', async () => {

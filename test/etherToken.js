@@ -100,36 +100,6 @@ contract('EtherToken', accounts => {
       tknSupply = await tkn.totalSupply()
     })
 
-    describe('transfer authorization', async () => {
-      it('not just anyone can do a transfer', async () => {
-        await tkn.transfer(accounts[1], 10).should.be.rejectedWith('EtherToken: msg.sender is unauthorized')
-      })
-
-      it('and only admins can authorize transfer operators', async () => {
-        await etherToken.setAllowedTransferOperator(accounts[0], true, { from: accounts[1] }).should.be.rejectedWith('must be admin')
-        await etherToken.setAllowedTransferOperator(accounts[0], true, { from: accounts[0] }).should.be.fulfilled
-      })
-
-      it('people can be authorized to do transfers', async () => {
-        await etherToken.setAllowedTransferOperator(accounts[0], true)
-        await tkn.transfer(accounts[0], 10).should.be.fulfilled
-        await etherToken.setAllowedTransferOperator(accounts[0], false)
-        await tkn.transfer(accounts[1], 10).should.be.rejectedWith('EtherToken: msg.sender is unauthorized')
-      })
-
-      it('and this applies to transferFrom() too', async () => {
-        await etherToken.approve(accounts[1], 200).should.be.fulfilled
-
-        await etherToken.setAllowedTransferOperator(accounts[1], false)
-
-        await tkn.transferFrom(accounts[0], accounts[1], 10, { from: accounts[1] }).should.be.rejectedWith('EtherToken: msg.sender is unauthorized')
-
-        await etherToken.setAllowedTransferOperator(accounts[1], true)
-
-        await tkn.transferFrom(accounts[0], accounts[1], 10, { from: accounts[1] }).should.be.fulfilled
-      })
-    })
-
     it('such as approving an address to send on one\'s behalf', async () => {
       const result = await tkn.approve(accounts[1], 2).should.be.fulfilled
 
@@ -143,10 +113,6 @@ contract('EtherToken', accounts => {
     })
 
     describe('such as transferring one\'s own tokens', () => {
-      beforeEach(async () => {
-        await etherToken.setAllowedTransferOperator(accounts[0], true, { from: accounts[0] }).should.be.fulfilled
-      })
-
       it('but not when sender does not have enough', async () => {
         await tkn.transfer(accounts[1], tknSupply + 1).should.be.rejectedWith('EtherToken: transfer amount exceeds balance')
       })
@@ -177,11 +143,6 @@ contract('EtherToken', accounts => {
     })
 
     describe('such as transferring another person\'s tokens', () => {
-      beforeEach(async () => {
-        await etherToken.setAllowedTransferOperator(accounts[0], true, { from: accounts[0] }).should.be.fulfilled
-        await etherToken.setAllowedTransferOperator(accounts[1], true, { from: accounts[0] }).should.be.fulfilled
-      })
-
       it('but not if sender is not approved', async () => {
         await tkn.transferFrom(accounts[0], accounts[2], 5, { from: accounts[0] }).should.be.rejectedWith('EtherToken: transfer amount exceeds allowance')
       })

@@ -8,14 +8,10 @@ import {
 } from './utils'
 
 import { events } from '../'
-
 import { ROLES } from '../utils/constants'
-
+import { ensureEtherTokenIsDeployed } from '../migrations/modules/etherToken'
 import { ensureAclIsDeployed } from '../migrations/modules/acl'
-
-import {
-  ensureSettingsIsDeployed,
-} from '../migrations/modules/settings'
+import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
 
 const IEntityImpl = artifacts.require("./base/IEntityImpl")
 const Proxy = artifacts.require('./base/Proxy')
@@ -27,6 +23,7 @@ const PolicyImpl = artifacts.require("./PolicyImpl")
 contract('Entity', accounts => {
   let acl
   let settings
+  let etherToken
   let entityImpl
   let entityProxy
   let entity
@@ -35,6 +32,7 @@ contract('Entity', accounts => {
   beforeEach(async () => {
     acl = await ensureAclIsDeployed({ artifacts })
     settings = await ensureSettingsIsDeployed({ artifacts }, acl.address)
+    etherToken = await ensureEtherTokenIsDeployed({ artifacts }, acl.address, settings.address)
     entityImpl = await EntityImpl.new(acl.address, settings.address)
     entityProxy = await Entity.new(
       acl.address,
@@ -117,6 +115,45 @@ contract('Entity', accounts => {
     })
   })
 
+  describe('it can take deposits', () => {
+    it('but sender must have enough', async () => {
+      await etherToken.deposit({ value: 10 })
+      await etherToken.approve(entityProxy.address, 10)
+      await entity.deposit(etherToken.address, 11).should.be.rejectedWith('amount exceeds allowance')
+    })
+
+    it('but sender must have previously authorized the entity to do the transfer', async () => {
+      await etherToken.deposit({ value: 10 })
+      await entity.deposit(etherToken.address, 5).should.be.rejectedWith('amount exceeds allowance')
+    })
+
+    it('and gets credited with the amount', async () => {
+      await etherToken.deposit({ value: 10 })
+      await etherToken.approve(entityProxy.address, 10)
+      await entity.deposit(etherToken.address, 10).should.be.fulfilled
+      await etherToken.balanceOf(entityProxy.address).should.eventually.eq(10)
+    })
+
+    describe('and enables subsequent withdrawals', () => {
+      beforeEach(async () => {
+        await etherToken.deposit({ value: 10 })
+        await etherToken.approve(entityProxy.address, 10)
+        await entity.deposit(etherToken.address, 10)
+      })
+
+      it('but not by just anyone', async () => {
+        await entity.withdraw(etherToken.address, 10, { from: accounts[1] }).should.be.rejectedWith('must be entity admin')
+      })
+
+      it('by entity admin', async () => {
+        await acl.assignRole(entityContext, accounts[1], ROLES.ENTITY_ADMIN)
+        await entity.withdraw(etherToken.address, 10, { from: accounts[1] }).should.be.fulfilled
+        await etherToken.balanceOf(accounts[1]).should.eventually.eq(10)
+        await etherToken.balanceOf(accounts[0]).should.eventually.eq(0)
+      })
+    })
+  })
+
   describe('policies can be created', () => {
     let policyImpl
 
@@ -129,7 +166,11 @@ contract('Entity', accounts => {
     })
 
     it('but not by entity admins', async () => {
-      await createPolicy(entity, policyImpl.address, {}, { from: accounts[1] }).should.be.rejectedWith('must be in role group')
+      await createPolicy(entity, policyImpl.address, {}, { from: accounts[1] }).should.be.rejectedWith('must be policy manager')
+    })
+
+    it('but not by entity managers', async () => {
+      await createPolicy(entity, policyImpl.address, {}, { from: accounts[2] }).should.be.rejectedWith('must be policy manager')
     })
 
     it('by entity reps', async () => {
@@ -143,10 +184,6 @@ contract('Entity', accounts => {
       })
 
       await PolicyImpl.at(eventArgs.policy).should.be.fulfilled;
-    })
-
-    it('but not by entity managers', async () => {
-      await createPolicy(entity, policyImpl.address, {}, { from: accounts[2] }).should.be.rejectedWith('must be in role group')
     })
 
     it('and the entity records get updated accordingly', async () => {

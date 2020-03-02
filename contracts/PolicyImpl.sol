@@ -196,12 +196,8 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
     uint256 expectedAmount = getNextTranchPremiumAmount(_index);
 
     if (expectedAmount > 0) {
-      // premium token
-      IERC20 tkn = IERC20(dataAddress["unit"]);
-
       // transfer
-      require(tkn.allowance(msg.sender, address(this)) >= expectedAmount, "need permission");
-      require(tkn.balanceOf(msg.sender) >= expectedAmount, "need balance");
+      IERC20 tkn = IERC20(dataAddress["unit"]);
       tkn.transferFrom(msg.sender, address(this), expectedAmount);
     }
 

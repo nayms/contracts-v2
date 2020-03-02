@@ -3,7 +3,6 @@ pragma solidity >=0.5.8;
 interface IEtherToken {
   // From: https://github.com/gnosis/util-contracts/blob/master/contracts/EtherToken.sol
 
-  function setAllowedTransferOperator(address transferOperator, bool status) external;
   function deposit() external payable;
   function withdraw(uint value) external;
 

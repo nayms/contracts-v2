@@ -20,4 +20,9 @@ interface IEntityImpl {
   ) external;
   function getNumPolicies() external view returns (uint256);
   function getPolicy(uint256 _index) external view returns (address);
+
+  function deposit(address _unit, uint256 _amount) external;
+  function withdraw(address _unit, uint256 _amount) external;
+
+  // function buyTranchToken(address _token, uint256 _amount, uint256 _offer) external;
 }

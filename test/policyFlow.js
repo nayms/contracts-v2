@@ -28,6 +28,7 @@ const IERC20 = artifacts.require("./base/IERC20")
 
 contract('Policy flow', accounts => {
   let acl
+  let systemContext
   let settings
   let policyImpl
   let policyProxy
@@ -50,6 +51,7 @@ contract('Policy flow', accounts => {
   beforeEach(async () => {
     // acl
     acl = await ensureAclIsDeployed({ artifacts })
+    systemContext = await acl.systemContext()
 
     // settings
     settings = await ensureSettingsIsDeployed({ artifacts }, acl.address)
@@ -61,6 +63,7 @@ contract('Policy flow', accounts => {
     const entityImpl = await EntityImpl.new(acl.address, settings.address)
     const entityDeployer = await EntityDeployer.new(acl.address, settings.address, entityImpl.address)
 
+    await acl.assignRole(systemContext, accounts[0], ROLES.SYSTEM_MANAGER)
     const deployEntityTx = await entityDeployer.deploy()
     const entityAddress = extractEventArgs(deployEntityTx, events.NewEntity).entity
 
@@ -96,10 +99,6 @@ contract('Policy flow', accounts => {
 
     // get market address
     market = await ensureMarketIsDeployed({ artifacts }, settings.address)
-
-    // authorize operators for eth token
-    await etherToken.setAllowedTransferOperator(market.address, true)
-    await etherToken.setAllowedTransferOperator(policy.address, true)
 
     // setup two tranches
     await createTranch(policy, {

@@ -3,12 +3,23 @@ pragma solidity >=0.5.8;
 import "./base/Controller.sol";
 import "./base/EternalStorage.sol";
 import "./base/IEntityImpl.sol";
+import "./base/IERC20.sol";
 import "./Policy.sol";
 
 /**
  * @dev Business-logic for Entity
  */
  contract EntityImpl is EternalStorage, Controller, IEntityImpl, IProxyImpl {
+  modifier assertCanWithdraw () {
+    require(inRoleGroup(msg.sender, ROLEGROUP_ENTITY_ADMINS), 'must be entity admin');
+    _;
+  }
+
+  modifier assertCanCreatePolicy () {
+    require(inRoleGroup(msg.sender, ROLEGROUP_POLICY_MANAGERS), 'must be policy manager');
+    _;
+  }
+
   /**
    * Constructor
    */
@@ -37,7 +48,7 @@ import "./Policy.sol";
     uint256 _premiumIntervalSeconds
   )
     public
-    assertInRoleGroup(ROLEGROUP_POLICY_MANAGERS)
+    assertCanCreatePolicy
   {
     Policy f = new Policy(
       address(acl()),
@@ -65,5 +76,15 @@ import "./Policy.sol";
 
   function getPolicy(uint256 _index) public view returns (address) {
     return dataAddress[string(abi.encodePacked("policy", _index))];
+  }
+
+  function deposit(address _unit, uint256 _amount) public {
+    IERC20 tok = IERC20(_unit);
+    tok.transferFrom(msg.sender, address(this), _amount);
+  }
+
+  function withdraw(address _unit, uint256 _amount) public assertCanWithdraw {
+    IERC20 tok = IERC20(_unit);
+    tok.transfer(msg.sender, _amount);
   }
 }

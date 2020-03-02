@@ -47,8 +47,6 @@ contract('End-to-end integration tests', accounts => {
     policyImpl = await PolicyImpl.new(acl.address, settings.address)
     // market
     market = await ensureMarketIsDeployed({ artifacts }, settings.address)
-    // authorize market for eth token
-    await etherToken.setAllowedTransferOperator(market.address, true)
 
     systemAdmin = accounts[0]
     systemContext = await acl.systemContext()

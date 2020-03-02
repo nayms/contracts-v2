@@ -44,6 +44,7 @@ const DATA_BYTES_2 = asciiToHex('test2')
 
 contract('Policy', accounts => {
   let acl
+  let systemContext
   let settings
   let entityDeployer
   let entityImpl
@@ -64,6 +65,7 @@ contract('Policy', accounts => {
   beforeEach(async () => {
     // acl
     acl = await ensureAclIsDeployed({ artifacts })
+    systemContext = await acl.systemContext()
 
     // settings
     settings = await ensureSettingsIsDeployed({ artifacts }, acl.address)
@@ -76,6 +78,7 @@ contract('Policy', accounts => {
     entityImpl = await EntityImpl.new(acl.address, settings.address)
     entityDeployer = await EntityDeployer.new(acl.address, settings.address, entityImpl.address)
 
+    await acl.assignRole(systemContext, accounts[0], ROLES.SYSTEM_MANAGER)
     const deployEntityTx = await entityDeployer.deploy()
     const entityAddress = extractEventArgs(deployEntityTx, events.NewEntity).entity
 
@@ -107,9 +110,6 @@ contract('Policy', accounts => {
       policyProxy = await Policy.at(policyAddress)
       policy = await IPolicyImpl.at(policyAddress)
       policyContext = await policyProxy.aclContext()
-
-      // allow policy to transfer wrapped ETH tokens
-      await etherToken.setAllowedTransferOperator(policy.address, true)
     }
   })
 
@@ -677,7 +677,7 @@ contract('Policy', accounts => {
           await policy.tranchPaymentsAllMade(0).should.eventually.eq(false)
         })
 
-        it('policy must have permission to receive premium payment token', async () => {
+        it.only('policy must have permission to receive premium payment token', async () => {
           await createTranch(policy, {
             premiums: [2, 3, 4]
           })

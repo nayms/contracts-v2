@@ -11,8 +11,6 @@ import "./base/Controller.sol";
 contract EtherToken is Controller, IERC20, IEtherToken {
   using SafeMath for *;
 
-  mapping (address => bool) allowedTransferOperator;
-
   mapping (address => uint256) private balances;
   mapping (address => mapping (address => uint256)) private allowances;
   string public constant name = "Nayms Wrapped Ether";
@@ -49,7 +47,6 @@ contract EtherToken is Controller, IERC20, IEtherToken {
   }
 
   function _transfer(address sender, address recipient, uint256 amount) internal {
-      require(allowedTransferOperator[msg.sender], "EtherToken: msg.sender is unauthorized");
       require(recipient != address(0), "EtherToken: transfer to the zero address");
 
       balances[sender] = balances[sender].sub(amount, "EtherToken: transfer amount exceeds balance");
@@ -65,10 +62,6 @@ contract EtherToken is Controller, IERC20, IEtherToken {
   }
 
   // IEtherToken
-
-  function setAllowedTransferOperator(address transferOperator, bool status) public assertIsAdmin {
-    allowedTransferOperator[transferOperator] = status;
-  }
 
   function deposit() public payable {
       balances[msg.sender] = balances[msg.sender].add(msg.value);

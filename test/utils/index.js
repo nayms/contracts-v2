@@ -138,6 +138,9 @@ export const createPolicy = (entity, policyImpl, attrs, ...callAttrs) => {
     maturationDate = currentTime + 300,
     unit = ADDRESS_ZERO,
     premiumIntervalSeconds = 30,
+    brokerCommissionBP = 0,
+    assetManagerCommissionBP = 0,
+    naymsCommissionBP = 0
   } = attrs
 
   return entity.createPolicy(
@@ -147,6 +150,9 @@ export const createPolicy = (entity, policyImpl, attrs, ...callAttrs) => {
     maturationDate,
     unit,
     premiumIntervalSeconds,
+    brokerCommissionBP,
+    assetManagerCommissionBP,
+    naymsCommissionBP,
     ...callAttrs,
   )
 }

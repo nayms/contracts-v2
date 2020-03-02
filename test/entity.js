@@ -166,20 +166,20 @@ contract('Entity', accounts => {
     })
 
     it('but not by entity admins', async () => {
-      await createPolicy(entity, policyImpl.address, {}, { from: accounts[1] }).should.be.rejectedWith('must be policy manager')
+      await createPolicy(entity, policyImpl.address, {}, { from: accounts[1] }).should.be.rejectedWith('must be policy creator')
     })
 
-    it('but not by entity managers', async () => {
-      await createPolicy(entity, policyImpl.address, {}, { from: accounts[2] }).should.be.rejectedWith('must be policy manager')
+    it('but not by entity reps', async () => {
+      await createPolicy(entity, policyImpl.address, {}, { from: accounts[3] }).should.be.rejectedWith('must be policy creator')
     })
 
-    it('by entity reps', async () => {
-      const result = await createPolicy(entity, policyImpl.address, {}, { from: accounts[3] }).should.be.fulfilled
+    it('by entity managers', async () => {
+      const result = await createPolicy(entity, policyImpl.address, {}, { from: accounts[2] }).should.be.fulfilled
 
       const eventArgs = extractEventArgs(result, events.NewPolicy)
 
       expect(eventArgs).to.include({
-        deployer: accounts[3],
+        deployer: accounts[2],
         entity: entityProxy.address,
       })
 
@@ -189,13 +189,13 @@ contract('Entity', accounts => {
     it('and the entity records get updated accordingly', async () => {
       await entity.getNumPolicies().should.eventually.eq(0)
 
-      const result = await createPolicy(entity, policyImpl.address, {}, { from: accounts[3] })
+      const result = await createPolicy(entity, policyImpl.address, {}, { from: accounts[2] })
       const eventArgs = extractEventArgs(result, events.NewPolicy)
 
       await entity.getNumPolicies().should.eventually.eq(1)
       await entity.getPolicy(0).should.eventually.eq(eventArgs.policy)
 
-      const result2 = await createPolicy(entity, policyImpl.address, {}, { from: accounts[3] })
+      const result2 = await createPolicy(entity, policyImpl.address, {}, { from: accounts[2] })
       const eventArgs2 = extractEventArgs(result2, events.NewPolicy)
 
       await entity.getNumPolicies().should.eventually.eq(2)
@@ -207,7 +207,7 @@ contract('Entity', accounts => {
 
       const result = await createPolicy(entity, policyImpl.address, {
         startDate,
-      }, { from: accounts[3] })
+      }, { from: accounts[2] })
 
       const eventArgs = extractEventArgs(result, events.NewPolicy)
 
@@ -216,6 +216,18 @@ contract('Entity', accounts => {
 
       const proxy = await Proxy.at(eventArgs.policy)
       await proxy.getImplementation().should.eventually.eq(policyImpl.address)
+    })
+
+    it('and have the original caller set as property owner', async () => {
+      const result = await createPolicy(entity, policyImpl.address, {}, { from: accounts[2] })
+
+      const eventArgs = extractEventArgs(result, events.NewPolicy)
+
+      const policy = await PolicyImpl.at(eventArgs.policy)
+
+      const policyContext = await policy.aclContext()
+
+      await acl.hasRole(policyContext, accounts[2], ROLES.POLICY_OWNER).should.eventually.eq(true)
     })
   })
 })

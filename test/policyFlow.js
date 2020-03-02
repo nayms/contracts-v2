@@ -34,11 +34,14 @@ contract('Policy flow', accounts => {
   let policyProxy
   let policy
   let premiumIntervalSeconds
+  let baseDate
   let initiationDate
+  let startDate
+  let maturationDate
   let market
   let etherToken
-  let entityRepAddress
-  let policyApproverAddress
+  let entityManagerAddress
+  let policyOwnerAddress
 
   let STATE_DRAFT
   let STATE_PENDING
@@ -71,27 +74,30 @@ contract('Policy flow', accounts => {
     const entity = await IEntityImpl.at(entityAddress)
     const entityContext = await entityProxy.aclContext()
 
-    // policy
-    await acl.assignRole(entityContext, accounts[1], ROLES.ENTITY_REP)
-    entityRepAddress = accounts[1]
+    // entity manager
+    await acl.assignRole(entityContext, accounts[1], ROLES.ENTITY_MANAGER)
+    entityManagerAddress = accounts[1]
 
     policyImpl = await PolicyImpl.new(acl.address, settings.address)
 
     // get current evm time
-    const currentBlockTime = parseInt((await settings.getTime()).toString(10))
+    baseDate = parseInt((await settings.getTime()).toString(10))
 
     // initiation time is 20 seconds from now
-    initiationDate = currentBlockTime + 1000
-    premiumIntervalSeconds = 100
+    initiationDate = baseDate + 1000
+    startDate = initiationDate + 1000
+    maturationDate = startDate + 2000
+    premiumIntervalSeconds = 500
 
     const createPolicyTx = await createPolicy(entity, policyImpl.address, {
-      initiationDate: initiationDate,
-      startDate: initiationDate + 1000,
-      maturationDate: initiationDate + 2000,
-      unit: etherToken.address,
+      initiationDate,
+      startDate,
+      maturationDate,
       premiumIntervalSeconds,
-    }, { from: entityRepAddress })
+      unit: etherToken.address,
+    }, { from: entityManagerAddress })
     const policyAddress = extractEventArgs(createPolicyTx, events.NewPolicy).policy
+    policyOwnerAddress = entityManagerAddress
 
     policyProxy = await Policy.at(policyAddress)
     policy = await IPolicyImpl.at(policyAddress)
@@ -105,21 +111,18 @@ contract('Policy flow', accounts => {
       numShares: 100,
       pricePerShareAmount: 2,
       premiums: [1, 2, 3, 4, 5, 6, 7],
-    }, { from: entityRepAddress })
+    }, { from: policyOwnerAddress })
 
     await createTranch(policy, {
       numShares: 50,
       pricePerShareAmount: 2,
       premiums: [1, 2, 3, 4, 5, 6, 7],
-    }, { from: entityRepAddress })
+    }, { from: policyOwnerAddress })
 
     getTranchToken = async idx => {
       const tt = await policy.getTranchToken(idx)
       return await IERC20.at(tt)
     }
-
-    await acl.assignRole(policyContext, accounts[2], ROLES.ASSET_MANAGER)
-    policyApproverAddress = accounts[2]
 
     STATE_DRAFT = await policy.STATE_DRAFT()
     STATE_PENDING = await policy.STATE_PENDING()
@@ -129,22 +132,9 @@ contract('Policy flow', accounts => {
   })
 
   describe('tranches begin selling', async () => {
-    it('but not by an unauthorized person', async () => {
-      await policy.beginSale().should.be.rejectedWith('must be policy approver')
-    })
-
-    it('but not until initiation time has elapsed', async () => {
-      await policy.beginSale({ from: policyApproverAddress }).should.be.rejectedWith('not yet time to begin sale')
-    })
-
-    it('but not after start time has elapsed', async () => {
-      await web3EvmIncreaseTime(web3, 3000)
-      await policy.beginSale({ from: policyApproverAddress }).should.be.rejectedWith('start date already passed')
-    })
-
     describe('if initiation date has passed', () => {
       beforeEach(async () => {
-        await web3EvmIncreaseTime(web3, 1000)
+        await web3EvmIncreaseTime(web3, initiationDate - baseDate)
       })
 
       it('but not if tranch premiums have not been paid', async () => {
@@ -152,7 +142,7 @@ contract('Policy flow', accounts => {
           numShares: 50,
           pricePerShareAmount: 2,
           premiums: [1, 2, 3],
-        }, { from: entityRepAddress })
+        }, { from: policyOwnerAddress })
 
         await etherToken.deposit({ value: 100 })
         await etherToken.approve(policy.address, 100)
@@ -161,7 +151,7 @@ contract('Policy flow', accounts => {
         await policy.payTranchPremium(0)
         await policy.payTranchPremium(2)
 
-        await policy.beginSale({ from: policyApproverAddress }).should.be.rejectedWith('tranch premiums are not up-to-date')
+        await policy.checkAndUpdateState().should.be.rejectedWith('tranch premiums are not up-to-date')
       })
 
       describe('once tranch premiums are up-to-date', () => {
@@ -172,19 +162,14 @@ contract('Policy flow', accounts => {
           await policy.payTranchPremium(1)
         })
 
-        it('but not if this has already taken place before', async () => {
-          await policy.beginSale({ from: policyApproverAddress }).should.be.fulfilled
-          await policy.beginSale({ from: policyApproverAddress }).should.be.rejectedWith('must be in draft state')
-        })
-
         it('but not if initial allocation is not to parent policy', async () => {
           await createTranch(policy, {
             numShares: 100,
             pricePerShareAmount: 2,
             initialBalanceHolder: accounts[3],
-          }, { from: entityRepAddress })
+          }, { from: policyOwnerAddress })
 
-          await policy.beginSale({ from: policyApproverAddress }).should.be.rejectedWith('initial holder must be policy contract')
+          await policy.checkAndUpdateState().should.be.rejectedWith('initial holder must be policy contract')
         })
 
         it('and then tranches get put on the market', async () => {
@@ -196,11 +181,11 @@ contract('Policy flow', accounts => {
           await tranchTokens[0].balanceOf(policy.address).should.eventually.eq(100)
           await tranchTokens[1].balanceOf(policy.address).should.eventually.eq(50)
 
-          const result = await policy.beginSale({ from: policyApproverAddress })
+          const result = await policy.checkAndUpdateState()
 
           expect(extractEventArgs(result, events.BeginSale)).to.include({
             policy: policy.address,
-            caller: policyApproverAddress,
+            caller: accounts[0],
           })
 
           await tranchTokens[0].balanceOf(market.address).should.eventually.eq(100)
@@ -211,12 +196,12 @@ contract('Policy flow', accounts => {
         })
 
         it('and then policy state gets updated', async () => {
-          await policy.beginSale({ from: policyApproverAddress })
+          await policy.checkAndUpdateState()
           await policy.getState().should.eventually.eq(STATE_PENDING)
         })
 
         it('and then tranch states get updated', async () => {
-          await policy.beginSale({ from: policyApproverAddress })
+          await policy.checkAndUpdateState()
           await policy.getTranchState(0).should.eventually.eq(STATE_PENDING)
           await policy.getTranchState(1).should.eventually.eq(STATE_PENDING)
         })
@@ -228,14 +213,14 @@ contract('Policy flow', accounts => {
     let tranchToken
 
     beforeEach(async () => {
-      await web3EvmIncreaseTime(web3, 1000)
+      await web3EvmIncreaseTime(web3, initiationDate - baseDate)
 
       await etherToken.deposit({ value: 100 })
       await etherToken.approve(policy.address, 100)
       await policy.payTranchPremium(0)
       await policy.payTranchPremium(1)
 
-      await policy.beginSale({ from: policyApproverAddress })
+      await policy.checkAndUpdateState()
 
       tranchToken = await getTranchToken(0)
 
@@ -315,42 +300,37 @@ contract('Policy flow', accounts => {
   })
 
   describe('sale can be ended', async () => {
-    it('but not by an unauthorized person', async () => {
-      await policy.checkAndUpdateState().should.be.rejectedWith('must be policy approver')
-    })
-
-    it('but not if sale wasn\'t started', async () => {
-      await policy.checkAndUpdateState({ from: policyApproverAddress }).should.be.rejectedWith('must be in pending state');
-    })
-
     it('but only if start date has passed', async () => {
-      await web3EvmIncreaseTime(web3, 1000)
+      await web3EvmIncreaseTime(web3, initiationDate - baseDate)
 
       await etherToken.deposit({ value: 100 })
       await etherToken.approve(policy.address, 100)
       await policy.payTranchPremium(0)
       await policy.payTranchPremium(1)
-      await policy.beginSale({ from: policyApproverAddress })
+      await policy.checkAndUpdateState()
 
-      await policy.checkAndUpdateState({ from: policyApproverAddress }).should.be.rejectedWith('start date not yet passed');
+      await policy.checkAndUpdateState()
+
+      await policy.getState().should.eventually.eq(STATE_PENDING)
     })
 
     describe('once start date has passed', () => {
       beforeEach(async () => {
-        await web3EvmIncreaseTime(web3, 1000)
+        await web3EvmIncreaseTime(web3, initiationDate - baseDate)
 
         await etherToken.deposit({ value: 100 })
         await etherToken.approve(policy.address, 100)
         await policy.payTranchPremium(0)
         await policy.payTranchPremium(1)
-        await policy.beginSale({ from: policyApproverAddress })
+        await policy.checkAndUpdateState()
 
-        await web3EvmIncreaseTime(web3, 1000)
+        // now past the start date
+        await web3EvmIncreaseTime(web3, startDate - initiationDate)
       })
 
       describe('if none of the tranches are active then the policy still gets made active', () => {
         it('and updates internal state', async () => {
-          await policy.checkAndUpdateState({ from: policyApproverAddress })
+          await policy.checkAndUpdateState()
 
           await policy.getState().should.eventually.eq(STATE_ACTIVE)
           await policy.getTranchState(0).should.eventually.eq(STATE_CANCELLED)
@@ -358,7 +338,7 @@ contract('Policy flow', accounts => {
         })
 
         it('and it emits an event', async () => {
-          const result = await policy.checkAndUpdateState({ from: policyApproverAddress })
+          const result = await policy.checkAndUpdateState()
 
           expect(extractEventArgs(result, events.PolicyActive)).to.include({
             policy: policy.address,
@@ -379,7 +359,7 @@ contract('Policy flow', accounts => {
 
         it('and updates internal state', async () => {
           // end sale
-          await policy.checkAndUpdateState({ from: policyApproverAddress })
+          await policy.checkAndUpdateState()
 
           // now check
           await policy.getState().should.eventually.eq(STATE_ACTIVE)
@@ -389,7 +369,7 @@ contract('Policy flow', accounts => {
 
         it('and it emits an event', async () => {
           // end sale
-          const result = await policy.checkAndUpdateState({ from: policyApproverAddress })
+          const result = await policy.checkAndUpdateState()
 
           expect(extractEventArgs(result, events.PolicyActive)).to.include({
             policy: policy.address,
@@ -408,12 +388,14 @@ contract('Policy flow', accounts => {
           await market.offer(200, etherToken.address, 100, tranchToken.address, 0, true, { from: accounts[2] })
           // pay its premiums
           await etherToken.approve(policy.address, 100, { from: accounts[2] })
-          await policy.payTranchPremium(0, { from: accounts[2] })
+          for (let i = 0; (startDate - initiationDate) / premiumIntervalSeconds >= i; i += 1) {
+            await policy.payTranchPremium(0, { from: accounts[2] })
+          }
         })
 
         it('updates internal state', async () => {
           // end sale
-          await policy.checkAndUpdateState({ from: policyApproverAddress })
+          await policy.checkAndUpdateState()
 
           // now check
           await policy.getState().should.eventually.eq(STATE_ACTIVE)
@@ -423,7 +405,7 @@ contract('Policy flow', accounts => {
 
         it('emits an event', async () => {
           // end sale
-          const result = await policy.checkAndUpdateState({ from: policyApproverAddress })
+          const result = await policy.checkAndUpdateState()
 
           expect(extractEventArgs(result, events.PolicyActive)).to.include({
             policy: policy.address,
@@ -440,10 +422,12 @@ contract('Policy flow', accounts => {
         await etherToken.approve(market.address, 200, { from: accounts[2] })
         await market.offer(200, etherToken.address, 100, tranchToken.address, 0, true, { from: accounts[2] })
         await etherToken.approve(policy.address, 100, { from: accounts[2] })
-        await policy.payTranchPremium(0, { from: accounts[2] })
+        for (let i = 0; (startDate - initiationDate) / premiumIntervalSeconds >= i; i += 1) {
+          await policy.payTranchPremium(0, { from: accounts[2] })
+        }
 
         // end sale
-        await policy.checkAndUpdateState({ from: policyApproverAddress })
+        await policy.checkAndUpdateState()
 
         // try trading
         await market.offer(1, tranchToken.address, 1, etherToken.address, 0, true, { from: accounts[2] }).should.be.fulfilled
@@ -457,16 +441,16 @@ contract('Policy flow', accounts => {
   describe('if policy has been active for a while state can be checked again', async () => {
     beforeEach(async () => {
       // pass the inititation date
-      await web3EvmIncreaseTime(web3, 1000)
+      await web3EvmIncreaseTime(web3, initiationDate - baseDate)
 
       // pay first premiums
-      await etherToken.deposit({ value: 100 })
-      await etherToken.approve(policy.address, 100)
+      await etherToken.deposit({ value: 2000 })
+      await etherToken.approve(policy.address, 2000)
       await policy.payTranchPremium(0)
       await policy.payTranchPremium(1)
 
       // start the sale
-      await policy.beginSale({ from: policyApproverAddress })
+      await policy.checkAndUpdateState()
 
       // sell-out the tranches
       await etherToken.deposit({ from: accounts[2], value: 2000 })
@@ -478,15 +462,17 @@ contract('Policy flow', accounts => {
       const tranch1Address = await policy.getTranchToken(1)
       await market.offer(100, etherToken.address, 50, tranch1Address, 0, true, { from: accounts[2] })
 
-      // pass the start date
-      await web3EvmIncreaseTime(web3, 1000)
+      // pay premiums
+      for (let i = 0; (startDate - initiationDate) / premiumIntervalSeconds >= i; i += 1) {
+        await policy.payTranchPremium(0)
+        await policy.payTranchPremium(1)
+      }
 
-      // pay 2nd premiums
-      await policy.payTranchPremium(0)
-      await policy.payTranchPremium(1)
+      // pass the start date
+      await web3EvmIncreaseTime(web3, startDate - initiationDate)
 
       // end the sale
-      await policy.checkAndUpdateState({ from: policyApproverAddress })
+      await policy.checkAndUpdateState()
 
       // sanity check
       await policy.getState().should.eventually.eq(STATE_ACTIVE)
@@ -497,18 +483,11 @@ contract('Policy flow', accounts => {
       await web3EvmIncreaseTime(web3, premiumIntervalSeconds * 2)
     })
 
-    it('but not by an unauthorized person', async () => {
-      await policy.checkAndUpdateState().should.be.rejectedWith('must be policy approver')
-    })
-
     it('and it remains active if all premium payments are up to date', async () => {
       await policy.payTranchPremium(0)
-      await policy.payTranchPremium(0)
-
-      await policy.payTranchPremium(1)
       await policy.payTranchPremium(1)
 
-      const result = await policy.checkAndUpdateState({ from: policyApproverAddress })
+      const result = await policy.checkAndUpdateState()
 
       await policy.getState().should.eventually.eq(STATE_ACTIVE)
       await policy.getTranchState(0).should.eventually.eq(STATE_ACTIVE)
@@ -519,12 +498,9 @@ contract('Policy flow', accounts => {
 
     it('and it still stays active if any tranch premium payments have been missed, though that tranch gets cancelled', async () => {
       await policy.payTranchPremium(0)
-      await policy.payTranchPremium(0)
-
-      await policy.payTranchPremium(1)
       // await policy.payTranchPremium(1) - deliberately miss this payment
 
-      const result = await policy.checkAndUpdateState({ from: policyApproverAddress })
+      const result = await policy.checkAndUpdateState()
 
       await policy.getState().should.eventually.eq(STATE_ACTIVE)
       await policy.getTranchState(0).should.eventually.eq(STATE_ACTIVE)

@@ -172,6 +172,14 @@ contract('ACL', accounts => {
       await acl.getRolesForUser(context1, accounts[2]).should.eventually.eq([ role1 ])
     })
 
+    it('by the context owner', async () => {
+      const callerContext = await acl.generateContextFromAddress(accounts[4])
+      await acl.hasRole(callerContext, accounts[2], role1).should.eventually.eq(false)
+      await acl.assignRole(callerContext, accounts[2], role1, { from: accounts[4] }).should.be.fulfilled
+      await acl.hasRole(callerContext, accounts[2], role1).should.eventually.eq(true)
+      await acl.getRolesForUser(callerContext, accounts[2]).should.eventually.eq([role1])
+    })
+
     it('multiple times', async () => {
       await acl.assignRole(context1, accounts[2], role1).should.be.fulfilled
       await acl.assignRole(context1, accounts[2], role1).should.be.fulfilled

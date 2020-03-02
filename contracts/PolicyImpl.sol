@@ -34,23 +34,13 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
 
   // Modifiers //
 
-  modifier assertCanManagePolicy () {
-    require(inRoleGroupWithContext(dataBytes32["entityContext"], msg.sender, ROLEGROUP_POLICY_MANAGERS), 'must be policy manager');
-    _;
-  }
-
-  modifier assertCanApprovePolicy () {
-    require(inRoleGroup(msg.sender, ROLEGROUP_POLICY_APPROVERS), 'must be policy approver');
+  modifier assertCanCreateTranch () {
+    require(inRoleGroup(msg.sender, ROLEGROUP_POLICY_OWNERS), 'must be policy owner');
     _;
   }
 
   modifier assertDraftState () {
     require(dataUint256["state"] == STATE_DRAFT, 'must be in draft state');
-    _;
-  }
-
-  modifier assertPendingOrActiveState () {
-    require(dataUint256["state"] == STATE_PENDING || dataUint256["state"] == STATE_ACTIVE, 'must be in pending state');
     _;
   }
 
@@ -85,13 +75,13 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
     address _initialBalanceHolder
   )
     public
-    assertCanManagePolicy
+    assertCanCreateTranch
     assertDraftState
     returns (uint256)
   {
     require(_numShares > 0, 'invalid num of shares');
     require(_pricePerShareAmount > 0, 'invalid price');
-    require(_premiums.length < calculateMaxNumOfPremiums(), 'too many premiums');
+    require(_premiums.length <= calculateMaxNumOfPremiums(), 'too many premiums');
 
     // instantiate tranches
     uint256 i = dataUint256["numTranches"];
@@ -146,14 +136,9 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
     if (initiationDateHasPassed()) {
       expectedPaid++;
 
-      // if start date has passed
-      if (startDateHasPassed()) {
-        expectedPaid++;
-
-        // calculate the extra payments that should have been made by now
-        uint256 diff = now.sub(dataUint256["startDate"]).div(dataUint256["premiumIntervalSeconds"]);
-        expectedPaid = expectedPaid.add(diff);
-      }
+      // calculate the extra payments that should have been made by now
+      uint256 diff = now.sub(dataUint256["initiationDate"]).div(dataUint256["premiumIntervalSeconds"]);
+      expectedPaid = expectedPaid.add(diff);
     }
 
     // cap to no .of available premiums
@@ -217,69 +202,65 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
     return now >= dataUint256["startDate"];
   }
 
-  function beginSale()
-    public
-    assertCanApprovePolicy
-    assertDraftState
-  {
-    // solhint-disable-next-line security/no-block-members
-    require(initiationDateHasPassed(), 'not yet time to begin sale');
-    // solhint-disable-next-line security/no-block-members
-    require(!startDateHasPassed(), 'start date already passed');
 
+  function checkAndUpdateState() public {
     IMarket market = IMarket(settings().getMatchingMarket());
 
-    for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
-      require(0 >= getNumberOfTranchPaymentsMissed(i), 'tranch premiums are not up-to-date');
+    // past the initiation date
+    if (initiationDateHasPassed()) {
+      // past the start date
+      if (startDateHasPassed()) {
+        // check state of each tranch
+        for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
+          uint256 state = dataUint256[string(abi.encodePacked(i, "state"))];
 
-      // tranch/token address
-      address tranchAddress = dataAddress[string(abi.encodePacked(i, "address"))];
-      // initial token holder must be contract address
-      address initialHolder = dataAddress[string(abi.encodePacked(i, "initialHolder"))];
-      require(initialHolder == address(this), "initial holder must be policy contract");
-      // get supply
-      uint256 totalSupply = tknTotalSupply(i);
-      // calculate sale values
-      uint256 pricePerShare = dataUint256[string(abi.encodePacked(i, "pricePerShareAmount"))];
-      uint256 totalPrice = totalSupply.mul(pricePerShare);
-      // do the transfer
-      market.offer(totalSupply, tranchAddress, totalPrice, dataAddress["unit"], 0, false);
-      // set tranch state
-      dataUint256[string(abi.encodePacked(i, "state"))] = STATE_PENDING;
-    }
-
-    dataUint256["state"] = STATE_PENDING;
-
-    emit BeginSale(address(this), msg.sender);
-  }
-
-
-  function checkAndUpdateState()
-    public
-    assertCanApprovePolicy
-    assertPendingOrActiveState
-  {
-    // solhint-disable-next-line security/no-block-members
-    require(startDateHasPassed(), 'start date not yet passed');
-
-    for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
-      uint256 state = dataUint256[string(abi.encodePacked(i, "state"))];
-
-      if (state != STATE_ACTIVE || 0 < getNumberOfTranchPaymentsMissed(i)) {
-        dataUint256[string(abi.encodePacked(i, "state"))] = STATE_CANCELLED;
+          if (state != STATE_ACTIVE || 0 < getNumberOfTranchPaymentsMissed(i)) {
+            dataUint256[string(abi.encodePacked(i, "state"))] = STATE_CANCELLED;
+          }
+        }
+        // make policy active if necessary
+        if (dataUint256["state"] != STATE_ACTIVE) {
+          dataUint256["state"] = STATE_ACTIVE;
+          emit PolicyActive(address(this), msg.sender);
+        }
       }
-    }
+      // not yet past start date
+      else {
+        // if policy still in draft state
+        if (dataUint256["state"] == STATE_DRAFT) {
+          // check every tranch
+          for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
+            require(0 >= getNumberOfTranchPaymentsMissed(i), 'tranch premiums are not up-to-date');
 
-    if (dataUint256["state"] != STATE_ACTIVE) {
-      dataUint256["state"] = STATE_ACTIVE;
-      emit PolicyActive(address(this), msg.sender);
+            // tranch/token address
+            address tranchAddress = dataAddress[string(abi.encodePacked(i, "address"))];
+            // initial token holder must be contract address
+            address initialHolder = dataAddress[string(abi.encodePacked(i, "initialHolder"))];
+            require(initialHolder == address(this), "initial holder must be policy contract");
+            // get supply
+            uint256 totalSupply = tknTotalSupply(i);
+            // calculate sale values
+            uint256 pricePerShare = dataUint256[string(abi.encodePacked(i, "pricePerShareAmount"))];
+            uint256 totalPrice = totalSupply.mul(pricePerShare);
+            // do the transfer
+            market.offer(totalSupply, tranchAddress, totalPrice, dataAddress["unit"], 0, false);
+            // set tranch state
+            dataUint256[string(abi.encodePacked(i, "state"))] = STATE_PENDING;
+          }
+
+          // set policy state to PENDING
+          dataUint256["state"] = STATE_PENDING;
+
+          emit BeginSale(address(this), msg.sender);
+        }
+      }
     }
   }
 
 
   function calculateMaxNumOfPremiums() public view returns (uint256) {
     // first 2 payments + (endDate - startDate) / paymentInterval - 1
-    return (dataUint256["maturationDate"] - dataUint256["startDate"]) / dataUint256["premiumIntervalSeconds"] + 1;
+    return (dataUint256["maturationDate"] - dataUint256["initiationDate"]) / dataUint256["premiumIntervalSeconds"] + 1;
   }
 
   // TranchTokenImpl - queries //

@@ -16,7 +16,10 @@ interface IEntityImpl {
     uint256 _startDate,
     uint256 _maturationDate,
     address _unit,
-    uint256 _premiumIntervalSeconds
+    uint256 _premiumIntervalSeconds,
+    uint256 _brokerCommission,
+    uint256 _assetManagerCommission,
+    uint256 _naymsCommission
   ) external;
   function getNumPolicies() external view returns (uint256);
   function getPolicy(uint256 _index) external view returns (address);

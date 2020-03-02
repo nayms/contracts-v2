@@ -16,7 +16,7 @@ import "./Policy.sol";
   }
 
   modifier assertCanCreatePolicy () {
-    require(inRoleGroup(msg.sender, ROLEGROUP_POLICY_MANAGERS), 'must be policy manager');
+    require(inRoleGroup(msg.sender, ROLEGROUP_POLICY_CREATORS), 'must be policy creator');
     _;
   }
 
@@ -45,7 +45,10 @@ import "./Policy.sol";
     uint256 _startDate,
     uint256 _maturationDate,
     address _unit,
-    uint256 _premiumIntervalSeconds
+    uint256 _premiumIntervalSeconds,
+    uint256 _brokerCommissionBP,
+    uint256 _assetManagerCommissionBP,
+    uint256 _naymsCommissionBP
   )
     public
     assertCanCreatePolicy
@@ -55,11 +58,15 @@ import "./Policy.sol";
       address(settings()),
       aclContext(),
       _impl,
+      msg.sender,
       _initiationDate,
       _startDate,
       _maturationDate,
       _unit,
-      _premiumIntervalSeconds
+      _premiumIntervalSeconds,
+      _brokerCommissionBP,
+      _assetManagerCommissionBP,
+      _naymsCommissionBP
     );
 
     uint256 numPolicies = dataUint256["numPolicies"];

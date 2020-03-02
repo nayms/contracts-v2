@@ -266,8 +266,11 @@ contract ACL is IACL {
   }
 
   modifier assertIsAssigner (bytes32 _context, bytes32 _role) {
-    // either they have the permission to assign or they're an admin
-    require(isAdmin(msg.sender) || canAssign(_context, msg.sender, _role), 'unauthorized');
+    // either they are an admin, or assigning in their own context, or they have have the permission
+    require(
+      isAdmin(msg.sender) || (_context == generateContextFromAddress(msg.sender)) || canAssign(_context, msg.sender, _role),
+      'unauthorized'
+    );
     _;
   }
 
@@ -466,6 +469,10 @@ contract ACL is IACL {
     }
 
     return false;
+  }
+
+  function generateContextFromAddress (address _addr) public pure returns (bytes32) {
+    return keccak256(abi.encodePacked(_addr));
   }
 
   // Internal functions

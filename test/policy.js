@@ -51,12 +51,12 @@ contract('Policy', accounts => {
   let entityProxy
   let entity
   let entityContext
-  let initiationDate
   let policyImpl
   let policyProxy
   let policy
   let policyContext
-  let entityRepAddress
+  let entityManagerAddress
+  let policyOwnerAddress
   let erc1820Registry
   let etherToken
 
@@ -88,12 +88,20 @@ contract('Policy', accounts => {
 
     // policy
     await acl.assignRole(entityContext, accounts[1], ROLES.ENTITY_ADMIN)
-    await acl.assignRole(entityContext, accounts[2], ROLES.ENTITY_REP)
-    entityRepAddress = accounts[2]
+    await acl.assignRole(entityContext, accounts[2], ROLES.ENTITY_MANAGER)
+    entityManagerAddress = accounts[2]
 
     policyImpl = await PolicyImpl.new(acl.address, settings.address)
 
-    setupPolicy = async ({ initiationDateDiff = 1000, startDateDiff = 2000, maturationDateDiff = 3000, premiumIntervalSeconds = undefined } = {}) => {
+    setupPolicy = async ({
+      initiationDateDiff = 1000,
+      startDateDiff = 2000,
+      maturationDateDiff = 3000,
+      premiumIntervalSeconds = undefined,
+      brokerCommissionBP = 0,
+      assetManagerCommissionBP = 0,
+      naymsCommissionBP = 0,
+    } = {}) => {
       // get current evm time
       const t = await settings.getTime()
       const currentBlockTime = parseInt(t.toString(10))
@@ -104,12 +112,16 @@ contract('Policy', accounts => {
         maturationDate: currentBlockTime + maturationDateDiff,
         unit: etherToken.address,
         premiumIntervalSeconds,
-      }, { from: entityRepAddress })
+        brokerCommissionBP,
+        assetManagerCommissionBP,
+        naymsCommissionBP,
+      }, { from: entityManagerAddress })
       const policyAddress = extractEventArgs(createPolicyTx, events.NewPolicy).policy
 
       policyProxy = await Policy.at(policyAddress)
       policy = await IPolicyImpl.at(policyAddress)
       policyContext = await policyProxy.aclContext()
+      policyOwnerAddress = entityManagerAddress
     }
   })
 
@@ -191,26 +203,22 @@ contract('Policy', accounts => {
     const tranchNumShares = 10
     const tranchPricePerShare = 100
 
-    beforeEach(async () => {
-      await acl.assignRole(entityContext, accounts[2], ROLES.ENTITY_REP)
-    })
-
     describe('basic tests', () => {
       it('cannot be created without correct authorization', async () => {
         await setupPolicy()
-        await createTranch(policy, {}).should.be.rejectedWith('must be policy manager')
+        await createTranch(policy, {}).should.be.rejectedWith('must be policy owner')
       })
 
       it('all basic values must be valid', async () => {
         await setupPolicy()
-        await createTranch(policy, { numShares: 0 }, { from: accounts[2] }).should.be.rejectedWith('invalid num of shares')
-        await createTranch(policy, { pricePerShareAmount: 0 }, { from: accounts[2] }).should.be.rejectedWith('invalid price')
+        await createTranch(policy, { numShares: 0 }, { from: policyOwnerAddress }).should.be.rejectedWith('invalid num of shares')
+        await createTranch(policy, { pricePerShareAmount: 0 }, { from: policyOwnerAddress }).should.be.rejectedWith('invalid price')
       })
 
       it('and premium array is valid', async () => {
         await setupPolicy({ initiationDateDiff: 0, startDateDiff: 0, maturationDateDiff: 30, premiumIntervalSeconds: 20 })
 
-        await createTranch(policy, { premiums: [1, 2, 3, 4, 5] }, { from: accounts[2] }).should.be.rejectedWith('too many premiums')
+        await createTranch(policy, { premiums: [1, 2, 3, 4, 5] }, { from: policyOwnerAddress }).should.be.rejectedWith('too many premiums')
       })
 
       it('can be created and have initial balance auto-allocated to policy impl', async () => {
@@ -302,7 +310,7 @@ contract('Policy', accounts => {
       beforeEach(async () => {
         await setupPolicy()
 
-        acl.assignRole(entityContext, accounts[0], ROLES.ENTITY_REP)
+        acl.assignRole(policyContext, accounts[0], ROLES.POLICY_OWNER)
 
         await createTranch(policy, {
           numShares: tranchNumShares,
@@ -397,7 +405,7 @@ contract('Policy', accounts => {
       beforeEach(async () => {
         await setupPolicy()
 
-        acl.assignRole(entityContext, accounts[0], ROLES.ENTITY_REP)
+        acl.assignRole(policyContext, accounts[0], ROLES.POLICY_OWNER)
 
         await createTranch(policy, {
           numShares: tranchNumShares,
@@ -658,10 +666,6 @@ contract('Policy', accounts => {
     })
 
     describe('premiums', () => {
-      beforeEach(async () => {
-        acl.assignRole(entityContext, accounts[0], ROLES.ENTITY_REP)
-      })
-
       describe('basic tests', () => {
         beforeEach(async () => {
           await setupPolicy()
@@ -670,7 +674,7 @@ contract('Policy', accounts => {
         it('initially no premium is expected', async () => {
           await createTranch(policy, {
             premiums: [2, 3, 4]
-          })
+          }, { from: policyOwnerAddress })
 
           await policy.getNextTranchPremiumAmount(0).should.eventually.eq(2)
           await policy.getNumberOfTranchPaymentsMissed(0).should.eventually.eq(0)
@@ -680,7 +684,7 @@ contract('Policy', accounts => {
         it('policy must have permission to receive premium payment token', async () => {
           await createTranch(policy, {
             premiums: [2, 3, 4]
-          })
+          }, { from: policyOwnerAddress })
 
           await etherToken.deposit({ value: 10 })
           await policy.payTranchPremium(0).should.be.rejectedWith('amount exceeds allowance')
@@ -689,7 +693,7 @@ contract('Policy', accounts => {
         it('sender must have enough tokens to make the payment', async () => {
           await createTranch(policy, {
             premiums: [2, 3, 4]
-          })
+          }, { from: policyOwnerAddress })
 
           await etherToken.deposit({ value: 1 })
           await etherToken.approve(policy.address, 2)
@@ -699,7 +703,7 @@ contract('Policy', accounts => {
         it('updates the internal stats once first payment is made', async () => {
           await createTranch(policy, {
             premiums: [2, 3, 4]
-          })
+          }, { from: policyOwnerAddress })
 
           await etherToken.deposit({ value: 2 })
           await etherToken.approve(policy.address, 2)
@@ -713,7 +717,7 @@ contract('Policy', accounts => {
         it('updates the internal stats once subsequent payment is made', async () => {
           await createTranch(policy, {
             premiums: [2, 3, 4]
-          })
+          }, { from: policyOwnerAddress })
 
           await etherToken.deposit({ value: 5 })
           await etherToken.approve(policy.address, 5)
@@ -732,7 +736,7 @@ contract('Policy', accounts => {
 
           await createTranch(policy, {
             premiums: [2, 3, 4]
-          })
+          }, { from: policyOwnerAddress })
         })
 
         it('it requires first payment to have been made', async () => {
@@ -750,40 +754,13 @@ contract('Policy', accounts => {
         })
       })
 
-      describe('once start date has passed', () => {
-        beforeEach(async () => {
-          await setupPolicy({ initiationDateDiff: -100, startDateDiff: 0, maturationDateDiff: 2000 })
-
-          await createTranch(policy, {
-            premiums: [2, 3, 4]
-          })
-        })
-
-        it('it requires first 2 payments to have been made', async () => {
-          await etherToken.deposit({ value: 100 })
-          await etherToken.approve(policy.address, 100)
-          await policy.payTranchPremium(0).should.be.fulfilled
-
-          await policy.getNumberOfTranchPaymentsMissed(0).should.eventually.eq(1)
-          await policy.getNextTranchPremiumAmount(0).should.eventually.eq(3)
-          await policy.tranchPaymentsAllMade(0).should.eventually.eq(false)
-
-          await policy.payTranchPremium(0).should.be.fulfilled
-
-          await policy.getNumberOfTranchPaymentsMissed(0).should.eventually.eq(0)
-          await policy.getNextTranchPremiumAmount(0).should.eventually.eq(4)
-          await policy.tranchPaymentsAllMade(0).should.eventually.eq(false)
-        })
-      })
-
       describe('once policy has been active for a while', () => {
         beforeEach(async () => {
-          // set it up so that we expect 10 payments to have been made since start date
-          await setupPolicy({ initiationDateDiff: -200, startDateDiff: -100, maturationDateDiff: 2000, premiumIntervalSeconds: 10 })
+          await setupPolicy({ initiationDateDiff: -100, startDateDiff: 0, maturationDateDiff: 2000, premiumIntervalSeconds: 10 })
 
           await createTranch(policy, {
             premiums: [2, 3, 4, 5]
-          })
+          }, { from: policyOwnerAddress })
         })
 
         it('it will return 0 if no more payments are to be made', async () => {
@@ -812,12 +789,11 @@ contract('Policy', accounts => {
       })
 
       it('if one of the premiums is 0 it still counts', async () => {
-        // set it up so that we expect 10 payments to have been made since start date
-        await setupPolicy({ initiationDateDiff: -200, startDateDiff: -100, maturationDateDiff: 2000, premiumIntervalSeconds: 10 })
+        await setupPolicy({ initiationDateDiff: -100, startDateDiff: 0, maturationDateDiff: 2000, premiumIntervalSeconds: 10 })
 
         await createTranch(policy, {
           premiums: [2, 3, 0, 5]
-        })
+        }, { from: policyOwnerAddress })
 
         await etherToken.deposit({ value: 100 })
         await etherToken.approve(policy.address, 100)
@@ -832,12 +808,11 @@ contract('Policy', accounts => {
       })
 
       it('if all premiums are paid before inititiation that is ok', async () => {
-        // set it up so that we expect 10 payments to have been made since start date
         await setupPolicy({ initiationDateDiff: 200, startDateDiff: 400, maturationDateDiff: 6000, premiumIntervalSeconds: 10 })
 
         await createTranch(policy, {
           premiums: [2, 3, 0, 5]
-        })
+        }, { from: policyOwnerAddress })
 
         await etherToken.deposit({ value: 100 })
         await etherToken.approve(policy.address, 100)

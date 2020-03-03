@@ -157,7 +157,7 @@ export const createPolicy = (entity, policyImpl, attrs, ...callAttrs) => {
   )
 }
 
-export const web3EvmIncreaseTime = async (web3, ts) => {
+export const web3EvmIncreaseTime = async ts => {
   await new Promise((resolve, reject) => {
     return web3.currentProvider.send({
       jsonrpc: '2.0',
@@ -181,4 +181,27 @@ export const web3EvmIncreaseTime = async (web3, ts) => {
       return resolve(result)
     })
   })
+}
+
+
+export class EvmClock {
+  constructor (initialTimestamp = 0) {
+    this.lastTimestamp = initialTimestamp
+  }
+
+  async setTime (timestamp) {
+    if (timestamp <= this.lastTimestamp) {
+      throw new Error(`Cannot set to past time: ${timestamp}`)
+    }
+    await web3EvmIncreaseTime(timestamp - this.lastTimestamp)
+    this.lastTimestamp = timestamp
+  }
+
+  async moveTime (delta) {
+    if (0 >= delta) {
+      throw new Error(`Cannot move into the past: ${delta}`)
+    }
+    await web3EvmIncreaseTime(delta)
+    this.lastTimestamp = this.lastTimestamp + delta
+  }
 }

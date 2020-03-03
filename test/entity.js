@@ -9,9 +9,10 @@ import {
 
 import { events } from '../'
 import { ROLES } from '../utils/constants'
-import { ensureEtherTokenIsDeployed } from '../migrations/modules/etherToken'
-import { ensureAclIsDeployed } from '../migrations/modules/acl'
-import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
+import { deployEtherToken } from '../migrations/modules/etherToken'
+import { deployAcl } from '../migrations/modules/acl'
+import { deploySettings } from '../migrations/modules/settings'
+import { deployMarket } from '../migrations/modules/market'
 
 const IEntityImpl = artifacts.require("./base/IEntityImpl")
 const Proxy = artifacts.require('./base/Proxy')
@@ -25,14 +26,16 @@ contract('Entity', accounts => {
   let settings
   let etherToken
   let entityImpl
+  let market
   let entityProxy
   let entity
   let entityContext
 
   beforeEach(async () => {
-    acl = await ensureAclIsDeployed({ artifacts })
-    settings = await ensureSettingsIsDeployed({ artifacts }, acl.address)
-    etherToken = await ensureEtherTokenIsDeployed({ artifacts }, acl.address, settings.address)
+    acl = await deployAcl({ artifacts })
+    settings = await deploySettings({ artifacts }, acl.address)
+    market = await deployMarket({ artifacts }, settings.address)
+    etherToken = await deployEtherToken({ artifacts }, acl.address, settings.address)
     entityImpl = await EntityImpl.new(acl.address, settings.address)
     entityProxy = await Entity.new(
       acl.address,
@@ -150,6 +153,40 @@ contract('Entity', accounts => {
         await entity.withdraw(etherToken.address, 10, { from: accounts[1] }).should.be.fulfilled
         await etherToken.balanceOf(accounts[1]).should.eventually.eq(10)
         await etherToken.balanceOf(accounts[0]).should.eventually.eq(0)
+      })
+    })
+
+    describe('and use those deposits to buy tokens from the market', () => {
+      let etherToken2
+
+      beforeEach(async () => {
+        await etherToken.deposit({ value: 10 })
+        await etherToken.approve(entityProxy.address, 10)
+        await entity.deposit(etherToken.address, 10).should.be.fulfilled
+
+        etherToken2 = await deployEtherToken({ artifacts }, acl.address, settings.address)
+      })
+
+      it('but not just by anyone', async () => {
+        await entity.buyTokens(etherToken2.address, 1, etherToken.address, 1).should.be.rejectedWith('must be trader')
+      })
+
+      it('by a trader', async () => {
+        await acl.assignRole(entityContext, accounts[3], ROLES.ENTITY_REP)
+
+        await entity.buyTokens(etherToken2.address, 1, etherToken.address, 1, { from: accounts[3] })
+
+        // pre-check
+        await etherToken.balanceOf(accounts[5]).should.eventually.eq(0)
+
+        // now match the trade
+        await etherToken2.deposit({ value: 1, from: accounts[5] })
+        await etherToken2.approve(market.address, 1, { from: accounts[5] })
+        const offerId = await market.last_offer_id()
+        await market.buy(offerId, 1, { from: accounts[5] })
+
+        // post-check
+        await etherToken.balanceOf(accounts[5]).should.eventually.eq(1)
       })
     })
   })

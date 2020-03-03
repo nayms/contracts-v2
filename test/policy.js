@@ -19,10 +19,10 @@ import {
 
 import { ROLES, ROLEGROUPS } from '../utils/constants'
 
-import { ensureAclIsDeployed } from '../migrations/modules/acl'
+import { deployAcl } from '../migrations/modules/acl'
 
-import { ensureEtherTokenIsDeployed } from '../migrations/modules/etherToken'
-import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
+import { deployEtherToken } from '../migrations/modules/etherToken'
+import { deploySettings } from '../migrations/modules/settings'
 
 const IERC20 = artifacts.require("./base/IERC20")
 const IERC777 = artifacts.require("./base/IERC777")
@@ -64,15 +64,15 @@ contract('Policy', accounts => {
 
   beforeEach(async () => {
     // acl
-    acl = await ensureAclIsDeployed({ artifacts })
+    acl = await deployAcl({ artifacts })
     systemContext = await acl.systemContext()
 
     // settings
-    settings = await ensureSettingsIsDeployed({ artifacts }, acl.address)
+    settings = await deploySettings({ artifacts }, acl.address)
 
     // registry + wrappedEth
     erc1820Registry = await ensureErc1820RegistryIsDeployed({ artifacts, accounts, web3 })
-    etherToken = await ensureEtherTokenIsDeployed({ artifacts }, acl.address, settings.address)
+    etherToken = await deployEtherToken({ artifacts }, acl.address, settings.address)
 
     // entity
     entityImpl = await EntityImpl.new(acl.address, settings.address)

@@ -4,7 +4,7 @@ import {
 } from './utils'
 
 import {
-  ensureAclIsDeployed,
+  deployAcl,
 } from '../migrations/modules/acl'
 
 import { events } from '../'
@@ -22,7 +22,7 @@ contract('Settings', accounts => {
   let settings
 
   beforeEach(async () => {
-    acl = await ensureAclIsDeployed({ artifacts })
+    acl = await deployAcl({ artifacts })
     settingsImpl = await SettingsImpl.new(acl.address)
     settingsProxy = await Settings.new(
       acl.address,

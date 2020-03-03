@@ -1,7 +1,7 @@
 const { createLog } = require('../../utils/log')
 const { deploy } = require('../../utils/functions')
 
-export const ensureEtherTokenIsDeployed = async ({ deployer, artifacts, logger }, aclAddress, settingsAddress) => {
+export const deployEtherToken = async ({ deployer, artifacts, logger }, aclAddress, settingsAddress) => {
   const log = createLog(logger)
 
   log('Deploying EtherToken ...')

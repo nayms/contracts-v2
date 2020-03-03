@@ -4,6 +4,7 @@ import "./base/Controller.sol";
 import "./base/EternalStorage.sol";
 import "./base/IEntityImpl.sol";
 import "./base/IERC20.sol";
+import "./base/IMarket.sol";
 import "./Policy.sol";
 
 /**
@@ -17,6 +18,11 @@ import "./Policy.sol";
 
   modifier assertCanCreatePolicy () {
     require(inRoleGroup(msg.sender, ROLEGROUP_POLICY_CREATORS), 'must be policy creator');
+    _;
+  }
+
+  modifier assertCanTradeTranchTokens () {
+    require(inRoleGroup(msg.sender, ROLEGROUP_TRADERS), 'must be trader');
     _;
   }
 
@@ -93,5 +99,19 @@ import "./Policy.sol";
   function withdraw(address _unit, uint256 _amount) public assertCanWithdraw {
     IERC20 tok = IERC20(_unit);
     tok.transfer(msg.sender, _amount);
+  }
+
+  function buyTokens(address _buyUnit, uint256 _buyAmount, address _payUnit, uint256 _payAmount)
+    public
+    assertCanTradeTranchTokens
+  {
+    // get mkt
+    address mktAddress = settings().getMatchingMarket();
+    IMarket mkt = IMarket(mktAddress);
+    // approve mkt to use my tokens
+    IERC20 tok = IERC20(_payUnit);
+    tok.approve(mktAddress, _payAmount);
+    // make the offer
+    mkt.offer(_payAmount, _payUnit, _buyAmount, _buyUnit, 0, false);
   }
 }

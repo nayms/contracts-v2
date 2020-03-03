@@ -16,19 +16,21 @@ contract IPolicyImpl {
     uint256[] memory _premiums,
     address _initialBalanceHolder
   ) public returns (uint256);
+
   function getNumTranches () public view returns (uint256);
   function getTranchToken (uint256 _index) public view returns (address);
   function getTranchState (uint256 _index) public view returns (uint256);
+
   function getNumberOfTranchPaymentsMissed (uint256 _index) public view returns (uint256);
   function tranchPaymentsAllMade (uint256 _index) public view returns (bool);
   function getNextTranchPremiumAmount (uint256 _index) public view returns (uint256);
   function payTranchPremium (uint256 _index) public;
-
-  function checkAndUpdateState () public;
-
   function calculateMaxNumOfPremiums() public view returns (uint256);
+
   function initiationDateHasPassed () public view returns (bool);
   function startDateHasPassed () public view returns (bool);
+
+  function checkAndUpdateState () public;
 
   // events
 

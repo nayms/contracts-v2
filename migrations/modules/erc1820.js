@@ -23,7 +23,6 @@ export const ensureErc1820RegistryIsDeployed = async ({ artifacts, web3, account
   let registry
 
   try {
-
     registry = await IERC1820Registry.at(ERC1820_DEPLOYED_ADDRESS)
   } catch (_err) {
     log('Deploying ERC1820 registry ...')

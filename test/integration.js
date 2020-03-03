@@ -3,15 +3,15 @@ import {
   ADDRESS_ZERO,
   createTranch,
   createPolicy,
-  web3EvmIncreaseTime,
+  EvmClock,
 } from './utils'
 
 import { events } from '../'
-import { ensureEtherTokenIsDeployed } from '../migrations/modules/etherToken'
+import { deployEtherToken } from '../migrations/modules/etherToken'
 import { ROLES, ROLEGROUPS } from '../utils/constants'
-import { ensureAclIsDeployed } from '../migrations/modules/acl'
-import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
-import { ensureMarketIsDeployed } from '../migrations/modules/market'
+import { deployAcl } from '../migrations/modules/acl'
+import { deploySettings } from '../migrations/modules/settings'
+import { deployMarket } from '../migrations/modules/market'
 
 const EntityDeployer = artifacts.require('./EntityDeployer')
 const IEntityImpl = artifacts.require('./base/IEntityImpl')
@@ -21,8 +21,6 @@ const IPolicyImpl = artifacts.require('./base/IPolicyImpl')
 const PolicyImpl = artifacts.require('./PolicyImpl')
 const Policy = artifacts.require('./Policy')
 const IERC20 = artifacts.require('./base/IERC20')
-
-const getCurrentTime = settings => settings.getTime().then(v => parseInt(v.toString(10)))
 
 contract('End-to-end integration tests', accounts => {
   let acl
@@ -67,14 +65,20 @@ contract('End-to-end integration tests', accounts => {
   let entity3Context
   let entity3Naym
 
+  let STATE_DRAFT
+  let STATE_PENDING
+  let STATE_ACTIVE
+  let STATE_CANCELLED
+  let STATE_MATURED
+
   let calcTime
   let setupEntities
 
   beforeEach(async () => {
     // acl
-    acl = await ensureAclIsDeployed({ artifacts })
+    acl = await deployAcl({ artifacts })
     // settings
-    settings = await ensureSettingsIsDeployed({ artifacts }, acl.address)
+    settings = await deploySettings({ artifacts }, acl.address)
 
     calcTime = async deltaSeconds => {
       const t = await settings.getTime()
@@ -83,14 +87,19 @@ contract('End-to-end integration tests', accounts => {
     }
 
     // wrappedEth
-    etherToken = await ensureEtherTokenIsDeployed({ artifacts }, acl.address, settings.address)
+    etherToken = await deployEtherToken({ artifacts }, acl.address, settings.address)
     // entities
     entityImpl = await EntityImpl.new(acl.address, settings.address)
     entityDeployer = await EntityDeployer.new(acl.address, settings.address, entityImpl.address)
     // policies
     policyImpl = await PolicyImpl.new(acl.address, settings.address)
+    STATE_DRAFT = await policyImpl.STATE_DRAFT()
+    STATE_PENDING = await policyImpl.STATE_PENDING()
+    STATE_ACTIVE = await policyImpl.STATE_ACTIVE()
+    STATE_CANCELLED = await policyImpl.STATE_CANCELLED()
+    STATE_MATURED = await policyImpl.STATE_MATURED()
     // market
-    market = await ensureMarketIsDeployed({ artifacts }, settings.address)
+    market = await deployMarket({ artifacts }, settings.address)
 
     systemAdmin = accounts[0]
     systemContext = await acl.systemContext()
@@ -166,25 +175,25 @@ contract('End-to-end integration tests', accounts => {
     await setupEntities()
   })
 
-  it.only('test case 2', async () => {
+  it('test case 2', async () => {
     await setupEntities()
 
     // step 1: deposit WETH
-    await etherToken.deposit({ value: 11, from: entity0Admin })
-    await etherToken.approve(entity0Address, 11, { from: entity0Admin })
-    await entity0.deposit(etherToken.address, 11, { from: entity0Admin })
+    await etherToken.deposit({ value: 110, from: entity0Admin })
+    await etherToken.approve(entity0Address, 110, { from: entity0Admin })
+    await entity0.deposit(etherToken.address, 110, { from: entity0Admin })
 
     // step 2: deposit WETH
-    await etherToken.deposit({ value: 6, from: entity2SoleProp })
-    await etherToken.approve(entity2Address, 6, { from: entity2SoleProp })
-    await entity2.deposit(etherToken.address, 6, { from: entity2SoleProp })
+    await etherToken.deposit({ value: 60, from: entity2SoleProp })
+    await etherToken.approve(entity2Address, 60, { from: entity2SoleProp })
+    await entity2.deposit(etherToken.address, 60, { from: entity2SoleProp })
 
     // step 3: deposit WETH
-    await etherToken.deposit({ value: 3, from: entity3Naym })
-    await etherToken.approve(entity3Address, 3, { from: entity3Naym })
-    await entity3.deposit(etherToken.address, 3, { from: entity3Naym })
+    await etherToken.deposit({ value: 30, from: entity3Naym })
+    await etherToken.approve(entity3Address, 30, { from: entity3Naym })
+    await entity3.deposit(etherToken.address, 30, { from: entity3Naym })
 
-    // step 4: create policy1
+    // step 4: create policyImpl1
     await createPolicy(
       entity0,
       policyImpl.address,
@@ -209,6 +218,9 @@ contract('End-to-end integration tests', accounts => {
     const policy1 = await IPolicyImpl.at(policy1Address)
     const policy1Owner = entity0Manager
 
+    // set baseline time
+    const evmClock = new EvmClock()
+
     // steps 5: assign roles
     await acl.assignRole(policy1Context, accounts[4], ROLES.BROKER, { from: policy1Owner })
     await acl.assignRole(policy1Context, accounts[5], ROLES.ASSET_MANAGER, { from: policy1Owner })
@@ -221,7 +233,7 @@ contract('End-to-end integration tests', accounts => {
     await createTranch(
       policy1,
       {
-        numShares: 10,
+        numShares: 100,
         pricePerShareAmount: 1,
         premiums: [1, 2, 1],
       },
@@ -229,16 +241,84 @@ contract('End-to-end integration tests', accounts => {
         from: policy1Owner,
       }
     )
+    const policy1Tranch0Address = await policy1.getTranchToken(0)
 
     // steps 9-14: skip for now
 
     // step 14: client manager pays first premium for tranche11
     await etherToken.deposit({ value: 1, from: policy1ClientManager })
-    await etherToken.approve(policy1.address, 100, { from: policy1ClientManager })
+    await etherToken.approve(policy1.address, 1, { from: policy1ClientManager })
     await policy1.payTranchPremium(0, { from: policy1ClientManager })
 
     // step 15: heartbeat - begin sale of tranche11
-    await web3EvmIncreaseTime(web3, 5 * 60)
+    await evmClock.setTime(5 * 60)
     await policy1.checkAndUpdateState()
+
+    // check states
+    await policy1.getState().should.eventually.eq(STATE_PENDING)
+    await policy1.getTranchState(0).should.eventually.eq(STATE_PENDING)
+
+    // step 16: trader buys 5 shares of tranche11 via entity0
+    await entity0.buyTokens(
+      policy1Tranch0Address, 50,
+      etherToken.address, 50,
+      { from: entity0Rep1 }
+    )
+
+    // step 17: trader buys 2.5 shares of tranche11 via entity2
+    await entity2.buyTokens(
+      policy1Tranch0Address, 25,
+      etherToken.address, 25,
+      { from: entity2SoleProp }
+    )
+
+    // step 18: trader buys 2.5 shares of tranche11 via entity3
+    await entity3.buyTokens(
+      policy1Tranch0Address, 25,
+      etherToken.address, 25,
+      { from: entity3Naym }
+    )
+
+    // check states
+    await policy1.getState().should.eventually.eq(STATE_PENDING) // pending since start date not yet passed
+    await policy1.getTranchState(0).should.eventually.eq(STATE_ACTIVE) // should be active since it's fully sold out
+
+    // step 19: client manager pays second premium for tranche11
+    await evmClock.setTime(9 * 60)
+    await etherToken.deposit({ value: 2, from: policy1ClientManager })
+    await etherToken.approve(policy1.address, 2, { from: policy1ClientManager })
+    await policy1.payTranchPremium(0, { from: policy1ClientManager })
+
+    // step 20: heartbeat
+    await evmClock.setTime(10 * 60)
+    await policy1.checkAndUpdateState()
+    await policy1.getState().should.eventually.eq(STATE_ACTIVE) // active now since startdate has passed
+    await policy1.getTranchState(0).should.eventually.eq(STATE_ACTIVE)
+
+    // step 21: skip for now
+
+    // step 22: client manager pays third premium for tranche11
+    await evmClock.setTime(14 * 60)
+    await etherToken.deposit({ value: 1, from: policy1ClientManager })
+    await etherToken.approve(policy1.address, 1, { from: policy1ClientManager })
+    await policy1.payTranchPremium(0, { from: policy1ClientManager })
+
+    // step 23: heartbeat
+    await evmClock.setTime(15 * 60)
+    await policy1.checkAndUpdateState()
+    await policy1.getState().should.eventually.eq(STATE_ACTIVE)
+    await policy1.getTranchState(0).should.eventually.eq(STATE_ACTIVE)
+
+    // step 24: heartbeat
+    await evmClock.setTime(20 * 60)
+    await policy1.checkAndUpdateState()
+    await policy1.getState().should.eventually.eq(STATE_ACTIVE)
+    await policy1.getTranchState(0).should.eventually.eq(STATE_ACTIVE) // all premium payments are done so all ok!
+
+    // step 25: heartbeat
+    // await evmClock.setTime(25 * 60)
+    // await policy1.checkAndUpdateState()
+    // await policy1.getState().should.eventually.eq(STATE_MATURED)
+    // await policy1.getTranchState(0).should.eventually.eq(STATE_ACTIVE)
   })
 })

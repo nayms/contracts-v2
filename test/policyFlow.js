@@ -3,19 +3,15 @@ import {
   ADDRESS_ZERO,
   createTranch,
   createPolicy,
-  web3EvmIncreaseTime,
+  EvmClock,
 } from './utils'
 
 import { events } from '../'
-
-import { ensureEtherTokenIsDeployed } from '../migrations/modules/etherToken'
-
+import { deployEtherToken } from '../migrations/modules/etherToken'
 import { ROLES, ROLEGROUPS } from '../utils/constants'
-
-import { ensureAclIsDeployed } from '../migrations/modules/acl'
-
-import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
-import { ensureMarketIsDeployed } from '../migrations/modules/market'
+import { deployAcl } from '../migrations/modules/acl'
+import { deploySettings } from '../migrations/modules/settings'
+import { deployMarket } from '../migrations/modules/market'
 
 const EntityDeployer = artifacts.require('./EntityDeployer')
 const IEntityImpl = artifacts.require('./base/IEntityImpl')
@@ -51,16 +47,18 @@ contract('Policy flow', accounts => {
 
   let getTranchToken
 
+  let evmClock
+
   beforeEach(async () => {
     // acl
-    acl = await ensureAclIsDeployed({ artifacts })
+    acl = await deployAcl({ artifacts })
     systemContext = await acl.systemContext()
 
     // settings
-    settings = await ensureSettingsIsDeployed({ artifacts }, acl.address)
+    settings = await deploySettings({ artifacts }, acl.address)
 
     // wrappedEth
-    etherToken = await ensureEtherTokenIsDeployed({ artifacts }, acl.address, settings.address)
+    etherToken = await deployEtherToken({ artifacts }, acl.address, settings.address)
 
     // entity
     const entityImpl = await EntityImpl.new(acl.address, settings.address)
@@ -104,7 +102,7 @@ contract('Policy flow', accounts => {
     const policyContext = await policyProxy.aclContext()
 
     // get market address
-    market = await ensureMarketIsDeployed({ artifacts }, settings.address)
+    market = await deployMarket({ artifacts }, settings.address)
 
     // setup two tranches
     await createTranch(policy, {
@@ -129,12 +127,14 @@ contract('Policy flow', accounts => {
     STATE_ACTIVE = await policy.STATE_ACTIVE()
     STATE_CANCELLED = await policy.STATE_CANCELLED()
     STATE_MATURED = await policy.STATE_MATURED()
+
+    evmClock = new EvmClock(baseDate)
   })
 
   describe('tranches begin selling', async () => {
     describe('if initiation date has passed', () => {
       beforeEach(async () => {
-        await web3EvmIncreaseTime(web3, initiationDate - baseDate)
+        await evmClock.setTime(initiationDate)
       })
 
       it('but not if tranch premiums have not been paid', async () => {
@@ -213,7 +213,7 @@ contract('Policy flow', accounts => {
     let tranchToken
 
     beforeEach(async () => {
-      await web3EvmIncreaseTime(web3, initiationDate - baseDate)
+      await evmClock.setTime(initiationDate)
 
       await etherToken.deposit({ value: 100 })
       await etherToken.approve(policy.address, 100)
@@ -301,7 +301,7 @@ contract('Policy flow', accounts => {
 
   describe('sale can be ended', async () => {
     it('but only if start date has passed', async () => {
-      await web3EvmIncreaseTime(web3, initiationDate - baseDate)
+      await evmClock.setTime(initiationDate)
 
       await etherToken.deposit({ value: 100 })
       await etherToken.approve(policy.address, 100)
@@ -316,7 +316,7 @@ contract('Policy flow', accounts => {
 
     describe('once start date has passed', () => {
       beforeEach(async () => {
-        await web3EvmIncreaseTime(web3, initiationDate - baseDate)
+        await evmClock.setTime(initiationDate)
 
         await etherToken.deposit({ value: 100 })
         await etherToken.approve(policy.address, 100)
@@ -325,7 +325,7 @@ contract('Policy flow', accounts => {
         await policy.checkAndUpdateState()
 
         // now past the start date
-        await web3EvmIncreaseTime(web3, startDate - initiationDate)
+        await evmClock.setTime(startDate)
       })
 
       describe('if none of the tranches are active then the policy still gets made active', () => {
@@ -441,7 +441,7 @@ contract('Policy flow', accounts => {
   describe('if policy has been active for a while state can be checked again', async () => {
     beforeEach(async () => {
       // pass the inititation date
-      await web3EvmIncreaseTime(web3, initiationDate - baseDate)
+      await evmClock.setTime(initiationDate)
 
       // pay first premiums
       await etherToken.deposit({ value: 2000 })
@@ -469,7 +469,7 @@ contract('Policy flow', accounts => {
       }
 
       // pass the start date
-      await web3EvmIncreaseTime(web3, startDate - initiationDate)
+      await evmClock.setTime(startDate)
 
       // end the sale
       await policy.checkAndUpdateState()
@@ -480,7 +480,7 @@ contract('Policy flow', accounts => {
       await policy.getTranchState(1).should.eventually.eq(STATE_ACTIVE)
 
       // pass time: 2 x premiumIntervalSeconds
-      await web3EvmIncreaseTime(web3, premiumIntervalSeconds * 2)
+      await evmClock.moveTime(premiumIntervalSeconds * 2)
     })
 
     it('and it remains active if all premium payments are up to date', async () => {

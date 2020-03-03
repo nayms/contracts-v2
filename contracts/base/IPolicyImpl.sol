@@ -36,6 +36,7 @@ contract IPolicyImpl {
   function calculateMaxNumOfPremiums() public view returns (uint256);
   function initiationDateHasPassed () public view returns (bool);
   function startDateHasPassed () public view returns (bool);
+  function maturationDateHasPassed () public view returns (bool);
 
   function checkAndUpdateState () public;
 

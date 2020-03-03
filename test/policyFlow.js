@@ -269,6 +269,10 @@ contract('Policy flow', accounts => {
         await policy.getTranchState(0).should.eventually.eq(STATE_PENDING)
       })
 
+      it('and tranch balance is unchanged', async () => {
+        await policy.getTranchBalance(0).should.eventually.eq(1) // 2 premium payment
+      })
+
       it('and the tally of shares sold is unchanged', async () => {
         await policy.getNumberOfTranchSharesSold(0).should.eventually.eq(0)
       })
@@ -279,7 +283,7 @@ contract('Policy flow', accounts => {
       })
     })
 
-    describe('another party can make an offer that does match', () => {
+    describe('another party can make offers that do match but dont buy the tranch completely', () => {
       beforeEach(async () => {
         // check initial balances
         await etherToken.balanceOf(accounts[2]).should.eventually.eq(25)
@@ -289,9 +293,10 @@ contract('Policy flow', accounts => {
         await tranchToken.balanceOf(policy.address).should.eventually.eq(0)
         await tranchToken.balanceOf(market.address).should.eventually.eq(100)
 
-        // make the offer on the market
+        // make some offers on the market
         await etherToken.approve(market.address, 10, { from: accounts[2] })
-        await market.offer(10, etherToken.address, 5, tranchToken.address, 0, true, { from: accounts[2] })
+        await market.offer(4, etherToken.address, 2, tranchToken.address, 0, true, { from: accounts[2] })
+        await market.offer(6, etherToken.address, 3, tranchToken.address, 0, true, { from: accounts[2] })
 
         // check balances again
         await etherToken.balanceOf(accounts[2]).should.eventually.eq(15)
@@ -302,9 +307,13 @@ contract('Policy flow', accounts => {
         await tranchToken.balanceOf(market.address).should.eventually.eq(95)
       })
 
-      it('but tranch status is unchanged because still some left to sell', async () => {
+      it('and tranch status is unchanged', async () => {
         // tranch status unchanged
         await policy.getTranchState(0).should.eventually.eq(STATE_PENDING)
+      })
+
+      it('and tranch balance has been updated', async () => {
+        await policy.getTranchBalance(0).should.eventually.eq(11) /* 10 from buyer + 1 premium payment */
       })
 
       it('and tally of shares sold has been updated', async () => {
@@ -341,6 +350,10 @@ contract('Policy flow', accounts => {
 
       it('then its status is set to active', async () => {
         await policy.getTranchState(0).should.eventually.eq(STATE_ACTIVE)
+      })
+
+      it('then tranch balance has been updated', async () => {
+        await policy.getTranchBalance(0).should.eventually.eq(201) /* 200 from buyer + 1 premium payment */
       })
 
       it('and the tally of shares sold gets updated', async () => {

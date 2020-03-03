@@ -7,13 +7,10 @@ const { deployAcl } = require('./modules/acl')
 const { deployMarket } = require('./modules/market')
 const { deploySettings } = require('./modules/settings')
 const { deployEtherToken } = require('./modules/etherToken')
-const { ensureErc1820RegistryIsDeployed } = require('./modules/erc1820')
 
 module.exports = async deployer => {
   const web3 = new Web3(deployer.provider)
   const accounts = await web3.eth.getAccounts()
-
-  await ensureErc1820RegistryIsDeployed({ artifacts, web3, accounts, logger: true })
 
   const acl = await deployAcl({ deployer, artifacts, logger: true })
   const settings = await deploySettings({ deployer, artifacts, logger: true }, acl.address)

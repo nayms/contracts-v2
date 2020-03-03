@@ -11,11 +11,6 @@ import { toBN, isBN } from './web3'
 const MNEMONIC = (packageJson.scripts.devnet.match(/\'(.+)\'/))[1]
 console.log(`Mnemonic: ${MNEMONIC}`)
 
-export const testEvents = extractEventsFromAbis([
-  require('../../build/contracts/DummyERC777TokensSender.json'),
-  require('../../build/contracts/DummyERC777TokensRecipient.json'),
-])
-
 chai.use((_chai, utils) => {
   const sanitizeResultVal = (result, val) => {
     // if bignumber

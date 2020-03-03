@@ -79,7 +79,6 @@ The key contracts are:
 * `EntityDeployer (IEntityDeployer.sol)` - Interface for the entity deployer. We have a single global deployer for our platform.
 * `Entity (IEntityImpl.sol)` - Interface for interacting with entities.
 * `ERC20 (IERC20.sol)` - Interface for interacting with ERC-20 contracts.
-* `ERC777 (IERC777.sol)` - Interface for interacting with ERC-777 contracts.
 * `EtherToken (IEtherToken.sol)` - Interface for interacting with wrapped ETH token contract. We have a single global instance for our platform.
 * `Market (IMarket.sol)` - Interface for interacting with [our MakerOTC matching market](https://github.com/nayms/maker-otc). We have a single global instance for our platform.
 * `Policy (IPolicyImpl.sol)` - Interface for interacting with policies.

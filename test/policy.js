@@ -5,17 +5,10 @@ import {
   extractEventArgs,
   hdWallet,
   ADDRESS_ZERO,
-  testEvents,
   createTranch,
   createPolicy,
 } from './utils'
 import { events } from '../'
-
-import {
-  ensureErc1820RegistryIsDeployed,
-  TOKENS_SENDER_INTERFACE_HASH,
-  TOKENS_RECIPIENT_INTERFACE_HASH
-} from '../migrations/modules/erc1820'
 
 import { ROLES, ROLEGROUPS } from '../utils/constants'
 
@@ -25,7 +18,6 @@ import { deployEtherToken } from '../migrations/modules/etherToken'
 import { deploySettings } from '../migrations/modules/settings'
 
 const IERC20 = artifacts.require("./base/IERC20")
-const IERC777 = artifacts.require("./base/IERC777")
 const EntityDeployer = artifacts.require('./EntityDeployer')
 const IEntityImpl = artifacts.require('./base/IEntityImpl')
 const EntityImpl = artifacts.require('./EntityImpl')
@@ -34,10 +26,6 @@ const IPolicyImpl = artifacts.require("./base/IPolicyImpl")
 const PolicyImpl = artifacts.require("./PolicyImpl")
 const Policy = artifacts.require("./Policy")
 const TestPolicyImpl = artifacts.require("./test/TestPolicyImpl")
-const DummyERC777TokensSender = artifacts.require('./test/DummyERC777TokensSender')
-const DummyERC777TokensRecipient = artifacts.require('./test/DummyERC777TokensRecipient')
-const ReEntrantERC777TokensSender = artifacts.require('./test/ReEntrantERC777TokensSender')
-const ReEntrantERC777TokensRecipient = artifacts.require('./test/ReEntrantERC777TokensRecipient')
 
 const DATA_BYTES = asciiToHex('test')
 const DATA_BYTES_2 = asciiToHex('test2')
@@ -57,7 +45,6 @@ contract('Policy', accounts => {
   let policyContext
   let entityManagerAddress
   let policyOwnerAddress
-  let erc1820Registry
   let etherToken
 
   let setupPolicy
@@ -71,7 +58,6 @@ contract('Policy', accounts => {
     settings = await deploySettings({ artifacts }, acl.address)
 
     // registry + wrappedEth
-    erc1820Registry = await ensureErc1820RegistryIsDeployed({ artifacts, accounts, web3 })
     etherToken = await deployEtherToken({ artifacts }, acl.address, settings.address)
 
     // entity
@@ -395,270 +381,6 @@ contract('Policy', accounts => {
               from: accounts[0],
               to: accounts[2],
               value: `${firstTknNumShares}`,
-            })
-          })
-        })
-      })
-    })
-
-    describe('are ERC777 tokens', () => {
-      beforeEach(async () => {
-        await setupPolicy()
-
-        acl.assignRole(policyContext, accounts[0], ROLES.POLICY_OWNER)
-
-        await createTranch(policy, {
-          numShares: tranchNumShares,
-          pricePerShareAmount: tranchPricePerShare,
-          initialBalanceHolder: accounts[0],
-        }).should.be.fulfilled
-
-        await createTranch(policy, {
-          numShares: tranchNumShares,
-          pricePerShareAmount: tranchPricePerShare,
-          initialBalanceHolder: accounts[0],
-        }).should.be.fulfilled
-      })
-
-      it('which have basic details', async () => {
-        let done = 0
-
-        await Promise.all(_.range(0, 2).map(async i => {
-          const tkn = await IERC777.at(await policy.getTranchToken(i))
-
-          const NAME = `${policyProxy.address.toLowerCase()}_tranch_\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000` + String.fromCodePoint(i)
-
-          await tkn.name().should.eventually.eq(NAME)
-          await tkn.symbol().should.eventually.eq(NAME)
-          await tkn.totalSupply().should.eventually.eq(tranchNumShares)
-          await tkn.granularity().should.eventually.eq(1)
-          await tkn.isOperatorFor(accounts[0], accounts[1]).should.eventually.eq(false)
-
-          done++
-        }))
-
-        expect(done).to.eq(2)
-      })
-
-      it('which have all supply initially allocated to creator', async () => {
-        let done = 0
-
-        await Promise.all(_.range(0, 2).map(async i => {
-          const tkn = await IERC777.at(await policy.getTranchToken(i))
-
-          await tkn.balanceOf(accounts[0]).should.eventually.eq(await tkn.totalSupply())
-
-          done++
-        }))
-
-        expect(done).to.eq(2)
-      })
-
-      it('which have an empty list of default operators', async () => {
-        let done = 0
-
-        await Promise.all(_.range(0, 2).map(async i => {
-          const tkn = await IERC777.at(await policy.getTranchToken(i))
-
-          await tkn.defaultOperators().should.eventually.eq([])
-
-          done++
-        }))
-
-        expect(done).to.eq(2)
-      })
-
-      describe('which support operations', () => {
-        let firstTkn
-        let firstTknNumShares
-
-        beforeEach(async () => {
-          firstTkn = await IERC777.at(await policy.getTranchToken(0))
-          firstTknNumShares = await firstTkn.totalSupply()
-        })
-
-        it('but sending one\'s own tokens is not possible', async () => {
-          await firstTkn.send(accounts[0], firstTknNumShares, DATA_BYTES).should.be.rejectedWith('only nayms market is allowed to transfer')
-        })
-
-        it('but approving an operator is not possible', async () => {
-          await firstTkn.authorizeOperator(accounts[1]).should.be.rejectedWith('only nayms market is allowed to transfer')
-        })
-
-        it('but revoking an operator is not possible', async () => {
-          await firstTkn.revokeOperator(accounts[1]).should.be.rejectedWith('only nayms market is allowed to transfer')
-        })
-
-        describe('such as market sending tokens on one\' behalf', () => {
-          beforeEach(async () => {
-            await settings.setMatchingMarket(accounts[3]).should.be.fulfilled
-          })
-
-          it('but not when sending to null address', async () => {
-            await firstTkn.operatorSend(accounts[0], ADDRESS_ZERO, 1, DATA_BYTES, DATA_BYTES_2, { from: accounts[3] }).should.be.rejectedWith('cannot send to zero address')
-          })
-
-          it('but not when owner does not have enough', async () => {
-            await firstTkn.operatorSend(accounts[0], accounts[2], firstTknNumShares + 1, DATA_BYTES, DATA_BYTES_2, { from: accounts[3] }).should.be.rejectedWith('not enough balance')
-          })
-
-          it('when the owner has enough', async () => {
-            const result = await firstTkn.operatorSend(accounts[0], accounts[2], firstTknNumShares, DATA_BYTES, DATA_BYTES_2, { from: accounts[3] })
-
-            await firstTkn.balanceOf(accounts[0]).should.eventually.eq(0)
-            await firstTkn.balanceOf(accounts[2]).should.eventually.eq(firstTknNumShares)
-
-            expect(extractEventArgs(result, events.Transfer)).to.include({
-              from: accounts[0],
-              to: accounts[2],
-              value: `${firstTknNumShares}`,
-            })
-
-            expect(extractEventArgs(result, events.Sent)).to.include({
-              operator: accounts[3],
-              from: accounts[0],
-              to: accounts[2],
-              amount: `${firstTknNumShares}`,
-              data: DATA_BYTES,
-              operatorData: DATA_BYTES_2,
-            })
-          })
-        })
-
-        describe('involving ERC1820 registry', () => {
-          beforeEach(async () => {
-            await settings.setMatchingMarket(accounts[3]).should.be.fulfilled
-
-            await erc1820Registry.setInterfaceImplementer(
-              accounts[0],
-              TOKENS_SENDER_INTERFACE_HASH,
-              ADDRESS_ZERO,
-              { from: accounts[0] }
-            );
-
-            await erc1820Registry.setInterfaceImplementer(
-              accounts[2],
-              TOKENS_RECIPIENT_INTERFACE_HASH,
-              ADDRESS_ZERO,
-              { from: accounts[2] }
-            )
-          })
-
-          afterEach(async () => {
-            await erc1820Registry.setInterfaceImplementer(
-              accounts[0],
-              TOKENS_SENDER_INTERFACE_HASH,
-              ADDRESS_ZERO,
-              { from: accounts[0] }
-            );
-
-            await erc1820Registry.setInterfaceImplementer(
-              accounts[2],
-              TOKENS_RECIPIENT_INTERFACE_HASH,
-              ADDRESS_ZERO,
-              { from: accounts[2] }
-            )
-          })
-
-          describe('and if sender has registered a handler', () => {
-            describe('when it\'s a dummy handler', () => {
-              beforeEach(async () => {
-                const dummyERC777TokenSender = await DummyERC777TokensSender.new()
-
-                await erc1820Registry.setInterfaceImplementer(
-                  accounts[0],
-                  TOKENS_SENDER_INTERFACE_HASH,
-                  dummyERC777TokenSender.address,
-                  { from: accounts[0] }
-                )
-              })
-
-              it('then the handler gets invoked during a transfer', async () => {
-                const result = await firstTkn.operatorSend(accounts[0], accounts[2], 1, DATA_BYTES, DATA_BYTES_2, { from: accounts[3] }).should.be.fulfilled
-
-                expect(extractEventArgs(result, testEvents.TokensToSend)).to.include({
-                  operator: accounts[3],
-                  from: accounts[0],
-                  to: accounts[2],
-                  amount: '1',
-                  userData: DATA_BYTES,
-                  operatorData: DATA_BYTES_2,
-                })
-              })
-            })
-
-            describe('when it\'s a re-entrant handler', () => {
-              beforeEach(async () => {
-                const reEntrantERC777TokenSender = await ReEntrantERC777TokensSender.new(
-                  policyProxy.address,
-                  0
-                )
-
-                await erc1820Registry.setInterfaceImplementer(
-                  accounts[0],
-                  TOKENS_SENDER_INTERFACE_HASH,
-                  reEntrantERC777TokenSender.address,
-                  { from: accounts[0] }
-                )
-              })
-
-              it('then mutex prevents transaction succeeding', async () => {
-                await firstTkn.operatorSend(accounts[0], accounts[1], 1, DATA_BYTES, DATA_BYTES_2, { from: accounts[3] }).should.be.rejectedWith('ERC777 sender mutex already acquired')
-              })
-            })
-          })
-
-          describe('and if receiver has registered a handler', () => {
-            describe('when it\'s a dummy handler', () => {
-              beforeEach(async () => {
-                const dummyERC777TokensRecipient = await DummyERC777TokensRecipient.new()
-
-                await erc1820Registry.setInterfaceImplementer(
-                  accounts[2],
-                  TOKENS_RECIPIENT_INTERFACE_HASH,
-                  dummyERC777TokensRecipient.address,
-                  { from: accounts[2] }
-                )
-              })
-
-              it('then handler gets invoked during a transfer', async () => {
-                const result = await firstTkn.operatorSend(accounts[0], accounts[2], 1, DATA_BYTES, DATA_BYTES_2, { from: accounts[3] }).should.be.fulfilled
-
-                expect(extractEventArgs(result, testEvents.TokensReceived)).to.include({
-                  operator: accounts[3],
-                  from: accounts[0],
-                  to: accounts[2],
-                  amount: '1',
-                  userData: DATA_BYTES,
-                  operatorData: DATA_BYTES_2,
-                })
-              })
-            })
-
-            describe('when it\'s a re-entrant handler', () => {
-              beforeEach(async () => {
-                const reEntrantERC777TokenRecipient = await ReEntrantERC777TokensRecipient.new(
-                  policyProxy.address,
-                  0
-                )
-
-                await erc1820Registry.setInterfaceImplementer(
-                  accounts[2],
-                  TOKENS_RECIPIENT_INTERFACE_HASH,
-                  reEntrantERC777TokenRecipient.address,
-                  { from: accounts[2] }
-                )
-              })
-
-              it('then mutex prevents transaction succeeding', async () => {
-                await firstTkn.operatorSend(accounts[0], accounts[2], 1, DATA_BYTES, DATA_BYTES_2, { from: accounts[3] }).should.be.rejectedWith('ERC777 receiver mutex already acquired')
-              })
-            })
-          })
-
-          describe('and if receiver is a contract and it has not registered a handler', () => {
-            it('then it reverts', async () => {
-              await firstTkn.operatorSend(accounts[0], policyImpl.address, 1, DATA_BYTES, DATA_BYTES_2, { from: accounts[3] }).should.be.rejectedWith('has no implementer')
             })
           })
         })

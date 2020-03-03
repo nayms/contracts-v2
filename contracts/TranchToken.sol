@@ -1,13 +1,12 @@
 pragma solidity >=0.5.8;
 
 import './base/IERC20.sol';
-import './base/IERC777.sol';
 import './base/ITranchTokenHelper.sol';
 
 /**
  * @dev An Policy tranch.
  */
-contract TranchToken is IERC20, IERC777 {
+contract TranchToken is IERC20 {
   ITranchTokenHelper public impl;
   uint256 public index;
 
@@ -16,7 +15,7 @@ contract TranchToken is IERC20, IERC777 {
     index = _index;
   }
 
-  // ERC-20 and ERC-777 queries //
+  // ERC-20 queries //
 
   function name() public view returns (string memory) {
     return impl.tknName(index);
@@ -34,25 +33,12 @@ contract TranchToken is IERC20, IERC777 {
     return impl.tknBalanceOf(index, owner);
   }
 
-  function granularity() public view returns (uint256) {
-    return 1;
-  }
-
   function decimals() public view returns (uint8) {
     return 18;
   }
 
   function allowance(address owner, address spender) public view returns (uint256) {
     return impl.tknAllowance(index, spender, owner);
-  }
-
-  function isOperatorFor(address operator, address tokenHolder) public view returns (bool) {
-    return impl.tknIsOperatorFor(index, operator, tokenHolder);
-  }
-
-  function defaultOperators() public view returns (address[] memory) {
-    address[] memory empty;
-    return empty;
   }
 
   // ERC-20 mutations //
@@ -73,35 +59,5 @@ contract TranchToken is IERC20, IERC777 {
     impl.tknTransfer(index, msg.sender, from, to, value);
     emit Transfer(from, to, value);
     return true;
-  }
-
-  // ERC-777 mutations //
-
-  function authorizeOperator(address operator) public {
-    impl.tknAuthorizeOperator(index, operator, msg.sender);
-    emit AuthorizedOperator(operator, msg.sender);
-  }
-
-  function revokeOperator(address operator) public {
-    impl.tknRevokeOperator(index, operator, msg.sender);
-    emit RevokedOperator(operator, msg.sender);
-  }
-
-  function send(address recipient, uint256 amount, bytes memory data) public {
-    impl.tknSend(index, msg.sender, msg.sender, recipient, amount, data, "");
-    emit Transfer(msg.sender, recipient, amount);
-    emit Sent(msg.sender, msg.sender, recipient, amount, data, "");
-  }
-
-  function operatorSend(
-      address sender,
-      address recipient,
-      uint256 amount,
-      bytes memory data,
-      bytes memory operatorData
-  ) public {
-    impl.tknSend(index, msg.sender, sender, recipient, amount, data, operatorData);
-    emit Transfer(sender, recipient, amount);
-    emit Sent(msg.sender, sender, recipient, amount, data, operatorData);
   }
 }

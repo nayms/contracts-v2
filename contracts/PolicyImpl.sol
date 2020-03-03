@@ -4,9 +4,6 @@ import "./base/Address.sol";
 import "./base/Controller.sol";
 import "./base/EternalStorage.sol";
 import './base/IERC20.sol';
-import './base/IERC777Sender.sol';
-import './base/IERC777Recipient.sol';
-import './base/IERC1820Registry.sol';
 import "./base/IProxyImpl.sol";
 import "./base/IPolicyImpl.sol";
 import "./base/IMarket.sol";
@@ -20,17 +17,6 @@ import "./TranchToken.sol";
 contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITranchTokenHelper {
   using SafeMath for uint;
   using Address for address;
-
-  // ERC 1820 stuff //
-
-  address public constant ERC1820_REGISTRY_ADDRESS =
-      0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24;
-  // keccak256("ERC777TokensSender")
-  bytes32 public constant TOKENS_SENDER_INTERFACE_HASH =
-      0x29ddb589b1fb5fc7cf394961c1adf5f8c6454761adf795e67fe149f658abe895;
-  // keccak256("ERC777TokensRecipient")
-  bytes32 public constant TOKENS_RECIPIENT_INTERFACE_HASH =
-      0xb281fc8c12954d22544db45de3159a39272895b169a852b314f9cc762e44c53b;
 
   // Modifiers //
 
@@ -288,11 +274,6 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
     return dataUint256[k];
   }
 
-  function tknIsOperatorFor(uint256 _index, address _operator, address _tokenHolder) public view returns (bool) {
-    string memory k = string(abi.encodePacked(_index, _tokenHolder, "operator", _operator));
-    return dataBool[k];
-  }
-
   // TranchTokenImpl - ERC20 mutations //
 
   function tknApprove(uint256 /*_index*/, address /*_spender*/, address /*_from*/, uint256 /*_value*/) public {
@@ -304,30 +285,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
     _transfer(_index, _from, _to, _value);
   }
 
-  // TranchTokenImpl - ERC777 mutations //
-
-  function tknAuthorizeOperator(uint256 /*_index */, address /* _operator */, address /* _tokenHolder */) public {
-    revert('only nayms market is allowed to transfer');
-  }
-
-  function tknRevokeOperator(uint256 /*_index */, address /* _operator */, address /* _tokenHolder */) public {
-    revert('only nayms market is allowed to transfer');
-  }
-
-  function tknSend(uint256 _index, address _operator, address _from, address _to, uint256 _amount, bytes memory _data,
-    bytes memory _operatorData) public
-  {
-    require(_to != address(0), 'cannot send to zero address');
-    require(_operator == settings().getMatchingMarket(), 'only nayms market is allowed to transfer');
-
-    _callTokensToSend(_index, _operator, _from, _to, _amount, _data, _operatorData);
-
-    _transfer(_index, _from, _to, _amount);
-
-    _callTokensReceived(_index, _operator, _from, _to, _amount, _data, _operatorData);
-  }
-
-  // Helpers
+  // Internal functions
 
   function _transfer(uint _index, address _from, address _to, uint256 _value) private {
     // when token holder is sending to the market
@@ -358,63 +316,6 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
         // flip tranch state to ACTIVE
         dataUint256[string(abi.encodePacked(_index, "state"))] = STATE_ACTIVE;
       }
-    }
-  }
-
-  // re-entrancy protection
-  modifier acquireErc777SenderMutex (uint256 _index) {
-    string memory k = string(abi.encodePacked(_index, "erc777sender-mutex"));
-    require(!dataBool[k], 'ERC777 sender mutex already acquired');
-    dataBool[k] = true;
-    _;
-    dataBool[k] = false;
-  }
-  // re-entrancy protection
-  modifier acquireErc777ReceiverMutex (uint256 _index) {
-    string memory k = string(abi.encodePacked(_index, "erc777receiver-mutex"));
-    require(!dataBool[k], 'ERC777 receiver mutex already acquired');
-    dataBool[k] = true;
-    _;
-    dataBool[k] = false;
-  }
-
-  // From https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC777/ERC777.sol
-  function _callTokensToSend(
-    uint256 _index,
-    address _operator,
-    address _from,
-    address _to,
-    uint256 _amount,
-    bytes memory _userData,
-    bytes memory _operatorData
-  )
-    private
-    acquireErc777SenderMutex(_index)
-  {
-    address implementer = IERC1820Registry(ERC1820_REGISTRY_ADDRESS).getInterfaceImplementer(_from, TOKENS_SENDER_INTERFACE_HASH);
-    if (implementer != address(0)) {
-      IERC777Sender(implementer).tokensToSend(_operator, _from, _to, _amount, _userData, _operatorData);
-    }
-  }
-
-  // From https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC777/ERC777.sol
-  function _callTokensReceived(
-    uint256 _index,
-    address _operator,
-    address _from,
-    address _to,
-    uint256 _amount,
-    bytes memory _userData,
-    bytes memory _operatorData
-  )
-    private
-    acquireErc777ReceiverMutex(_index)
-  {
-    address implementer = IERC1820Registry(ERC1820_REGISTRY_ADDRESS).getInterfaceImplementer(_to, TOKENS_RECIPIENT_INTERFACE_HASH);
-    if (implementer != address(0)) {
-      IERC777Recipient(implementer).tokensReceived(_operator, _from, _to, _amount, _userData, _operatorData);
-    } else {
-      require(!_to.isContract(), "token recipient contract has no implementer for ERC777TokensRecipient");
     }
   }
 }

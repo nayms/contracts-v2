@@ -25,8 +25,15 @@ contract IPolicyImpl {
   function tranchPaymentsAllMade (uint256 _index) public view returns (bool);
   function getNextTranchPremiumAmount (uint256 _index) public view returns (uint256);
   function payTranchPremium (uint256 _index) public;
-  function calculateMaxNumOfPremiums() public view returns (uint256);
+  function getTranchBalance (uint256 _index) public view returns (uint256);
+  function getNumberOfTranchSharesSold (uint256 _index) public view returns (uint256);
+  function getTranchMarketOrderId (uint256 _index) public view returns (uint256);
 
+  function getAssetManagerCommissionBalance () public view returns (uint256);
+  function getNaymsCommissionBalance () public view returns (uint256);
+  function getBrokerCommissionBalance () public view returns (uint256);
+
+  function calculateMaxNumOfPremiums() public view returns (uint256);
   function initiationDateHasPassed () public view returns (bool);
   function startDateHasPassed () public view returns (bool);
 

@@ -434,6 +434,7 @@ contract('Policy', accounts => {
           await policy.getNextTranchPremiumAmount(0).should.eventually.eq(3)
           await policy.getNumberOfTranchPaymentsMissed(0).should.eventually.eq(0)
           await policy.tranchPaymentsAllMade(0).should.eventually.eq(false)
+          await policy.getTranchBalance(0).should.eventually.eq(2)
         })
 
         it('updates the internal stats once subsequent payment is made', async () => {
@@ -449,6 +450,47 @@ contract('Policy', accounts => {
           await policy.getNextTranchPremiumAmount(0).should.eventually.eq(4)
           await policy.getNumberOfTranchPaymentsMissed(0).should.eventually.eq(0)
           await policy.tranchPaymentsAllMade(0).should.eventually.eq(false)
+          await policy.getTranchBalance(0).should.eventually.eq(5)
+        })
+      })
+
+      describe('with commissions', () => {
+        beforeEach(async () => {
+          await setupPolicy({
+            assetManagerCommissionBP: 1,
+            brokerCommissionBP: 2,
+            naymsCommissionBP: 3,
+          })
+
+          await createTranch(policy, {
+            premiums: [2000, 3000, 4000]
+          }, { from: policyOwnerAddress })
+        })
+
+        it('updates the balances correctly as premiums get paid in', async () => {
+          await etherToken.deposit({ value: 10000 })
+          await etherToken.approve(policy.address, 10000)
+
+          await policy.payTranchPremium(0)
+
+          await policy.getAssetManagerCommissionBalance().should.eventually.eq(2) /* 0.1% of 2000 */
+          await policy.getBrokerCommissionBalance().should.eventually.eq(4) /* 0.2% of 2000 */
+          await policy.getNaymsCommissionBalance().should.eventually.eq(6) /* 0.3% of 2000 */
+          await policy.getTranchBalance(0).should.eventually.eq(1988) /* 2000 - (2 + 4 + 6) */
+
+          await policy.payTranchPremium(0)
+
+          await policy.getAssetManagerCommissionBalance().should.eventually.eq(5) /* 2 + 0.1% of 3000 */
+          await policy.getBrokerCommissionBalance().should.eventually.eq(10) /* 4 + 0.2% of 3000 */
+          await policy.getNaymsCommissionBalance().should.eventually.eq(15) /* 6 + 0.3% of 3000 */
+          await policy.getTranchBalance(0).should.eventually.eq(4970) /* 1988 + 3000 - (3 + 6 + 9) */
+
+          await policy.payTranchPremium(0)
+
+          await policy.getAssetManagerCommissionBalance().should.eventually.eq(9) /* 5 + 0.1% of 4000 */
+          await policy.getBrokerCommissionBalance().should.eventually.eq(18) /* 10 + 0.2% of 4000 */
+          await policy.getNaymsCommissionBalance().should.eventually.eq(27) /* 15 + 0.3% of 4000 */
+          await policy.getTranchBalance(0).should.eventually.eq(8946) /* 4970 + 4000 - (4 + 8 + 12) */
         })
       })
 

@@ -172,13 +172,50 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
       tkn.transferFrom(msg.sender, address(this), expectedAmount);
     }
 
-    // record the transfer
-    uint256 paymentsMade = dataUint256[string(abi.encodePacked(_index, "premiumsPaid"))];
-    dataUint256[string(abi.encodePacked(_index, "premiumPayment", paymentsMade))] = expectedAmount;
-    dataAddress[string(abi.encodePacked(_index, "premiumPayer", paymentsMade))] = msg.sender;
-    dataUint256[string(abi.encodePacked(_index, "premiumsPaid"))] = paymentsMade + 1;
+    // record the payments
+    uint256 paymentNum = dataUint256[string(abi.encodePacked(_index, "premiumsPaid"))] + 1;
+    dataUint256[string(abi.encodePacked(_index, "premiumPayment", paymentNum))] = expectedAmount;
+    dataAddress[string(abi.encodePacked(_index, "premiumPayer", paymentNum))] = msg.sender;
+    dataUint256[string(abi.encodePacked(_index, "premiumsPaid"))] = paymentNum;
+
+    // calculate commissions
+    uint256 brokerCommission = dataUint256["brokerCommissionBP"].mul(expectedAmount).div(1000);
+    uint256 assetManagerCommission = dataUint256["assetManagerCommissionBP"].mul(expectedAmount).div(1000);
+    uint256 naymsCommission = dataUint256["naymsCommissionBP"].mul(expectedAmount).div(1000);
+
+    // add to commission balances
+    dataUint256["brokerCommissionBalance"] += brokerCommission;
+    dataUint256["assetManagerCommissionBalance"] += assetManagerCommission;
+    dataUint256["naymsCommissionBalance"] += naymsCommission;
+
+    // add to tranch balance
+    uint256 tranchBalanceDelta = expectedAmount - (brokerCommission + assetManagerCommission + naymsCommission);
+    dataUint256[string(abi.encodePacked(_index, "balance"))] += tranchBalanceDelta;
   }
 
+  function getAssetManagerCommissionBalance () public view returns (uint256) {
+    return dataUint256["assetManagerCommissionBalance"];
+  }
+
+  function getNaymsCommissionBalance () public view returns (uint256) {
+    return dataUint256["naymsCommissionBalance"];
+  }
+
+  function getBrokerCommissionBalance () public view returns (uint256) {
+    return dataUint256["brokerCommissionBalance"];
+  }
+
+  function getTranchBalance (uint256 _index) public view returns (uint256) {
+    return dataUint256[string(abi.encodePacked(_index, "balance"))];
+  }
+
+  function getNumberOfTranchSharesSold (uint256 _index) public view returns (uint256) {
+    return dataUint256[string(abi.encodePacked(_index, "sharesSold"))];
+  }
+
+  function getTranchMarketOrderId (uint256 _index) public view returns (uint256) {
+    return dataUint256[string(abi.encodePacked(_index, "marketOfferId"))];
+  }
 
   function initiationDateHasPassed () public view returns (bool) {
     return now >= dataUint256["initiationDate"];
@@ -201,6 +238,9 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
           uint256 state = dataUint256[string(abi.encodePacked(i, "state"))];
 
           if (state != STATE_ACTIVE || 0 < getNumberOfTranchPaymentsMissed(i)) {
+            // cancel the outstanding market order
+            _cancelTranchMarketOffer(i);
+            // set state to cancelled
             dataUint256[string(abi.encodePacked(i, "state"))] = STATE_CANCELLED;
           }
         }
@@ -228,8 +268,8 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
             // calculate sale values
             uint256 pricePerShare = dataUint256[string(abi.encodePacked(i, "pricePerShareAmount"))];
             uint256 totalPrice = totalSupply.mul(pricePerShare);
-            // do the transfer
-            market.offer(totalSupply, tranchAddress, totalPrice, dataAddress["unit"], 0, false);
+            // offer tokens in initial sale
+            dataUint256[string(abi.encodePacked(i, "marketOfferId"))] = market.offer(totalSupply, tranchAddress, totalPrice, dataAddress["unit"], 0, false);
             // set tranch state
             dataUint256[string(abi.encodePacked(i, "state"))] = STATE_PENDING;
           }
@@ -291,10 +331,10 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
     // when token holder is sending to the market
     address market = settings().getMatchingMarket();
     if (market == _to) {
-      // and they're not the initial balance holder of the token
+      // and they're not the initial balance holder of the token (i.e. the policy/tranch)
       address initialHolder = dataAddress[string(abi.encodePacked(_index, "initialHolder"))];
       if (initialHolder != _from) {
-        // then ony allow them to do this when policy is active
+        // then they must be a trader, in which case ony allow this if the policy is active
         require(dataUint256["state"] == STATE_ACTIVE, 'can only trade when policy is active');
       }
     }
@@ -307,15 +347,30 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
     dataUint256[fromKey] = dataUint256[fromKey].sub(_value);
     dataUint256[toKey] = dataUint256[toKey].add(_value);
 
-    // if we are in the initial sale period and this is a transfer from the market to the buyer
+    // if we are in the initial sale period and this is a transfer from the market to a buyer
     if (dataUint256[string(abi.encodePacked(_index, "state"))] == STATE_PENDING && market == _from) {
-      // TODO: update pay token balance for tranch
+      // record how many "shares" were sold
+      dataUint256[string(abi.encodePacked(_index, "sharesSold"))] += _value;
 
       // if the tranch has fully sold out (i.e market no longer holds any tranch tokens)
       if (dataUint256[fromKey] == 0) {
         // flip tranch state to ACTIVE
         dataUint256[string(abi.encodePacked(_index, "state"))] = STATE_ACTIVE;
+        // clear offer id (market has already deleted offer since it has been fulfilled)
+        dataUint256[string(abi.encodePacked(_index, "marketOfferId"))] = 0;
       }
     }
+  }
+
+  function _cancelTranchMarketOffer(uint _index) private {
+    IMarket market = IMarket(settings().getMatchingMarket());
+
+    uint256 marketOfferId = dataUint256[string(abi.encodePacked(_index, "marketOfferId"))];
+
+    if (market.isActive(marketOfferId)) {
+      require(market.cancel(marketOfferId), 'unable to cancel offer');
+    }
+
+    dataUint256[string(abi.encodePacked(_index, "marketOfferId"))] = 0;
   }
 }

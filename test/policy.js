@@ -27,9 +27,6 @@ const PolicyImpl = artifacts.require("./PolicyImpl")
 const Policy = artifacts.require("./Policy")
 const TestPolicyImpl = artifacts.require("./test/TestPolicyImpl")
 
-const DATA_BYTES = asciiToHex('test')
-const DATA_BYTES_2 = asciiToHex('test2')
-
 contract('Policy', accounts => {
   let acl
   let systemContext
@@ -256,8 +253,8 @@ contract('Policy', accounts => {
           from: accounts[2]
         }).should.be.fulfilled
 
-        const draftState = await policy.STATE_DRAFT()
-        await policy.getTranchState(0).should.eventually.eq(draftState)
+        const createdState = await policy.POLICY_STATE_CREATED()
+        await policy.getTranchState(0).should.eventually.eq(createdState)
       })
 
       it('can be created more than once', async () => {

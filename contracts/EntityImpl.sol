@@ -101,7 +101,7 @@ import "./Policy.sol";
     tok.transfer(msg.sender, _amount);
   }
 
-  function buyTokens(address _buyUnit, uint256 _buyAmount, address _payUnit, uint256 _payAmount)
+  function trade(address _buyUnit, uint256 _buyAmount, address _payUnit, uint256 _payAmount)
     public
     assertCanTradeTranchTokens
   {

@@ -65,11 +65,15 @@ contract('End-to-end integration tests', accounts => {
   let entity3Context
   let entity3Naym
 
-  let STATE_DRAFT
-  let STATE_PENDING
-  let STATE_ACTIVE
-  let STATE_CANCELLED
-  let STATE_MATURED
+  let POLICY_STATE_CREATED
+  let POLICY_STATE_SELLING
+  let POLICY_STATE_ACTIVE
+  let POLICY_STATE_MATURED
+  let TRANCH_STATE_CREATED
+  let TRANCH_STATE_SELLING
+  let TRANCH_STATE_ACTIVE
+  let TRANCH_STATE_MATURED
+  let TRANCH_STATE_CANCELLED
 
   let calcTime
   let setupEntities
@@ -93,11 +97,15 @@ contract('End-to-end integration tests', accounts => {
     entityDeployer = await EntityDeployer.new(acl.address, settings.address, entityImpl.address)
     // policies
     policyImpl = await PolicyImpl.new(acl.address, settings.address)
-    STATE_DRAFT = await policyImpl.STATE_DRAFT()
-    STATE_PENDING = await policyImpl.STATE_PENDING()
-    STATE_ACTIVE = await policyImpl.STATE_ACTIVE()
-    STATE_CANCELLED = await policyImpl.STATE_CANCELLED()
-    STATE_MATURED = await policyImpl.STATE_MATURED()
+    POLICY_STATE_CREATED = await policy.POLICY_STATE_CREATED()
+    POLICY_STATE_SELLING = await policy.POLICY_STATE_SELLING()
+    POLICY_STATE_ACTIVE = await policy.POLICY_STATE_ACTIVE()
+    POLICY_STATE_MATURED = await policy.POLICY_STATE_MATURED()
+    TRANCH_STATE_CREATED = await policy.TRANCH_STATE_CREATED()
+    TRANCH_STATE_SELLING = await policy.TRANCH_STATE_SELLING()
+    TRANCH_STATE_ACTIVE = await policy.TRANCH_STATE_ACTIVE()
+    TRANCH_STATE_MATURED = await policy.TRANCH_STATE_MATURED()
+    TRANCH_STATE_CANCELLED = await policy.TRANCH_STATE_CANCELLED()
     // market
     market = await deployMarket({ artifacts }, settings.address)
 
@@ -255,33 +263,33 @@ contract('End-to-end integration tests', accounts => {
     await policy1.checkAndUpdateState()
 
     // check states
-    await policy1.getState().should.eventually.eq(STATE_PENDING)
-    await policy1.getTranchState(0).should.eventually.eq(STATE_PENDING)
+    await policy1.getState().should.eventually.eq(POLICY_STATE_SELLING)
+    await policy1.getTranchState(0).should.eventually.eq(TRANCH_STATE_SELLING)
 
     // step 16: trader buys 5 shares of tranche11 via entity0
-    await entity0.buyTokens(
+    await entity0.trade(
       policy1Tranch0Address, 50,
       etherToken.address, 50,
       { from: entity0Rep1 }
     )
 
     // step 17: trader buys 2.5 shares of tranche11 via entity2
-    await entity2.buyTokens(
+    await entity2.trade(
       policy1Tranch0Address, 25,
       etherToken.address, 25,
       { from: entity2SoleProp }
     )
 
     // step 18: trader buys 2.5 shares of tranche11 via entity3
-    await entity3.buyTokens(
+    await entity3.trade(
       policy1Tranch0Address, 25,
       etherToken.address, 25,
       { from: entity3Naym }
     )
 
     // check states
-    await policy1.getState().should.eventually.eq(STATE_PENDING) // pending since start date not yet passed
-    await policy1.getTranchState(0).should.eventually.eq(STATE_ACTIVE) // should be active since it's fully sold out
+    await policy1.getState().should.eventually.eq(POLICY_STATE_SELLING) // pending since start date not yet passed
+    await policy1.getTranchState(0).should.eventually.eq(TRANCH_STATE_ACTIVE) // should be active since it's fully sold out
 
     // step 19: client manager pays second premium for tranche11
     await evmClock.setTime(9 * 60)
@@ -292,8 +300,8 @@ contract('End-to-end integration tests', accounts => {
     // step 20: heartbeat
     await evmClock.setTime(10 * 60)
     await policy1.checkAndUpdateState()
-    await policy1.getState().should.eventually.eq(STATE_ACTIVE) // active now since startdate has passed
-    await policy1.getTranchState(0).should.eventually.eq(STATE_ACTIVE)
+    await policy1.getState().should.eventually.eq(POLICY_STATE_ACTIVE) // active now since startdate has passed
+    await policy1.getTranchState(0).should.eventually.eq(TRANCH_STATE_ACTIVE)
 
     // step 21: skip for now
 
@@ -306,19 +314,22 @@ contract('End-to-end integration tests', accounts => {
     // step 23: heartbeat
     await evmClock.setTime(15 * 60)
     await policy1.checkAndUpdateState()
-    await policy1.getState().should.eventually.eq(STATE_ACTIVE)
-    await policy1.getTranchState(0).should.eventually.eq(STATE_ACTIVE)
+    await policy1.getState().should.eventually.eq(POLICY_STATE_ACTIVE)
+    await policy1.getTranchState(0).should.eventually.eq(TRANCH_STATE_ACTIVE)
 
     // step 24: heartbeat
     await evmClock.setTime(20 * 60)
     await policy1.checkAndUpdateState()
-    await policy1.getState().should.eventually.eq(STATE_ACTIVE)
-    await policy1.getTranchState(0).should.eventually.eq(STATE_ACTIVE) // all premium payments are done so all ok!
+    await policy1.getState().should.eventually.eq(POLICY_STATE_ACTIVE)
+    await policy1.getTranchState(0).should.eventually.eq(TRANCH_STATE_ACTIVE) // all premium payments are done so all ok!
 
     // step 25: heartbeat
     // await evmClock.setTime(25 * 60)
     // await policy1.checkAndUpdateState()
-    // await policy1.getState().should.eventually.eq(STATE_MATURED)
-    // await policy1.getTranchState(0).should.eventually.eq(STATE_ACTIVE)
+    // await policy1.getState().should.eventually.eq(POLICY_STATE_MATURED)
+    // await policy1.getTranchState(0).should.eventually.eq(TRANCH_STATE_MATURED)
+
+    // step 26: withdraw commission payments
+    // TODO!
   })
 })

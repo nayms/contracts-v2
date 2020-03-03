@@ -39,13 +39,18 @@ contract('Policy flow', accounts => {
   let entityManagerAddress
   let policyOwnerAddress
 
-  let STATE_DRAFT
-  let STATE_PENDING
-  let STATE_ACTIVE
-  let STATE_MATURED
-  let STATE_CANCELLED
+  let POLICY_STATE_CREATED
+  let POLICY_STATE_SELLING
+  let POLICY_STATE_ACTIVE
+  let POLICY_STATE_MATURED
+  let TRANCH_STATE_CREATED
+  let TRANCH_STATE_SELLING
+  let TRANCH_STATE_ACTIVE
+  let TRANCH_STATE_MATURED
+  let TRANCH_STATE_CANCELLED
 
   let getTranchToken
+  let calcPremiumsMinusCommissions
 
   let evmClock
 
@@ -87,12 +92,19 @@ contract('Policy flow', accounts => {
     maturationDate = startDate + 2000
     premiumIntervalSeconds = 500
 
+    const assetManagerCommissionBP = 100
+    const brokerCommissionBP = 200
+    const naymsCommissionBP = 300
+
     const createPolicyTx = await createPolicy(entity, policyImpl.address, {
       initiationDate,
       startDate,
       maturationDate,
       premiumIntervalSeconds,
       unit: etherToken.address,
+      assetManagerCommissionBP,
+      brokerCommissionBP,
+      naymsCommissionBP,
     }, { from: entityManagerAddress })
     const policyAddress = extractEventArgs(createPolicyTx, events.NewPolicy).policy
     policyOwnerAddress = entityManagerAddress
@@ -108,13 +120,13 @@ contract('Policy flow', accounts => {
     await createTranch(policy, {
       numShares: 100,
       pricePerShareAmount: 2,
-      premiums: [1, 2, 3, 4, 5, 6, 7],
+      premiums: [10, 20, 30, 40, 50, 60, 70],
     }, { from: policyOwnerAddress })
 
     await createTranch(policy, {
       numShares: 50,
       pricePerShareAmount: 2,
-      premiums: [1, 2, 3, 4, 5, 6, 7],
+      premiums: [10, 20, 30, 40, 50, 60, 70],
     }, { from: policyOwnerAddress })
 
     getTranchToken = async idx => {
@@ -122,13 +134,24 @@ contract('Policy flow', accounts => {
       return await IERC20.at(tt)
     }
 
-    STATE_DRAFT = await policy.STATE_DRAFT()
-    STATE_PENDING = await policy.STATE_PENDING()
-    STATE_ACTIVE = await policy.STATE_ACTIVE()
-    STATE_CANCELLED = await policy.STATE_CANCELLED()
-    STATE_MATURED = await policy.STATE_MATURED()
+    POLICY_STATE_CREATED = await policy.POLICY_STATE_CREATED()
+    POLICY_STATE_SELLING = await policy.POLICY_STATE_SELLING()
+    POLICY_STATE_ACTIVE = await policy.POLICY_STATE_ACTIVE()
+    POLICY_STATE_MATURED = await policy.POLICY_STATE_MATURED()
+
+    TRANCH_STATE_CREATED = await policy.TRANCH_STATE_CREATED()
+    TRANCH_STATE_SELLING = await policy.TRANCH_STATE_SELLING()
+    TRANCH_STATE_ACTIVE = await policy.TRANCH_STATE_ACTIVE()
+    TRANCH_STATE_MATURED = await policy.TRANCH_STATE_MATURED()
+    TRANCH_STATE_CANCELLED = await policy.TRANCH_STATE_CANCELLED()
 
     evmClock = new EvmClock(baseDate)
+
+    calcPremiumsMinusCommissions = (...premiums) => {
+      return premiums.reduce((m, v) => {
+        return m + v - (v * assetManagerCommissionBP / 1000) - (v * brokerCommissionBP / 1000) - (v * naymsCommissionBP / 1000)
+      }, 0)
+    }
   })
 
   describe('tranches begin selling', async () => {
@@ -141,7 +164,7 @@ contract('Policy flow', accounts => {
         await createTranch(policy, {
           numShares: 50,
           pricePerShareAmount: 2,
-          premiums: [1, 2, 3],
+          premiums: [10, 20, 30],
         }, { from: policyOwnerAddress })
 
         await etherToken.deposit({ value: 100 })
@@ -174,8 +197,8 @@ contract('Policy flow', accounts => {
 
         it('and then tranches get put on the market', async () => {
           // check order ids are not yet set
-          await policy.getTranchMarketOrderId(0).should.eventually.eq(0)
-          await policy.getTranchMarketOrderId(1).should.eventually.eq(0)
+          await policy.getTranchInitialSaleMarketOfferId(0).should.eventually.eq(0)
+          await policy.getTranchInitialSaleMarketOfferId(1).should.eventually.eq(0)
 
           const tranchTokens = await Promise.all([getTranchToken(0), getTranchToken(1)])
 
@@ -199,19 +222,19 @@ contract('Policy flow', accounts => {
           await tranchTokens[1].balanceOf(policy.address).should.eventually.eq(0)
 
           // check order ids are set
-          await policy.getTranchMarketOrderId(0).should.eventually.not.eq(0)
-          await policy.getTranchMarketOrderId(1).should.eventually.not.eq(0)
+          await policy.getTranchInitialSaleMarketOfferId(0).should.eventually.not.eq(0)
+          await policy.getTranchInitialSaleMarketOfferId(1).should.eventually.not.eq(0)
         })
 
         it('and then policy state gets updated', async () => {
           await policy.checkAndUpdateState()
-          await policy.getState().should.eventually.eq(STATE_PENDING)
+          await policy.getState().should.eventually.eq(POLICY_STATE_SELLING)
         })
 
         it('and then tranch states get updated', async () => {
           await policy.checkAndUpdateState()
-          await policy.getTranchState(0).should.eventually.eq(STATE_PENDING)
-          await policy.getTranchState(1).should.eventually.eq(STATE_PENDING)
+          await policy.getTranchState(0).should.eventually.eq(TRANCH_STATE_SELLING)
+          await policy.getTranchState(1).should.eventually.eq(TRANCH_STATE_SELLING)
         })
       })
     })
@@ -239,14 +262,14 @@ contract('Policy flow', accounts => {
       // get some wrapped ETH for buyer account
       await etherToken.deposit({ from: accounts[2], value: 25 })
 
-      marketOfferId = await policy.getTranchMarketOrderId(0)
+      marketOfferId = await policy.getTranchInitialSaleMarketOfferId(0)
     })
 
     describe('another party can make an offer that does not match', () => {
       beforeEach(async () => {
         // check initial balances
         await etherToken.balanceOf(accounts[2]).should.eventually.eq(25)
-        await etherToken.balanceOf(policy.address).should.eventually.eq(2) // 2 tranch premiums already paid
+        await etherToken.balanceOf(policy.address).should.eventually.eq(20) /* premium payments: 10 + 10 */
         await etherToken.balanceOf(market.address).should.eventually.eq(0)
         await tranchToken.balanceOf(accounts[2]).should.eventually.eq(0)
         await tranchToken.balanceOf(policy.address).should.eventually.eq(0)
@@ -258,7 +281,7 @@ contract('Policy flow', accounts => {
 
         // check balances again
         await etherToken.balanceOf(accounts[2]).should.eventually.eq(15)
-        await etherToken.balanceOf(policy.address).should.eventually.eq(2)
+        await etherToken.balanceOf(policy.address).should.eventually.eq(20)
         await etherToken.balanceOf(market.address).should.eventually.eq(10)
         await tranchToken.balanceOf(accounts[2]).should.eventually.eq(0)
         await tranchToken.balanceOf(policy.address).should.eventually.eq(0)
@@ -266,11 +289,11 @@ contract('Policy flow', accounts => {
       })
 
       it('and tranch status is unchanged', async () => {
-        await policy.getTranchState(0).should.eventually.eq(STATE_PENDING)
+        await policy.getTranchState(0).should.eventually.eq(TRANCH_STATE_SELLING)
       })
 
       it('and tranch balance is unchanged', async () => {
-        await policy.getTranchBalance(0).should.eventually.eq(1) // 2 premium payment
+        await policy.getTranchBalance(0).should.eventually.eq(calcPremiumsMinusCommissions(10))
       })
 
       it('and the tally of shares sold is unchanged', async () => {
@@ -278,7 +301,7 @@ contract('Policy flow', accounts => {
       })
 
       it('and market offer is still active', async () => {
-        await policy.getTranchMarketOrderId(0).should.eventually.eq(marketOfferId)
+        await policy.getTranchInitialSaleMarketOfferId(0).should.eventually.eq(marketOfferId)
         await market.isActive(marketOfferId).should.eventually.eq(true)
       })
     })
@@ -287,7 +310,7 @@ contract('Policy flow', accounts => {
       beforeEach(async () => {
         // check initial balances
         await etherToken.balanceOf(accounts[2]).should.eventually.eq(25)
-        await etherToken.balanceOf(policy.address).should.eventually.eq(2) // 2 tranch premiums already paid
+        await etherToken.balanceOf(policy.address).should.eventually.eq(20)  /* premium payments: 10 + 10 */
         await etherToken.balanceOf(market.address).should.eventually.eq(0)
         await tranchToken.balanceOf(accounts[2]).should.eventually.eq(0)
         await tranchToken.balanceOf(policy.address).should.eventually.eq(0)
@@ -300,7 +323,7 @@ contract('Policy flow', accounts => {
 
         // check balances again
         await etherToken.balanceOf(accounts[2]).should.eventually.eq(15)
-        await etherToken.balanceOf(policy.address).should.eventually.eq(12)
+        await etherToken.balanceOf(policy.address).should.eventually.eq(20 + 10)
         await etherToken.balanceOf(market.address).should.eventually.eq(0)
         await tranchToken.balanceOf(accounts[2]).should.eventually.eq(5)
         await tranchToken.balanceOf(policy.address).should.eventually.eq(0)
@@ -309,11 +332,11 @@ contract('Policy flow', accounts => {
 
       it('and tranch status is unchanged', async () => {
         // tranch status unchanged
-        await policy.getTranchState(0).should.eventually.eq(STATE_PENDING)
+        await policy.getTranchState(0).should.eventually.eq(TRANCH_STATE_SELLING)
       })
 
       it('and tranch balance has been updated', async () => {
-        await policy.getTranchBalance(0).should.eventually.eq(11) /* 10 from buyer + 1 premium payment */
+        await policy.getTranchBalance(0).should.eventually.eq(calcPremiumsMinusCommissions(10) + 10)
       })
 
       it('and tally of shares sold has been updated', async () => {
@@ -322,7 +345,7 @@ contract('Policy flow', accounts => {
       })
 
       it('and market offer is still active', async () => {
-        await policy.getTranchMarketOrderId(0).should.eventually.eq(marketOfferId)
+        await policy.getTranchInitialSaleMarketOfferId(0).should.eventually.eq(marketOfferId)
         await market.isActive(marketOfferId).should.eventually.eq(true)
       })
     })
@@ -349,11 +372,11 @@ contract('Policy flow', accounts => {
       })
 
       it('then its status is set to active', async () => {
-        await policy.getTranchState(0).should.eventually.eq(STATE_ACTIVE)
+        await policy.getTranchState(0).should.eventually.eq(TRANCH_STATE_ACTIVE)
       })
 
       it('then tranch balance has been updated', async () => {
-        await policy.getTranchBalance(0).should.eventually.eq(201) /* 200 from buyer + 1 premium payment */
+        await policy.getTranchBalance(0).should.eventually.eq(calcPremiumsMinusCommissions(10) + 200)
       })
 
       it('and the tally of shares sold gets updated', async () => {
@@ -361,7 +384,7 @@ contract('Policy flow', accounts => {
       })
 
       it('and the market offer is closed', async () => {
-        await policy.getTranchMarketOrderId(0).should.eventually.eq(0)
+        await policy.getTranchInitialSaleMarketOfferId(0).should.eventually.eq(0)
         await market.isActive(marketOfferId).should.eventually.eq(false)
       })
     })
@@ -379,7 +402,7 @@ contract('Policy flow', accounts => {
       await policy.checkAndUpdateState()
       await policy.checkAndUpdateState()
 
-      await policy.getState().should.eventually.eq(STATE_PENDING)
+      await policy.getState().should.eventually.eq(POLICY_STATE_SELLING)
     })
 
     describe('once start date has passed', () => {
@@ -389,16 +412,16 @@ contract('Policy flow', accounts => {
       beforeEach(async () => {
         await evmClock.setTime(initiationDate)
 
-        await etherToken.deposit({ value: 100 })
-        await etherToken.approve(policy.address, 100)
+        await etherToken.deposit({ value: 1000 })
+        await etherToken.approve(policy.address, 1000)
         await policy.payTranchPremium(0)
         await policy.payTranchPremium(1)
 
         // kick-off the sale
         await policy.checkAndUpdateState()
 
-        offerId0 = await policy.getTranchMarketOrderId(0)
-        offerId1 = await policy.getTranchMarketOrderId(1)
+        offerId0 = await policy.getTranchInitialSaleMarketOfferId(0)
+        offerId1 = await policy.getTranchInitialSaleMarketOfferId(1)
         expect(offerId0).to.not.eq(0)
         expect(offerId1).to.not.eq(0)
 
@@ -410,8 +433,8 @@ contract('Policy flow', accounts => {
         // heartbeat
         await policy.checkAndUpdateState()
 
-        await policy.getTranchMarketOrderId(0).should.eventually.eq(0)
-        await policy.getTranchMarketOrderId(1).should.eventually.eq(0)
+        await policy.getTranchInitialSaleMarketOfferId(0).should.eventually.eq(0)
+        await policy.getTranchInitialSaleMarketOfferId(1).should.eventually.eq(0)
 
         await market.isActive(offerId0).should.eventually.eq(false)
         await market.isActive(offerId1).should.eventually.eq(false)
@@ -421,9 +444,9 @@ contract('Policy flow', accounts => {
         it('and updates internal state', async () => {
           await policy.checkAndUpdateState()
 
-          await policy.getState().should.eventually.eq(STATE_ACTIVE)
-          await policy.getTranchState(0).should.eventually.eq(STATE_CANCELLED)
-          await policy.getTranchState(1).should.eventually.eq(STATE_CANCELLED)
+          await policy.getState().should.eventually.eq(POLICY_STATE_ACTIVE)
+          await policy.getTranchState(0).should.eventually.eq(TRANCH_STATE_CANCELLED)
+          await policy.getTranchState(1).should.eventually.eq(TRANCH_STATE_CANCELLED)
         })
 
         it('and it emits an event', async () => {
@@ -450,9 +473,9 @@ contract('Policy flow', accounts => {
           await policy.checkAndUpdateState()
 
           // now check
-          await policy.getState().should.eventually.eq(STATE_ACTIVE)
-          await policy.getTranchState(0).should.eventually.eq(STATE_CANCELLED)
-          await policy.getTranchState(1).should.eventually.eq(STATE_CANCELLED)
+          await policy.getState().should.eventually.eq(POLICY_STATE_ACTIVE)
+          await policy.getTranchState(0).should.eventually.eq(TRANCH_STATE_CANCELLED)
+          await policy.getTranchState(1).should.eventually.eq(TRANCH_STATE_CANCELLED)
         })
 
         it('and it emits an event', async () => {
@@ -474,8 +497,8 @@ contract('Policy flow', accounts => {
           await etherToken.deposit({ from: accounts[2], value: 1000 })
           await etherToken.approve(market.address, 200, { from: accounts[2] })
           await market.offer(200, etherToken.address, 100, tranchToken.address, 0, true, { from: accounts[2] })
-          // pay its premiums
-          await etherToken.approve(policy.address, 100, { from: accounts[2] })
+          // pay its premiums upto start date
+          await etherToken.approve(policy.address, 1000, { from: accounts[2] })
           for (let i = 0; (startDate - initiationDate) / premiumIntervalSeconds >= i; i += 1) {
             await policy.payTranchPremium(0, { from: accounts[2] })
           }
@@ -486,9 +509,9 @@ contract('Policy flow', accounts => {
           await policy.checkAndUpdateState()
 
           // now check
-          await policy.getState().should.eventually.eq(STATE_ACTIVE)
-          await policy.getTranchState(0).should.eventually.eq(STATE_ACTIVE)
-          await policy.getTranchState(1).should.eventually.eq(STATE_CANCELLED)
+          await policy.getState().should.eventually.eq(POLICY_STATE_ACTIVE)
+          await policy.getTranchState(0).should.eventually.eq(TRANCH_STATE_ACTIVE)
+          await policy.getTranchState(1).should.eventually.eq(TRANCH_STATE_CANCELLED)
         })
 
         it('emits an event', async () => {
@@ -509,7 +532,8 @@ contract('Policy flow', accounts => {
         await etherToken.deposit({ from: accounts[2], value: 1000 })
         await etherToken.approve(market.address, 200, { from: accounts[2] })
         await market.offer(200, etherToken.address, 100, tranchToken.address, 0, true, { from: accounts[2] })
-        await etherToken.approve(policy.address, 100, { from: accounts[2] })
+        // pay all premiums upto start date
+        await etherToken.approve(policy.address, 1000, { from: accounts[2] })
         for (let i = 0; (startDate - initiationDate) / premiumIntervalSeconds >= i; i += 1) {
           await policy.payTranchPremium(0, { from: accounts[2] })
         }
@@ -541,7 +565,7 @@ contract('Policy flow', accounts => {
       await policy.checkAndUpdateState()
 
       // sell-out the tranches
-      await etherToken.deposit({ from: accounts[2], value: 2000 })
+      await etherToken.deposit({ value: 2000, from: accounts[2] })
       await etherToken.approve(market.address, 2000, { from: accounts[2] })
 
       const tranch0Address = await policy.getTranchToken(0)
@@ -550,7 +574,7 @@ contract('Policy flow', accounts => {
       const tranch1Address = await policy.getTranchToken(1)
       await market.offer(100, etherToken.address, 50, tranch1Address, 0, true, { from: accounts[2] })
 
-      // pay premiums
+      // pay premiums upto start date
       for (let i = 0; (startDate - initiationDate) / premiumIntervalSeconds >= i; i += 1) {
         await policy.payTranchPremium(0)
         await policy.payTranchPremium(1)
@@ -563,9 +587,9 @@ contract('Policy flow', accounts => {
       await policy.checkAndUpdateState()
 
       // sanity check
-      await policy.getState().should.eventually.eq(STATE_ACTIVE)
-      await policy.getTranchState(0).should.eventually.eq(STATE_ACTIVE)
-      await policy.getTranchState(1).should.eventually.eq(STATE_ACTIVE)
+      await policy.getState().should.eventually.eq(POLICY_STATE_ACTIVE)
+      await policy.getTranchState(0).should.eventually.eq(TRANCH_STATE_ACTIVE)
+      await policy.getTranchState(1).should.eventually.eq(TRANCH_STATE_ACTIVE)
 
       // pass time: 2 x premiumIntervalSeconds
       await evmClock.moveTime(premiumIntervalSeconds * 2)
@@ -577,9 +601,9 @@ contract('Policy flow', accounts => {
 
       const result = await policy.checkAndUpdateState()
 
-      await policy.getState().should.eventually.eq(STATE_ACTIVE)
-      await policy.getTranchState(0).should.eventually.eq(STATE_ACTIVE)
-      await policy.getTranchState(1).should.eventually.eq(STATE_ACTIVE)
+      await policy.getState().should.eventually.eq(POLICY_STATE_ACTIVE)
+      await policy.getTranchState(0).should.eventually.eq(TRANCH_STATE_ACTIVE)
+      await policy.getTranchState(1).should.eventually.eq(TRANCH_STATE_ACTIVE)
 
       expect(extractEventArgs(result, events.PolicyActive)).to.eq(null)
     })
@@ -590,11 +614,67 @@ contract('Policy flow', accounts => {
 
       const result = await policy.checkAndUpdateState()
 
-      await policy.getState().should.eventually.eq(STATE_ACTIVE)
-      await policy.getTranchState(0).should.eventually.eq(STATE_ACTIVE)
-      await policy.getTranchState(1).should.eventually.eq(STATE_CANCELLED)
+      await policy.getState().should.eventually.eq(POLICY_STATE_ACTIVE)
+      await policy.getTranchState(0).should.eventually.eq(TRANCH_STATE_ACTIVE)
+      await policy.getTranchState(1).should.eventually.eq(TRANCH_STATE_CANCELLED)
 
       expect(extractEventArgs(result, events.PolicyActive)).to.eq(null)
+    })
+
+    describe('once maturation date has passed', () => {
+      beforeEach(async () => {
+        // pass the maturation date
+        await evmClock.setTime(maturationDate)
+
+        // pay all remaining premiums
+        for (let i = 0; (maturationDate - startDate) / premiumIntervalSeconds >= i; i += 1) {
+          const allPaymentsMade0 = await policy.tranchPaymentsAllMade(0)
+          if (!allPaymentsMade0) {
+            await policy.payTranchPremium(0)
+          }
+
+          const allPaymentsMade1 = await policy.tranchPaymentsAllMade(1)
+          if (!allPaymentsMade1) {
+            await policy.payTranchPremium(1)
+          }
+        }
+      })
+
+      it('closes the policy and tries to buys back all tranch tokens', async () => {
+        await policy.checkAndUpdateState()
+
+        await policy.getState().should.eventually.eq(POLICY_STATE_MATURED)
+        await policy.getTranchState(0).should.eventually.eq(TRANCH_STATE_MATURED)
+        await policy.getTranchState(1).should.eventually.eq(TRANCH_STATE_MATURED)
+
+        await policy.getTranchFinalBuybackMarketOfferId(0).should.eventually.not.eq(0)
+        await policy.getTranchFinalBuybackMarketOfferId(0).should.eventually.not.eq(1)
+      })
+
+      describe('once it tries to buy back all tokens', async () => {
+        beforeEach(async () => {
+          await policy.checkAndUpdateState()
+        })
+
+        it('other people can trade their previously purchased tranch tokens in for (hopefully) profit ', async () => {
+          const preBalance = (await etherToken.balanceOf(accounts[2])).toNumber()
+
+          const buybackOfferId = await policy.getTranchFinalBuybackMarketOfferId(0)
+
+          const tranch0Address = await policy.getTranchToken(0)
+
+          await market.sellAllAmount(tranch0Address, 100, etherToken.address, 0, { from: accounts[2] });
+
+          // check that order has been fulfilled
+          await market.isActive(buybackOfferId).should.eventually.eq(false)
+
+          const postBalance = (await etherToken.balanceOf(accounts[2])).toNumber()
+
+          const expectedPremiumBalance = calcPremiumsMinusCommissions(10, 20, 30, 40, 50, 60, 70)
+
+          expect(postBalance - preBalance).to.eq(200 + expectedPremiumBalance) /* 200 = initial sold amount */
+        })
+      })
     })
   })
 })

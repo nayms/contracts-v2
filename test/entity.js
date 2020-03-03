@@ -168,13 +168,13 @@ contract('Entity', accounts => {
       })
 
       it('but not just by anyone', async () => {
-        await entity.buyTokens(etherToken2.address, 1, etherToken.address, 1).should.be.rejectedWith('must be trader')
+        await entity.trade(etherToken2.address, 1, etherToken.address, 1).should.be.rejectedWith('must be trader')
       })
 
       it('by a trader', async () => {
         await acl.assignRole(entityContext, accounts[3], ROLES.ENTITY_REP)
 
-        await entity.buyTokens(etherToken2.address, 1, etherToken.address, 1, { from: accounts[3] })
+        await entity.trade(etherToken2.address, 1, etherToken.address, 1, { from: accounts[3] })
 
         // pre-check
         await etherToken.balanceOf(accounts[5]).should.eventually.eq(0)

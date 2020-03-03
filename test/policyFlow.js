@@ -7,11 +7,11 @@ import {
 } from './utils'
 
 import { events } from '../'
-import { deployEtherToken } from '../migrations/modules/etherToken'
+import { ensureEtherTokenIsDeployed } from '../migrations/modules/etherToken'
 import { ROLES, ROLEGROUPS } from '../utils/constants'
-import { deployAcl } from '../migrations/modules/acl'
-import { deploySettings } from '../migrations/modules/settings'
-import { deployMarket } from '../migrations/modules/market'
+import { ensureAclIsDeployed } from '../migrations/modules/acl'
+import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
+import { ensureMarketIsDeployed } from '../migrations/modules/market'
 
 const EntityDeployer = artifacts.require('./EntityDeployer')
 const IEntityImpl = artifacts.require('./base/IEntityImpl')
@@ -56,14 +56,14 @@ contract('Policy flow', accounts => {
 
   beforeEach(async () => {
     // acl
-    acl = await deployAcl({ artifacts })
+    acl = await ensureAclIsDeployed({ artifacts })
     systemContext = await acl.systemContext()
 
     // settings
-    settings = await deploySettings({ artifacts }, acl.address)
+    settings = await ensureSettingsIsDeployed({ artifacts }, acl.address)
 
     // wrappedEth
-    etherToken = await deployEtherToken({ artifacts }, acl.address, settings.address)
+    etherToken = await ensureEtherTokenIsDeployed({ artifacts }, acl.address, settings.address)
 
     // entity
     const entityImpl = await EntityImpl.new(acl.address, settings.address)
@@ -114,7 +114,7 @@ contract('Policy flow', accounts => {
     const policyContext = await policyProxy.aclContext()
 
     // get market address
-    market = await deployMarket({ artifacts }, settings.address)
+    market = await ensureMarketIsDeployed({ artifacts }, settings.address)
 
     // setup two tranches
     await createTranch(policy, {

@@ -1,9 +1,9 @@
 import EthVal from 'ethval'
 import { extractEventArgs, ADDRESS_ZERO } from './utils'
 import { events } from '../'
-import { deployAcl } from '../migrations/modules/acl'
-import { deploySettings } from '../migrations/modules/settings'
-import { deployEtherToken } from '../migrations/modules/etherToken'
+import { ensureAclIsDeployed } from '../migrations/modules/acl'
+import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
+import { ensureEtherTokenIsDeployed } from '../migrations/modules/etherToken'
 
 const IERC20 = artifacts.require("./base/IERC20")
 
@@ -20,9 +20,9 @@ contract('EtherToken', accounts => {
   let etherToken
 
   beforeEach(async () => {
-    acl = await deployAcl({ artifacts })
-    settings = await deploySettings({ artifacts }, acl.address)
-    etherToken = await deployEtherToken({ artifacts }, acl.address, settings.address)
+    acl = await ensureAclIsDeployed({ artifacts })
+    settings = await ensureSettingsIsDeployed({ artifacts }, acl.address)
+    etherToken = await ensureEtherTokenIsDeployed({ artifacts }, acl.address, settings.address)
   })
 
   it('has defaults', async () => {

@@ -287,8 +287,8 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
 
   // TranchTokenImpl - ERC20 mutations //
 
-  function tknApprove(uint256 /*_index*/, address /*_spender*/, address /*_from*/, uint256 /*_value*/) public {
-    revert('only nayms market is allowed to transfer');
+  function tknApprove(uint256 /*_index*/, address _spender, address /*_from*/, uint256 /*_value*/) public {
+    require(_spender == settings().getMatchingMarket(), 'only nayms market is allowed to transfer');
   }
 
   function tknTransfer(uint256 _index, address _spender, address _from, address _to, uint256 _value) public {

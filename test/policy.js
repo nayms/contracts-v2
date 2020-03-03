@@ -12,10 +12,10 @@ import { events } from '../'
 
 import { ROLES, ROLEGROUPS } from '../utils/constants'
 
-import { deployAcl } from '../migrations/modules/acl'
+import { ensureAclIsDeployed } from '../migrations/modules/acl'
 
-import { deployEtherToken } from '../migrations/modules/etherToken'
-import { deploySettings } from '../migrations/modules/settings'
+import { ensureEtherTokenIsDeployed } from '../migrations/modules/etherToken'
+import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
 
 const IERC20 = artifacts.require("./base/IERC20")
 const EntityDeployer = artifacts.require('./EntityDeployer')
@@ -48,14 +48,14 @@ contract('Policy', accounts => {
 
   beforeEach(async () => {
     // acl
-    acl = await deployAcl({ artifacts })
+    acl = await ensureAclIsDeployed({ artifacts })
     systemContext = await acl.systemContext()
 
     // settings
-    settings = await deploySettings({ artifacts }, acl.address)
+    settings = await ensureSettingsIsDeployed({ artifacts }, acl.address)
 
     // registry + wrappedEth
-    etherToken = await deployEtherToken({ artifacts }, acl.address, settings.address)
+    etherToken = await ensureEtherTokenIsDeployed({ artifacts }, acl.address, settings.address)
 
     // entity
     entityImpl = await EntityImpl.new(acl.address, settings.address)
@@ -357,6 +357,11 @@ contract('Policy', accounts => {
 
         it('but approving an address to send on one\'s behalf is not possible', async () => {
           await firstTkn.approve(accounts[1], 2).should.be.rejectedWith('only nayms market is allowed to transfer')
+        })
+
+        it('approving an address to send on one\'s behalf is possible if it is the market', async () => {
+          await settings.setMatchingMarket(accounts[3]).should.be.fulfilled
+          await firstTkn.approve(accounts[3], 2).should.be.fulfilled
         })
 
         describe('such as market sending tokens on one\' behalf', () => {

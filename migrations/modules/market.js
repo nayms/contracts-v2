@@ -1,14 +1,14 @@
 const { createLog } = require('../../utils/log')
 const { deploy } = require('../../utils/functions')
 
-export const deployMarket = async ({ deployer, artifacts, logger }, settingsAddress) => {
+export const ensureMarketIsDeployed = async ({ deployer, artifacts, logger }, settingsAddress) => {
   const log = createLog(logger)
 
   log('Deploying Market ...')
 
   // deploy market
   const Market = artifacts.require('./MatchingMarket')
-  const market = await Market.new('0xFFFFFFFFFFFFFFFF')
+  const market = await deploy(deployer, Market, '0xFFFFFFFFFFFFFFFF')
 
   log(`... deployed at ${market.address}`)
 

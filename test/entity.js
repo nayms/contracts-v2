@@ -9,10 +9,10 @@ import {
 
 import { events } from '../'
 import { ROLES } from '../utils/constants'
-import { deployEtherToken } from '../migrations/modules/etherToken'
-import { deployAcl } from '../migrations/modules/acl'
-import { deploySettings } from '../migrations/modules/settings'
-import { deployMarket } from '../migrations/modules/market'
+import { ensureEtherTokenIsDeployed, deployNewEtherToken } from '../migrations/modules/etherToken'
+import { ensureAclIsDeployed } from '../migrations/modules/acl'
+import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
+import { ensureMarketIsDeployed } from '../migrations/modules/market'
 
 const IEntityImpl = artifacts.require("./base/IEntityImpl")
 const Proxy = artifacts.require('./base/Proxy')
@@ -25,6 +25,7 @@ contract('Entity', accounts => {
   let acl
   let settings
   let etherToken
+  let etherToken2
   let entityImpl
   let market
   let entityProxy
@@ -32,10 +33,10 @@ contract('Entity', accounts => {
   let entityContext
 
   beforeEach(async () => {
-    acl = await deployAcl({ artifacts })
-    settings = await deploySettings({ artifacts }, acl.address)
-    market = await deployMarket({ artifacts }, settings.address)
-    etherToken = await deployEtherToken({ artifacts }, acl.address, settings.address)
+    acl = await ensureAclIsDeployed({ artifacts })
+    settings = await ensureSettingsIsDeployed({ artifacts }, acl.address)
+    market = await ensureMarketIsDeployed({ artifacts }, settings.address)
+    etherToken = await ensureEtherTokenIsDeployed({ artifacts }, acl.address, settings.address)
     entityImpl = await EntityImpl.new(acl.address, settings.address)
     entityProxy = await Entity.new(
       acl.address,
@@ -45,6 +46,8 @@ contract('Entity', accounts => {
     // now let's speak to Entity contract using EntityImpl ABI
     entity = await IEntityImpl.at(entityProxy.address)
     entityContext = await entityProxy.aclContext()
+
+    etherToken2 = await deployNewEtherToken({ artifacts }, acl.address, settings.address)
   })
 
   it('must be deployed with a valid implementation', async () => {
@@ -63,7 +66,7 @@ contract('Entity', accounts => {
     await entityImpl.getImplementationVersion().should.eventually.eq('v1')
   })
 
-  describe('it can be upgraded', async () => {
+  describe('it can be upgraded', () => {
     let entityImpl2
     let entityAdminSig
     let entityManagerSig
@@ -157,24 +160,20 @@ contract('Entity', accounts => {
     })
 
     describe('and use those deposits to buy tokens from the market', () => {
-      let etherToken2
-
       beforeEach(async () => {
         await etherToken.deposit({ value: 10 })
         await etherToken.approve(entityProxy.address, 10)
         await entity.deposit(etherToken.address, 10).should.be.fulfilled
-
-        etherToken2 = await deployEtherToken({ artifacts }, acl.address, settings.address)
       })
 
       it('but not just by anyone', async () => {
-        await entity.trade(etherToken2.address, 1, etherToken.address, 1).should.be.rejectedWith('must be trader')
+        await entity.trade(etherToken.address, 1, etherToken2.address, 1).should.be.rejectedWith('must be trader')
       })
 
       it('by a trader', async () => {
         await acl.assignRole(entityContext, accounts[3], ROLES.ENTITY_REP)
 
-        await entity.trade(etherToken2.address, 1, etherToken.address, 1, { from: accounts[3] })
+        await entity.trade(etherToken.address, 1, etherToken2.address, 1, { from: accounts[3] })
 
         // pre-check
         await etherToken.balanceOf(accounts[5]).should.eventually.eq(0)
@@ -187,6 +186,38 @@ contract('Entity', accounts => {
 
         // post-check
         await etherToken.balanceOf(accounts[5]).should.eventually.eq(1)
+      })
+    })
+
+    describe('and sell assets at the best price available', () => {
+      beforeEach(async () => {
+        await etherToken.deposit({ value: 10 })
+        await etherToken.approve(entityProxy.address, 10)
+        await entity.deposit(etherToken.address, 10).should.be.fulfilled
+      })
+
+      it('but not just by anyone', async () => {
+        await entity.sellAtBestPrice(etherToken.address, 1, etherToken2.address).should.be.rejectedWith('must be trader')
+      })
+
+      it('by a trader, and only matches offers until full amount sold', async () => {
+        // setup offers on market
+        await etherToken2.deposit({ value: 100, from: accounts[7] })
+        await etherToken2.approve(market.address, 100, { from: accounts[7] })
+        await market.offer(100, etherToken2.address, 3, etherToken.address, 0, false, { from: accounts[7] }); // best price, but only buying 3
+
+        await etherToken2.deposit({ value: 50, from: accounts[8] })
+        await etherToken2.approve(market.address, 50, { from: accounts[8] })
+        await market.offer(50, etherToken2.address, 5, etherToken.address, 0, false, { from: accounts[8] }); // worse price, but able to buy all
+
+        // now sell from the other direction
+        await acl.assignRole(entityContext, accounts[3], ROLES.ENTITY_REP)
+        await entity.sellAtBestPrice(etherToken.address, 5, etherToken2.address, { from: accounts[3] })
+
+        // check balances
+        await etherToken2.balanceOf(entity.address).should.eventually.eq(100 + 20)  // all of 1st offer + 2 from second
+        await etherToken.balanceOf(accounts[7]).should.eventually.eq(3)
+        await etherToken.balanceOf(accounts[8]).should.eventually.eq(2)
       })
     })
   })

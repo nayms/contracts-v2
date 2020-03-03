@@ -1,7 +1,7 @@
 const { createLog } = require('../../utils/log')
 const { deploy } = require('../../utils/functions')
 
-export const deployEtherToken = async ({ deployer, artifacts, logger }, aclAddress, settingsAddress) => {
+export const ensureEtherTokenIsDeployed = async ({ deployer, artifacts, logger }, aclAddress, settingsAddress) => {
   const log = createLog(logger)
 
   log('Deploying EtherToken ...')
@@ -10,4 +10,9 @@ export const deployEtherToken = async ({ deployer, artifacts, logger }, aclAddre
   log(`... deployed at ${etherToken.address}`)
 
   return etherToken
+}
+
+export const deployNewEtherToken = async ({ artifacts }, aclAddress, settingsAddress) => {
+  const EtherToken = artifacts.require('./EtherToken')
+  return await EtherToken.new(aclAddress, settingsAddress)
 }

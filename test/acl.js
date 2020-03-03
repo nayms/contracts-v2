@@ -1,7 +1,7 @@
 import { extractEventArgs } from './utils'
 import { events } from '../'
 import { sha3 } from './utils/web3'
-import { deployAcl } from '../migrations/modules/acl'
+import { ensureAclIsDeployed } from '../migrations/modules/acl'
 
 contract('ACL', accounts => {
   const role1 = sha3('testrole1')
@@ -23,7 +23,7 @@ contract('ACL', accounts => {
   let adminRoleGroup
 
   beforeEach(async () => {
-    acl = await deployAcl({ artifacts })
+    acl = await ensureAclIsDeployed({ artifacts })
     systemContext = await acl.systemContext()
     adminRole = await acl.adminRole()
     adminRoleGroup = await acl.adminRoleGroup()

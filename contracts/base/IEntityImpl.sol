@@ -27,5 +27,6 @@ interface IEntityImpl {
   function deposit(address _unit, uint256 _amount) external;
   function withdraw(address _unit, uint256 _amount) external;
 
-  function trade(address _buyUnit, uint256 _buyAmount, address _payUnit, uint256 _payAmount) external;
+  function trade(address _payUnit, uint256 _payAmount, address _buyUnit, uint256 _buyAmount) external;
+  function sellAtBestPrice(address _sellUnit, uint256 _sellAmount, address _buyUnit) external;
 }

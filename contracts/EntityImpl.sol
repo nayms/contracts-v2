@@ -101,7 +101,7 @@ import "./Policy.sol";
     tok.transfer(msg.sender, _amount);
   }
 
-  function trade(address _buyUnit, uint256 _buyAmount, address _payUnit, uint256 _payAmount)
+  function trade(address _payUnit, uint256 _payAmount, address _buyUnit, uint256 _buyAmount)
     public
     assertCanTradeTranchTokens
   {
@@ -113,5 +113,19 @@ import "./Policy.sol";
     tok.approve(mktAddress, _payAmount);
     // make the offer
     mkt.offer(_payAmount, _payUnit, _buyAmount, _buyUnit, 0, false);
+  }
+
+  function sellAtBestPrice(address _sellUnit, uint256 _sellAmount, address _buyUnit)
+    public
+    assertCanTradeTranchTokens
+  {
+    // get mkt
+    address mktAddress = settings().getMatchingMarket();
+    IMarket mkt = IMarket(mktAddress);
+    // approve mkt to use my tokens
+    IERC20 tok = IERC20(_sellUnit);
+    tok.approve(mktAddress, _sellAmount);
+    // make the offer
+    mkt.sellAllAmount(_sellUnit, _sellAmount, _buyUnit, _sellAmount);
   }
 }

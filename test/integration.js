@@ -7,11 +7,11 @@ import {
 } from './utils'
 
 import { events } from '../'
-import { deployEtherToken } from '../migrations/modules/etherToken'
+import { ensureEtherTokenIsDeployed } from '../migrations/modules/etherToken'
 import { ROLES, ROLEGROUPS } from '../utils/constants'
-import { deployAcl } from '../migrations/modules/acl'
-import { deploySettings } from '../migrations/modules/settings'
-import { deployMarket } from '../migrations/modules/market'
+import { ensureAclIsDeployed } from '../migrations/modules/acl'
+import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
+import { ensureMarketIsDeployed } from '../migrations/modules/market'
 
 const EntityDeployer = artifacts.require('./EntityDeployer')
 const IEntityImpl = artifacts.require('./base/IEntityImpl')
@@ -80,9 +80,9 @@ contract('End-to-end integration tests', accounts => {
 
   beforeEach(async () => {
     // acl
-    acl = await deployAcl({ artifacts })
+    acl = await ensureAclIsDeployed({ artifacts })
     // settings
-    settings = await deploySettings({ artifacts }, acl.address)
+    settings = await ensureSettingsIsDeployed({ artifacts }, acl.address)
 
     calcTime = async deltaSeconds => {
       const t = await settings.getTime()
@@ -91,23 +91,23 @@ contract('End-to-end integration tests', accounts => {
     }
 
     // wrappedEth
-    etherToken = await deployEtherToken({ artifacts }, acl.address, settings.address)
+    etherToken = await ensureEtherTokenIsDeployed({ artifacts }, acl.address, settings.address)
     // entities
     entityImpl = await EntityImpl.new(acl.address, settings.address)
     entityDeployer = await EntityDeployer.new(acl.address, settings.address, entityImpl.address)
     // policies
     policyImpl = await PolicyImpl.new(acl.address, settings.address)
-    POLICY_STATE_CREATED = await policy.POLICY_STATE_CREATED()
-    POLICY_STATE_SELLING = await policy.POLICY_STATE_SELLING()
-    POLICY_STATE_ACTIVE = await policy.POLICY_STATE_ACTIVE()
-    POLICY_STATE_MATURED = await policy.POLICY_STATE_MATURED()
-    TRANCH_STATE_CREATED = await policy.TRANCH_STATE_CREATED()
-    TRANCH_STATE_SELLING = await policy.TRANCH_STATE_SELLING()
-    TRANCH_STATE_ACTIVE = await policy.TRANCH_STATE_ACTIVE()
-    TRANCH_STATE_MATURED = await policy.TRANCH_STATE_MATURED()
-    TRANCH_STATE_CANCELLED = await policy.TRANCH_STATE_CANCELLED()
+    POLICY_STATE_CREATED = await policyImpl.POLICY_STATE_CREATED()
+    POLICY_STATE_SELLING = await policyImpl.POLICY_STATE_SELLING()
+    POLICY_STATE_ACTIVE = await policyImpl.POLICY_STATE_ACTIVE()
+    POLICY_STATE_MATURED = await policyImpl.POLICY_STATE_MATURED()
+    TRANCH_STATE_CREATED = await policyImpl.TRANCH_STATE_CREATED()
+    TRANCH_STATE_SELLING = await policyImpl.TRANCH_STATE_SELLING()
+    TRANCH_STATE_ACTIVE = await policyImpl.TRANCH_STATE_ACTIVE()
+    TRANCH_STATE_MATURED = await policyImpl.TRANCH_STATE_MATURED()
+    TRANCH_STATE_CANCELLED = await policyImpl.TRANCH_STATE_CANCELLED()
     // market
-    market = await deployMarket({ artifacts }, settings.address)
+    market = await ensureMarketIsDeployed({ artifacts }, settings.address)
 
     systemAdmin = accounts[0]
     systemContext = await acl.systemContext()
@@ -268,22 +268,22 @@ contract('End-to-end integration tests', accounts => {
 
     // step 16: trader buys 5 shares of tranche11 via entity0
     await entity0.trade(
-      policy1Tranch0Address, 50,
       etherToken.address, 50,
+      policy1Tranch0Address, 50,
       { from: entity0Rep1 }
     )
 
     // step 17: trader buys 2.5 shares of tranche11 via entity2
     await entity2.trade(
-      policy1Tranch0Address, 25,
       etherToken.address, 25,
+      policy1Tranch0Address, 25,
       { from: entity2SoleProp }
     )
 
     // step 18: trader buys 2.5 shares of tranche11 via entity3
     await entity3.trade(
-      policy1Tranch0Address, 25,
       etherToken.address, 25,
+      policy1Tranch0Address, 25,
       { from: entity3Naym }
     )
 
@@ -324,12 +324,40 @@ contract('End-to-end integration tests', accounts => {
     await policy1.getTranchState(0).should.eventually.eq(TRANCH_STATE_ACTIVE) // all premium payments are done so all ok!
 
     // step 25: heartbeat
-    // await evmClock.setTime(25 * 60)
-    // await policy1.checkAndUpdateState()
-    // await policy1.getState().should.eventually.eq(POLICY_STATE_MATURED)
-    // await policy1.getTranchState(0).should.eventually.eq(TRANCH_STATE_MATURED)
+    await evmClock.setTime(25 * 60)
+    await policy1.checkAndUpdateState()
+    await policy1.getState().should.eventually.eq(POLICY_STATE_MATURED)
+    await policy1.getTranchState(0).should.eventually.eq(TRANCH_STATE_MATURED)
 
     // step 26: withdraw commission payments
     // TODO!
+
+    // step 27: trader sells tranche11 tokens via entity0
+    await entity0.sellAtBestPrice(
+      policy1Tranch0Address, 50,
+      etherToken.address,
+      { from: entity0Rep1 }
+    )
+
+    // step 28: skip for now
+
+    // step 29: trader sells tranche11 tokens via entity2
+    await entity2.sellAtBestPrice(
+      policy1Tranch0Address, 25,
+      etherToken.address,
+      { from: entity2SoleProp }
+    )
+
+    // step 30: skip for now
+
+    // step 31: trader sells tranche11 tokens via entity3
+    await entity3.sellAtBestPrice(
+      policy1Tranch0Address, 25,
+      etherToken.address,
+      { from: entity3Naym }
+    )
+
+    // sanity check balances
+    // TODO
   })
 })

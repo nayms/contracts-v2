@@ -1,7 +1,7 @@
 import { extractEventArgs } from './utils'
 import { events } from '../'
-import { deployAcl } from '../migrations/modules/acl'
-import { deploySettings } from '../migrations/modules/settings'
+import { ensureAclIsDeployed } from '../migrations/modules/acl'
+import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
 import { ROLES, ROLEGROUPS } from '../utils/constants'
 
 const Entity = artifacts.require("./Entity")
@@ -15,8 +15,8 @@ contract('EntityDeployer', accounts => {
   let deployer
 
   beforeEach(async () => {
-    acl = await deployAcl({ artifacts })
-    settings = await deploySettings({ artifacts }, acl.address)
+    acl = await ensureAclIsDeployed({ artifacts })
+    settings = await ensureSettingsIsDeployed({ artifacts }, acl.address)
     entityImpl = await EntityImpl.new(acl.address, settings.address)
     deployer = await EntityDeployer.new(acl.address, settings.address, entityImpl.address)
   })

@@ -3,7 +3,7 @@ const { createLog } = require('../../utils/log')
 
 const { ROLES, ROLEGROUPS } = require('../../utils/constants')
 
-export const deployAcl = async ({ deployer, artifacts, logger }) => {
+export const ensureAclIsDeployed = async ({ deployer, artifacts, logger }) => {
   const log = createLog(logger)
 
   log('Deploying ACL ...')

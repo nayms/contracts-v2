@@ -639,75 +639,112 @@ contract('Policy flow', accounts => {
       beforeEach(async () => {
         // pass the maturation date
         await evmClock.setTime(maturationDate)
-
-        // pay all remaining premiums
-        for (let i = 0; (maturationDate - startDate) / premiumIntervalSeconds >= i; i += 1) {
-          const allPaymentsMade0 = await policy.tranchPaymentsAllMade(0)
-          if (!allPaymentsMade0) {
-            await policy.payTranchPremium(0)
-          }
-
-          const allPaymentsMade1 = await policy.tranchPaymentsAllMade(1)
-          if (!allPaymentsMade1) {
-            await policy.payTranchPremium(1)
-          }
-        }
       })
 
-      it('closes the policy and tries to buys back all tranch tokens', async () => {
-        await policy.checkAndUpdateState()
-
-        await policy.getState().should.eventually.eq(POLICY_STATE_MATURED)
-        await policy.getTranchState(0).should.eventually.eq(TRANCH_STATE_MATURED)
-        await policy.getTranchState(1).should.eventually.eq(TRANCH_STATE_MATURED)
-
-        await policy.getTranchFinalBuybackMarketOfferId(0).should.eventually.not.eq(0)
-        await policy.getTranchFinalBuybackMarketOfferId(0).should.eventually.not.eq(1)
-      })
-
-      it('closes the policy, and subsequent calls have no effect', async () => {
-        await policy.checkAndUpdateState()
-
-        const offer1 = await policy.getTranchFinalBuybackMarketOfferId(0).should.eventually.not.eq(0)
-        const offer2 = await policy.getTranchFinalBuybackMarketOfferId(0).should.eventually.not.eq(1)
-
-        await policy.checkAndUpdateState()
-
-        await policy.getState().should.eventually.eq(POLICY_STATE_MATURED)
-        await policy.getTranchState(0).should.eventually.eq(TRANCH_STATE_MATURED)
-        await policy.getTranchState(1).should.eventually.eq(TRANCH_STATE_MATURED)
-
-        await policy.getTranchFinalBuybackMarketOfferId(0).should.eventually.eq(offer1)
-        await policy.getTranchFinalBuybackMarketOfferId(0).should.eventually.eq(offer2)
-      })
-
-      describe('once it tries to buy back all tokens', async () => {
+      describe('if not all premium payments are up-to-date', () => {
         beforeEach(async () => {
-          await policy.checkAndUpdateState()
+          await policy.payTranchPremium(0)
+          await policy.payTranchPremium(1)
         })
 
-        it('other people can trade their previously purchased tranch tokens in for (hopefully) profit ', async () => {
-          const preBalance = (await etherToken.balanceOf(accounts[2])).toNumber()
+        it('closes the policy and tries to buys back all tranch tokens', async () => {
+          await policy.checkAndUpdateState()
 
-          const buybackOfferId = await policy.getTranchFinalBuybackMarketOfferId(0)
+          await policy.getState().should.eventually.eq(POLICY_STATE_MATURED)
+          await policy.getTranchState(0).should.eventually.eq(TRANCH_STATE_CANCELLED)
+          await policy.getTranchState(1).should.eventually.eq(TRANCH_STATE_CANCELLED)
 
-          const tranch0Address = await policy.getTranchToken(0)
+          await policy.getTranchFinalBuybackMarketOfferId(0).should.eventually.not.eq(0)
+          await policy.getTranchFinalBuybackMarketOfferId(0).should.eventually.not.eq(1)
+        })
 
-          await market.sellAllAmount(tranch0Address, 100, etherToken.address, 0, { from: accounts[2] });
+        it('and subsequent calls have no effect', async () => {
+          await policy.checkAndUpdateState()
 
-          // check that order has been fulfilled
-          await market.isActive(buybackOfferId).should.eventually.eq(false)
+          const offer1 = await policy.getTranchFinalBuybackMarketOfferId(0).should.eventually.not.eq(0)
+          const offer2 = await policy.getTranchFinalBuybackMarketOfferId(0).should.eventually.not.eq(1)
 
-          const postBalance = (await etherToken.balanceOf(accounts[2])).toNumber()
+          await policy.checkAndUpdateState()
 
-          const expectedPremiumBalance = calcPremiumsMinusCommissions({
-            premiums: [10, 20, 30, 40, 50, 60, 70],
-            assetManagerCommissionBP,
-            brokerCommissionBP,
-            naymsCommissionBP,
+          await policy.getState().should.eventually.eq(POLICY_STATE_MATURED)
+          await policy.getTranchState(0).should.eventually.eq(TRANCH_STATE_CANCELLED)
+          await policy.getTranchState(1).should.eventually.eq(TRANCH_STATE_CANCELLED)
+
+          await policy.getTranchFinalBuybackMarketOfferId(0).should.eventually.eq(offer1)
+          await policy.getTranchFinalBuybackMarketOfferId(0).should.eventually.eq(offer2)
+        })
+      })
+
+      describe('if all premium payments are up-to-date', () => {
+        beforeEach(async () => {
+          for (let i = 0; (maturationDate - startDate) / premiumIntervalSeconds >= i; i += 1) {
+            const allPaymentsMade0 = await policy.tranchPaymentsAllMade(0)
+            if (!allPaymentsMade0) {
+              await policy.payTranchPremium(0)
+            }
+
+            const allPaymentsMade1 = await policy.tranchPaymentsAllMade(1)
+            if (!allPaymentsMade1) {
+              await policy.payTranchPremium(1)
+            }
+          }
+        })
+
+        it('closes the policy and tries to buys back all tranch tokens', async () => {
+          await policy.checkAndUpdateState()
+
+          await policy.getState().should.eventually.eq(POLICY_STATE_MATURED)
+          await policy.getTranchState(0).should.eventually.eq(TRANCH_STATE_MATURED)
+          await policy.getTranchState(1).should.eventually.eq(TRANCH_STATE_MATURED)
+
+          await policy.getTranchFinalBuybackMarketOfferId(0).should.eventually.not.eq(0)
+          await policy.getTranchFinalBuybackMarketOfferId(0).should.eventually.not.eq(1)
+        })
+
+        it('and subsequent calls have no effect', async () => {
+          await policy.checkAndUpdateState()
+
+          const offer1 = await policy.getTranchFinalBuybackMarketOfferId(0).should.eventually.not.eq(0)
+          const offer2 = await policy.getTranchFinalBuybackMarketOfferId(0).should.eventually.not.eq(1)
+
+          await policy.checkAndUpdateState()
+
+          await policy.getState().should.eventually.eq(POLICY_STATE_MATURED)
+          await policy.getTranchState(0).should.eventually.eq(TRANCH_STATE_MATURED)
+          await policy.getTranchState(1).should.eventually.eq(TRANCH_STATE_MATURED)
+
+          await policy.getTranchFinalBuybackMarketOfferId(0).should.eventually.eq(offer1)
+          await policy.getTranchFinalBuybackMarketOfferId(0).should.eventually.eq(offer2)
+        })
+
+        describe('once it tries to buy back all tokens', async () => {
+          beforeEach(async () => {
+            await policy.checkAndUpdateState()
           })
 
-          expect(postBalance - preBalance).to.eq(200 + expectedPremiumBalance) /* 200 = initial sold amount */
+          it('other people can trade their previously purchased tranch tokens in for (hopefully) profit ', async () => {
+            const preBalance = (await etherToken.balanceOf(accounts[2])).toNumber()
+
+            const buybackOfferId = await policy.getTranchFinalBuybackMarketOfferId(0)
+
+            const tranch0Address = await policy.getTranchToken(0)
+
+            await market.sellAllAmount(tranch0Address, 100, etherToken.address, 0, { from: accounts[2] });
+
+            // check that order has been fulfilled
+            await market.isActive(buybackOfferId).should.eventually.eq(false)
+
+            const postBalance = (await etherToken.balanceOf(accounts[2])).toNumber()
+
+            const expectedPremiumBalance = calcPremiumsMinusCommissions({
+              premiums: [10, 20, 30, 40, 50, 60, 70],
+              assetManagerCommissionBP,
+              brokerCommissionBP,
+              naymsCommissionBP,
+            })
+
+            expect(postBalance - preBalance).to.eq(200 + expectedPremiumBalance) /* 200 = initial sold amount */
+          })
         })
       })
     })

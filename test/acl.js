@@ -162,20 +162,28 @@ contract('ACL', accounts => {
 
   describe('can have a role assigned', async () => {
     it('but not by a non-admin', async () => {
+      await acl.canAssign(context1, accounts[1], role1).should.eventually.eq(false)
       await acl.assignRole(context1, accounts[2], role1, { from: accounts[1] }).should.be.rejectedWith('unauthorized')
     })
 
     it('by an admin', async () => {
       await acl.hasRole(context1, accounts[2], role1).should.eventually.eq(false)
+
+      await acl.canAssign(context1, accounts[0], role1).should.eventually.eq(true)
       await acl.assignRole(context1, accounts[2], role1).should.be.fulfilled
+
       await acl.hasRole(context1, accounts[2], role1).should.eventually.eq(true)
       await acl.getRolesForUser(context1, accounts[2]).should.eventually.eq([ role1 ])
     })
 
     it('by the context owner', async () => {
       const callerContext = await acl.generateContextFromAddress(accounts[4])
+
       await acl.hasRole(callerContext, accounts[2], role1).should.eventually.eq(false)
+
+      await acl.canAssign(callerContext, accounts[4], role1).should.eventually.eq(true)
       await acl.assignRole(callerContext, accounts[2], role1, { from: accounts[4] }).should.be.fulfilled
+
       await acl.hasRole(callerContext, accounts[2], role1).should.eventually.eq(true)
       await acl.getRolesForUser(callerContext, accounts[2]).should.eventually.eq([role1])
     })

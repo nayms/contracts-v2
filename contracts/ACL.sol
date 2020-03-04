@@ -277,11 +277,7 @@ contract ACL is IACL {
   }
 
   modifier assertIsAssigner (bytes32 _context, bytes32 _role) {
-    // either they are an admin, or assigning in their own context, or they have have the permission
-    require(
-      isAdmin(msg.sender) || (_context == generateContextFromAddress(msg.sender)) || canAssign(_context, msg.sender, _role),
-      'unauthorized'
-    );
+    require(canAssign(_context, msg.sender, _role), 'unauthorized');
     _;
   }
 
@@ -469,10 +465,12 @@ contract ACL is IACL {
     view
     returns (bool)
   {
-    if (isAdmin(_addr)) {
+    // if they are an admin or assigning in their own context
+    if (isAdmin(_addr) || _context == generateContextFromAddress(_addr)) {
       return true;
     }
 
+    // if they belong to an role group that can assign this role
     bytes32[] memory roleGroups = getAssigners(_role);
 
     for (uint256 i = 0; i < roleGroups.length; i++) {

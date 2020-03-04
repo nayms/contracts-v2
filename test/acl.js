@@ -444,6 +444,9 @@ contract('ACL', accounts => {
       await acl.getContextForUserAtIndex(accounts[2], 0).should.eventually.eq(context1)
       await acl.getContextForUserAtIndex(accounts[2], 1).should.eventually.eq(context2)
       await acl.getContextForUserAtIndex(accounts[2], 2).should.eventually.eq(context3)
+      await acl.userSomeHasRoleInContext(context1, accounts[2]).should.eventually.eq(true)
+      await acl.userSomeHasRoleInContext(context2, accounts[2]).should.eventually.eq(true)
+      await acl.userSomeHasRoleInContext(context3, accounts[2]).should.eventually.eq(true)
 
       // remove one role in a context
       await acl.unassignRole(context1, accounts[2], role2).should.be.fulfilled
@@ -453,11 +456,17 @@ contract('ACL', accounts => {
       await acl.getNumContextsForUser(accounts[2]).should.eventually.eq(2)
       await acl.getContextForUserAtIndex(accounts[2], 0).should.eventually.eq(context3)
       await acl.getContextForUserAtIndex(accounts[2], 1).should.eventually.eq(context2)
+      await acl.userSomeHasRoleInContext(context1, accounts[2]).should.eventually.eq(false)
+      await acl.userSomeHasRoleInContext(context2, accounts[2]).should.eventually.eq(true)
+      await acl.userSomeHasRoleInContext(context3, accounts[2]).should.eventually.eq(true)
 
       // remove second context
       await acl.unassignRole(context2, accounts[2], role1).should.be.fulfilled
       await acl.getNumContextsForUser(accounts[2]).should.eventually.eq(1)
       await acl.getContextForUserAtIndex(accounts[2], 0).should.eventually.eq(context3)
+      await acl.userSomeHasRoleInContext(context1, accounts[2]).should.eventually.eq(false)
+      await acl.userSomeHasRoleInContext(context2, accounts[2]).should.eventually.eq(false)
+      await acl.userSomeHasRoleInContext(context3, accounts[2]).should.eventually.eq(true)
 
       // try same again, to ensure no difference or error
       await acl.unassignRole(context2, accounts[2], role1).should.be.fulfilled
@@ -467,6 +476,9 @@ contract('ACL', accounts => {
       // remove final context
       await acl.unassignRole(context3, accounts[2], role1).should.be.fulfilled
       await acl.getNumContextsForUser(accounts[2]).should.eventually.eq(0)
+      await acl.userSomeHasRoleInContext(context1, accounts[2]).should.eventually.eq(false)
+      await acl.userSomeHasRoleInContext(context2, accounts[2]).should.eventually.eq(false)
+      await acl.userSomeHasRoleInContext(context3, accounts[2]).should.eventually.eq(false)
     })
   })
 })

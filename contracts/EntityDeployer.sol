@@ -10,7 +10,7 @@ import './Entity.sol';
  */
 contract EntityDeployer is EternalStorage, Destructible, IEntityDeployer {
   modifier assertCanCreateEntity () {
-    require(inRoleGroup(msg.sender, ROLEGROUP_SYSTEM_MANAGERS), 'must be system manager');
+    require(isAdmin(msg.sender) || inRoleGroup(msg.sender, ROLEGROUP_SYSTEM_MANAGERS), 'must be system manager');
     _;
   }
 

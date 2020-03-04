@@ -4,6 +4,7 @@ import {
   createTranch,
   createPolicy,
   EvmClock,
+  calcPremiumsMinusCommissions,
 } from './utils'
 
 import { events } from '../'
@@ -12,8 +13,8 @@ import { ROLES, ROLEGROUPS } from '../utils/constants'
 import { ensureAclIsDeployed } from '../migrations/modules/acl'
 import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
 import { ensureMarketIsDeployed } from '../migrations/modules/market'
+import { ensureEntityDeployerIsDeployed } from '../migrations/modules/entityDeployer'
 
-const EntityDeployer = artifacts.require('./EntityDeployer')
 const IEntityImpl = artifacts.require('./base/IEntityImpl')
 const EntityImpl = artifacts.require('./EntityImpl')
 const Entity = artifacts.require('./Entity')
@@ -23,6 +24,10 @@ const Policy = artifacts.require("./Policy")
 const IERC20 = artifacts.require("./base/IERC20")
 
 contract('Policy flow', accounts => {
+  const assetManagerCommissionBP = 100
+  const brokerCommissionBP = 200
+  const naymsCommissionBP = 300
+
   let acl
   let systemContext
   let settings
@@ -50,7 +55,6 @@ contract('Policy flow', accounts => {
   let TRANCH_STATE_CANCELLED
 
   let getTranchToken
-  let calcPremiumsMinusCommissions
 
   let evmClock
 
@@ -67,7 +71,7 @@ contract('Policy flow', accounts => {
 
     // entity
     const entityImpl = await EntityImpl.new(acl.address, settings.address)
-    const entityDeployer = await EntityDeployer.new(acl.address, settings.address, entityImpl.address)
+    const entityDeployer = await ensureEntityDeployerIsDeployed({ artifacts }, acl.address, settings.address, entityImpl.address)
 
     await acl.assignRole(systemContext, accounts[0], ROLES.SYSTEM_MANAGER)
     const deployEntityTx = await entityDeployer.deploy()
@@ -91,10 +95,6 @@ contract('Policy flow', accounts => {
     startDate = initiationDate + 1000
     maturationDate = startDate + 2000
     premiumIntervalSeconds = 500
-
-    const assetManagerCommissionBP = 100
-    const brokerCommissionBP = 200
-    const naymsCommissionBP = 300
 
     const createPolicyTx = await createPolicy(entity, policyImpl.address, {
       initiationDate,
@@ -146,12 +146,6 @@ contract('Policy flow', accounts => {
     TRANCH_STATE_CANCELLED = await policy.TRANCH_STATE_CANCELLED()
 
     evmClock = new EvmClock(baseDate)
-
-    calcPremiumsMinusCommissions = (...premiums) => {
-      return premiums.reduce((m, v) => {
-        return m + v - (v * assetManagerCommissionBP / 1000) - (v * brokerCommissionBP / 1000) - (v * naymsCommissionBP / 1000)
-      }, 0)
-    }
   })
 
   describe('tranches begin selling', async () => {
@@ -293,7 +287,12 @@ contract('Policy flow', accounts => {
       })
 
       it('and tranch balance is unchanged', async () => {
-        await policy.getTranchBalance(0).should.eventually.eq(calcPremiumsMinusCommissions(10))
+        await policy.getTranchBalance(0).should.eventually.eq(calcPremiumsMinusCommissions({
+          premiums: [10],
+          assetManagerCommissionBP,
+          brokerCommissionBP,
+          naymsCommissionBP,
+        }))
       })
 
       it('and the tally of shares sold is unchanged', async () => {
@@ -336,7 +335,12 @@ contract('Policy flow', accounts => {
       })
 
       it('and tranch balance has been updated', async () => {
-        await policy.getTranchBalance(0).should.eventually.eq(calcPremiumsMinusCommissions(10) + 10)
+        await policy.getTranchBalance(0).should.eventually.eq(10 + calcPremiumsMinusCommissions({
+          premiums: [10],
+          assetManagerCommissionBP,
+          brokerCommissionBP,
+          naymsCommissionBP,
+        }))
       })
 
       it('and tally of shares sold has been updated', async () => {
@@ -376,7 +380,12 @@ contract('Policy flow', accounts => {
       })
 
       it('then tranch balance has been updated', async () => {
-        await policy.getTranchBalance(0).should.eventually.eq(calcPremiumsMinusCommissions(10) + 200)
+        await policy.getTranchBalance(0).should.eventually.eq(200 + calcPremiumsMinusCommissions({
+          premiums: [10],
+          assetManagerCommissionBP,
+          brokerCommissionBP,
+          naymsCommissionBP,
+        }))
       })
 
       it('and the tally of shares sold gets updated', async () => {
@@ -670,7 +679,12 @@ contract('Policy flow', accounts => {
 
           const postBalance = (await etherToken.balanceOf(accounts[2])).toNumber()
 
-          const expectedPremiumBalance = calcPremiumsMinusCommissions(10, 20, 30, 40, 50, 60, 70)
+          const expectedPremiumBalance = calcPremiumsMinusCommissions({
+            premiums: [10, 20, 30, 40, 50, 60, 70],
+            assetManagerCommissionBP,
+            brokerCommissionBP,
+            naymsCommissionBP,
+          })
 
           expect(postBalance - preBalance).to.eq(200 + expectedPremiumBalance) /* 200 = initial sold amount */
         })

@@ -62,6 +62,28 @@ contract('Settings', accounts => {
     })
   })
 
+  describe('can have entity deployer set', () => {
+    it('but not just by anyone', async () => {
+      await settings.setEntityDeployer(accounts[2], { from: accounts[2] }).should.be.rejectedWith('must be admin');
+    })
+
+    it('by admin', async () => {
+      await settings.setEntityDeployer(accounts[2]).should.be.fulfilled
+      await settings.getEntityDeployer().should.eventually.eq(accounts[2])
+    })
+  })
+
+  describe('can have nayms entity set', () => {
+    it('but not just by anyone', async () => {
+      await settings.setNaymsEntity(accounts[2], { from: accounts[2] }).should.be.rejectedWith('must be admin');
+    })
+
+    it('by admin', async () => {
+      await settings.setNaymsEntity(accounts[2]).should.be.fulfilled
+      await settings.getNaymsEntity().should.eventually.eq(accounts[2])
+    })
+  })
+
   describe('it can be upgraded', async () => {
     let settingsImpl2
 

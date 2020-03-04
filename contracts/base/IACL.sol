@@ -13,6 +13,7 @@ interface IACL {
   // users
   function getNumContextsForUser(address _addr) external view returns (uint256);
   function getContextForUserAtIndex(address _addr, uint256 _index) external view returns (bytes32);
+  function userSomeHasRoleInContext(bytes32 _context, address _addr) external view returns (bool);
   // role groups
   function hasRoleInGroup(bytes32 _context, address _addr, bytes32 _roleGroup) external view returns (bool);
   function setRoleGroup(bytes32 _roleGroup, bytes32[] calldata _roles) external;

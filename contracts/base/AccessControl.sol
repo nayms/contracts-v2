@@ -39,13 +39,17 @@ contract AccessControl is EternalStorage {
   }
 
   modifier assertIsAdmin () {
-    require(acl().isAdmin(msg.sender), 'must be admin');
+    require(isAdmin(msg.sender), 'must be admin');
     _;
   }
 
   modifier assertInRoleGroup (bytes32 _roleGroup) {
     require(inRoleGroup(msg.sender, _roleGroup), 'must be in role group');
     _;
+  }
+
+  function isAdmin (address _addr) public view returns (bool) {
+    return acl().isAdmin(_addr);
   }
 
   function inRoleGroup (address _addr, bytes32 _roleGroup) public view returns (bool) {

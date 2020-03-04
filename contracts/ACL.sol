@@ -219,6 +219,17 @@ library Bytes32 {
   }
 
   /**
+   * @dev get whether value exists.
+   */
+  function has(Set storage _obj, bytes32 _value)
+    internal
+    view
+    returns (bool)
+  {
+    return 0 < _obj.map[_value];
+  }
+
+  /**
    * @dev get value at index.
    */
   function get(Set storage _obj, uint256 _index)
@@ -333,6 +344,10 @@ contract ACL is IACL {
 
   function getContextForUserAtIndex(address _addr, uint256 _index) public view returns (bytes32) {
     return userContexts[_addr].get(_index);
+  }
+
+  function userSomeHasRoleInContext(bytes32 _context, address _addr) public view returns (bool) {
+    return userContexts[_addr].has(_context);
   }
 
   // Role groups

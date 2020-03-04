@@ -152,7 +152,14 @@ export const createPolicy = (entity, policyImpl, attrs, ...callAttrs) => {
   )
 }
 
-export const web3EvmIncreaseTime = async ts => {
+export const calcPremiumsMinusCommissions = ({ premiums, assetManagerCommissionBP, brokerCommissionBP, naymsCommissionBP }) => (
+  premiums.reduce((m, v) => (
+    m + v - (v * assetManagerCommissionBP / 1000) - (v * brokerCommissionBP / 1000) - (v * naymsCommissionBP / 1000)
+  ), 0)
+)
+
+
+const web3EvmIncreaseTime = async ts => {
   await new Promise((resolve, reject) => {
     return web3.currentProvider.send({
       jsonrpc: '2.0',

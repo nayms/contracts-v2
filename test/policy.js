@@ -16,9 +16,9 @@ import { ensureAclIsDeployed } from '../migrations/modules/acl'
 
 import { ensureEtherTokenIsDeployed } from '../migrations/modules/etherToken'
 import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
+import { ensureEntityDeployerIsDeployed } from '../migrations/modules/entityDeployer'
 
 const IERC20 = artifacts.require("./base/IERC20")
-const EntityDeployer = artifacts.require('./EntityDeployer')
 const IEntityImpl = artifacts.require('./base/IEntityImpl')
 const EntityImpl = artifacts.require('./EntityImpl')
 const Entity = artifacts.require('./Entity')
@@ -59,7 +59,7 @@ contract('Policy', accounts => {
 
     // entity
     entityImpl = await EntityImpl.new(acl.address, settings.address)
-    entityDeployer = await EntityDeployer.new(acl.address, settings.address, entityImpl.address)
+    entityDeployer = await ensureEntityDeployerIsDeployed({ artifacts }, acl.address, settings.address, entityImpl.address)
 
     await acl.assignRole(systemContext, accounts[0], ROLES.SYSTEM_MANAGER)
     const deployEntityTx = await entityDeployer.deploy()

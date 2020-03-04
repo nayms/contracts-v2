@@ -38,12 +38,12 @@ contract('EntityDeployer', accounts => {
   })
 
   describe('can deploy an Entity', () => {
-    it('but not by a non-sys-manager', async () => {
+    it('but not by a non-authorized person', async () => {
       await deployer.deploy({ from: accounts[1] }).should.be.rejectedWith('must be system manager')
     })
 
-    it('but not by an admin', async () => {
-      await deployer.deploy().should.be.rejectedWith('must be system manager')
+    it('by an admin', async () => {
+      await deployer.deploy().should.be.fulfilled
     })
 
     it('by a system manager', async () => {

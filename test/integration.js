@@ -1,16 +1,19 @@
 import {
+  extractEventArgs,
   createTranch,
   createPolicy,
   EvmClock,
+  calcPremiumsMinusCommissions,
 } from './utils'
+import { events } from '../'
 
 import { ensureEtherTokenIsDeployed } from '../migrations/modules/etherToken'
 import { ROLES } from '../utils/constants'
 import { ensureAclIsDeployed } from '../migrations/modules/acl'
 import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
 import { ensureMarketIsDeployed } from '../migrations/modules/market'
+import { ensureEntityDeployerIsDeployed } from '../migrations/modules/entityDeployer'
 
-const EntityDeployer = artifacts.require('./EntityDeployer')
 const IEntityImpl = artifacts.require('./base/IEntityImpl')
 const EntityImpl = artifacts.require('./EntityImpl')
 const Entity = artifacts.require('./Entity')
@@ -18,11 +21,6 @@ const IPolicyImpl = artifacts.require('./base/IPolicyImpl')
 const PolicyImpl = artifacts.require('./PolicyImpl')
 const Policy = artifacts.require('./Policy')
 
-const calcPremiumsMinusCommissions = ({ premiums, assetManagerCommissionBP, brokerCommissionBP, naymsCommissionBP }) => (
-  premiums.reduce((m, v) => (
-    m + v - (v * assetManagerCommissionBP / 1000) - (v * brokerCommissionBP / 1000) - (v * naymsCommissionBP / 1000)
-  ), 0)
-)
 
 contract('End-to-end integration tests', accounts => {
   let acl
@@ -96,7 +94,7 @@ contract('End-to-end integration tests', accounts => {
     etherToken = await ensureEtherTokenIsDeployed({ artifacts }, acl.address, settings.address)
     // entities
     entityImpl = await EntityImpl.new(acl.address, settings.address)
-    entityDeployer = await EntityDeployer.new(acl.address, settings.address, entityImpl.address)
+    entityDeployer = await ensureEntityDeployerIsDeployed({ artifacts }, acl.address, settings.address, entityImpl.address)
     // policies
     policyImpl = await PolicyImpl.new(acl.address, settings.address)
     POLICY_STATE_CREATED = await policyImpl.POLICY_STATE_CREATED()
@@ -122,8 +120,8 @@ contract('End-to-end integration tests', accounts => {
       const systemManager = accounts[1]
 
       // step 4: create entity0
-      await entityDeployer.deploy({ from: systemManager })
-      entity0Address = await entityDeployer.getEntity(0)
+      let deployEntityTx = await entityDeployer.deploy({ from: systemManager })
+      entity0Address = extractEventArgs(deployEntityTx, events.NewEntity).entity
       entity0 = await IEntityImpl.at(entity0Address)
       entity0Proxy = await Entity.at(entity0Address)
       entity0Context = await entity0Proxy.aclContext()
@@ -141,7 +139,8 @@ contract('End-to-end integration tests', accounts => {
       entity0Rep2 = accounts[5]
 
       // step 9: create entity1
-      await entityDeployer.deploy({ from: systemManager })
+      deployEntityTx = await entityDeployer.deploy({ from: systemManager })
+      entity1Address = extractEventArgs(deployEntityTx, events.NewEntity).entity
       entity1Address = await entityDeployer.getEntity(1)
       entity1 = await IEntityImpl.at(entity1Address)
       entity1Proxy = await Entity.at(entity1Address)
@@ -160,8 +159,8 @@ contract('End-to-end integration tests', accounts => {
       entity1Rep2 = accounts[9]
 
       // step 14: create entity2
-      await entityDeployer.deploy({ from: systemManager })
-      entity2Address = await entityDeployer.getEntity(2)
+      deployEntityTx = await entityDeployer.deploy({ from: systemManager })
+      entity2Address = extractEventArgs(deployEntityTx, events.NewEntity).entity
       entity2 = await IEntityImpl.at(entity2Address)
       entity2Proxy = await Entity.at(entity2Address)
       entity2Context = await entity2Proxy.aclContext()
@@ -170,8 +169,8 @@ contract('End-to-end integration tests', accounts => {
       entity2SoleProp = accounts[10]
 
       // step 16: create entity3
-      await entityDeployer.deploy({ from: systemManager })
-      entity3Address = await entityDeployer.getEntity(3)
+      deployEntityTx = await entityDeployer.deploy({ from: systemManager })
+      entity3Address = extractEventArgs(deployEntityTx, events.NewEntity).entity
       entity3 = await IEntityImpl.at(entity3Address)
       entity3Proxy = await Entity.at(entity3Address)
       entity3Context = await entity3Proxy.aclContext()

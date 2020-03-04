@@ -16,19 +16,18 @@ contract AccessControl is EternalStorage {
   bytes32 constant public ROLE_ENTITY_MANAGER = 0x3984462fd165fbf2e7984b68e0af04fb2acdb7dd8f22c5d11089e3053793482d;
   bytes32 constant public ROLE_ENTITY_REP = 0xbb4987a2e7e3670e922095c7aa56f5d871431249221cb25aa396e7c0892f468c;
   bytes32 constant public ROLE_NAYM = 0xd28e8ae3ae16560e3f13c72e513fb725fbbe853f4f7a2319ff5660029be694b3;
-  bytes32 constant public ROLE_POLICY_MANAGER = 0x6408fa69c78c34b922891ad33522826cb31bb11dc250e4cdbeea07e58dfbacc9;
   bytes32 constant public ROLE_POLICY_OWNER = 0x75f9d284d94dd2f5bf06b897c98baf6b8bd4dd273056da8f36acb68025988694;
   bytes32 constant public ROLE_SOLE_PROP = 0x045b7fe422305784550d6bdae881f42b26a4f7a9a98c234536b4d3a307014304;
   bytes32 constant public ROLE_SYSTEM_ADMIN = 0x49de8992e61fed1e4f94ee08935c0d9383229bc81cedcbb04bbefac3612804f8;
   bytes32 constant public ROLE_SYSTEM_MANAGER = 0x00c6311fef79c2a44bb1f3441f2c6b9c610eede3ef18d0f4fdb45ab6ecb9a92e;
   bytes32 constant public ROLEGROUP_ASSET_MANAGERS = 0x309309dde7ef0b48cef4f5283944cb9081577247dff9d48427acb011b4aff349;
+  bytes32 constant public ROLEGROUP_BROKERS = 0xcb0bada9848c4c263d7e20ec9db68ac456456dd8c9f1b8037d0a0ffdd168bab4;
   bytes32 constant public ROLEGROUP_CLIENT_MANAGERS = 0x3a2e45631f90f259eb1df721df379d439a5fa06fbc4bf57a3d05586aa228d6a3;
   bytes32 constant public ROLEGROUP_ENTITY_ADMINS = 0xb69602dc57282aa569f0dd6f51b7a67691bdd26adb42da8a3124abde79a45786;
   bytes32 constant public ROLEGROUP_ENTITY_MANAGERS = 0xd7db697581f34193921dfdc26c5564fc645207a39afc0ab56d11ff9f85905086;
   bytes32 constant public ROLEGROUP_FUND_MANAGERS = 0xf17f5872bf269aa3ddb2020fa59f22b819dc652a65c0c786b55f06084d8b76e7;
   bytes32 constant public ROLEGROUP_POLICY_APPROVERS = 0x1012134ecbfcf79fdb0a70d206face04b40d81e67e29abb4a65490b427be07cb;
   bytes32 constant public ROLEGROUP_POLICY_CREATORS = 0x0f3c22643c2a35bcf194a5f6da4aba4ef8f02d545cc68c303fcf357af6d23151;
-  bytes32 constant public ROLEGROUP_POLICY_MANAGERS = 0xf4c715dc4bdf20533abd036834077a4e4cc448c34f247c519560a52c95e749a8;
   bytes32 constant public ROLEGROUP_POLICY_OWNERS = 0xcb6031cc247fb37c3ecb27f11b18b2beff17a816a688ce85547d00dbecccfd32;
   bytes32 constant public ROLEGROUP_SYSTEM_ADMINS = 0x527f2b85e218b68c525b4df059712ff2795297ca966156613e5be4724ac951d3;
   bytes32 constant public ROLEGROUP_SYSTEM_MANAGERS = 0x5d3c730c5ff3a14d0229a3776467fe3362af78a62ff229f6b4b077b5fb4bfd22;
@@ -37,17 +36,16 @@ contract AccessControl is EternalStorage {
 
   constructor (address _acl) public {
     dataAddress["acl"] = _acl;
-    dataBytes32["aclContext"] = keccak256(abi.encodePacked(address(this)));
+    dataBytes32["aclContext"] = acl().generateContextFromAddress(address(this));
   }
 
   modifier assertIsAdmin () {
-    require(acl().isAdmin(msg.sender), 'must be admin');
+    require(isAdmin(msg.sender), 'must be admin');
     _;
   }
 
-  modifier assertInRoleGroup (bytes32 _roleGroup) {
-    require(inRoleGroup(msg.sender, _roleGroup), 'must be in role group');
-    _;
+  function isAdmin (address _addr) public view returns (bool) {
+    return acl().isAdmin(_addr);
   }
 
   function inRoleGroup (address _addr, bytes32 _roleGroup) public view returns (bool) {

@@ -3,12 +3,29 @@ pragma solidity >=0.5.8;
 import "./base/Controller.sol";
 import "./base/EternalStorage.sol";
 import "./base/IEntityImpl.sol";
+import "./base/IERC20.sol";
+import "./base/IMarket.sol";
 import "./Policy.sol";
 
 /**
  * @dev Business-logic for Entity
  */
  contract EntityImpl is EternalStorage, Controller, IEntityImpl, IProxyImpl {
+  modifier assertCanWithdraw () {
+    require(inRoleGroup(msg.sender, ROLEGROUP_ENTITY_ADMINS), 'must be entity admin');
+    _;
+  }
+
+  modifier assertCanCreatePolicy () {
+    require(inRoleGroup(msg.sender, ROLEGROUP_POLICY_CREATORS), 'must be policy creator');
+    _;
+  }
+
+  modifier assertCanTradeTranchTokens () {
+    require(inRoleGroup(msg.sender, ROLEGROUP_TRADERS), 'must be trader');
+    _;
+  }
+
   /**
    * Constructor
    */
@@ -34,21 +51,28 @@ import "./Policy.sol";
     uint256 _startDate,
     uint256 _maturationDate,
     address _unit,
-    uint256 _premiumIntervalSeconds
+    uint256 _premiumIntervalSeconds,
+    uint256 _brokerCommissionBP,
+    uint256 _assetManagerCommissionBP,
+    uint256 _naymsCommissionBP
   )
     public
-    assertInRoleGroup(ROLEGROUP_POLICY_MANAGERS)
+    assertCanCreatePolicy
   {
     Policy f = new Policy(
       address(acl()),
       address(settings()),
       aclContext(),
       _impl,
+      msg.sender,
       _initiationDate,
       _startDate,
       _maturationDate,
       _unit,
-      _premiumIntervalSeconds
+      _premiumIntervalSeconds,
+      _brokerCommissionBP,
+      _assetManagerCommissionBP,
+      _naymsCommissionBP
     );
 
     uint256 numPolicies = dataUint256["numPolicies"];
@@ -65,5 +89,43 @@ import "./Policy.sol";
 
   function getPolicy(uint256 _index) public view returns (address) {
     return dataAddress[string(abi.encodePacked("policy", _index))];
+  }
+
+  function deposit(address _unit, uint256 _amount) public {
+    IERC20 tok = IERC20(_unit);
+    tok.transferFrom(msg.sender, address(this), _amount);
+  }
+
+  function withdraw(address _unit, uint256 _amount) public assertCanWithdraw {
+    IERC20 tok = IERC20(_unit);
+    tok.transfer(msg.sender, _amount);
+  }
+
+  function trade(address _payUnit, uint256 _payAmount, address _buyUnit, uint256 _buyAmount)
+    public
+    assertCanTradeTranchTokens
+  {
+    // get mkt
+    address mktAddress = settings().getMatchingMarket();
+    IMarket mkt = IMarket(mktAddress);
+    // approve mkt to use my tokens
+    IERC20 tok = IERC20(_payUnit);
+    tok.approve(mktAddress, _payAmount);
+    // make the offer
+    mkt.offer(_payAmount, _payUnit, _buyAmount, _buyUnit, 0, false);
+  }
+
+  function sellAtBestPrice(address _sellUnit, uint256 _sellAmount, address _buyUnit)
+    public
+    assertCanTradeTranchTokens
+  {
+    // get mkt
+    address mktAddress = settings().getMatchingMarket();
+    IMarket mkt = IMarket(mktAddress);
+    // approve mkt to use my tokens
+    IERC20 tok = IERC20(_sellUnit);
+    tok.approve(mktAddress, _sellAmount);
+    // make the offer
+    mkt.sellAllAmount(_sellUnit, _sellAmount, _buyUnit, _sellAmount);
   }
 }

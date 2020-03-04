@@ -8,7 +8,7 @@ export const ensureMarketIsDeployed = async ({ deployer, artifacts, logger }, se
 
   // deploy market
   const Market = artifacts.require('./MatchingMarket')
-  const market = await Market.new('0xFFFFFFFFFFFFFFFF')
+  const market = await deploy(deployer, Market, '0xFFFFFFFFFFFFFFFF')
 
   log(`... deployed at ${market.address}`)
 

@@ -13,6 +13,7 @@ interface IACL {
   // users
   function getNumContextsForUser(address _addr) external view returns (uint256);
   function getContextForUserAtIndex(address _addr, uint256 _index) external view returns (bytes32);
+  function userSomeHasRoleInContext(bytes32 _context, address _addr) external view returns (bool);
   // role groups
   function hasRoleInGroup(bytes32 _context, address _addr, bytes32 _roleGroup) external view returns (bool);
   function setRoleGroup(bytes32 _roleGroup, bytes32[] calldata _roles) external;
@@ -30,6 +31,8 @@ interface IACL {
   function removeAssigner(bytes32 _roleToAssign, bytes32 _assignerRoleGroup) external;
   function getAssigners(bytes32 _role) external view returns (bytes32[] memory);
   function canAssign(bytes32 _context, address _addr, bytes32 _role) external view returns (bool);
+  // utility methods
+  function generateContextFromAddress (address _addr) external pure returns (bytes32);
 
   event RoleGroupUpdated(bytes32 indexed roleGroup);
   event RoleAssigned(bytes32 indexed context, address indexed addr, bytes32 indexed role);

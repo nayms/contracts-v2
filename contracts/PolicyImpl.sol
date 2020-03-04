@@ -4,10 +4,8 @@ import "./base/Address.sol";
 import "./base/Controller.sol";
 import "./base/EternalStorage.sol";
 import './base/IERC20.sol';
-import './base/IERC777Sender.sol';
-import './base/IERC777Recipient.sol';
-import './base/IERC1820Registry.sol';
 import "./base/IProxyImpl.sol";
+import "./base/AccessControl.sol";
 import "./base/IPolicyImpl.sol";
 import "./base/IMarket.sol";
 import "./base/ITranchTokenHelper.sol";
@@ -21,36 +19,15 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
   using SafeMath for uint;
   using Address for address;
 
-  // ERC 1820 stuff //
-
-  address public constant ERC1820_REGISTRY_ADDRESS =
-      0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24;
-  // keccak256("ERC777TokensSender")
-  bytes32 public constant TOKENS_SENDER_INTERFACE_HASH =
-      0x29ddb589b1fb5fc7cf394961c1adf5f8c6454761adf795e67fe149f658abe895;
-  // keccak256("ERC777TokensRecipient")
-  bytes32 public constant TOKENS_RECIPIENT_INTERFACE_HASH =
-      0xb281fc8c12954d22544db45de3159a39272895b169a852b314f9cc762e44c53b;
-
   // Modifiers //
 
-  modifier assertCanManagePolicy () {
-    require(inRoleGroupWithContext(dataBytes32["entityContext"], msg.sender, ROLEGROUP_POLICY_MANAGERS), 'must be policy manager');
+  modifier assertCanCreateTranch () {
+    require(inRoleGroup(msg.sender, ROLEGROUP_POLICY_OWNERS), 'must be policy owner');
     _;
   }
 
-  modifier assertCanApprovePolicy () {
-    require(inRoleGroup(msg.sender, ROLEGROUP_POLICY_APPROVERS), 'must be policy approver');
-    _;
-  }
-
-  modifier assertDraftState () {
-    require(dataUint256["state"] == STATE_DRAFT, 'must be in draft state');
-    _;
-  }
-
-  modifier assertPendingOrActiveState () {
-    require(dataUint256["state"] == STATE_PENDING || dataUint256["state"] == STATE_ACTIVE, 'must be in pending state');
+  modifier assertCreatedState () {
+    require(dataUint256["state"] == POLICY_STATE_CREATED, 'must be in created state');
     _;
   }
 
@@ -85,13 +62,13 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
     address _initialBalanceHolder
   )
     public
-    assertCanManagePolicy
-    assertDraftState
+    assertCanCreateTranch
+    assertCreatedState
     returns (uint256)
   {
     require(_numShares > 0, 'invalid num of shares');
     require(_pricePerShareAmount > 0, 'invalid price');
-    require(_premiums.length < calculateMaxNumOfPremiums(), 'too many premiums');
+    require(_premiums.length <= calculateMaxNumOfPremiums(), 'too many premiums');
 
     // instantiate tranches
     uint256 i = dataUint256["numTranches"];
@@ -146,14 +123,9 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
     if (initiationDateHasPassed()) {
       expectedPaid++;
 
-      // if start date has passed
-      if (startDateHasPassed()) {
-        expectedPaid++;
-
-        // calculate the extra payments that should have been made by now
-        uint256 diff = now.sub(dataUint256["startDate"]).div(dataUint256["premiumIntervalSeconds"]);
-        expectedPaid = expectedPaid.add(diff);
-      }
+      // calculate the extra payments that should have been made by now
+      uint256 diff = now.sub(dataUint256["initiationDate"]).div(dataUint256["premiumIntervalSeconds"]);
+      expectedPaid = expectedPaid.add(diff);
     }
 
     // cap to no .of available premiums
@@ -196,22 +168,59 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
     uint256 expectedAmount = getNextTranchPremiumAmount(_index);
 
     if (expectedAmount > 0) {
-      // premium token
-      IERC20 tkn = IERC20(dataAddress["unit"]);
-
       // transfer
-      require(tkn.allowance(msg.sender, address(this)) >= expectedAmount, "need permission");
-      require(tkn.balanceOf(msg.sender) >= expectedAmount, "need balance");
+      IERC20 tkn = IERC20(dataAddress["unit"]);
       tkn.transferFrom(msg.sender, address(this), expectedAmount);
     }
 
-    // record the transfer
-    uint256 paymentsMade = dataUint256[string(abi.encodePacked(_index, "premiumsPaid"))];
-    dataUint256[string(abi.encodePacked(_index, "premiumPayment", paymentsMade))] = expectedAmount;
-    dataAddress[string(abi.encodePacked(_index, "premiumPayer", paymentsMade))] = msg.sender;
-    dataUint256[string(abi.encodePacked(_index, "premiumsPaid"))] = paymentsMade + 1;
+    // record the payments
+    uint256 paymentNum = dataUint256[string(abi.encodePacked(_index, "premiumsPaid"))] + 1;
+    dataUint256[string(abi.encodePacked(_index, "premiumPayment", paymentNum))] = expectedAmount;
+    dataAddress[string(abi.encodePacked(_index, "premiumPayer", paymentNum))] = msg.sender;
+    dataUint256[string(abi.encodePacked(_index, "premiumsPaid"))] = paymentNum;
+
+    // calculate commissions
+    uint256 brokerCommission = dataUint256["brokerCommissionBP"].mul(expectedAmount).div(1000);
+    uint256 assetManagerCommission = dataUint256["assetManagerCommissionBP"].mul(expectedAmount).div(1000);
+    uint256 naymsCommission = dataUint256["naymsCommissionBP"].mul(expectedAmount).div(1000);
+
+    // add to commission balances
+    dataUint256["brokerCommissionBalance"] = dataUint256["brokerCommissionBalance"].add(brokerCommission);
+    dataUint256["assetManagerCommissionBalance"] = dataUint256["assetManagerCommissionBalance"].add(assetManagerCommission);
+    dataUint256["naymsCommissionBalance"] = dataUint256["naymsCommissionBalance"].add(naymsCommission);
+
+    // add to tranch balance
+    uint256 tranchBalanceDelta = expectedAmount.sub(brokerCommission.add(assetManagerCommission).add(naymsCommission));
+    dataUint256[string(abi.encodePacked(_index, "balance"))] = dataUint256[string(abi.encodePacked(_index, "balance"))].add(tranchBalanceDelta);
   }
 
+  function getAssetManagerCommissionBalance () public view returns (uint256) {
+    return dataUint256["assetManagerCommissionBalance"];
+  }
+
+  function getNaymsCommissionBalance () public view returns (uint256) {
+    return dataUint256["naymsCommissionBalance"];
+  }
+
+  function getBrokerCommissionBalance () public view returns (uint256) {
+    return dataUint256["brokerCommissionBalance"];
+  }
+
+  function getTranchBalance (uint256 _index) public view returns (uint256) {
+    return dataUint256[string(abi.encodePacked(_index, "balance"))];
+  }
+
+  function getNumberOfTranchSharesSold (uint256 _index) public view returns (uint256) {
+    return dataUint256[string(abi.encodePacked(_index, "sharesSold"))];
+  }
+
+  function getTranchInitialSaleMarketOfferId (uint256 _index) public view returns (uint256) {
+    return dataUint256[string(abi.encodePacked(_index, "initialSaleOfferId"))];
+  }
+
+  function getTranchFinalBuybackMarketOfferId (uint256 _index) public view returns (uint256) {
+    return dataUint256[string(abi.encodePacked(_index, "finalBuybackOfferId"))];
+  }
 
   function initiationDateHasPassed () public view returns (bool) {
     return now >= dataUint256["initiationDate"];
@@ -221,69 +230,66 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
     return now >= dataUint256["startDate"];
   }
 
-  function beginSale()
-    public
-    assertCanApprovePolicy
-    assertDraftState
-  {
-    // solhint-disable-next-line security/no-block-members
-    require(initiationDateHasPassed(), 'not yet time to begin sale');
-    // solhint-disable-next-line security/no-block-members
-    require(!startDateHasPassed(), 'start date already passed');
+  function maturationDateHasPassed () public view returns (bool) {
+    return now >= dataUint256["maturationDate"];
+  }
 
-    IMarket market = IMarket(settings().getMatchingMarket());
+  // heartbeat function!
+  function checkAndUpdateState() public {
+    // past the initiation date
+    if (initiationDateHasPassed()) {
+      // past the start date
+      if (startDateHasPassed()) {
+        _ensureTranchesAreUpToDate();
+        _activatePolicyIfPending();
 
-    for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
-      require(0 >= getNumberOfTranchPaymentsMissed(i), 'tranch premiums are not up-to-date');
-
-      // tranch/token address
-      address tranchAddress = dataAddress[string(abi.encodePacked(i, "address"))];
-      // initial token holder must be contract address
-      address initialHolder = dataAddress[string(abi.encodePacked(i, "initialHolder"))];
-      require(initialHolder == address(this), "initial holder must be policy contract");
-      // get supply
-      uint256 totalSupply = tknTotalSupply(i);
-      // calculate sale values
-      uint256 pricePerShare = dataUint256[string(abi.encodePacked(i, "pricePerShareAmount"))];
-      uint256 totalPrice = totalSupply.mul(pricePerShare);
-      // do the transfer
-      market.offer(totalSupply, tranchAddress, totalPrice, dataAddress["unit"], 0, false);
-      // set tranch state
-      dataUint256[string(abi.encodePacked(i, "state"))] = STATE_PENDING;
+        // if past the maturation date
+        if (maturationDateHasPassed()) {
+          _closePolicy();
+        }
+      }
+      // not yet past start date
+      else {
+        _beginPolicySaleIfNotYetStarted();
+      }
     }
-
-    dataUint256["state"] = STATE_PENDING;
-
-    emit BeginSale(address(this), msg.sender);
   }
 
 
-  function checkAndUpdateState()
-    public
-    assertCanApprovePolicy
-    assertPendingOrActiveState
-  {
-    // solhint-disable-next-line security/no-block-members
-    require(startDateHasPassed(), 'start date not yet passed');
+  function payCommissions (
+    address _assetManagerEntity, address _assetManager,
+    address _brokerEntity, address _broker
+  ) public {
+    // check asset manager
+    require(inRoleGroup(_assetManager, ROLEGROUP_ASSET_MANAGERS), 'must be asset manager');
+    bytes32 assetManagerEntityContext = AccessControl(_assetManagerEntity).aclContext();
+    require(acl().userSomeHasRoleInContext(assetManagerEntityContext, _assetManager), 'must have role in asset manager entity');
 
-    for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
-      uint256 state = dataUint256[string(abi.encodePacked(i, "state"))];
+    // check broker
+    require(inRoleGroup(_broker, ROLEGROUP_BROKERS), 'must be broker');
+    bytes32 brokerEntityContext = AccessControl(_brokerEntity).aclContext();
+    require(acl().userSomeHasRoleInContext(brokerEntityContext, _broker), 'must have role in broker entity');
 
-      if (state != STATE_ACTIVE || 0 < getNumberOfTranchPaymentsMissed(i)) {
-        dataUint256[string(abi.encodePacked(i, "state"))] = STATE_CANCELLED;
-      }
-    }
+    // get nayms entity
+    address naymsEntity = settings().getNaymsEntity();
 
-    if (dataUint256["state"] != STATE_ACTIVE) {
-      dataUint256["state"] = STATE_ACTIVE;
-      emit PolicyActive(address(this), msg.sender);
-    }
+    // do payouts and update balances
+    IERC20 tkn = IERC20(dataAddress["unit"]);
+
+    tkn.transfer(_assetManagerEntity, dataUint256["assetManagerCommissionBalance"]);
+    dataUint256["assetManagerCommissionBalance"] = 0;
+
+    tkn.transfer(_brokerEntity, dataUint256["brokerCommissionBalance"]);
+    dataUint256["brokerCommissionBalance"] = 0;
+
+    tkn.transfer(naymsEntity, dataUint256["naymsCommissionBalance"]);
+    dataUint256["naymsCommissionBalance"] = 0;
   }
 
 
   function calculateMaxNumOfPremiums() public view returns (uint256) {
     // first 2 payments + (endDate - startDate) / paymentInterval - 1
-    return (dataUint256["maturationDate"] - dataUint256["startDate"]) / dataUint256["premiumIntervalSeconds"] + 1;
+    return (dataUint256["maturationDate"] - dataUint256["initiationDate"]) / dataUint256["premiumIntervalSeconds"] + 1;
   }
 
   // TranchTokenImpl - queries //
@@ -311,15 +317,10 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
     return dataUint256[k];
   }
 
-  function tknIsOperatorFor(uint256 _index, address _operator, address _tokenHolder) public view returns (bool) {
-    string memory k = string(abi.encodePacked(_index, _tokenHolder, "operator", _operator));
-    return dataBool[k];
-  }
-
   // TranchTokenImpl - ERC20 mutations //
 
-  function tknApprove(uint256 /*_index*/, address /*_spender*/, address /*_from*/, uint256 /*_value*/) public {
-    revert('only nayms market is allowed to transfer');
+  function tknApprove(uint256 /*_index*/, address _spender, address /*_from*/, uint256 /*_value*/) public {
+    require(_spender == settings().getMatchingMarket(), 'only nayms market is allowed to transfer');
   }
 
   function tknTransfer(uint256 _index, address _spender, address _from, address _to, uint256 _value) public {
@@ -327,40 +328,17 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
     _transfer(_index, _from, _to, _value);
   }
 
-  // TranchTokenImpl - ERC777 mutations //
-
-  function tknAuthorizeOperator(uint256 /*_index */, address /* _operator */, address /* _tokenHolder */) public {
-    revert('only nayms market is allowed to transfer');
-  }
-
-  function tknRevokeOperator(uint256 /*_index */, address /* _operator */, address /* _tokenHolder */) public {
-    revert('only nayms market is allowed to transfer');
-  }
-
-  function tknSend(uint256 _index, address _operator, address _from, address _to, uint256 _amount, bytes memory _data,
-    bytes memory _operatorData) public
-  {
-    require(_to != address(0), 'cannot send to zero address');
-    require(_operator == settings().getMatchingMarket(), 'only nayms market is allowed to transfer');
-
-    _callTokensToSend(_index, _operator, _from, _to, _amount, _data, _operatorData);
-
-    _transfer(_index, _from, _to, _amount);
-
-    _callTokensReceived(_index, _operator, _from, _to, _amount, _data, _operatorData);
-  }
-
-  // Helpers
+  // Internal functions
 
   function _transfer(uint _index, address _from, address _to, uint256 _value) private {
     // when token holder is sending to the market
     address market = settings().getMatchingMarket();
     if (market == _to) {
-      // and they're not the initial balance holder of the token
+      // and they're not the initial balance holder of the token (i.e. the policy/tranch)
       address initialHolder = dataAddress[string(abi.encodePacked(_index, "initialHolder"))];
       if (initialHolder != _from) {
-        // then ony allow them to do this when policy is active
-        require(dataUint256["state"] == STATE_ACTIVE, 'can only trade when policy is active');
+        // then they must be a trader, in which case ony allow this if the policy is active
+        require(dataUint256["state"] == POLICY_STATE_ACTIVE, 'can only trade when policy is active');
       }
     }
 
@@ -372,72 +350,124 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
     dataUint256[fromKey] = dataUint256[fromKey].sub(_value);
     dataUint256[toKey] = dataUint256[toKey].add(_value);
 
-    // if we are in the initial sale period and this is a transfer from the market to the buyer
-    if (dataUint256[string(abi.encodePacked(_index, "state"))] == STATE_PENDING && market == _from) {
-      // TODO: update pay token balance for tranch
+    // if we are in the initial sale period and this is a transfer from the market to a buyer
+    if (dataUint256[string(abi.encodePacked(_index, "state"))] == TRANCH_STATE_SELLING && market == _from) {
+      // record how many "shares" were sold
+      dataUint256[string(abi.encodePacked(_index, "sharesSold"))] = dataUint256[string(abi.encodePacked(_index, "sharesSold"))].add(_value);
+      // update tranch balance
+      dataUint256[string(abi.encodePacked(_index, "balance"))] = dataUint256[string(abi.encodePacked(_index, "balance"))].add(_value * dataUint256[string(abi.encodePacked(_index, "pricePerShareAmount"))]);
 
       // if the tranch has fully sold out (i.e market no longer holds any tranch tokens)
       if (dataUint256[fromKey] == 0) {
         // flip tranch state to ACTIVE
-        dataUint256[string(abi.encodePacked(_index, "state"))] = STATE_ACTIVE;
+        dataUint256[string(abi.encodePacked(_index, "state"))] = TRANCH_STATE_ACTIVE;
+        // clear offer id (market has already deleted offer since it has been fulfilled)
+        dataUint256[string(abi.encodePacked(_index, "initialSaleOfferId"))] = 0;
       }
     }
   }
 
-  // re-entrancy protection
-  modifier acquireErc777SenderMutex (uint256 _index) {
-    string memory k = string(abi.encodePacked(_index, "erc777sender-mutex"));
-    require(!dataBool[k], 'ERC777 sender mutex already acquired');
-    dataBool[k] = true;
-    _;
-    dataBool[k] = false;
-  }
-  // re-entrancy protection
-  modifier acquireErc777ReceiverMutex (uint256 _index) {
-    string memory k = string(abi.encodePacked(_index, "erc777receiver-mutex"));
-    require(!dataBool[k], 'ERC777 receiver mutex already acquired');
-    dataBool[k] = true;
-    _;
-    dataBool[k] = false;
+  function _cancelTranchMarketOffer(uint _index) private {
+    IMarket market = IMarket(settings().getMatchingMarket());
+
+    uint256 initialSaleOfferId = dataUint256[string(abi.encodePacked(_index, "initialSaleOfferId"))];
+
+    if (market.isActive(initialSaleOfferId)) {
+      market.cancel(initialSaleOfferId);
+    }
+
+    dataUint256[string(abi.encodePacked(_index, "initialSaleOfferId"))] = 0;
   }
 
-  // From https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC777/ERC777.sol
-  function _callTokensToSend(
-    uint256 _index,
-    address _operator,
-    address _from,
-    address _to,
-    uint256 _amount,
-    bytes memory _userData,
-    bytes memory _operatorData
-  )
-    private
-    acquireErc777SenderMutex(_index)
-  {
-    address implementer = IERC1820Registry(ERC1820_REGISTRY_ADDRESS).getInterfaceImplementer(_from, TOKENS_SENDER_INTERFACE_HASH);
-    if (implementer != address(0)) {
-      IERC777Sender(implementer).tokensToSend(_operator, _from, _to, _amount, _userData, _operatorData);
+
+  function _beginPolicySaleIfNotYetStarted() private {
+    if (dataUint256["state"] == POLICY_STATE_CREATED) {
+      IMarket market = IMarket(settings().getMatchingMarket());
+
+      // check every tranch
+      for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
+        require(0 >= getNumberOfTranchPaymentsMissed(i), 'tranch premiums are not up-to-date');
+
+        // tranch/token address
+        address tranchAddress = dataAddress[string(abi.encodePacked(i, "address"))];
+        // initial token holder must be contract address
+        address initialHolder = dataAddress[string(abi.encodePacked(i, "initialHolder"))];
+        require(initialHolder == address(this), "initial holder must be policy contract");
+        // get supply
+        uint256 totalSupply = tknTotalSupply(i);
+        // calculate sale values
+        uint256 pricePerShare = dataUint256[string(abi.encodePacked(i, "pricePerShareAmount"))];
+        uint256 totalPrice = totalSupply.mul(pricePerShare);
+        // offer tokens in initial sale
+        dataUint256[string(abi.encodePacked(i, "initialSaleOfferId"))] = market.offer(
+          totalSupply, tranchAddress, totalPrice, dataAddress["unit"], 0, false
+        );
+        // set tranch state
+        dataUint256[string(abi.encodePacked(i, "state"))] = TRANCH_STATE_SELLING;
+      }
+
+      // set policy state to PENDING
+      dataUint256["state"] = POLICY_STATE_SELLING;
+
+      emit BeginSale(address(this), msg.sender);
     }
   }
 
-  // From https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC777/ERC777.sol
-  function _callTokensReceived(
-    uint256 _index,
-    address _operator,
-    address _from,
-    address _to,
-    uint256 _amount,
-    bytes memory _userData,
-    bytes memory _operatorData
-  )
-    private
-    acquireErc777ReceiverMutex(_index)
-  {
-    address implementer = IERC1820Registry(ERC1820_REGISTRY_ADDRESS).getInterfaceImplementer(_to, TOKENS_RECIPIENT_INTERFACE_HASH);
-    if (implementer != address(0)) {
-      IERC777Recipient(implementer).tokensReceived(_operator, _from, _to, _amount, _userData, _operatorData);
-    } else {
-      require(!_to.isContract(), "token recipient contract has no implementer for ERC777TokensRecipient");
+  function _activatePolicyIfPending() private {
+    // make policy active if necessary
+    if (dataUint256["state"] == POLICY_STATE_SELLING) {
+      dataUint256["state"] = POLICY_STATE_ACTIVE;
+      emit PolicyActive(address(this), msg.sender);
+    }
+  }
+
+  function _ensureTranchesAreUpToDate() private {
+    // check state of each tranch
+    for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
+      uint256 state = dataUint256[string(abi.encodePacked(i, "state"))];
+
+      // if tranch not yet fully sold OR if a payment has been missed
+      if (state == TRANCH_STATE_SELLING || 0 < getNumberOfTranchPaymentsMissed(i)) {
+        // cancel any outstanding market order
+        _cancelTranchMarketOffer(i);
+        // set state to cancelled
+        dataUint256[string(abi.encodePacked(i, "state"))] = TRANCH_STATE_CANCELLED;
+      }
+    }
+  }
+
+
+  function _closePolicy () private {
+    if (dataUint256["state"] != POLICY_STATE_MATURED) {
+      address marketAddress = settings().getMatchingMarket();
+
+      IMarket market = IMarket(marketAddress);
+
+      // update state
+      dataUint256["state"] = POLICY_STATE_MATURED;
+
+      // buy back all tranch tokens
+      for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
+        if (dataUint256[string(abi.encodePacked(i, "state"))] == TRANCH_STATE_ACTIVE) {
+          dataUint256[string(abi.encodePacked(i, "state"))] = TRANCH_STATE_MATURED;
+        }
+
+        address unitAddress = dataAddress["unit"];
+        uint256 tranchBalance = getTranchBalance(i);
+
+        IERC20 tkn = IERC20(unitAddress);
+        tkn.approve(marketAddress, tranchBalance);
+
+        // buy back all sold tokens
+        dataUint256[string(abi.encodePacked(i, "finalBuybackOfferId"))] = market.offer(
+          tranchBalance,
+          dataAddress["unit"],
+          getNumberOfTranchSharesSold(i),
+          dataAddress[string(abi.encodePacked(i, "address"))],
+          0,
+          false
+        );
+      }
     }
   }
 }

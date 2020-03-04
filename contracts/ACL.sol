@@ -219,6 +219,17 @@ library Bytes32 {
   }
 
   /**
+   * @dev get whether value exists.
+   */
+  function has(Set storage _obj, bytes32 _value)
+    internal
+    view
+    returns (bool)
+  {
+    return 0 < _obj.map[_value];
+  }
+
+  /**
    * @dev get value at index.
    */
   function get(Set storage _obj, uint256 _index)
@@ -266,8 +277,7 @@ contract ACL is IACL {
   }
 
   modifier assertIsAssigner (bytes32 _context, bytes32 _role) {
-    // either they have the permission to assign or they're an admin
-    require(isAdmin(msg.sender) || canAssign(_context, msg.sender, _role), 'unauthorized');
+    require(canAssign(_context, msg.sender, _role), 'unauthorized');
     _;
   }
 
@@ -330,6 +340,10 @@ contract ACL is IACL {
 
   function getContextForUserAtIndex(address _addr, uint256 _index) public view returns (bytes32) {
     return userContexts[_addr].get(_index);
+  }
+
+  function userSomeHasRoleInContext(bytes32 _context, address _addr) public view returns (bool) {
+    return userContexts[_addr].has(_context);
   }
 
   // Role groups
@@ -451,10 +465,12 @@ contract ACL is IACL {
     view
     returns (bool)
   {
-    if (isAdmin(_addr)) {
+    // if they are an admin or assigning in their own context
+    if (isAdmin(_addr) || _context == generateContextFromAddress(_addr)) {
       return true;
     }
 
+    // if they belong to an role group that can assign this role
     bytes32[] memory roleGroups = getAssigners(_role);
 
     for (uint256 i = 0; i < roleGroups.length; i++) {
@@ -466,6 +482,10 @@ contract ACL is IACL {
     }
 
     return false;
+  }
+
+  function generateContextFromAddress (address _addr) public pure returns (bytes32) {
+    return keccak256(abi.encodePacked(_addr));
   }
 
   // Internal functions

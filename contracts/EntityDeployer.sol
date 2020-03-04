@@ -9,6 +9,11 @@ import './Entity.sol';
  * This is responsible for deploying a new Entity.
  */
 contract EntityDeployer is EternalStorage, Destructible, IEntityDeployer {
+  modifier assertCanCreateEntity () {
+    require(isAdmin(msg.sender) || inRoleGroup(msg.sender, ROLEGROUP_SYSTEM_MANAGERS), 'must be system manager');
+    _;
+  }
+
   /**
    * Constructor
    */
@@ -19,7 +24,7 @@ contract EntityDeployer is EternalStorage, Destructible, IEntityDeployer {
   /**
    * @dev Deploy a new Entity.
    */
-  function deploy() public assertIsAdmin {
+  function deploy() public assertCanCreateEntity {
     Entity f = new Entity(
       address(acl()),
       address(settings()),

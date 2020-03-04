@@ -5,17 +5,10 @@ import {
   extractEventArgs,
   hdWallet,
   ADDRESS_ZERO,
-  testEvents,
   createTranch,
   createPolicy,
 } from './utils'
 import { events } from '../'
-
-import {
-  ensureErc1820RegistryIsDeployed,
-  TOKENS_SENDER_INTERFACE_HASH,
-  TOKENS_RECIPIENT_INTERFACE_HASH
-} from '../migrations/modules/erc1820'
 
 import { ROLES, ROLEGROUPS } from '../utils/constants'
 
@@ -23,10 +16,9 @@ import { ensureAclIsDeployed } from '../migrations/modules/acl'
 
 import { ensureEtherTokenIsDeployed } from '../migrations/modules/etherToken'
 import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
+import { ensureEntityDeployerIsDeployed } from '../migrations/modules/entityDeployer'
 
 const IERC20 = artifacts.require("./base/IERC20")
-const IERC777 = artifacts.require("./base/IERC777")
-const EntityDeployer = artifacts.require('./EntityDeployer')
 const IEntityImpl = artifacts.require('./base/IEntityImpl')
 const EntityImpl = artifacts.require('./EntityImpl')
 const Entity = artifacts.require('./Entity')
@@ -34,48 +26,45 @@ const IPolicyImpl = artifacts.require("./base/IPolicyImpl")
 const PolicyImpl = artifacts.require("./PolicyImpl")
 const Policy = artifacts.require("./Policy")
 const TestPolicyImpl = artifacts.require("./test/TestPolicyImpl")
-const DummyERC777TokensSender = artifacts.require('./test/DummyERC777TokensSender')
-const DummyERC777TokensRecipient = artifacts.require('./test/DummyERC777TokensRecipient')
-const ReEntrantERC777TokensSender = artifacts.require('./test/ReEntrantERC777TokensSender')
-const ReEntrantERC777TokensRecipient = artifacts.require('./test/ReEntrantERC777TokensRecipient')
-
-const DATA_BYTES = asciiToHex('test')
-const DATA_BYTES_2 = asciiToHex('test2')
 
 contract('Policy', accounts => {
   let acl
+  let systemContext
   let settings
   let entityDeployer
   let entityImpl
   let entityProxy
   let entity
   let entityContext
-  let initiationDate
   let policyImpl
   let policyProxy
   let policy
   let policyContext
-  let entityRepAddress
-  let erc1820Registry
+  let entityManagerAddress
+  let policyOwnerAddress
   let etherToken
+
+  let POLICY_STATE_CREATED
+  let POLICY_STATE_SELLING
 
   let setupPolicy
 
   beforeEach(async () => {
     // acl
     acl = await ensureAclIsDeployed({ artifacts })
+    systemContext = await acl.systemContext()
 
     // settings
     settings = await ensureSettingsIsDeployed({ artifacts }, acl.address)
 
     // registry + wrappedEth
-    erc1820Registry = await ensureErc1820RegistryIsDeployed({ artifacts, accounts, web3 })
     etherToken = await ensureEtherTokenIsDeployed({ artifacts }, acl.address, settings.address)
 
     // entity
     entityImpl = await EntityImpl.new(acl.address, settings.address)
-    entityDeployer = await EntityDeployer.new(acl.address, settings.address, entityImpl.address)
+    entityDeployer = await ensureEntityDeployerIsDeployed({ artifacts }, acl.address, settings.address, entityImpl.address)
 
+    await acl.assignRole(systemContext, accounts[0], ROLES.SYSTEM_MANAGER)
     const deployEntityTx = await entityDeployer.deploy()
     const entityAddress = extractEventArgs(deployEntityTx, events.NewEntity).entity
 
@@ -85,12 +74,23 @@ contract('Policy', accounts => {
 
     // policy
     await acl.assignRole(entityContext, accounts[1], ROLES.ENTITY_ADMIN)
-    await acl.assignRole(entityContext, accounts[2], ROLES.ENTITY_REP)
-    entityRepAddress = accounts[2]
+    await acl.assignRole(entityContext, accounts[2], ROLES.ENTITY_MANAGER)
+    entityManagerAddress = accounts[2]
 
     policyImpl = await PolicyImpl.new(acl.address, settings.address)
 
-    setupPolicy = async ({ initiationDateDiff = 1000, startDateDiff = 2000, maturationDateDiff = 3000, premiumIntervalSeconds = undefined } = {}) => {
+    POLICY_STATE_CREATED = await policyImpl.POLICY_STATE_CREATED()
+    POLICY_STATE_SELLING = await policyImpl.POLICY_STATE_SELLING()
+
+    setupPolicy = async ({
+      initiationDateDiff = 1000,
+      startDateDiff = 2000,
+      maturationDateDiff = 3000,
+      premiumIntervalSeconds = undefined,
+      brokerCommissionBP = 0,
+      assetManagerCommissionBP = 0,
+      naymsCommissionBP = 0,
+    } = {}) => {
       // get current evm time
       const t = await settings.getTime()
       const currentBlockTime = parseInt(t.toString(10))
@@ -101,15 +101,16 @@ contract('Policy', accounts => {
         maturationDate: currentBlockTime + maturationDateDiff,
         unit: etherToken.address,
         premiumIntervalSeconds,
-      }, { from: entityRepAddress })
+        brokerCommissionBP,
+        assetManagerCommissionBP,
+        naymsCommissionBP,
+      }, { from: entityManagerAddress })
       const policyAddress = extractEventArgs(createPolicyTx, events.NewPolicy).policy
 
       policyProxy = await Policy.at(policyAddress)
       policy = await IPolicyImpl.at(policyAddress)
       policyContext = await policyProxy.aclContext()
-
-      // allow policy to transfer wrapped ETH tokens
-      await etherToken.setAllowedTransferOperator(policy.address, true)
+      policyOwnerAddress = entityManagerAddress
     }
   })
 
@@ -191,26 +192,22 @@ contract('Policy', accounts => {
     const tranchNumShares = 10
     const tranchPricePerShare = 100
 
-    beforeEach(async () => {
-      await acl.assignRole(entityContext, accounts[2], ROLES.ENTITY_REP)
-    })
-
     describe('basic tests', () => {
       it('cannot be created without correct authorization', async () => {
         await setupPolicy()
-        await createTranch(policy, {}).should.be.rejectedWith('must be policy manager')
+        await createTranch(policy, {}).should.be.rejectedWith('must be policy owner')
       })
 
       it('all basic values must be valid', async () => {
         await setupPolicy()
-        await createTranch(policy, { numShares: 0 }, { from: accounts[2] }).should.be.rejectedWith('invalid num of shares')
-        await createTranch(policy, { pricePerShareAmount: 0 }, { from: accounts[2] }).should.be.rejectedWith('invalid price')
+        await createTranch(policy, { numShares: 0 }, { from: policyOwnerAddress }).should.be.rejectedWith('invalid num of shares')
+        await createTranch(policy, { pricePerShareAmount: 0 }, { from: policyOwnerAddress }).should.be.rejectedWith('invalid price')
       })
 
       it('and premium array is valid', async () => {
         await setupPolicy({ initiationDateDiff: 0, startDateDiff: 0, maturationDateDiff: 30, premiumIntervalSeconds: 20 })
 
-        await createTranch(policy, { premiums: [1, 2, 3, 4, 5] }, { from: accounts[2] }).should.be.rejectedWith('too many premiums')
+        await createTranch(policy, { premiums: [1, 2, 3, 4, 5] }, { from: policyOwnerAddress }).should.be.rejectedWith('too many premiums')
       })
 
       it('can be created and have initial balance auto-allocated to policy impl', async () => {
@@ -262,8 +259,7 @@ contract('Policy', accounts => {
           from: accounts[2]
         }).should.be.fulfilled
 
-        const draftState = await policy.STATE_DRAFT()
-        await policy.getTranchState(0).should.eventually.eq(draftState)
+        await policy.getTranchState(0).should.eventually.eq(POLICY_STATE_CREATED)
       })
 
       it('can be created more than once', async () => {
@@ -296,13 +292,20 @@ contract('Policy', accounts => {
 
         expect(Object.keys(addresses).length).to.eq(2)
       })
+
+      it('cannot be created once already in selling state', async () => {
+        await setupPolicy({ initiationDateDiff: 0 })
+        await policy.checkAndUpdateState() // kick-off sale
+        await policy.getState().should.eventually.eq(POLICY_STATE_SELLING)
+        await createTranch(policy, {}, { from: accounts[2] }).should.be.rejectedWith('must be in created state')
+      })
     })
 
     describe('are ERC20 tokens', () => {
       beforeEach(async () => {
         await setupPolicy()
 
-        acl.assignRole(entityContext, accounts[0], ROLES.ENTITY_REP)
+        acl.assignRole(policyContext, accounts[0], ROLES.POLICY_OWNER)
 
         await createTranch(policy, {
           numShares: tranchNumShares,
@@ -368,6 +371,11 @@ contract('Policy', accounts => {
           await firstTkn.approve(accounts[1], 2).should.be.rejectedWith('only nayms market is allowed to transfer')
         })
 
+        it('approving an address to send on one\'s behalf is possible if it is the market', async () => {
+          await settings.setMatchingMarket(accounts[3]).should.be.fulfilled
+          await firstTkn.approve(accounts[3], 2).should.be.fulfilled
+        })
+
         describe('such as market sending tokens on one\' behalf', () => {
           beforeEach(async () => {
             await settings.setMatchingMarket(accounts[3]).should.be.fulfilled
@@ -393,275 +401,7 @@ contract('Policy', accounts => {
       })
     })
 
-    describe('are ERC777 tokens', () => {
-      beforeEach(async () => {
-        await setupPolicy()
-
-        acl.assignRole(entityContext, accounts[0], ROLES.ENTITY_REP)
-
-        await createTranch(policy, {
-          numShares: tranchNumShares,
-          pricePerShareAmount: tranchPricePerShare,
-          initialBalanceHolder: accounts[0],
-        }).should.be.fulfilled
-
-        await createTranch(policy, {
-          numShares: tranchNumShares,
-          pricePerShareAmount: tranchPricePerShare,
-          initialBalanceHolder: accounts[0],
-        }).should.be.fulfilled
-      })
-
-      it('which have basic details', async () => {
-        let done = 0
-
-        await Promise.all(_.range(0, 2).map(async i => {
-          const tkn = await IERC777.at(await policy.getTranchToken(i))
-
-          const NAME = `${policyProxy.address.toLowerCase()}_tranch_\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000` + String.fromCodePoint(i)
-
-          await tkn.name().should.eventually.eq(NAME)
-          await tkn.symbol().should.eventually.eq(NAME)
-          await tkn.totalSupply().should.eventually.eq(tranchNumShares)
-          await tkn.granularity().should.eventually.eq(1)
-          await tkn.isOperatorFor(accounts[0], accounts[1]).should.eventually.eq(false)
-
-          done++
-        }))
-
-        expect(done).to.eq(2)
-      })
-
-      it('which have all supply initially allocated to creator', async () => {
-        let done = 0
-
-        await Promise.all(_.range(0, 2).map(async i => {
-          const tkn = await IERC777.at(await policy.getTranchToken(i))
-
-          await tkn.balanceOf(accounts[0]).should.eventually.eq(await tkn.totalSupply())
-
-          done++
-        }))
-
-        expect(done).to.eq(2)
-      })
-
-      it('which have an empty list of default operators', async () => {
-        let done = 0
-
-        await Promise.all(_.range(0, 2).map(async i => {
-          const tkn = await IERC777.at(await policy.getTranchToken(i))
-
-          await tkn.defaultOperators().should.eventually.eq([])
-
-          done++
-        }))
-
-        expect(done).to.eq(2)
-      })
-
-      describe('which support operations', () => {
-        let firstTkn
-        let firstTknNumShares
-
-        beforeEach(async () => {
-          firstTkn = await IERC777.at(await policy.getTranchToken(0))
-          firstTknNumShares = await firstTkn.totalSupply()
-        })
-
-        it('but sending one\'s own tokens is not possible', async () => {
-          await firstTkn.send(accounts[0], firstTknNumShares, DATA_BYTES).should.be.rejectedWith('only nayms market is allowed to transfer')
-        })
-
-        it('but approving an operator is not possible', async () => {
-          await firstTkn.authorizeOperator(accounts[1]).should.be.rejectedWith('only nayms market is allowed to transfer')
-        })
-
-        it('but revoking an operator is not possible', async () => {
-          await firstTkn.revokeOperator(accounts[1]).should.be.rejectedWith('only nayms market is allowed to transfer')
-        })
-
-        describe('such as market sending tokens on one\' behalf', () => {
-          beforeEach(async () => {
-            await settings.setMatchingMarket(accounts[3]).should.be.fulfilled
-          })
-
-          it('but not when sending to null address', async () => {
-            await firstTkn.operatorSend(accounts[0], ADDRESS_ZERO, 1, DATA_BYTES, DATA_BYTES_2, { from: accounts[3] }).should.be.rejectedWith('cannot send to zero address')
-          })
-
-          it('but not when owner does not have enough', async () => {
-            await firstTkn.operatorSend(accounts[0], accounts[2], firstTknNumShares + 1, DATA_BYTES, DATA_BYTES_2, { from: accounts[3] }).should.be.rejectedWith('not enough balance')
-          })
-
-          it('when the owner has enough', async () => {
-            const result = await firstTkn.operatorSend(accounts[0], accounts[2], firstTknNumShares, DATA_BYTES, DATA_BYTES_2, { from: accounts[3] })
-
-            await firstTkn.balanceOf(accounts[0]).should.eventually.eq(0)
-            await firstTkn.balanceOf(accounts[2]).should.eventually.eq(firstTknNumShares)
-
-            expect(extractEventArgs(result, events.Transfer)).to.include({
-              from: accounts[0],
-              to: accounts[2],
-              value: `${firstTknNumShares}`,
-            })
-
-            expect(extractEventArgs(result, events.Sent)).to.include({
-              operator: accounts[3],
-              from: accounts[0],
-              to: accounts[2],
-              amount: `${firstTknNumShares}`,
-              data: DATA_BYTES,
-              operatorData: DATA_BYTES_2,
-            })
-          })
-        })
-
-        describe('involving ERC1820 registry', () => {
-          beforeEach(async () => {
-            await settings.setMatchingMarket(accounts[3]).should.be.fulfilled
-
-            await erc1820Registry.setInterfaceImplementer(
-              accounts[0],
-              TOKENS_SENDER_INTERFACE_HASH,
-              ADDRESS_ZERO,
-              { from: accounts[0] }
-            );
-
-            await erc1820Registry.setInterfaceImplementer(
-              accounts[2],
-              TOKENS_RECIPIENT_INTERFACE_HASH,
-              ADDRESS_ZERO,
-              { from: accounts[2] }
-            )
-          })
-
-          afterEach(async () => {
-            await erc1820Registry.setInterfaceImplementer(
-              accounts[0],
-              TOKENS_SENDER_INTERFACE_HASH,
-              ADDRESS_ZERO,
-              { from: accounts[0] }
-            );
-
-            await erc1820Registry.setInterfaceImplementer(
-              accounts[2],
-              TOKENS_RECIPIENT_INTERFACE_HASH,
-              ADDRESS_ZERO,
-              { from: accounts[2] }
-            )
-          })
-
-          describe('and if sender has registered a handler', () => {
-            describe('when it\'s a dummy handler', () => {
-              beforeEach(async () => {
-                const dummyERC777TokenSender = await DummyERC777TokensSender.new()
-
-                await erc1820Registry.setInterfaceImplementer(
-                  accounts[0],
-                  TOKENS_SENDER_INTERFACE_HASH,
-                  dummyERC777TokenSender.address,
-                  { from: accounts[0] }
-                )
-              })
-
-              it('then the handler gets invoked during a transfer', async () => {
-                const result = await firstTkn.operatorSend(accounts[0], accounts[2], 1, DATA_BYTES, DATA_BYTES_2, { from: accounts[3] }).should.be.fulfilled
-
-                expect(extractEventArgs(result, testEvents.TokensToSend)).to.include({
-                  operator: accounts[3],
-                  from: accounts[0],
-                  to: accounts[2],
-                  amount: '1',
-                  userData: DATA_BYTES,
-                  operatorData: DATA_BYTES_2,
-                })
-              })
-            })
-
-            describe('when it\'s a re-entrant handler', () => {
-              beforeEach(async () => {
-                const reEntrantERC777TokenSender = await ReEntrantERC777TokensSender.new(
-                  policyProxy.address,
-                  0
-                )
-
-                await erc1820Registry.setInterfaceImplementer(
-                  accounts[0],
-                  TOKENS_SENDER_INTERFACE_HASH,
-                  reEntrantERC777TokenSender.address,
-                  { from: accounts[0] }
-                )
-              })
-
-              it('then mutex prevents transaction succeeding', async () => {
-                await firstTkn.operatorSend(accounts[0], accounts[1], 1, DATA_BYTES, DATA_BYTES_2, { from: accounts[3] }).should.be.rejectedWith('ERC777 sender mutex already acquired')
-              })
-            })
-          })
-
-          describe('and if receiver has registered a handler', () => {
-            describe('when it\'s a dummy handler', () => {
-              beforeEach(async () => {
-                const dummyERC777TokensRecipient = await DummyERC777TokensRecipient.new()
-
-                await erc1820Registry.setInterfaceImplementer(
-                  accounts[2],
-                  TOKENS_RECIPIENT_INTERFACE_HASH,
-                  dummyERC777TokensRecipient.address,
-                  { from: accounts[2] }
-                )
-              })
-
-              it('then handler gets invoked during a transfer', async () => {
-                const result = await firstTkn.operatorSend(accounts[0], accounts[2], 1, DATA_BYTES, DATA_BYTES_2, { from: accounts[3] }).should.be.fulfilled
-
-                expect(extractEventArgs(result, testEvents.TokensReceived)).to.include({
-                  operator: accounts[3],
-                  from: accounts[0],
-                  to: accounts[2],
-                  amount: '1',
-                  userData: DATA_BYTES,
-                  operatorData: DATA_BYTES_2,
-                })
-              })
-            })
-
-            describe('when it\'s a re-entrant handler', () => {
-              beforeEach(async () => {
-                const reEntrantERC777TokenRecipient = await ReEntrantERC777TokensRecipient.new(
-                  policyProxy.address,
-                  0
-                )
-
-                await erc1820Registry.setInterfaceImplementer(
-                  accounts[2],
-                  TOKENS_RECIPIENT_INTERFACE_HASH,
-                  reEntrantERC777TokenRecipient.address,
-                  { from: accounts[2] }
-                )
-              })
-
-              it('then mutex prevents transaction succeeding', async () => {
-                await firstTkn.operatorSend(accounts[0], accounts[2], 1, DATA_BYTES, DATA_BYTES_2, { from: accounts[3] }).should.be.rejectedWith('ERC777 receiver mutex already acquired')
-              })
-            })
-          })
-
-          describe('and if receiver is a contract and it has not registered a handler', () => {
-            it('then it reverts', async () => {
-              await firstTkn.operatorSend(accounts[0], policyImpl.address, 1, DATA_BYTES, DATA_BYTES_2, { from: accounts[3] }).should.be.rejectedWith('has no implementer')
-            })
-          })
-        })
-      })
-    })
-
     describe('premiums', () => {
-      beforeEach(async () => {
-        acl.assignRole(entityContext, accounts[0], ROLES.ENTITY_REP)
-      })
-
       describe('basic tests', () => {
         beforeEach(async () => {
           await setupPolicy()
@@ -670,7 +410,7 @@ contract('Policy', accounts => {
         it('initially no premium is expected', async () => {
           await createTranch(policy, {
             premiums: [2, 3, 4]
-          })
+          }, { from: policyOwnerAddress })
 
           await policy.getNextTranchPremiumAmount(0).should.eventually.eq(2)
           await policy.getNumberOfTranchPaymentsMissed(0).should.eventually.eq(0)
@@ -680,26 +420,26 @@ contract('Policy', accounts => {
         it('policy must have permission to receive premium payment token', async () => {
           await createTranch(policy, {
             premiums: [2, 3, 4]
-          })
+          }, { from: policyOwnerAddress })
 
           await etherToken.deposit({ value: 10 })
-          await policy.payTranchPremium(0).should.be.rejectedWith('need permission')
+          await policy.payTranchPremium(0).should.be.rejectedWith('amount exceeds allowance')
         })
 
         it('sender must have enough tokens to make the payment', async () => {
           await createTranch(policy, {
             premiums: [2, 3, 4]
-          })
+          }, { from: policyOwnerAddress })
 
           await etherToken.deposit({ value: 1 })
           await etherToken.approve(policy.address, 2)
-          await policy.payTranchPremium(0).should.be.rejectedWith('need balance')
+          await policy.payTranchPremium(0).should.be.rejectedWith('amount exceeds balance')
         })
 
         it('updates the internal stats once first payment is made', async () => {
           await createTranch(policy, {
             premiums: [2, 3, 4]
-          })
+          }, { from: policyOwnerAddress })
 
           await etherToken.deposit({ value: 2 })
           await etherToken.approve(policy.address, 2)
@@ -708,12 +448,13 @@ contract('Policy', accounts => {
           await policy.getNextTranchPremiumAmount(0).should.eventually.eq(3)
           await policy.getNumberOfTranchPaymentsMissed(0).should.eventually.eq(0)
           await policy.tranchPaymentsAllMade(0).should.eventually.eq(false)
+          await policy.getTranchBalance(0).should.eventually.eq(2)
         })
 
         it('updates the internal stats once subsequent payment is made', async () => {
           await createTranch(policy, {
             premiums: [2, 3, 4]
-          })
+          }, { from: policyOwnerAddress })
 
           await etherToken.deposit({ value: 5 })
           await etherToken.approve(policy.address, 5)
@@ -723,6 +464,130 @@ contract('Policy', accounts => {
           await policy.getNextTranchPremiumAmount(0).should.eventually.eq(4)
           await policy.getNumberOfTranchPaymentsMissed(0).should.eventually.eq(0)
           await policy.tranchPaymentsAllMade(0).should.eventually.eq(false)
+          await policy.getTranchBalance(0).should.eventually.eq(5)
+        })
+      })
+
+      describe('with commissions', () => {
+        beforeEach(async () => {
+          await setupPolicy({
+            assetManagerCommissionBP: 1,
+            brokerCommissionBP: 2,
+            naymsCommissionBP: 3,
+          })
+
+          await createTranch(policy, {
+            premiums: [2000, 3000, 4000]
+          }, { from: policyOwnerAddress })
+        })
+
+        it('updates the balances correctly as premiums get paid in', async () => {
+          await etherToken.deposit({ value: 10000 })
+          await etherToken.approve(policy.address, 10000)
+
+          await policy.payTranchPremium(0)
+
+          await policy.getAssetManagerCommissionBalance().should.eventually.eq(2) /* 0.1% of 2000 */
+          await policy.getBrokerCommissionBalance().should.eventually.eq(4) /* 0.2% of 2000 */
+          await policy.getNaymsCommissionBalance().should.eventually.eq(6) /* 0.3% of 2000 */
+          await policy.getTranchBalance(0).should.eventually.eq(1988) /* 2000 - (2 + 4 + 6) */
+
+          await policy.payTranchPremium(0)
+
+          await policy.getAssetManagerCommissionBalance().should.eventually.eq(5) /* 2 + 3 (=0.1% of 3000) */
+          await policy.getBrokerCommissionBalance().should.eventually.eq(10) /* 4 + 6 (=0.2% of 3000) */
+          await policy.getNaymsCommissionBalance().should.eventually.eq(15) /* 6 + 9 (=0.3% of 3000) */
+          await policy.getTranchBalance(0).should.eventually.eq(4970) /* 1988 + 3000 - (3 + 6 + 9) */
+
+          await policy.payTranchPremium(0)
+
+          await policy.getAssetManagerCommissionBalance().should.eventually.eq(9) /* 5 + 4 (=0.1% of 4000) */
+          await policy.getBrokerCommissionBalance().should.eventually.eq(18) /* 10 + 8 (=0.2% of 4000) */
+          await policy.getNaymsCommissionBalance().should.eventually.eq(27) /* 15 + 12 (=0.3% of 4000) */
+          await policy.getTranchBalance(0).should.eventually.eq(8946) /* 4970 + 4000 - (4 + 8 + 12) */
+        })
+
+        describe('and the commissions can be paid out', async () => {
+          beforeEach(async () => {
+            await etherToken.deposit({ value: 10000 })
+            await etherToken.approve(policy.address, 10000)
+
+            await policy.payTranchPremium(0)
+            await policy.payTranchPremium(0)
+
+            // assign roles
+            await acl.assignRole(policyContext, accounts[5], ROLES.ASSET_MANAGER)
+            await acl.assignRole(policyContext, accounts[6], ROLES.BROKER)
+
+            // assign to entities
+            await acl.assignRole(entityContext, accounts[5], ROLES.ENTITY_REP)
+            await acl.assignRole(entityContext, accounts[6], ROLES.ENTITY_REP)
+          })
+
+          it('but not if invalid asset manager entity gets passed in', async () => {
+            await policy.payCommissions(accounts[1], accounts[5], entity.address, accounts[6]).should.be.rejectedWith('revert')
+          })
+
+          it('but not if invalid broker entity gets passed in', async () => {
+            await policy.payCommissions(entity.address, accounts[5], accounts[1], accounts[6]).should.be.rejectedWith('revert')
+          })
+
+          it('but not if invalid asset manager gets passed in', async () => {
+            await policy.payCommissions(entity.address, accounts[7], entity.address, accounts[6]).should.be.rejectedWith('must be asset manager')
+          })
+
+          it('but not if invalid broker gets passed in', async () => {
+            await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[7]).should.be.rejectedWith('must be broker')
+          })
+
+          it('but not if asset manager does not belong to entity', async () => {
+            await acl.unassignRole(entityContext, accounts[5], ROLES.ENTITY_REP)
+            await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6]).should.be.rejectedWith('must have role in asset manager entity')
+          })
+
+          it('but not if broker does not belong to entity', async () => {
+            await acl.unassignRole(entityContext, accounts[6], ROLES.ENTITY_REP)
+            await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6]).should.be.rejectedWith('must have role in broker entity')
+          })
+
+          it('and gets transferred', async () => {
+            const preBalance = (await etherToken.balanceOf(entity.address)).toNumber()
+
+            await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6])
+
+            const postBalance = (await etherToken.balanceOf(entity.address)).toNumber()
+
+            expect(postBalance - preBalance).to.eq(5 + 10)
+
+            const naymsEntityAddress = await settings.getNaymsEntity()
+            const naymsEntityBalance = (await etherToken.balanceOf(naymsEntityAddress)).toNumber()
+
+            expect(naymsEntityBalance).to.eq(15)
+          })
+
+          it('and updates internal balance values', async () => {
+            await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6])
+            await policy.getAssetManagerCommissionBalance().should.eventually.eq(0)
+            await policy.getBrokerCommissionBalance().should.eventually.eq(0)
+            await policy.getNaymsCommissionBalance().should.eventually.eq(0)
+          })
+
+          it('and allows multiple calls', async () => {
+            await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6])
+            await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6])
+
+            await policy.payTranchPremium(0)
+
+            await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6])
+
+            const naymsEntityAddress = await settings.getNaymsEntity()
+            const naymsEntityBalance = (await etherToken.balanceOf(naymsEntityAddress)).toNumber()
+            expect(naymsEntityBalance).to.eq(27)
+
+            await policy.getAssetManagerCommissionBalance().should.eventually.eq(0)
+            await policy.getBrokerCommissionBalance().should.eventually.eq(0)
+            await policy.getNaymsCommissionBalance().should.eventually.eq(0)
+          })
         })
       })
 
@@ -732,7 +597,7 @@ contract('Policy', accounts => {
 
           await createTranch(policy, {
             premiums: [2, 3, 4]
-          })
+          }, { from: policyOwnerAddress })
         })
 
         it('it requires first payment to have been made', async () => {
@@ -750,40 +615,13 @@ contract('Policy', accounts => {
         })
       })
 
-      describe('once start date has passed', () => {
-        beforeEach(async () => {
-          await setupPolicy({ initiationDateDiff: -100, startDateDiff: 0, maturationDateDiff: 2000 })
-
-          await createTranch(policy, {
-            premiums: [2, 3, 4]
-          })
-        })
-
-        it('it requires first 2 payments to have been made', async () => {
-          await etherToken.deposit({ value: 100 })
-          await etherToken.approve(policy.address, 100)
-          await policy.payTranchPremium(0).should.be.fulfilled
-
-          await policy.getNumberOfTranchPaymentsMissed(0).should.eventually.eq(1)
-          await policy.getNextTranchPremiumAmount(0).should.eventually.eq(3)
-          await policy.tranchPaymentsAllMade(0).should.eventually.eq(false)
-
-          await policy.payTranchPremium(0).should.be.fulfilled
-
-          await policy.getNumberOfTranchPaymentsMissed(0).should.eventually.eq(0)
-          await policy.getNextTranchPremiumAmount(0).should.eventually.eq(4)
-          await policy.tranchPaymentsAllMade(0).should.eventually.eq(false)
-        })
-      })
-
       describe('once policy has been active for a while', () => {
         beforeEach(async () => {
-          // set it up so that we expect 10 payments to have been made since start date
-          await setupPolicy({ initiationDateDiff: -200, startDateDiff: -100, maturationDateDiff: 2000, premiumIntervalSeconds: 10 })
+          await setupPolicy({ initiationDateDiff: -100, startDateDiff: 0, maturationDateDiff: 2000, premiumIntervalSeconds: 10 })
 
           await createTranch(policy, {
             premiums: [2, 3, 4, 5]
-          })
+          }, { from: policyOwnerAddress })
         })
 
         it('it will return 0 if no more payments are to be made', async () => {
@@ -812,12 +650,11 @@ contract('Policy', accounts => {
       })
 
       it('if one of the premiums is 0 it still counts', async () => {
-        // set it up so that we expect 10 payments to have been made since start date
-        await setupPolicy({ initiationDateDiff: -200, startDateDiff: -100, maturationDateDiff: 2000, premiumIntervalSeconds: 10 })
+        await setupPolicy({ initiationDateDiff: -100, startDateDiff: 0, maturationDateDiff: 2000, premiumIntervalSeconds: 10 })
 
         await createTranch(policy, {
           premiums: [2, 3, 0, 5]
-        })
+        }, { from: policyOwnerAddress })
 
         await etherToken.deposit({ value: 100 })
         await etherToken.approve(policy.address, 100)
@@ -832,12 +669,11 @@ contract('Policy', accounts => {
       })
 
       it('if all premiums are paid before inititiation that is ok', async () => {
-        // set it up so that we expect 10 payments to have been made since start date
         await setupPolicy({ initiationDateDiff: 200, startDateDiff: 400, maturationDateDiff: 6000, premiumIntervalSeconds: 10 })
 
         await createTranch(policy, {
           premiums: [2, 3, 0, 5]
-        })
+        }, { from: policyOwnerAddress })
 
         await etherToken.deposit({ value: 100 })
         await etherToken.approve(policy.address, 100)

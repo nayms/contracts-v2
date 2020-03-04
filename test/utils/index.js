@@ -11,11 +11,6 @@ import { toBN, isBN } from './web3'
 const MNEMONIC = (packageJson.scripts.devnet.match(/\'(.+)\'/))[1]
 console.log(`Mnemonic: ${MNEMONIC}`)
 
-export const testEvents = extractEventsFromAbis([
-  require('../../build/contracts/DummyERC777TokensSender.json'),
-  require('../../build/contracts/DummyERC777TokensRecipient.json'),
-])
-
 chai.use((_chai, utils) => {
   const sanitizeResultVal = (result, val) => {
     // if bignumber
@@ -138,6 +133,9 @@ export const createPolicy = (entity, policyImpl, attrs, ...callAttrs) => {
     maturationDate = currentTime + 300,
     unit = ADDRESS_ZERO,
     premiumIntervalSeconds = 30,
+    brokerCommissionBP = 0,
+    assetManagerCommissionBP = 0,
+    naymsCommissionBP = 0
   } = attrs
 
   return entity.createPolicy(
@@ -147,11 +145,37 @@ export const createPolicy = (entity, policyImpl, attrs, ...callAttrs) => {
     maturationDate,
     unit,
     premiumIntervalSeconds,
+    brokerCommissionBP,
+    assetManagerCommissionBP,
+    naymsCommissionBP,
     ...callAttrs,
   )
 }
 
-export const web3EvmIncreaseTime = async (web3, ts) => {
+export const calcPremiumsMinusCommissions = ({ premiums, assetManagerCommissionBP, brokerCommissionBP, naymsCommissionBP }) => (
+  premiums.reduce((m, v) => (
+    m + v - (v * assetManagerCommissionBP / 1000) - (v * brokerCommissionBP / 1000) - (v * naymsCommissionBP / 1000)
+  ), 0)
+)
+
+
+export const calcCommissions = ({ premiums, assetManagerCommissionBP, brokerCommissionBP, naymsCommissionBP }) => {
+  const ret = {
+    assetManagerCommission: 0,
+    brokerCommission: 0,
+    naymsCommission: 0,
+  }
+
+  premiums.forEach(v => {
+    ret.assetManagerCommission += (v * assetManagerCommissionBP / 1000)
+    ret.brokerCommission += (v * brokerCommissionBP / 1000)
+    ret.naymsCommission += (v * naymsCommissionBP / 1000)
+  })
+
+  return ret
+}
+
+const web3EvmIncreaseTime = async ts => {
   await new Promise((resolve, reject) => {
     return web3.currentProvider.send({
       jsonrpc: '2.0',
@@ -175,4 +199,27 @@ export const web3EvmIncreaseTime = async (web3, ts) => {
       return resolve(result)
     })
   })
+}
+
+
+export class EvmClock {
+  constructor (initialTimestamp = 0) {
+    this.lastTimestamp = initialTimestamp
+  }
+
+  async setTime (timestamp) {
+    if (timestamp <= this.lastTimestamp) {
+      throw new Error(`Cannot set to past time: ${timestamp}`)
+    }
+    await web3EvmIncreaseTime(timestamp - this.lastTimestamp)
+    this.lastTimestamp = timestamp
+  }
+
+  async moveTime (delta) {
+    if (0 >= delta) {
+      throw new Error(`Cannot move into the past: ${delta}`)
+    }
+    await web3EvmIncreaseTime(delta)
+    this.lastTimestamp = this.lastTimestamp + delta
+  }
 }

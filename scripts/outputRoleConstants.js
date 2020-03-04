@@ -7,7 +7,7 @@ const glob = require('glob')
 const path = require('path')
 
 const projectDir = path.join(__dirname, '..')
-const { ROLES, ROLEGROUPS } = require(path.join(projectDir, 'migrations', 'utils', 'constants'))
+const { ROLES, ROLEGROUPS } = require(path.join(projectDir, 'utils', 'constants'))
 
 Object.entries(ROLES).forEach(([ key, value ]) => {
   console.log(`bytes32 constant public ROLE_${key} = ${value};`)

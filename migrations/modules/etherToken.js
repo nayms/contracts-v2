@@ -11,3 +11,8 @@ export const ensureEtherTokenIsDeployed = async ({ deployer, artifacts, logger }
 
   return etherToken
 }
+
+export const deployNewEtherToken = async ({ artifacts }, aclAddress, settingsAddress) => {
+  const EtherToken = artifacts.require('./EtherToken')
+  return await EtherToken.new(aclAddress, settingsAddress)
+}

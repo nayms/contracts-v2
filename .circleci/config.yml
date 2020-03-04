@@ -6,7 +6,7 @@ executors:
     docker:
       - image: circleci/node:12.13.0
       - image: trufflesuite/ganache-cli
-        command: ganache-cli -a 10 -m "funny door sample enrich female wedding stereo crane setup shop dwarf dismiss"
+        command: ganache-cli -a 50 -m "funny door sample enrich female wedding stereo crane setup shop dwarf dismiss"
 
 
 commands:

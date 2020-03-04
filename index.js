@@ -17,7 +17,6 @@ const coreContracts = [
   { name: 'EtherToken', actual: 'IEtherToken' },
   { name: 'Proxy', actual: 'Proxy' },
   { name: 'ERC20', actual: 'IERC20' },
-  { name: 'ERC777', actual: 'IERC777' },
 ].reduce((m, n) => {
   m[n.name] = rawContracts[n.actual]
   return m

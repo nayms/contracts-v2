@@ -17,7 +17,7 @@
     "LICENSE.md"
   ],
   "scripts": {
-    "devnet": "ganache-cli -a 10 -m 'funny door sample enrich female wedding stereo crane setup shop dwarf dismiss'",
+    "devnet": "ganache-cli -a 50 -m 'funny door sample enrich female wedding stereo crane setup shop dwarf dismiss'",
     "devnet-ci": "yarn devnet >ganache.log 2>&1 &",
     "truffle": "babel-node node_modules/.bin/truffle",
     "clean": "rm -rf ./build",

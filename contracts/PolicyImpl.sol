@@ -373,7 +373,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
     uint256 initialSaleOfferId = dataUint256[string(abi.encodePacked(_index, "initialSaleOfferId"))];
 
     if (market.isActive(initialSaleOfferId)) {
-      require(market.cancel(initialSaleOfferId), 'unable to cancel offer');
+      market.cancel(initialSaleOfferId);
     }
 
     dataUint256[string(abi.encodePacked(_index, "initialSaleOfferId"))] = 0;

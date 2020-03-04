@@ -149,6 +149,11 @@ contract('Policy flow', accounts => {
   })
 
   describe('tranches begin selling', async () => {
+    it('but not if initiation date has not yet passed', async () => {
+      await policy.checkAndUpdateState()
+      await policy.getState().should.eventually.eq(POLICY_STATE_CREATED)
+    })
+
     describe('if initiation date has passed', () => {
       beforeEach(async () => {
         await evmClock.setTime(initiationDate)

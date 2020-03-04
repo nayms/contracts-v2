@@ -206,7 +206,10 @@ contract('ACL', accounts => {
       await acl.assignRole(context1, accounts[3], role2)
 
       await acl.hasRole(context1, accounts[2], role1).should.eventually.eq(false)
+
+      await acl.canAssign(context1, accounts[3], role1).should.eventually.eq(true)
       await acl.assignRole(context1, accounts[2], role1, { from: accounts[3] }).should.be.fulfilled
+
       await acl.hasRole(context1, accounts[2], role1).should.eventually.eq(true)
       await acl.getRolesForUser(context1, accounts[2]).should.eventually.eq([role1])
     })

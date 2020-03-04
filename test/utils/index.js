@@ -159,6 +159,22 @@ export const calcPremiumsMinusCommissions = ({ premiums, assetManagerCommissionB
 )
 
 
+export const calcCommissions = ({ premiums, assetManagerCommissionBP, brokerCommissionBP, naymsCommissionBP }) => {
+  const ret = {
+    assetManagerCommission: 0,
+    brokerCommission: 0,
+    naymsCommission: 0,
+  }
+
+  premiums.forEach(v => {
+    ret.assetManagerCommission += (v * assetManagerCommissionBP / 1000)
+    ret.brokerCommission += (v * brokerCommissionBP / 1000)
+    ret.naymsCommission += (v * naymsCommissionBP / 1000)
+  })
+
+  return ret
+}
+
 const web3EvmIncreaseTime = async ts => {
   await new Promise((resolve, reject) => {
     return web3.currentProvider.send({

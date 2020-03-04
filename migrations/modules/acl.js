@@ -15,6 +15,7 @@ export const ensureAclIsDeployed = async ({ deployer, artifacts, logger }) => {
 
   // setup role groups
   await acl.setRoleGroup(ROLEGROUPS.ASSET_MANAGERS, [ ROLES.ASSET_MANAGER ])
+  await acl.setRoleGroup(ROLEGROUPS.BROKERS, [ROLES.BROKER])
   await acl.setRoleGroup(ROLEGROUPS.CLIENT_MANAGERS, [ ROLES.CLIENT_MANAGER ])
   await acl.setRoleGroup(ROLEGROUPS.ENTITY_ADMINS, [ ROLES.ENTITY_ADMIN, ROLES.SOLE_PROP, ROLES.NAYM ])
   await acl.setRoleGroup(ROLEGROUPS.ENTITY_MANAGERS, [ ROLES.ENTITY_MANAGER ])

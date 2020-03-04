@@ -5,6 +5,7 @@ import "./base/Controller.sol";
 import "./base/EternalStorage.sol";
 import './base/IERC20.sol';
 import "./base/IProxyImpl.sol";
+import "./base/AccessControl.sol";
 import "./base/IPolicyImpl.sol";
 import "./base/IMarket.sol";
 import "./base/ITranchTokenHelper.sol";
@@ -255,6 +256,37 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
   }
 
 
+  function payCommissions (
+    address _assetManagerEntity, address _assetManager,
+    address _brokerEntity, address _broker
+  ) public {
+    // check asset manager
+    require(inRoleGroup(_assetManager, ROLEGROUP_ASSET_MANAGERS), 'must be asset manager');
+    bytes32 assetManagerEntityContext = AccessControl(_assetManagerEntity).aclContext();
+    require(acl().userSomeHasRoleInContext(assetManagerEntityContext, _assetManager), 'must have role in asset manager entity');
+
+    // check broker
+    require(inRoleGroup(_broker, ROLEGROUP_BROKERS), 'must be broker');
+    bytes32 brokerEntityContext = AccessControl(_brokerEntity).aclContext();
+    require(acl().userSomeHasRoleInContext(brokerEntityContext, _broker), 'must have role in broker entity');
+
+    // get nayms entity
+    address naymsEntity = settings().getNaymsEntity();
+
+    // do payouts and update balances
+    IERC20 tkn = IERC20(dataAddress["unit"]);
+
+    tkn.transfer(_assetManagerEntity, dataUint256["assetManagerCommissionBalance"]);
+    dataUint256["assetManagerCommissionBalance"] = 0;
+
+    tkn.transfer(_brokerEntity, dataUint256["brokerCommissionBalance"]);
+    dataUint256["brokerCommissionBalance"] = 0;
+
+    tkn.transfer(naymsEntity, dataUint256["naymsCommissionBalance"]);
+    dataUint256["naymsCommissionBalance"] = 0;
+  }
+
+
   function calculateMaxNumOfPremiums() public view returns (uint256) {
     // first 2 payments + (endDate - startDate) / paymentInterval - 1
     return (dataUint256["maturationDate"] - dataUint256["initiationDate"]) / dataUint256["premiumIntervalSeconds"] + 1;
@@ -349,7 +381,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
 
 
   function _beginPolicySaleIfNotYetStarted() private {
-    if (initiationDateHasPassed() && dataUint256["state"] == POLICY_STATE_CREATED) {
+    if (dataUint256["state"] == POLICY_STATE_CREATED) {
       IMarket market = IMarket(settings().getMatchingMarket());
 
       // check every tranch
@@ -383,32 +415,30 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, ITra
 
   function _activatePolicyIfPending() private {
     // make policy active if necessary
-    if (startDateHasPassed() && dataUint256["state"] == POLICY_STATE_SELLING) {
+    if (dataUint256["state"] == POLICY_STATE_SELLING) {
       dataUint256["state"] = POLICY_STATE_ACTIVE;
       emit PolicyActive(address(this), msg.sender);
     }
   }
 
   function _ensureTranchesAreUpToDate() private {
-    if (startDateHasPassed()) {
-      // check state of each tranch
-      for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
-        uint256 state = dataUint256[string(abi.encodePacked(i, "state"))];
+    // check state of each tranch
+    for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
+      uint256 state = dataUint256[string(abi.encodePacked(i, "state"))];
 
-        // if tranch not yet fully sold OR if a payment has been missed
-        if (state == TRANCH_STATE_SELLING || 0 < getNumberOfTranchPaymentsMissed(i)) {
-          // cancel any outstanding market order
-          _cancelTranchMarketOffer(i);
-          // set state to cancelled
-          dataUint256[string(abi.encodePacked(i, "state"))] = TRANCH_STATE_CANCELLED;
-        }
+      // if tranch not yet fully sold OR if a payment has been missed
+      if (state == TRANCH_STATE_SELLING || 0 < getNumberOfTranchPaymentsMissed(i)) {
+        // cancel any outstanding market order
+        _cancelTranchMarketOffer(i);
+        // set state to cancelled
+        dataUint256[string(abi.encodePacked(i, "state"))] = TRANCH_STATE_CANCELLED;
       }
     }
   }
 
 
   function _closePolicy () private {
-    if (maturationDateHasPassed() && (dataUint256["state"] != POLICY_STATE_MATURED)) {
+    if (dataUint256["state"] != POLICY_STATE_MATURED) {
       address marketAddress = settings().getMatchingMarket();
 
       IMarket market = IMarket(marketAddress);

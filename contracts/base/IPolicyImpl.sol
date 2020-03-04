@@ -45,10 +45,10 @@ contract IPolicyImpl {
   function maturationDateHasPassed () public view returns (bool);
 
   function checkAndUpdateState () public;
-  // function payCommissions (
-  //   address _assetManagerEntity, address _assetManager,
-  //   address _brokerEntity, address _broker
-  // ) public;
+  function payCommissions (
+    address _assetManagerEntity, address _assetManager,
+    address _brokerEntity, address _broker
+  ) public;
 
   // events
 

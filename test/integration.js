@@ -4,6 +4,7 @@ import {
   createPolicy,
   EvmClock,
   calcPremiumsMinusCommissions,
+  calcCommissions,
 } from './utils'
 import { events } from '../'
 
@@ -337,10 +338,27 @@ contract('End-to-end integration tests', accounts => {
       assetManagerCommissionBP: 2,
       naymsCommissionBP: 3,
     })
+    expect(policy1Tranch0ExpectedBalance).to.eq(4076)
     await policy1.getTranchBalance(0).should.eventually.eq(policy1Tranch0ExpectedBalance)
+    const expectedCommissions = calcCommissions({
+      premiums: [1000, 2000, 1000],
+      brokerCommissionBP: 1,
+      assetManagerCommissionBP: 2,
+      naymsCommissionBP: 3,
+    })
+    expect(expectedCommissions.assetManagerCommission).to.eq(8)
+    expect(expectedCommissions.brokerCommission).to.eq(4)
+    expect(expectedCommissions.naymsCommission).to.eq(12)
+    await policy1.getAssetManagerCommissionBalance().should.eventually.eq(expectedCommissions.assetManagerCommission)
+    await policy1.getBrokerCommissionBalance().should.eventually.eq(expectedCommissions.brokerCommission)
+    await policy1.getNaymsCommissionBalance().should.eventually.eq(expectedCommissions.naymsCommission)
 
-    // step 26: withdraw commission payments
-    // TODO!
+    // step 26: withdraw commission payments (both asset manager and broker belong to entity0 so we'll use that one!)
+    await policy1.payCommissions(entity0.address, policy1AssetManager, entity0.address, policy1Broker)
+
+    // sanity check nayms entity balance
+    const naymsEntityAddress = await settings.getNaymsEntity()
+    await etherToken.balanceOf(naymsEntityAddress).should.eventually.eq(expectedCommissions.naymsCommission)
 
     // step 27: trader sells policy1Tranch0 tokens via entity0
     await entity0.sellAtBestPrice(
@@ -348,7 +366,10 @@ contract('End-to-end integration tests', accounts => {
       etherToken.address,
       { from: entity0Rep1 }
     )
-    await etherToken.balanceOf(entity0.address).should.eventually.eq(110 - 50 + 0.5 * policy1Tranch0ExpectedBalance)
+    const entity0FinalBalance = (await etherToken.balanceOf(entity0.address)).toNumber()
+    expect(entity0FinalBalance).to.eq(
+      110 - 50 + 0.5 * policy1Tranch0ExpectedBalance + expectedCommissions.assetManagerCommission + expectedCommissions.brokerCommission
+    )
 
     // step 28: skip for now
 
@@ -358,7 +379,8 @@ contract('End-to-end integration tests', accounts => {
       etherToken.address,
       { from: entity2SoleProp }
     )
-    await etherToken.balanceOf(entity2.address).should.eventually.eq(60 - 25 + 0.25 * policy1Tranch0ExpectedBalance)
+    const entity2FinalBalance = (await etherToken.balanceOf(entity2.address)).toNumber()
+    expect(entity2FinalBalance).to.eq(60 - 25 + 0.25 * policy1Tranch0ExpectedBalance)
 
     // step 30: skip for now
 
@@ -368,18 +390,19 @@ contract('End-to-end integration tests', accounts => {
       etherToken.address,
       { from: entity3Naym }
     )
-    await etherToken.balanceOf(entity3.address).should.eventually.eq(30 - 25 + 0.25 * policy1Tranch0ExpectedBalance)
+    const entity3FinalBalance = (await etherToken.balanceOf(entity3.address)).toNumber()
+    expect(entity3FinalBalance).to.eq(30 - 25 + 0.25 * policy1Tranch0ExpectedBalance)
 
     // step 32: withdraw from entity0
-    const bal0 = await etherToken.balanceOf(entity0.address)
-    await entity0.withdraw(etherToken.address, bal0, { from: entity0Admin })
+    await entity0.withdraw(etherToken.address, entity0FinalBalance, { from: entity0Admin })
+    await etherToken.balanceOf(entity0Admin).should.eventually.eq(entity0FinalBalance)
 
     // step 33: withdraw from entity2
-    const bal2 = await etherToken.balanceOf(entity2.address)
-    await entity2.withdraw(etherToken.address, bal2, { from: entity2SoleProp })
+    await entity2.withdraw(etherToken.address, entity2FinalBalance, { from: entity2SoleProp })
+    await etherToken.balanceOf(entity2SoleProp).should.eventually.eq(entity2FinalBalance)
 
     // step 34: withdraw from entity3
-    const bal3 = await etherToken.balanceOf(entity3.address)
-    await entity3.withdraw(etherToken.address, bal3, { from: entity3Naym })
+    await entity3.withdraw(etherToken.address, entity3FinalBalance, { from: entity3Naym })
+    await etherToken.balanceOf(entity3Naym).should.eventually.eq(entity3FinalBalance)
   })
 })

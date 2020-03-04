@@ -482,17 +482,100 @@ contract('Policy', accounts => {
 
           await policy.payTranchPremium(0)
 
-          await policy.getAssetManagerCommissionBalance().should.eventually.eq(5) /* 2 + 0.1% of 3000 */
-          await policy.getBrokerCommissionBalance().should.eventually.eq(10) /* 4 + 0.2% of 3000 */
-          await policy.getNaymsCommissionBalance().should.eventually.eq(15) /* 6 + 0.3% of 3000 */
+          await policy.getAssetManagerCommissionBalance().should.eventually.eq(5) /* 2 + 3 (=0.1% of 3000) */
+          await policy.getBrokerCommissionBalance().should.eventually.eq(10) /* 4 + 6 (=0.2% of 3000) */
+          await policy.getNaymsCommissionBalance().should.eventually.eq(15) /* 6 + 9 (=0.3% of 3000) */
           await policy.getTranchBalance(0).should.eventually.eq(4970) /* 1988 + 3000 - (3 + 6 + 9) */
 
           await policy.payTranchPremium(0)
 
-          await policy.getAssetManagerCommissionBalance().should.eventually.eq(9) /* 5 + 0.1% of 4000 */
-          await policy.getBrokerCommissionBalance().should.eventually.eq(18) /* 10 + 0.2% of 4000 */
-          await policy.getNaymsCommissionBalance().should.eventually.eq(27) /* 15 + 0.3% of 4000 */
+          await policy.getAssetManagerCommissionBalance().should.eventually.eq(9) /* 5 + 4 (=0.1% of 4000) */
+          await policy.getBrokerCommissionBalance().should.eventually.eq(18) /* 10 + 8 (=0.2% of 4000) */
+          await policy.getNaymsCommissionBalance().should.eventually.eq(27) /* 15 + 12 (=0.3% of 4000) */
           await policy.getTranchBalance(0).should.eventually.eq(8946) /* 4970 + 4000 - (4 + 8 + 12) */
+        })
+
+        describe('and the commissions can be paid out', async () => {
+          beforeEach(async () => {
+            await etherToken.deposit({ value: 10000 })
+            await etherToken.approve(policy.address, 10000)
+
+            await policy.payTranchPremium(0)
+            await policy.payTranchPremium(0)
+
+            // assign roles
+            await acl.assignRole(policyContext, accounts[5], ROLES.ASSET_MANAGER)
+            await acl.assignRole(policyContext, accounts[6], ROLES.BROKER)
+
+            // assign to entities
+            await acl.assignRole(entityContext, accounts[5], ROLES.ENTITY_REP)
+            await acl.assignRole(entityContext, accounts[6], ROLES.ENTITY_REP)
+          })
+
+          it('but not if invalid asset manager entity gets passed in', async () => {
+            await policy.payCommissions(accounts[1], accounts[5], entity.address, accounts[6]).should.be.rejectedWith('revert')
+          })
+
+          it('but not if invalid broker entity gets passed in', async () => {
+            await policy.payCommissions(entity.address, accounts[5], accounts[1], accounts[6]).should.be.rejectedWith('revert')
+          })
+
+          it('but not if invalid asset manager gets passed in', async () => {
+            await policy.payCommissions(entity.address, accounts[7], entity.address, accounts[6]).should.be.rejectedWith('must be asset manager')
+          })
+
+          it('but not if invalid broker gets passed in', async () => {
+            await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[7]).should.be.rejectedWith('must be broker')
+          })
+
+          it('but not if asset manager does not belong to entity', async () => {
+            await acl.unassignRole(entityContext, accounts[5], ROLES.ENTITY_REP)
+            await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6]).should.be.rejectedWith('must have role in asset manager entity')
+          })
+
+          it('but not if broker does not belong to entity', async () => {
+            await acl.unassignRole(entityContext, accounts[6], ROLES.ENTITY_REP)
+            await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6]).should.be.rejectedWith('must have role in broker entity')
+          })
+
+          it('and gets transferred', async () => {
+            const preBalance = (await etherToken.balanceOf(entity.address)).toNumber()
+
+            await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6])
+
+            const postBalance = (await etherToken.balanceOf(entity.address)).toNumber()
+
+            expect(postBalance - preBalance).to.eq(5 + 10)
+
+            const naymsEntityAddress = await settings.getNaymsEntity()
+            const naymsEntityBalance = (await etherToken.balanceOf(naymsEntityAddress)).toNumber()
+
+            expect(naymsEntityBalance).to.eq(15)
+          })
+
+          it('and updates internal balance values', async () => {
+            await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6])
+            await policy.getAssetManagerCommissionBalance().should.eventually.eq(0)
+            await policy.getBrokerCommissionBalance().should.eventually.eq(0)
+            await policy.getNaymsCommissionBalance().should.eventually.eq(0)
+          })
+
+          it('and allows multiple calls', async () => {
+            await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6])
+            await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6])
+
+            await policy.payTranchPremium(0)
+
+            await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6])
+
+            const naymsEntityAddress = await settings.getNaymsEntity()
+            const naymsEntityBalance = (await etherToken.balanceOf(naymsEntityAddress)).toNumber()
+            expect(naymsEntityBalance).to.eq(27)
+
+            await policy.getAssetManagerCommissionBalance().should.eventually.eq(0)
+            await policy.getBrokerCommissionBalance().should.eventually.eq(0)
+            await policy.getNaymsCommissionBalance().should.eventually.eq(0)
+          })
         })
       })
 

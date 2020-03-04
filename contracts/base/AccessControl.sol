@@ -21,6 +21,7 @@ contract AccessControl is EternalStorage {
   bytes32 constant public ROLE_SYSTEM_ADMIN = 0x49de8992e61fed1e4f94ee08935c0d9383229bc81cedcbb04bbefac3612804f8;
   bytes32 constant public ROLE_SYSTEM_MANAGER = 0x00c6311fef79c2a44bb1f3441f2c6b9c610eede3ef18d0f4fdb45ab6ecb9a92e;
   bytes32 constant public ROLEGROUP_ASSET_MANAGERS = 0x309309dde7ef0b48cef4f5283944cb9081577247dff9d48427acb011b4aff349;
+  bytes32 constant public ROLEGROUP_BROKERS = 0xcb0bada9848c4c263d7e20ec9db68ac456456dd8c9f1b8037d0a0ffdd168bab4;
   bytes32 constant public ROLEGROUP_CLIENT_MANAGERS = 0x3a2e45631f90f259eb1df721df379d439a5fa06fbc4bf57a3d05586aa228d6a3;
   bytes32 constant public ROLEGROUP_ENTITY_ADMINS = 0xb69602dc57282aa569f0dd6f51b7a67691bdd26adb42da8a3124abde79a45786;
   bytes32 constant public ROLEGROUP_ENTITY_MANAGERS = 0xd7db697581f34193921dfdc26c5564fc645207a39afc0ab56d11ff9f85905086;
@@ -40,11 +41,6 @@ contract AccessControl is EternalStorage {
 
   modifier assertIsAdmin () {
     require(isAdmin(msg.sender), 'must be admin');
-    _;
-  }
-
-  modifier assertInRoleGroup (bytes32 _roleGroup) {
-    require(inRoleGroup(msg.sender, _roleGroup), 'must be in role group');
     _;
   }
 

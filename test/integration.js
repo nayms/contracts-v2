@@ -182,10 +182,14 @@ contract('End-to-end integration tests', accounts => {
   })
 
   it('test case 1', async () => {
+    /* https://docs.google.com/spreadsheets/d/1LEvfJvNutmXsdKk9SO0vBzAmpepFMf8188kgAvYFCc8/edit#gid=0 */
+
     await setupEntities()
   })
 
   it('test case 2', async () => {
+    /* https://docs.google.com/spreadsheets/d/1LEvfJvNutmXsdKk9SO0vBzAmpepFMf8188kgAvYFCc8/edit#gid=455876604 */
+
     await setupEntities()
 
     // step 1: deposit WETH

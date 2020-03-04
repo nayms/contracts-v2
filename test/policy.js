@@ -44,6 +44,9 @@ contract('Policy', accounts => {
   let policyOwnerAddress
   let etherToken
 
+  let POLICY_STATE_CREATED
+  let POLICY_STATE_SELLING
+
   let setupPolicy
 
   beforeEach(async () => {
@@ -75,6 +78,9 @@ contract('Policy', accounts => {
     entityManagerAddress = accounts[2]
 
     policyImpl = await PolicyImpl.new(acl.address, settings.address)
+
+    POLICY_STATE_CREATED = await policyImpl.POLICY_STATE_CREATED()
+    POLICY_STATE_SELLING = await policyImpl.POLICY_STATE_SELLING()
 
     setupPolicy = async ({
       initiationDateDiff = 1000,
@@ -253,8 +259,7 @@ contract('Policy', accounts => {
           from: accounts[2]
         }).should.be.fulfilled
 
-        const createdState = await policy.POLICY_STATE_CREATED()
-        await policy.getTranchState(0).should.eventually.eq(createdState)
+        await policy.getTranchState(0).should.eventually.eq(POLICY_STATE_CREATED)
       })
 
       it('can be created more than once', async () => {
@@ -286,6 +291,13 @@ contract('Policy', accounts => {
         }))
 
         expect(Object.keys(addresses).length).to.eq(2)
+      })
+
+      it('cannot be created once already in selling state', async () => {
+        await setupPolicy({ initiationDateDiff: 0 })
+        await policy.checkAndUpdateState() // kick-off sale
+        await policy.getState().should.eventually.eq(POLICY_STATE_SELLING)
+        await createTranch(policy, {}, { from: accounts[2] }).should.be.rejectedWith('must be in created state')
       })
     })
 

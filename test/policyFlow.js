@@ -660,6 +660,22 @@ contract('Policy flow', accounts => {
         await policy.getTranchFinalBuybackMarketOfferId(0).should.eventually.not.eq(1)
       })
 
+      it('closes the policy, and subsequent calls have no effect', async () => {
+        await policy.checkAndUpdateState()
+
+        const offer1 = await policy.getTranchFinalBuybackMarketOfferId(0).should.eventually.not.eq(0)
+        const offer2 = await policy.getTranchFinalBuybackMarketOfferId(0).should.eventually.not.eq(1)
+
+        await policy.checkAndUpdateState()
+
+        await policy.getState().should.eventually.eq(POLICY_STATE_MATURED)
+        await policy.getTranchState(0).should.eventually.eq(TRANCH_STATE_MATURED)
+        await policy.getTranchState(1).should.eventually.eq(TRANCH_STATE_MATURED)
+
+        await policy.getTranchFinalBuybackMarketOfferId(0).should.eventually.eq(offer1)
+        await policy.getTranchFinalBuybackMarketOfferId(0).should.eventually.eq(offer2)
+      })
+
       describe('once it tries to buy back all tokens', async () => {
         beforeEach(async () => {
           await policy.checkAndUpdateState()

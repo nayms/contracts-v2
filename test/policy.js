@@ -468,7 +468,7 @@ contract('Policy', accounts => {
         })
       })
 
-      describe('with commissions', () => {
+      describe('commissions', () => {
         beforeEach(async () => {
           await setupPolicy({
             assetManagerCommissionBP: 1,
@@ -588,6 +588,35 @@ contract('Policy', accounts => {
             await policy.getBrokerCommissionBalance().should.eventually.eq(0)
             await policy.getNaymsCommissionBalance().should.eventually.eq(0)
           })
+        })
+      })
+
+      describe('claims', () => {
+        beforeEach(async () => {
+          await setupPolicy()
+
+          await createTranch(policy, {
+            premiums: [2000, 3000, 4000]
+          }, { from: policyOwnerAddress })
+
+          await createTranch(policy, {
+            premiums: [7000, 1000, 5000]
+          }, { from: policyOwnerAddress })
+
+          await etherToken.deposit({ value: 22000 })
+          await etherToken.approve(policy.address, 22000)
+
+          await policy.payTranchPremium(0)
+          await policy.payTranchPremium(0)
+          await policy.payTranchPremium(0)
+
+          await policy.payTranchPremium(1)
+          await policy.payTranchPremium(1)
+          await policy.payTranchPremium(1)
+        })
+
+        it('must be made by client managers', async () => {
+          // await policy.makeClaim(0, accounts[1], 1).should.be.rejectedWith('must be client manager')
         })
       })
 

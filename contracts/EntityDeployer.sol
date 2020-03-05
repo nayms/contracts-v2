@@ -32,7 +32,7 @@ contract EntityDeployer is EternalStorage, Destructible, IEntityDeployer {
     );
 
     uint256 numEntities = dataUint256["numEntities"];
-    dataAddress[string(abi.encodePacked("entity", numEntities))] = address(f);
+    dataAddress[__i(numEntities, "entity")] = address(f);
     dataUint256["numEntities"] = numEntities + 1;
 
     emit NewEntity(address(f), msg.sender);
@@ -45,6 +45,6 @@ contract EntityDeployer is EternalStorage, Destructible, IEntityDeployer {
 
 
   function getEntity(uint256 _index) public view returns (address) {
-    return dataAddress[string(abi.encodePacked("entity", _index))];
+    return dataAddress[__i(_index, "entity")];
   }
 }

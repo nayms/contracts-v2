@@ -38,8 +38,6 @@ contract PolicyMutations is EternalStorage, Controller, IPolicyMutations {
   function makeClaim(uint256 _index, address _clientManagerEntity, uint256 _amount) public
     assertIsClientManager(msg.sender)
   {
-    require(1 > 2, 'bad code');
-
     // check client manager entity
     bytes32 clientManagerEntityContext = AccessControl(_clientManagerEntity).aclContext();
     require(acl().userSomeHasRoleInContext(clientManagerEntityContext, msg.sender), 'must have role in client manager entity');
@@ -51,9 +49,9 @@ contract PolicyMutations is EternalStorage, Controller, IPolicyMutations {
     );
 
     uint256 claimIndex = dataUint256["claimsCount"];
-    dataUint256[string(abi.encodePacked("claimAmount", claimIndex))] = _amount;
-    dataUint256[string(abi.encodePacked("claimTranch", claimIndex))] = _index;
-    dataAddress[string(abi.encodePacked("claimEntity", claimIndex))] = _clientManagerEntity;
+    dataUint256[__i(claimIndex, "claimAmount")] = _amount;
+    dataUint256[__i(claimIndex, "claimTranch")] = _index;
+    dataAddress[__i(claimIndex, "claimEntity")] = _clientManagerEntity;
 
     dataUint256["claimsCount"] = claimIndex + 1;
     dataUint256["claimsUnapprovedCount"] += 1;
@@ -63,19 +61,19 @@ contract PolicyMutations is EternalStorage, Controller, IPolicyMutations {
     public
     assertIsAssetManager(msg.sender)
   {
-    // if claim already settled then it's invalid
-    require(!dataBool[__i(_claimIndex, "claimApproved")], 'invalid claim');
+    // check claim
+    require(0 < dataUint256[__i(_claimIndex, "claimAmount")], 'invalid claim');
+    require(!dataBool[__i(_claimIndex, "claimApproved")], 'already approved');
 
     // mark claim as approved
     dataBool[__i(_claimIndex, "claimApproved")] = true;
     dataUint256["claimsUnapprovedCount"] -= 1;
 
-    // remove from tranch balance and tranch unapproved claim balance
+    // remove from tranch balance
     uint256 claimAmount = dataUint256[__i(_claimIndex, "claimAmount")];
     uint256 claimTranch = dataUint256[__i(_claimIndex, "claimTranch")];
 
     dataUint256[__i(claimTranch, "balance")] = dataUint256[__i(claimTranch, "balance")].sub(claimAmount);
-    dataUint256[__i(claimTranch, "claimsUnapprovedBalance")] = dataUint256[__i(claimTranch, "claimsUnapprovedBalance")].sub(claimAmount);
   }
 
 
@@ -83,8 +81,13 @@ contract PolicyMutations is EternalStorage, Controller, IPolicyMutations {
     IERC20 tkn = IERC20(dataAddress["unit"]);
 
     for (uint256 i = 0; i < dataUint256["claimsCount"]; i += 1) {
-      tkn.transfer(dataAddress[__i(i, "claimEntity")], dataUint256[__i(i, "claimAmount")]);
-      dataBool[__i(i, "claimPaid")] = true;
+      bool claimApproved = dataBool[__i(i, "claimApproved")];
+      bool claimPaid = dataBool[__i(i, "claimPaid")];
+
+      if (claimApproved && !claimPaid) {
+        tkn.transfer(dataAddress[__i(i, "claimEntity")], dataUint256[__i(i, "claimAmount")]);
+        dataBool[__i(i, "claimPaid")] = true;
+      }
     }
   }
 
@@ -95,10 +98,9 @@ contract PolicyMutations is EternalStorage, Controller, IPolicyMutations {
 
     for (uint256 i = 0; i < dataUint256["claimsCount"]; i += 1) {
       bool isApproved = dataBool[__i(i, "claimApproved")];
-      bool isPaid = dataBool[__i(i, "claimPaid")];
       uint256 tranchNum = dataUint256[__i(i, "claimTranch")];
 
-      if (tranchNum == _index && !isPaid && !isApproved) {
+      if (tranchNum == _index && !isApproved) {
         amount = amount.add(dataUint256[__i(i, "claimAmount")]);
       }
     }

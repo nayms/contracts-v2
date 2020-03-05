@@ -240,7 +240,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
   }
 
   function isClaimApproved (uint256 _claimIndex) public view returns (bool) {
-    return dataBool[__i(_claimIndex, "claimPaid")];
+    return dataBool[__i(_claimIndex, "claimApproved")];
   }
 
   function getTranchBalance (uint256 _index) public view returns (uint256) {

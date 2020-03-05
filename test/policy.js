@@ -592,6 +592,8 @@ contract('Policy', accounts => {
       })
 
       describe('claims', () => {
+        let clientManagerAddress
+
         beforeEach(async () => {
           await setupPolicy()
 
@@ -613,10 +615,167 @@ contract('Policy', accounts => {
           await policy.payTranchPremium(1)
           await policy.payTranchPremium(1)
           await policy.payTranchPremium(1)
+
+          await acl.assignRole(policyContext, accounts[5], ROLES.CLIENT_MANAGER);
+          clientManagerAddress = accounts[5]
         })
 
-        it.only('must be made by client managers', async () => {
+        it('must be made by client managers', async () => {
           await policy.makeClaim(0, accounts[1], 1).should.be.rejectedWith('must be client manager')
+        })
+
+        it('must be supplied valid client manager entity', async () => {
+          await policy.makeClaim(0, entity.address, 1, { from: clientManagerAddress }).should.be.rejectedWith('must have role in client manager entity')
+        })
+
+        describe('if valid client manager and entity provided', () => {
+          beforeEach(async () => {
+            await acl.assignRole(entityContext, clientManagerAddress, ROLES.ENTITY_REP)
+          })
+
+          it('claim must be less than available balance', async () => {
+            const tranchBalance = (await policy.getTranchBalance(0)).toNumber()
+
+            await policy.makeClaim(0, entity.address, tranchBalance + 1, { from: clientManagerAddress }).should.be.rejectedWith('claim too high')
+            await policy.makeClaim(0, entity.address, tranchBalance, { from: clientManagerAddress }).should.be.fulfilled
+          })
+
+          it('claim must be less than available balance, taking into account existing pending claims', async () => {
+            const tranchBalance = (await policy.getTranchBalance(0)).toNumber()
+
+            await policy.makeClaim(0, entity.address, tranchBalance, { from: clientManagerAddress }).should.be.fulfilled
+            await policy.makeClaim(0, entity.address, 1, { from: clientManagerAddress }).should.be.rejectedWith('claim too high')
+
+            await policy.makeClaim(1, entity.address, 1, { from: clientManagerAddress }).should.be.fulfilled
+          })
+
+          it('claim updates internal stats', async () => {
+            await policy.makeClaim(0, entity.address, 4, { from: clientManagerAddress }).should.be.fulfilled
+            await policy.makeClaim(1, entity.address, 1, { from: clientManagerAddress }).should.be.fulfilled
+            await policy.makeClaim(1, entity.address, 5, { from: clientManagerAddress }).should.be.fulfilled
+
+            await policy.getNumberOfClaims().should.eventually.eq(3)
+
+            await policy.getNumberOfUnapprovedClaims().should.eventually.eq(3)
+
+            await policy.getClaimAmount(0).should.eventually.eq(4)
+            await policy.getClaimAmount(1).should.eventually.eq(1)
+            await policy.getClaimAmount(2).should.eventually.eq(5)
+
+            await policy.getClaimTranch(0).should.eventually.eq(0)
+            await policy.getClaimTranch(1).should.eventually.eq(1)
+            await policy.getClaimTranch(2).should.eventually.eq(1)
+
+            await policy.isClaimApproved(0).should.eventually.eq(false)
+            await policy.isClaimApproved(1).should.eventually.eq(false)
+            await policy.isClaimApproved(2).should.eventually.eq(false)
+
+            await policy.isClaimPaid(0).should.eventually.eq(false)
+            await policy.isClaimPaid(1).should.eventually.eq(false)
+            await policy.isClaimPaid(2).should.eventually.eq(false)
+          })
+
+          describe('and claims can be approved', async () => {
+            let assetManagerAddress
+
+            beforeEach(async () => {
+              await policy.makeClaim(0, entity.address, 4, { from: clientManagerAddress }).should.be.fulfilled
+              await policy.makeClaim(1, entity.address, 1, { from: clientManagerAddress }).should.be.fulfilled
+              await policy.makeClaim(1, entity.address, 5, { from: clientManagerAddress }).should.be.fulfilled
+
+              await acl.assignRole(policyContext, accounts[9], ROLES.ASSET_MANAGER)
+              assetManagerAddress = accounts[9]
+            })
+
+            it('but not if not an asset manager', async () => {
+              await policy.approveClaim(0).should.be.rejectedWith('must be asset manager')
+            })
+
+            it('but not if claim is invalid', async () => {
+              await policy.approveClaim(5, { from: assetManagerAddress }).should.be.rejectedWith('invalid claim')
+            })
+
+            it('cannot approve twice', async () => {
+              await policy.approveClaim(0, { from: assetManagerAddress }).should.be.fulfilled
+              await policy.approveClaim(0, { from: assetManagerAddress }).should.be.rejectedWith('already approved')
+            })
+
+            it('updates internal stats', async () => {
+              await policy.approveClaim(0, { from: assetManagerAddress }).should.be.fulfilled
+
+              await policy.getNumberOfClaims().should.eventually.eq(3)
+
+              await policy.getNumberOfUnapprovedClaims().should.eventually.eq(2)
+
+              await policy.isClaimApproved(0).should.eventually.eq(true)
+              await policy.isClaimApproved(1).should.eventually.eq(false)
+              await policy.isClaimApproved(2).should.eventually.eq(false)
+
+              await policy.isClaimPaid(0).should.eventually.eq(false)
+              await policy.isClaimPaid(1).should.eventually.eq(false)
+              await policy.isClaimPaid(2).should.eventually.eq(false)
+            })
+
+            it('updates tranch balance', async () => {
+              const tranchBalance = ((await policy.getTranchBalance(0))).toNumber()
+
+              await policy.approveClaim(0, { from: assetManagerAddress })
+
+              await policy.getTranchBalance(0).should.eventually.eq(tranchBalance - 4)
+            })
+          })
+
+          describe('and claims can be paid out once approved', async () => {
+            beforeEach(async () => {
+              await policy.makeClaim(0, entity.address, 4, { from: clientManagerAddress }).should.be.fulfilled
+              await policy.makeClaim(1, entity.address, 1, { from: clientManagerAddress }).should.be.fulfilled
+              await policy.makeClaim(1, entity.address, 5, { from: clientManagerAddress }).should.be.fulfilled
+
+              await acl.assignRole(policyContext, accounts[9], ROLES.ASSET_MANAGER)
+              const assetManagerAddress = accounts[9]
+
+              await policy.approveClaim(0, { from: assetManagerAddress })
+              await policy.approveClaim(1, { from: assetManagerAddress })
+            })
+
+            it('and the payout goes to the client manager entities', async () => {
+              const preBalance = ((await etherToken.balanceOf(entity.address))).toNumber()
+
+              await policy.payClaims()
+
+              const postBalance = ((await etherToken.balanceOf(entity.address))).toNumber()
+
+              expect(postBalance - preBalance).to.eq(5)
+            })
+
+            it('and only does the payouts for a given approved claim', async () => {
+              const preBalance = ((await etherToken.balanceOf(entity.address))).toNumber()
+
+              await policy.payClaims()
+              await policy.payClaims()
+              await policy.payClaims()
+
+              const postBalance = ((await etherToken.balanceOf(entity.address))).toNumber()
+
+              expect(postBalance - preBalance).to.eq(5)
+            })
+
+            it('and it updates the internal stats', async () => {
+              await policy.payClaims()
+
+              await policy.getNumberOfClaims().should.eventually.eq(3)
+
+              await policy.getNumberOfUnapprovedClaims().should.eventually.eq(1)
+
+              await policy.isClaimApproved(0).should.eventually.eq(true)
+              await policy.isClaimApproved(1).should.eventually.eq(true)
+              await policy.isClaimApproved(2).should.eventually.eq(false)
+
+              await policy.isClaimPaid(0).should.eventually.eq(true)
+              await policy.isClaimPaid(1).should.eventually.eq(true)
+              await policy.isClaimPaid(2).should.eventually.eq(false)
+            })
+          })
         })
       })
 

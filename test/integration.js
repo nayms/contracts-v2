@@ -14,12 +14,12 @@ import { ensureAclIsDeployed } from '../migrations/modules/acl'
 import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
 import { ensureMarketIsDeployed } from '../migrations/modules/market'
 import { ensureEntityDeployerIsDeployed } from '../migrations/modules/entityDeployer'
+import { ensurePolicyImplementationsAreDeployed } from '../migrations/modules/policyImplementations'
 
 const IEntityImpl = artifacts.require('./base/IEntityImpl')
 const EntityImpl = artifacts.require('./EntityImpl')
 const Entity = artifacts.require('./Entity')
 const IPolicyImpl = artifacts.require('./base/IPolicyImpl')
-const PolicyImpl = artifacts.require('./PolicyImpl')
 const Policy = artifacts.require('./Policy')
 
 
@@ -97,7 +97,7 @@ contract('End-to-end integration tests', accounts => {
     entityImpl = await EntityImpl.new(acl.address, settings.address)
     entityDeployer = await ensureEntityDeployerIsDeployed({ artifacts }, acl.address, settings.address, entityImpl.address)
     // policies
-    policyImpl = await PolicyImpl.new(acl.address, settings.address)
+    ;({ policyImpl } = await ensurePolicyImplementationsAreDeployed({ artifacts }, acl.address, settings.address))
     POLICY_STATE_CREATED = await policyImpl.POLICY_STATE_CREATED()
     POLICY_STATE_SELLING = await policyImpl.POLICY_STATE_SELLING()
     POLICY_STATE_ACTIVE = await policyImpl.POLICY_STATE_ACTIVE()
@@ -210,7 +210,6 @@ contract('End-to-end integration tests', accounts => {
     // step 4: create policyImpl1
     await createPolicy(
       entity0,
-      policyImpl.address,
       {
         initiationDate: await calcTime(5 * 60),
         startDate: await calcTime(10 * 60),
@@ -433,7 +432,6 @@ contract('End-to-end integration tests', accounts => {
     // step 4: create policy2
     await createPolicy(
       entity0,
-      policyImpl.address,
       {
         initiationDate: await calcTime(5 * 60),
         startDate: await calcTime(10 * 60),

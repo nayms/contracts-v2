@@ -41,6 +41,22 @@ import "./base/IProxyImpl.sol";
     return dataAddress["entityDeployer"];
   }
 
+  function setPolicyImplementation(address _policyImplementation) public assertIsAdmin {
+    dataAddress["policyImplementation"] = _policyImplementation;
+  }
+
+  function getPolicyImplementation() public view returns (address) {
+    return dataAddress["policyImplementation"];
+  }
+
+  function setPolicyMutations(address _policyMutations) public assertIsAdmin {
+    dataAddress["policyMutations"] = _policyMutations;
+  }
+
+  function getPolicyMutations() public view returns (address) {
+    return dataAddress["policyMutations"];
+  }
+
   function setNaymsEntity(address _naymsEntity) public assertIsAdmin {
     dataAddress["naymsEntity"] = _naymsEntity;
   }

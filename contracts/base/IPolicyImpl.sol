@@ -1,17 +1,8 @@
 pragma solidity >=0.5.8;
 
-contract IPolicyImpl {
-  uint256 constant public POLICY_STATE_CREATED = 0;
-  uint256 constant public POLICY_STATE_SELLING = 1;
-  uint256 constant public POLICY_STATE_ACTIVE = 2;
-  uint256 constant public POLICY_STATE_MATURED = 3;
+import "./IPolicyMutations.sol";
 
-  uint256 constant public TRANCH_STATE_CREATED = 0;
-  uint256 constant public TRANCH_STATE_SELLING = 1;
-  uint256 constant public TRANCH_STATE_ACTIVE = 2;
-  uint256 constant public TRANCH_STATE_MATURED = 3;
-  uint256 constant public TRANCH_STATE_CANCELLED = 4;
-
+contract IPolicyImpl is IPolicyMutations {
   function getStartDate () public view returns (uint256);
   function getState () public view returns (uint256);
 
@@ -39,12 +30,12 @@ contract IPolicyImpl {
   function getNaymsCommissionBalance () public view returns (uint256);
   function getBrokerCommissionBalance () public view returns (uint256);
 
-  function getNumberOfClaims () public view returns (uint256);
-  function getNumberOfUnapprovedClaims () public view returns (uint256);
-  function getClaimAmount (uint256 _claimIndex) public view returns (uint256);
-  function getClaimTranch (uint256 _claimIndex) public view returns (uint256);
-  function isClaimPaid (uint256 _claimIndex) public view returns (bool);
-  function isClaimApproved (uint256 _claimIndex) public view returns (bool);
+  function getNumberOfClaims () external view returns (uint256);
+  function getNumberOfUnapprovedClaims () external view returns (uint256);
+  function getClaimAmount (uint256 _claimIndex) external view returns (uint256);
+  function getClaimTranch (uint256 _claimIndex) external view returns (uint256);
+  function isClaimPaid (uint256 _claimIndex) external view returns (bool);
+  function isClaimApproved (uint256 _claimIndex) external view returns (bool);
 
   function calculateMaxNumOfPremiums() public view returns (uint256);
   function initiationDateHasPassed () public view returns (bool);
@@ -52,9 +43,6 @@ contract IPolicyImpl {
   function maturationDateHasPassed () public view returns (bool);
 
   function checkAndUpdateState () public;
-  function makeClaim (uint256 _index, address _clientManagerEntity, uint256 _amount) public;
-  function approveClaim (uint256 _claimIndex) public;
-  function payClaims() public;
   function payCommissions (
     address _assetManagerEntity, address _assetManager,
     address _brokerEntity, address _broker

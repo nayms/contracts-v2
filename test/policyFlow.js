@@ -14,12 +14,12 @@ import { ensureAclIsDeployed } from '../migrations/modules/acl'
 import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
 import { ensureMarketIsDeployed } from '../migrations/modules/market'
 import { ensureEntityDeployerIsDeployed } from '../migrations/modules/entityDeployer'
+import { ensurePolicyImplementationsAreDeployed } from '../migrations/modules/policyImplementations'
 
 const IEntityImpl = artifacts.require('./base/IEntityImpl')
 const EntityImpl = artifacts.require('./EntityImpl')
 const Entity = artifacts.require('./Entity')
 const IPolicyImpl = artifacts.require("./base/IPolicyImpl")
-const PolicyImpl = artifacts.require("./PolicyImpl")
 const Policy = artifacts.require("./Policy")
 const IERC20 = artifacts.require("./base/IERC20")
 
@@ -85,7 +85,7 @@ contract('Policy flow', accounts => {
     await acl.assignRole(entityContext, accounts[1], ROLES.ENTITY_MANAGER)
     entityManagerAddress = accounts[1]
 
-    policyImpl = await PolicyImpl.new(acl.address, settings.address)
+    ;({ policyImpl } = await ensurePolicyImplementationsAreDeployed({ artifacts }, acl.address, settings.address))
 
     // get current evm time
     baseDate = parseInt((await settings.getTime()).toString(10))

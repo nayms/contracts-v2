@@ -17,13 +17,13 @@ import { ensureAclIsDeployed } from '../migrations/modules/acl'
 import { ensureEtherTokenIsDeployed } from '../migrations/modules/etherToken'
 import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
 import { ensureEntityDeployerIsDeployed } from '../migrations/modules/entityDeployer'
+import { ensurePolicyImplementationsAreDeployed } from '../migrations/modules/policyImplementations'
 
 const IERC20 = artifacts.require("./base/IERC20")
 const IEntityImpl = artifacts.require('./base/IEntityImpl')
 const EntityImpl = artifacts.require('./EntityImpl')
 const Entity = artifacts.require('./Entity')
 const IPolicyImpl = artifacts.require("./base/IPolicyImpl")
-const PolicyImpl = artifacts.require("./PolicyImpl")
 const Policy = artifacts.require("./Policy")
 const TestPolicyImpl = artifacts.require("./test/TestPolicyImpl")
 
@@ -77,7 +77,7 @@ contract('Policy', accounts => {
     await acl.assignRole(entityContext, accounts[2], ROLES.ENTITY_MANAGER)
     entityManagerAddress = accounts[2]
 
-    policyImpl = await PolicyImpl.new(acl.address, settings.address)
+    ;({ policyImpl } = await ensurePolicyImplementationsAreDeployed({ artifacts }, acl.address, settings.address))
 
     POLICY_STATE_CREATED = await policyImpl.POLICY_STATE_CREATED()
     POLICY_STATE_SELLING = await policyImpl.POLICY_STATE_SELLING()
@@ -95,7 +95,7 @@ contract('Policy', accounts => {
       const t = await settings.getTime()
       const currentBlockTime = parseInt(t.toString(10))
 
-      const createPolicyTx = await createPolicy(entity, policyImpl.address, {
+      const createPolicyTx = await createPolicy(entity, {
         initiationDate: currentBlockTime + initiationDateDiff,
         startDate: currentBlockTime + startDateDiff,
         maturationDate: currentBlockTime + maturationDateDiff,
@@ -615,8 +615,8 @@ contract('Policy', accounts => {
           await policy.payTranchPremium(1)
         })
 
-        it('must be made by client managers', async () => {
-          // await policy.makeClaim(0, accounts[1], 1).should.be.rejectedWith('must be client manager')
+        it.only('must be made by client managers', async () => {
+          await policy.makeClaim(0, accounts[1], 1).should.be.rejectedWith('must be client manager')
         })
       })
 

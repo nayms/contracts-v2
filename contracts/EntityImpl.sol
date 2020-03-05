@@ -46,7 +46,6 @@ import "./Policy.sol";
   // IEntityImpl
 
   function createPolicy(
-    address _impl,
     uint256 _initiationDate,
     uint256 _startDate,
     uint256 _maturationDate,
@@ -63,7 +62,7 @@ import "./Policy.sol";
       address(acl()),
       address(settings()),
       aclContext(),
-      _impl,
+      settings().getPolicyImplementation(),
       msg.sender,
       _initiationDate,
       _startDate,

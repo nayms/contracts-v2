@@ -73,6 +73,28 @@ contract('Settings', accounts => {
     })
   })
 
+  describe('can have policy implementation set', () => {
+    it('but not just by anyone', async () => {
+      await settings.setPolicyImplementation(accounts[2], { from: accounts[2] }).should.be.rejectedWith('must be admin');
+    })
+
+    it('by admin', async () => {
+      await settings.setPolicyImplementation(accounts[2]).should.be.fulfilled
+      await settings.getPolicyImplementation().should.eventually.eq(accounts[2])
+    })
+  })
+
+  describe('can have policy claims mutations contract set', () => {
+    it('but not just by anyone', async () => {
+      await settings.setPolicyMutations(accounts[2], { from: accounts[2] }).should.be.rejectedWith('must be admin');
+    })
+
+    it('by admin', async () => {
+      await settings.setPolicyMutations(accounts[2]).should.be.fulfilled
+      await settings.getPolicyMutations().should.eventually.eq(accounts[2])
+    })
+  })
+
   describe('can have nayms entity set', () => {
     it('but not just by anyone', async () => {
       await settings.setNaymsEntity(accounts[2], { from: accounts[2] }).should.be.rejectedWith('must be admin');

@@ -124,7 +124,7 @@ export const createTranch = (policy, attrs, ...callAttrs) => {
   )
 }
 
-export const createPolicy = (entity, policyImpl, attrs, ...callAttrs) => {
+export const createPolicy = (entity, attrs, ...callAttrs) => {
   const currentTime = ~~(Date.now() / 1000)
 
   const {
@@ -139,7 +139,6 @@ export const createPolicy = (entity, policyImpl, attrs, ...callAttrs) => {
   } = attrs
 
   return entity.createPolicy(
-    policyImpl,
     initiationDate,
     startDate,
     maturationDate,

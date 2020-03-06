@@ -17,6 +17,7 @@ The package exposes the following properties:
 * `addresses` - on-chain addresses of contracts in `rawContracts`
 * `events` - ABIs for events to listen for
 * `extractEventsFromAbis()` - given an array of contract ABIs, this will extract the event ABIs within.
+* `keccak256()` - keccak256 hash function
 * `ROLES` - role constants
 * `ROLEGROUPS` - rolegroup constants
 

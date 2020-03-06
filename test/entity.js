@@ -1,4 +1,4 @@
-import { sha3 } from './utils/web3'
+import { keccak256 } from './utils/web3'
 
 import {
   extractEventArgs,
@@ -83,13 +83,13 @@ contract('Entity', accounts => {
       const implVersion = await entityImpl2.getImplementationVersion()
 
       await acl.assignRole(entityContext, accounts[1], ROLES.ENTITY_ADMIN)
-      entityAdminSig = hdWallet.sign({ address: accounts[1], data: sha3(implVersion) })
+      entityAdminSig = hdWallet.sign({ address: accounts[1], data: keccak256(implVersion) })
 
       await acl.assignRole(entityContext, accounts[2], ROLES.ENTITY_MANAGER)
-      entityManagerSig = hdWallet.sign({ address: accounts[2], data: sha3(implVersion) })
+      entityManagerSig = hdWallet.sign({ address: accounts[2], data: keccak256(implVersion) })
 
       await acl.assignRole(entityContext, accounts[3], ROLES.ENTITY_REP)
-      entityRepresentativeSig = hdWallet.sign({ address: accounts[3], data: sha3(implVersion) })
+      entityRepresentativeSig = hdWallet.sign({ address: accounts[3], data: keccak256(implVersion) })
     })
 
     it('but not just by anyone', async () => {
@@ -110,7 +110,7 @@ contract('Entity', accounts => {
 
     it.skip('but not to the existing implementation', async () => {
       const oldVersion = await entityImpl.getImplementationVersion()
-      entityManagerSig = hdWallet.sign({ address: accounts[1], data: sha3(oldVersion) })
+      entityManagerSig = hdWallet.sign({ address: accounts[1], data: keccak256(oldVersion) })
       await entityProxy.upgrade(entityImpl.address, entityAdminSig).should.be.rejectedWith('already this implementation')
     })
 

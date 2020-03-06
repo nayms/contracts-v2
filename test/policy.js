@@ -1,4 +1,4 @@
-import { sha3, asciiToHex } from './utils/web3'
+import { keccak256, asciiToHex } from './utils/web3'
 
 import {
   parseEvents,
@@ -163,9 +163,9 @@ contract('Policy', accounts => {
 
       // generate upgrade approval signatures
       const implVersion = await policyImpl2.getImplementationVersion()
-      randomSig = hdWallet.sign({ address: accounts[5], data: sha3(implVersion) })
-      assetMgrSig = hdWallet.sign({ address: accounts[3], data: sha3(implVersion) })
-      clientMgrSig = hdWallet.sign({ address: accounts[4], data: sha3(implVersion) })
+      randomSig = hdWallet.sign({ address: accounts[5], data: keccak256(implVersion) })
+      assetMgrSig = hdWallet.sign({ address: accounts[3], data: keccak256(implVersion) })
+      clientMgrSig = hdWallet.sign({ address: accounts[4], data: keccak256(implVersion) })
     })
 
     it('but not just by anyone', async () => {
@@ -190,8 +190,8 @@ contract('Policy', accounts => {
 
     it('but not to the existing implementation', async () => {
       const vExisting = await policyImpl.getImplementationVersion()
-      assetMgrSig = hdWallet.sign({ address: accounts[3], data: sha3(vExisting) })
-      clientMgrSig = hdWallet.sign({ address: accounts[4], data: sha3(vExisting) })
+      assetMgrSig = hdWallet.sign({ address: accounts[3], data: keccak256(vExisting) })
+      clientMgrSig = hdWallet.sign({ address: accounts[4], data: keccak256(vExisting) })
       await policyProxy.upgrade(policyImpl.address, assetMgrSig, clientMgrSig).should.be.rejectedWith('already this implementation')
     })
 

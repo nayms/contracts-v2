@@ -1,4 +1,4 @@
-const { sha3 } = require('./functions')
+const { keccak256 } = require('./functions')
 
 exports.ROLES = {}
 exports.ROLEGROUPS = {}
@@ -16,7 +16,7 @@ exports.ROLEGROUPS = {}
   'SYSTEM_ADMIN',
   'SYSTEM_MANAGER',
 ].forEach(r => {
-  exports.ROLES[r] = sha3(`role_${r}`)
+  exports.ROLES[r] = keccak256(`role_${r}`)
 })
 
 ;[
@@ -33,5 +33,5 @@ exports.ROLEGROUPS = {}
   'SYSTEM_MANAGERS',
   'TRADERS',
 ].forEach(r => {
-  exports.ROLEGROUPS[r] = sha3(`role_${r}`)
+  exports.ROLEGROUPS[r] = keccak256(`role_${r}`)
 })

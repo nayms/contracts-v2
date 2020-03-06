@@ -7,6 +7,7 @@ import {
   ADDRESS_ZERO,
   createTranch,
   createPolicy,
+  EvmClock,
 } from './utils'
 import { events } from '../'
 
@@ -17,6 +18,7 @@ import { ensureAclIsDeployed } from '../migrations/modules/acl'
 import { ensureEtherTokenIsDeployed } from '../migrations/modules/etherToken'
 import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
 import { ensureEntityDeployerIsDeployed } from '../migrations/modules/entityDeployer'
+import { ensureMarketIsDeployed } from '../migrations/modules/market'
 import { ensurePolicyImplementationsAreDeployed } from '../migrations/modules/policyImplementations'
 
 const IERC20 = artifacts.require("./base/IERC20")
@@ -46,6 +48,8 @@ contract('Policy', accounts => {
 
   let POLICY_STATE_CREATED
   let POLICY_STATE_SELLING
+  let POLICY_STATE_ACTIVE
+  let POLICY_STATE_MATURED
 
   let setupPolicy
 
@@ -56,6 +60,9 @@ contract('Policy', accounts => {
 
     // settings
     settings = await ensureSettingsIsDeployed({ artifacts }, acl.address)
+
+    // market
+    await ensureMarketIsDeployed({ artifacts }, settings.address)
 
     // registry + wrappedEth
     etherToken = await ensureEtherTokenIsDeployed({ artifacts }, acl.address, settings.address)
@@ -81,6 +88,8 @@ contract('Policy', accounts => {
 
     POLICY_STATE_CREATED = await policyImpl.POLICY_STATE_CREATED()
     POLICY_STATE_SELLING = await policyImpl.POLICY_STATE_SELLING()
+    POLICY_STATE_ACTIVE = await policyImpl.POLICY_STATE_ACTIVE()
+    POLICY_STATE_MATURED = await policyImpl.POLICY_STATE_MATURED()
 
     setupPolicy = async ({
       initiationDateDiff = 1000,
@@ -222,14 +231,15 @@ contract('Policy', accounts => {
 
         const [log] = parseEvents(result, events.CreateTranch)
 
+        const { token_: addr } = await policy.getTranchInfo(0)
+        expect(addr.length).to.eq(42)
+
         expect(log.args.policy).to.eq(policy.address)
-        expect(log.args.tranch).to.eq(await policy.getTranchToken(0))
+        expect(log.args.tranch).to.eq(addr)
         expect(log.args.initialBalanceHolder).to.eq(policy.address)
         expect(log.args.index).to.eq('0')
 
         await policy.getNumTranches().should.eventually.eq(1)
-        const addr = await policy.getTranchToken(0)
-        expect(addr.length).to.eq(42)
       })
 
       it('can be created and have initial balance allocated to a specific address', async () => {
@@ -259,7 +269,9 @@ contract('Policy', accounts => {
           from: accounts[2]
         }).should.be.fulfilled
 
-        await policy.getTranchState(0).should.eventually.eq(POLICY_STATE_CREATED)
+        await policy.getTranchInfo(0).should.eventually.matchObj({
+          state_: POLICY_STATE_CREATED
+        })
       })
 
       it('can be created more than once', async () => {
@@ -284,7 +296,7 @@ contract('Policy', accounts => {
         const addresses = {}
 
         await Promise.all(_.range(0, 2).map(async i => {
-          const addr = await policy.getTranchToken(i)
+          const { token_: addr } = await policy.getTranchInfo(i)
           expect(!addresses[addr]).to.be.true
           expect(addr.length).to.eq(42)
           addresses[addr] = true
@@ -324,7 +336,7 @@ contract('Policy', accounts => {
         let done = 0
 
         await Promise.all(_.range(0, 2).map(async i => {
-          const tkn = await IERC20.at(await policy.getTranchToken(i))
+          const tkn = await IERC20.at((await policy.getTranchInfo(i)).token_)
 
           const NAME = `${policyProxy.address.toLowerCase()}_tranch_\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000` + String.fromCodePoint(i)
 
@@ -344,7 +356,7 @@ contract('Policy', accounts => {
         let done = 0
 
         await Promise.all(_.range(0, 2).map(async i => {
-          const tkn = await IERC20.at(await policy.getTranchToken(i))
+          const tkn = await IERC20.at((await policy.getTranchInfo(i)).token_)
 
           await tkn.balanceOf(accounts[0]).should.eventually.eq(await tkn.totalSupply())
 
@@ -359,7 +371,7 @@ contract('Policy', accounts => {
         let firstTknNumShares
 
         beforeEach(async () => {
-          firstTkn = await IERC20.at(await policy.getTranchToken(0))
+          firstTkn = await IERC20.at((await policy.getTranchInfo(0)).token_)
           firstTknNumShares = await firstTkn.totalSupply()
         })
 
@@ -412,9 +424,11 @@ contract('Policy', accounts => {
             premiums: [2, 3, 4]
           }, { from: policyOwnerAddress })
 
-          await policy.getNextTranchPremiumAmount(0).should.eventually.eq(2)
-          await policy.getNumberOfTranchPaymentsMissed(0).should.eventually.eq(0)
-          await policy.tranchPaymentsAllMade(0).should.eventually.eq(false)
+          await policy.getTranchInfo(0).should.eventually.matchObj({
+            nextPremiumAmount_: 2,
+            premiumPaymentsMissed_: 0,
+            allPremiumsPaid_: false,
+          })
         })
 
         it('policy must have permission to receive premium payment token', async () => {
@@ -445,10 +459,12 @@ contract('Policy', accounts => {
           await etherToken.approve(policy.address, 2)
           await policy.payTranchPremium(0).should.be.fulfilled
 
-          await policy.getNextTranchPremiumAmount(0).should.eventually.eq(3)
-          await policy.getNumberOfTranchPaymentsMissed(0).should.eventually.eq(0)
-          await policy.tranchPaymentsAllMade(0).should.eventually.eq(false)
-          await policy.getTranchBalance(0).should.eventually.eq(2)
+          await policy.getTranchInfo(0).should.eventually.matchObj({
+            nextPremiumAmount_: 3,
+            premiumPaymentsMissed_: 0,
+            allPremiumsPaid_: false,
+            balance_: 2,
+          })
         })
 
         it('updates the internal stats once subsequent payment is made', async () => {
@@ -461,10 +477,12 @@ contract('Policy', accounts => {
           await policy.payTranchPremium(0).should.be.fulfilled
           await policy.payTranchPremium(0).should.be.fulfilled
 
-          await policy.getNextTranchPremiumAmount(0).should.eventually.eq(4)
-          await policy.getNumberOfTranchPaymentsMissed(0).should.eventually.eq(0)
-          await policy.tranchPaymentsAllMade(0).should.eventually.eq(false)
-          await policy.getTranchBalance(0).should.eventually.eq(5)
+          await policy.getTranchInfo(0).should.eventually.matchObj({
+            nextPremiumAmount_: 4,
+            premiumPaymentsMissed_: 0,
+            allPremiumsPaid_: false,
+            balance_: 5,
+          })
         })
       })
 
@@ -490,21 +508,28 @@ contract('Policy', accounts => {
           await policy.getAssetManagerCommissionBalance().should.eventually.eq(2) /* 0.1% of 2000 */
           await policy.getBrokerCommissionBalance().should.eventually.eq(4) /* 0.2% of 2000 */
           await policy.getNaymsCommissionBalance().should.eventually.eq(6) /* 0.3% of 2000 */
-          await policy.getTranchBalance(0).should.eventually.eq(1988) /* 2000 - (2 + 4 + 6) */
+
+          await policy.getTranchInfo(0).should.eventually.matchObj({
+            balance_: 1988, /* 2000 - (2 + 4 + 6) */
+          })
 
           await policy.payTranchPremium(0)
 
           await policy.getAssetManagerCommissionBalance().should.eventually.eq(5) /* 2 + 3 (=0.1% of 3000) */
           await policy.getBrokerCommissionBalance().should.eventually.eq(10) /* 4 + 6 (=0.2% of 3000) */
           await policy.getNaymsCommissionBalance().should.eventually.eq(15) /* 6 + 9 (=0.3% of 3000) */
-          await policy.getTranchBalance(0).should.eventually.eq(4970) /* 1988 + 3000 - (3 + 6 + 9) */
+          await policy.getTranchInfo(0).should.eventually.matchObj({
+            balance_: 4970, /* 1988 + 3000 - (3 + 6 + 9) */
+          })
 
           await policy.payTranchPremium(0)
 
           await policy.getAssetManagerCommissionBalance().should.eventually.eq(9) /* 5 + 4 (=0.1% of 4000) */
           await policy.getBrokerCommissionBalance().should.eventually.eq(18) /* 10 + 8 (=0.2% of 4000) */
           await policy.getNaymsCommissionBalance().should.eventually.eq(27) /* 15 + 12 (=0.3% of 4000) */
-          await policy.getTranchBalance(0).should.eventually.eq(8946) /* 4970 + 4000 - (4 + 8 + 12) */
+          await policy.getTranchInfo(0).should.eventually.matchObj({
+            balance_: 8946, /* 4970 + 4000 - (4 + 8 + 12) */
+          })
         })
 
         describe('and the commissions can be paid out', async () => {
@@ -592,188 +617,377 @@ contract('Policy', accounts => {
       })
 
       describe('claims', () => {
-        let clientManagerAddress
+        let evmClock
+        let setupPolicyForClaims
 
         beforeEach(async () => {
-          await setupPolicy()
+          setupPolicyForClaims = async (attrs = {}) => {
+            attrs.premiumIntervalSeconds = 10
+            await setupPolicy(attrs)
 
-          await createTranch(policy, {
-            premiums: [2000, 3000, 4000]
-          }, { from: policyOwnerAddress })
+            await createTranch(policy, {
+              premiums: [2000, 3000, 4000]
+            }, { from: policyOwnerAddress })
 
-          await createTranch(policy, {
-            premiums: [7000, 1000, 5000]
-          }, { from: policyOwnerAddress })
+            await createTranch(policy, {
+              premiums: [7000, 1000, 5000]
+            }, { from: policyOwnerAddress })
 
-          await etherToken.deposit({ value: 22000 })
-          await etherToken.approve(policy.address, 22000)
+            await createTranch(policy, {  // this tranch will be cancelled because we won't pay all the premiums
+              premiums: [7000, 1000, 5000]
+            }, { from: policyOwnerAddress })
 
-          await policy.payTranchPremium(0)
-          await policy.payTranchPremium(0)
-          await policy.payTranchPremium(0)
+            await etherToken.deposit({ value: 29000 })
+            await etherToken.approve(policy.address, 29000)
 
-          await policy.payTranchPremium(1)
-          await policy.payTranchPremium(1)
-          await policy.payTranchPremium(1)
+            await policy.payTranchPremium(0)
+            await policy.payTranchPremium(0)
+            await policy.payTranchPremium(0)
+
+            await policy.payTranchPremium(1)
+            await policy.payTranchPremium(1)
+            await policy.payTranchPremium(1)
+
+            await policy.payTranchPremium(2)
+
+            evmClock = new EvmClock()
+          }
+        })
+
+        it('cannot be made in created state', async () => {
+          await setupPolicyForClaims()
+          await policy.getState().should.eventually.eq(POLICY_STATE_CREATED)
+          await policy.makeClaim(0, entity.address, 1).should.be.rejectedWith('must be in active state')
+        })
+
+        it('cannot be made in selling state', async () => {
+          await setupPolicyForClaims({ initiationDateDiff: 0, startDateDiff: 100 })
+          await policy.checkAndUpdateState()
+          await policy.getState().should.eventually.eq(POLICY_STATE_SELLING)
+          await policy.makeClaim(0, entity.address, 1).should.be.rejectedWith('must be in active state')
+        })
+
+        it('can be made in active state', async () => {
+          await setupPolicyForClaims({ initiationDateDiff: 0, startDateDiff: 100 })
+          await policy.checkAndUpdateState()
+          await evmClock.setTime(100)
+          await policy.checkAndUpdateState()
+          await policy.getState().should.eventually.eq(POLICY_STATE_ACTIVE)
 
           await acl.assignRole(policyContext, accounts[5], ROLES.CLIENT_MANAGER);
-          clientManagerAddress = accounts[5]
+          const clientManagerAddress = accounts[5]
+          await acl.assignRole(entityContext, clientManagerAddress, ROLES.ENTITY_REP)
+
+          await policy.makeClaim(0, entity.address, 1, { from: clientManagerAddress }).should.be.fulfilled
         })
 
-        it('must be made by client managers', async () => {
-          await policy.makeClaim(0, accounts[1], 1).should.be.rejectedWith('must be client manager')
+        it.only('cannot be made in matured state', async () => {
+          await setupPolicyForClaims({ initiationDateDiff: 0, startDateDiff: 100, maturationDateDiff: 200 })
+          await policy.checkAndUpdateState()
+          await evmClock.setTime(200)
+          await policy.checkAndUpdateState()
+          await policy.getState().should.eventually.eq(POLICY_STATE_MATURED)
+          await policy.makeClaim(0, entity.address, 1).should.be.rejectedWith('must be in active state')
         })
 
-        it('must be supplied valid client manager entity', async () => {
-          await policy.makeClaim(0, entity.address, 1, { from: clientManagerAddress }).should.be.rejectedWith('must have role in client manager entity')
-        })
+        describe('when in active state', () => {
+          let clientManagerAddress
 
-        describe('if valid client manager and entity provided', () => {
           beforeEach(async () => {
-            await acl.assignRole(entityContext, clientManagerAddress, ROLES.ENTITY_REP)
+            await setupPolicyForClaims({ initiationDateDiff: 0, startDateDiff: 100 })
+            await policy.checkAndUpdateState()
+            await evmClock.setTime(100)
+            await policy.checkAndUpdateState()
+            await policy.getState().should.eventually.eq(POLICY_STATE_ACTIVE)
+
+            await acl.assignRole(policyContext, accounts[5], ROLES.CLIENT_MANAGER);
+            clientManagerAddress = accounts[5]
           })
 
-          it('claim must be less than available balance', async () => {
-            const tranchBalance = (await policy.getTranchBalance(0)).toNumber()
-
-            await policy.makeClaim(0, entity.address, tranchBalance + 1, { from: clientManagerAddress }).should.be.rejectedWith('claim too high')
-            await policy.makeClaim(0, entity.address, tranchBalance, { from: clientManagerAddress }).should.be.fulfilled
+          it('must be made by client managers', async () => {
+            await policy.makeClaim(0, accounts[1], 1).should.be.rejectedWith('must be client manager')
           })
 
-          it('claim must be less than available balance, taking into account existing pending claims', async () => {
-            const tranchBalance = (await policy.getTranchBalance(0)).toNumber()
-
-            await policy.makeClaim(0, entity.address, tranchBalance, { from: clientManagerAddress }).should.be.fulfilled
-            await policy.makeClaim(0, entity.address, 1, { from: clientManagerAddress }).should.be.rejectedWith('claim too high')
-
-            await policy.makeClaim(1, entity.address, 1, { from: clientManagerAddress }).should.be.fulfilled
+          it('must be supplied valid client manager entity', async () => {
+            await policy.makeClaim(0, entity.address, 1, { from: clientManagerAddress }).should.be.rejectedWith('must have role in client manager entity')
           })
 
-          it('claim updates internal stats', async () => {
-            await policy.makeClaim(0, entity.address, 4, { from: clientManagerAddress }).should.be.fulfilled
-            await policy.makeClaim(1, entity.address, 1, { from: clientManagerAddress }).should.be.fulfilled
-            await policy.makeClaim(1, entity.address, 5, { from: clientManagerAddress }).should.be.fulfilled
-
-            await policy.getNumberOfClaims().should.eventually.eq(3)
-
-            await policy.getNumberOfUnapprovedClaims().should.eventually.eq(3)
-
-            await policy.getClaimAmount(0).should.eventually.eq(4)
-            await policy.getClaimAmount(1).should.eventually.eq(1)
-            await policy.getClaimAmount(2).should.eventually.eq(5)
-
-            await policy.getClaimTranch(0).should.eventually.eq(0)
-            await policy.getClaimTranch(1).should.eventually.eq(1)
-            await policy.getClaimTranch(2).should.eventually.eq(1)
-
-            await policy.isClaimApproved(0).should.eventually.eq(false)
-            await policy.isClaimApproved(1).should.eventually.eq(false)
-            await policy.isClaimApproved(2).should.eventually.eq(false)
-
-            await policy.isClaimPaid(0).should.eventually.eq(false)
-            await policy.isClaimPaid(1).should.eventually.eq(false)
-            await policy.isClaimPaid(2).should.eventually.eq(false)
-          })
-
-          describe('and claims can be approved', async () => {
-            let assetManagerAddress
-
+          describe('if valid client manager and entity provided', () => {
             beforeEach(async () => {
-              await policy.makeClaim(0, entity.address, 4, { from: clientManagerAddress }).should.be.fulfilled
-              await policy.makeClaim(1, entity.address, 1, { from: clientManagerAddress }).should.be.fulfilled
-              await policy.makeClaim(1, entity.address, 5, { from: clientManagerAddress }).should.be.fulfilled
-
-              await acl.assignRole(policyContext, accounts[9], ROLES.ASSET_MANAGER)
-              assetManagerAddress = accounts[9]
+              await acl.assignRole(entityContext, clientManagerAddress, ROLES.ENTITY_REP)
             })
 
-            it('but not if not an asset manager', async () => {
-              await policy.approveClaim(0).should.be.rejectedWith('must be asset manager')
+            it('claim must be against an active tranch', async () => {
+              await policy.makeClaim(2, entity.address, 1, { from: clientManagerAddress }).should.be.rejectedWith('tranch must be active');
             })
 
-            it('but not if claim is invalid', async () => {
-              await policy.approveClaim(5, { from: assetManagerAddress }).should.be.rejectedWith('invalid claim')
+            it('claim must be less than available balance', async () => {
+              const tranchBalance = (await policy.getTranchInfo(0)).balance_.toNumber()
+
+              await policy.makeClaim(0, entity.address, tranchBalance + 1, { from: clientManagerAddress }).should.be.rejectedWith('claim too high')
+              await policy.makeClaim(0, entity.address, tranchBalance, { from: clientManagerAddress }).should.be.fulfilled
             })
 
-            it('cannot approve twice', async () => {
-              await policy.approveClaim(0, { from: assetManagerAddress }).should.be.fulfilled
-              await policy.approveClaim(0, { from: assetManagerAddress }).should.be.rejectedWith('already approved')
-            })
-
-            it('updates internal stats', async () => {
-              await policy.approveClaim(0, { from: assetManagerAddress }).should.be.fulfilled
-
-              await policy.getNumberOfClaims().should.eventually.eq(3)
-
-              await policy.getNumberOfUnapprovedClaims().should.eventually.eq(2)
-
-              await policy.isClaimApproved(0).should.eventually.eq(true)
-              await policy.isClaimApproved(1).should.eventually.eq(false)
-              await policy.isClaimApproved(2).should.eventually.eq(false)
-
-              await policy.isClaimPaid(0).should.eventually.eq(false)
-              await policy.isClaimPaid(1).should.eventually.eq(false)
-              await policy.isClaimPaid(2).should.eventually.eq(false)
-            })
-
-            it('updates tranch balance', async () => {
-              const tranchBalance = ((await policy.getTranchBalance(0))).toNumber()
-
-              await policy.approveClaim(0, { from: assetManagerAddress })
-
-              await policy.getTranchBalance(0).should.eventually.eq(tranchBalance - 4)
-            })
-          })
-
-          describe('and claims can be paid out once approved', async () => {
-            beforeEach(async () => {
-              await policy.makeClaim(0, entity.address, 4, { from: clientManagerAddress }).should.be.fulfilled
-              await policy.makeClaim(1, entity.address, 1, { from: clientManagerAddress }).should.be.fulfilled
-              await policy.makeClaim(1, entity.address, 5, { from: clientManagerAddress }).should.be.fulfilled
+            it('claim must be less than available balance, taking into account existing pending claims', async () => {
+              const tranchBalance = (await policy.getTranchInfo(0)).balance_.toNumber()
 
               await acl.assignRole(policyContext, accounts[9], ROLES.ASSET_MANAGER)
               const assetManagerAddress = accounts[9]
 
-              await policy.approveClaim(0, { from: assetManagerAddress })
-              await policy.approveClaim(1, { from: assetManagerAddress })
+              // try with first claim pending
+              await policy.makeClaim(0, entity.address, tranchBalance, { from: clientManagerAddress }).should.be.fulfilled
+              await policy.makeClaim(0, entity.address, 1, { from: clientManagerAddress }).should.be.rejectedWith('claim too high')
+              await policy.makeClaim(1, entity.address, 1, { from: clientManagerAddress }).should.be.fulfilled
             })
 
-            it('and the payout goes to the client manager entities', async () => {
-              const preBalance = ((await etherToken.balanceOf(entity.address))).toNumber()
-
-              await policy.payClaims()
-
-              const postBalance = ((await etherToken.balanceOf(entity.address))).toNumber()
-
-              expect(postBalance - preBalance).to.eq(5)
-            })
-
-            it('and only does the payouts for a given approved claim', async () => {
-              const preBalance = ((await etherToken.balanceOf(entity.address))).toNumber()
-
-              await policy.payClaims()
-              await policy.payClaims()
-              await policy.payClaims()
-
-              const postBalance = ((await etherToken.balanceOf(entity.address))).toNumber()
-
-              expect(postBalance - preBalance).to.eq(5)
-            })
-
-            it('and it updates the internal stats', async () => {
-              await policy.payClaims()
+            it('claim updates internal stats', async () => {
+              await policy.makeClaim(0, entity.address, 4, { from: clientManagerAddress }).should.be.fulfilled
+              await policy.makeClaim(1, entity.address, 1, { from: clientManagerAddress }).should.be.fulfilled
+              await policy.makeClaim(1, entity.address, 5, { from: clientManagerAddress }).should.be.fulfilled
 
               await policy.getNumberOfClaims().should.eventually.eq(3)
+              await policy.getNumberOfPendingClaims().should.eventually.eq(3)
 
-              await policy.getNumberOfUnapprovedClaims().should.eventually.eq(1)
+              await policy.getClaimInfo(0).should.eventually.matchObj({
+                amount_: 4,
+                tranchIndex_: 0,
+                approved_: false,
+                declined_: false,
+                paid_: false,
+              })
 
-              await policy.isClaimApproved(0).should.eventually.eq(true)
-              await policy.isClaimApproved(1).should.eventually.eq(true)
-              await policy.isClaimApproved(2).should.eventually.eq(false)
+              await policy.getClaimInfo(1).should.eventually.matchObj({
+                amount_: 1,
+                tranchIndex_: 1,
+                approved_: false,
+                declined_: false,
+                paid_: false,
+              })
 
-              await policy.isClaimPaid(0).should.eventually.eq(true)
-              await policy.isClaimPaid(1).should.eventually.eq(true)
-              await policy.isClaimPaid(2).should.eventually.eq(false)
+              await policy.getClaimInfo(2).should.eventually.matchObj({
+                amount_: 5,
+                tranchIndex_: 1,
+                approved_: false,
+                declined_: false,
+                paid_: false,
+              })
+            })
+
+            describe('and claims can be declined', async () => {
+              let assetManagerAddress
+
+              beforeEach(async () => {
+                await policy.makeClaim(0, entity.address, 4, { from: clientManagerAddress }).should.be.fulfilled
+                await policy.makeClaim(1, entity.address, 1, { from: clientManagerAddress }).should.be.fulfilled
+                await policy.makeClaim(1, entity.address, 5, { from: clientManagerAddress }).should.be.fulfilled
+
+                await acl.assignRole(policyContext, accounts[9], ROLES.ASSET_MANAGER)
+                assetManagerAddress = accounts[9]
+              })
+
+              it('but not if not an asset manager', async () => {
+                await policy.declineClaim(0).should.be.rejectedWith('must be asset manager')
+              })
+
+              it('but not if claim is invalid', async () => {
+                await policy.declineClaim(5, { from: assetManagerAddress }).should.be.rejectedWith('invalid claim')
+              })
+
+              it('cannot decline twice', async () => {
+                await policy.declineClaim(0, { from: assetManagerAddress }).should.be.fulfilled
+                await policy.declineClaim(0, { from: assetManagerAddress }).should.be.rejectedWith('already declined')
+              })
+
+              it('cannot decline if alrady approved', async () => {
+                await policy.approveClaim(0, { from: assetManagerAddress }).should.be.fulfilled
+                await policy.declineClaim(0, { from: assetManagerAddress }).should.be.rejectedWith('already approved')
+              })
+
+              it('and no longer counts towards pending balance', async () => {
+                const tranchBalance = (await policy.getTranchInfo(0)).balance_.toNumber()
+
+                await policy.makeClaim(0, entity.address, tranchBalance, { from: clientManagerAddress }).should.be.rejectedWith('claim too high')
+                await policy.declineClaim(0, { from: assetManagerAddress })
+                await policy.makeClaim(0, entity.address, tranchBalance, { from: clientManagerAddress }).should.be.fulfilled
+              })
+
+              it('updates internal stats', async () => {
+                await policy.declineClaim(0, { from: assetManagerAddress }).should.be.fulfilled
+
+                await policy.getNumberOfClaims().should.eventually.eq(3)
+                await policy.getNumberOfPendingClaims().should.eventually.eq(2)
+
+                await policy.getClaimInfo(0).should.eventually.matchObj({
+                  approved_: false,
+                  declined_: true,
+                  paid_: false,
+                })
+
+                await policy.getClaimInfo(1).should.eventually.matchObj({
+                  approved_: false,
+                  declined_: false,
+                  paid_: false,
+                })
+
+                await policy.getClaimInfo(2).should.eventually.matchObj({
+                  approved_: false,
+                  declined_: false,
+                  paid_: false,
+                })
+              })
+
+              it('leaves tranch balance unchanged', async () => {
+                const tranchBalance = ((await policy.getTranchInfo(0))).balance_.toNumber()
+
+                await policy.declineClaim(0, { from: assetManagerAddress })
+
+                await policy.getTranchInfo(0).should.eventually.matchObj({
+                  balance_: tranchBalance
+                })
+              })
+            })
+
+            describe('and claims can be approved', async () => {
+              let assetManagerAddress
+
+              beforeEach(async () => {
+                await policy.makeClaim(0, entity.address, 4, { from: clientManagerAddress }).should.be.fulfilled
+                await policy.makeClaim(1, entity.address, 1, { from: clientManagerAddress }).should.be.fulfilled
+                await policy.makeClaim(1, entity.address, 5, { from: clientManagerAddress }).should.be.fulfilled
+
+                await acl.assignRole(policyContext, accounts[9], ROLES.ASSET_MANAGER)
+                assetManagerAddress = accounts[9]
+              })
+
+              it('but not if not an asset manager', async () => {
+                await policy.approveClaim(0).should.be.rejectedWith('must be asset manager')
+              })
+
+              it('but not if claim is invalid', async () => {
+                await policy.approveClaim(5, { from: assetManagerAddress }).should.be.rejectedWith('invalid claim')
+              })
+
+              it('cannot approve twice', async () => {
+                await policy.approveClaim(0, { from: assetManagerAddress }).should.be.fulfilled
+                await policy.approveClaim(0, { from: assetManagerAddress }).should.be.rejectedWith('already approved')
+              })
+
+              it('cannot approve if alrady declined', async () => {
+                await policy.declineClaim(0, { from: assetManagerAddress }).should.be.fulfilled
+                await policy.approveClaim(0, { from: assetManagerAddress }).should.be.rejectedWith('already declined')
+              })
+
+              it('and no longer counts towards pending balance', async () => {
+                const tranchBalance = (await policy.getTranchInfo(0)).balance_.toNumber()
+
+                await policy.makeClaim(0, entity.address, tranchBalance, { from: clientManagerAddress }).should.be.rejectedWith('claim too high')
+                await policy.approveClaim(0, { from: assetManagerAddress })
+                await policy.makeClaim(0, entity.address, tranchBalance, { from: clientManagerAddress }).should.be.fulfilled
+              })
+
+              it('updates internal stats', async () => {
+                await policy.approveClaim(0, { from: assetManagerAddress }).should.be.fulfilled
+
+                await policy.getNumberOfClaims().should.eventually.eq(3)
+                await policy.getNumberOfPendingClaims().should.eventually.eq(2)
+
+                await policy.getClaimInfo(0).should.eventually.matchObj({
+                  approved_: true,
+                  declined_: false,
+                  paid_: false,
+                })
+
+                await policy.getClaimInfo(1).should.eventually.matchObj({
+                  approved_: false,
+                  declined_: false,
+                  paid_: false,
+                })
+
+                await policy.getClaimInfo(2).should.eventually.matchObj({
+                  approved_: false,
+                  declined_: false,
+                  paid_: false,
+                })
+              })
+
+              it('updates tranch balance', async () => {
+                const tranchBalance = (await policy.getTranchInfo(0)).balance_.toNumber()
+
+                await policy.approveClaim(0, { from: assetManagerAddress })
+
+                await policy.getTranchInfo(0).should.eventually.matchObj({
+                  balance_: tranchBalance - 4
+                })
+              })
+            })
+
+            describe('and claims can be paid out once approved and/or declined', async () => {
+              beforeEach(async () => {
+                await policy.makeClaim(0, entity.address, 4, { from: clientManagerAddress })
+                await policy.makeClaim(0, entity.address, 2, { from: clientManagerAddress })
+                await policy.makeClaim(1, entity.address, 1, { from: clientManagerAddress })
+                await policy.makeClaim(1, entity.address, 5, { from: clientManagerAddress })
+
+                await acl.assignRole(policyContext, accounts[9], ROLES.ASSET_MANAGER)
+                const assetManagerAddress = accounts[9]
+
+                await policy.approveClaim(0, { from: assetManagerAddress })
+                await policy.declineClaim(1, { from: assetManagerAddress })
+                await policy.approveClaim(2, { from: assetManagerAddress })
+              })
+
+              it('and the payout goes to the client manager entities', async () => {
+                const preBalance = ((await etherToken.balanceOf(entity.address))).toNumber()
+
+                await policy.payClaims()
+
+                const postBalance = ((await etherToken.balanceOf(entity.address))).toNumber()
+
+                expect(postBalance - preBalance).to.eq(5)
+              })
+
+              it('and only does the payouts for a given approved claim', async () => {
+                const preBalance = ((await etherToken.balanceOf(entity.address))).toNumber()
+
+                await policy.payClaims()
+                await policy.payClaims()
+                await policy.payClaims()
+
+                const postBalance = ((await etherToken.balanceOf(entity.address))).toNumber()
+
+                expect(postBalance - preBalance).to.eq(5)
+              })
+
+              it('and it updates the internal stats', async () => {
+                await policy.payClaims()
+
+                await policy.getNumberOfClaims().should.eventually.eq(4)
+                await policy.getNumberOfPendingClaims().should.eventually.eq(1)
+
+                await policy.getClaimInfo(0).should.eventually.matchObj({
+                  approved_: true,
+                  declined_: false,
+                  paid_: true,
+                })
+
+                await policy.getClaimInfo(1).should.eventually.matchObj({
+                  approved_: false,
+                  declined_: true,
+                  paid_: false,
+                })
+
+                await policy.getClaimInfo(2).should.eventually.matchObj({
+                  approved_: true,
+                  declined_: false,
+                  paid_: true,
+                })
+
+                await policy.getClaimInfo(3).should.eventually.matchObj({
+                  approved_: false,
+                  declined_: false,
+                  paid_: false,
+                })
+              })
             })
           })
         })
@@ -789,17 +1003,21 @@ contract('Policy', accounts => {
         })
 
         it('it requires first payment to have been made', async () => {
-          await policy.getNumberOfTranchPaymentsMissed(0).should.eventually.eq(1)
-          await policy.getNextTranchPremiumAmount(0).should.eventually.eq(2)
-          await policy.tranchPaymentsAllMade(0).should.eventually.eq(false)
+          await policy.getTranchInfo(0).should.eventually.matchObj({
+            premiumPaymentsMissed_: 1,
+            nextPremiumAmount_: 2,
+            allPremiumsPaid_: false,
+          })
 
           await etherToken.deposit({ value: 5 })
           await etherToken.approve(policy.address, 5)
           await policy.payTranchPremium(0).should.be.fulfilled
 
-          await policy.getNumberOfTranchPaymentsMissed(0).should.eventually.eq(0)
-          await policy.getNextTranchPremiumAmount(0).should.eventually.eq(3)
-          await policy.tranchPaymentsAllMade(0).should.eventually.eq(false)
+          await policy.getTranchInfo(0).should.eventually.matchObj({
+            premiumPaymentsMissed_: 0,
+            nextPremiumAmount_: 3,
+            allPremiumsPaid_: false,
+          })
         })
       })
 
@@ -820,9 +1038,11 @@ contract('Policy', accounts => {
           await policy.payTranchPremium(0).should.be.fulfilled // 4
           await policy.payTranchPremium(0).should.be.fulfilled // 5
 
-          await policy.getNumberOfTranchPaymentsMissed(0).should.eventually.eq(0)
-          await policy.getNextTranchPremiumAmount(0).should.eventually.eq(0)
-          await policy.tranchPaymentsAllMade(0).should.eventually.eq(true)
+          await policy.getTranchInfo(0).should.eventually.matchObj({
+            premiumPaymentsMissed_: 0,
+            nextPremiumAmount_: 0,
+            allPremiumsPaid_: true,
+          })
         })
 
         it('it will not accept extra payments', async () => {
@@ -851,9 +1071,11 @@ contract('Policy', accounts => {
         await policy.payTranchPremium(0).should.be.fulfilled // 0
         await policy.payTranchPremium(0).should.be.fulfilled // 5
 
-        await policy.getNumberOfTranchPaymentsMissed(0).should.eventually.eq(0)
-        await policy.getNextTranchPremiumAmount(0).should.eventually.eq(0)
-        await policy.tranchPaymentsAllMade(0).should.eventually.eq(true)
+        await policy.getTranchInfo(0).should.eventually.matchObj({
+          premiumPaymentsMissed_: 0,
+          nextPremiumAmount_: 0,
+          allPremiumsPaid_: true,
+        })
       })
 
       it('if all premiums are paid before inititiation that is ok', async () => {
@@ -870,9 +1092,11 @@ contract('Policy', accounts => {
         await policy.payTranchPremium(0).should.be.fulfilled // 0
         await policy.payTranchPremium(0).should.be.fulfilled // 5
 
-        await policy.getNumberOfTranchPaymentsMissed(0).should.eventually.eq(0)
-        await policy.getNextTranchPremiumAmount(0).should.eventually.eq(0)
-        await policy.tranchPaymentsAllMade(0).should.eventually.eq(true)
+        await policy.getTranchInfo(0).should.eventually.matchObj({
+          premiumPaymentsMissed_: 0,
+          nextPremiumAmount_: 0,
+          allPremiumsPaid_: true,
+        })
       })
     })
   })

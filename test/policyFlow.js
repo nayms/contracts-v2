@@ -196,8 +196,12 @@ contract('Policy flow', accounts => {
 
         it('and then tranches get put on the market', async () => {
           // check order ids are not yet set
-          await policy.getTranchInitialSaleMarketOfferId(0).should.eventually.eq(0)
-          await policy.getTranchInitialSaleMarketOfferId(1).should.eventually.eq(0)
+          await policy.getTranchInfo(0).should.eventually.matchObj({
+            initialSaleOfferId_: 0,
+          })
+          await policy.getTranchInfo(1).should.eventually.matchObj({
+            initialSaleOfferId_: 0,
+          })
 
           const tranchTokens = await Promise.all([getTranchToken(0), getTranchToken(1)])
 
@@ -221,8 +225,12 @@ contract('Policy flow', accounts => {
           await tranchTokens[1].balanceOf(policy.address).should.eventually.eq(0)
 
           // check order ids are set
-          await policy.getTranchInitialSaleMarketOfferId(0).should.eventually.not.eq(0)
-          await policy.getTranchInitialSaleMarketOfferId(1).should.eventually.not.eq(0)
+          await policy.getTranchInfo(0).should.eventually.not.matchObj({
+            initialSaleOfferId_: 0,
+          })
+          await policy.getTranchInfo(1).should.eventually.not.matchObj({
+            initialSaleOfferId_: 0,
+          })
         })
 
         it('and then policy state gets updated', async () => {
@@ -232,8 +240,12 @@ contract('Policy flow', accounts => {
 
         it('and then tranch states get updated', async () => {
           await policy.checkAndUpdateState()
-          await policy.getTranchState(0).should.eventually.eq(TRANCH_STATE_SELLING)
-          await policy.getTranchState(1).should.eventually.eq(TRANCH_STATE_SELLING)
+          await policy.getTranchInfo(0).should.eventually.matchObj({
+            state_: TRANCH_STATE_SELLING,
+          })
+          await policy.getTranchInfo(1).should.eventually.matchObj({
+            sharesSold_: TRANCH_STATE_SELLING,
+          })
         })
       })
     })
@@ -253,8 +265,12 @@ contract('Policy flow', accounts => {
 
       await policy.checkAndUpdateState()
 
-      await policy.getNumberOfTranchSharesSold(0).should.eventually.eq(0)
-      await policy.getNumberOfTranchSharesSold(1).should.eventually.eq(0)
+      await policy.getTranchInfo(0).should.eventually.matchObj({
+        sharesSold_: 0,
+      })
+      await policy.getTranchInfo(1).should.eventually.matchObj({
+        sharesSold_: 0,
+      })
 
       tranchToken = await getTranchToken(0)
 
@@ -288,7 +304,9 @@ contract('Policy flow', accounts => {
       })
 
       it('and tranch status is unchanged', async () => {
-        await policy.getTranchState(0).should.eventually.eq(TRANCH_STATE_SELLING)
+        await policy.getTranchInfo(0).should.eventually.matchObj({
+          state_: TRANCH_STATE_SELLING,
+        })
       })
 
       it('and tranch balance is unchanged', async () => {
@@ -301,11 +319,15 @@ contract('Policy flow', accounts => {
       })
 
       it('and the tally of shares sold is unchanged', async () => {
-        await policy.getNumberOfTranchSharesSold(0).should.eventually.eq(0)
+        await policy.getTranchInfo(0).should.eventually.matchObj({
+          sharesSold_: 0,
+        })
       })
 
       it('and market offer is still active', async () => {
-        await policy.getTranchInitialSaleMarketOfferId(0).should.eventually.eq(marketOfferId)
+        await policy.getTranchInfo(0).should.eventually.matchObj({
+          initialSaleOfferId_: marketOfferId,
+        })
         await market.isActive(marketOfferId).should.eventually.eq(true)
       })
     })
@@ -336,7 +358,9 @@ contract('Policy flow', accounts => {
 
       it('and tranch status is unchanged', async () => {
         // tranch status unchanged
-        await policy.getTranchState(0).should.eventually.eq(TRANCH_STATE_SELLING)
+        await policy.getTranchInfo(0).should.eventually.matchObj({
+          state_: TRANCH_STATE_SELLING,
+        })
       })
 
       it('and tranch balance has been updated', async () => {
@@ -350,11 +374,15 @@ contract('Policy flow', accounts => {
 
       it('and tally of shares sold has been updated', async () => {
         // check shares sold
-        await policy.getNumberOfTranchSharesSold(0).should.eventually.eq(5)
+        await policy.getTranchInfo(0).should.eventually.matchObj({
+          sharesSold_: 5,
+        })
       })
 
       it('and market offer is still active', async () => {
-        await policy.getTranchInitialSaleMarketOfferId(0).should.eventually.eq(marketOfferId)
+        await policy.getTranchInfo(0).should.eventually.matchObj({
+          initialSaleOfferId_: marketOfferId,
+        })
         await market.isActive(marketOfferId).should.eventually.eq(true)
       })
     })
@@ -381,7 +409,9 @@ contract('Policy flow', accounts => {
       })
 
       it('then its status is set to active', async () => {
-        await policy.getTranchState(0).should.eventually.eq(TRANCH_STATE_ACTIVE)
+        await policy.getTranchInfo(0).should.eventually.matchObj({
+          state_: TRANCH_STATE_ACTIVE,
+        })
       })
 
       it('then tranch balance has been updated', async () => {
@@ -394,11 +424,15 @@ contract('Policy flow', accounts => {
       })
 
       it('and the tally of shares sold gets updated', async () => {
-        await policy.getNumberOfTranchSharesSold(0).should.eventually.eq(100)
+        await policy.getTranchInfo(0).should.eventually.matchObj({
+          sharesSold_: 100,
+        })
       })
 
       it('and the market offer is closed', async () => {
-        await policy.getTranchInitialSaleMarketOfferId(0).should.eventually.eq(0)
+        await policy.getTranchInfo(0).should.eventually.matchObj({
+          initialSaleOfferId_: 0,
+        })
         await market.isActive(marketOfferId).should.eventually.eq(false)
       })
     })
@@ -434,8 +468,8 @@ contract('Policy flow', accounts => {
         // kick-off the sale
         await policy.checkAndUpdateState()
 
-        offerId0 = await policy.getTranchInitialSaleMarketOfferId(0)
-        offerId1 = await policy.getTranchInitialSaleMarketOfferId(1)
+        ;({ initialSaleOfferId_: offerId0 } = await policy.getTranchInfo(0))
+        ;({ initialSaleOfferId_: offerId1 } = await policy.getTranchInfo(1))
         expect(offerId0).to.not.eq(0)
         expect(offerId1).to.not.eq(0)
 
@@ -447,8 +481,12 @@ contract('Policy flow', accounts => {
         // heartbeat
         await policy.checkAndUpdateState()
 
-        await policy.getTranchInitialSaleMarketOfferId(0).should.eventually.eq(0)
-        await policy.getTranchInitialSaleMarketOfferId(1).should.eventually.eq(0)
+        await policy.getTranchInfo(0).should.eventually.matchObj({
+          initialSaleOfferId_: 0,
+        })
+        await policy.getTranchInfo(1).should.eventually.matchObj({
+          initialSaleOfferId_: 0,
+        })
 
         await market.isActive(offerId0).should.eventually.eq(false)
         await market.isActive(offerId1).should.eventually.eq(false)
@@ -459,8 +497,13 @@ contract('Policy flow', accounts => {
           await policy.checkAndUpdateState()
 
           await policy.getState().should.eventually.eq(POLICY_STATE_ACTIVE)
-          await policy.getTranchState(0).should.eventually.eq(TRANCH_STATE_CANCELLED)
-          await policy.getTranchState(1).should.eventually.eq(TRANCH_STATE_CANCELLED)
+
+          await policy.getTranchInfo(0).should.eventually.matchObj({
+            state_: TRANCH_STATE_CANCELLED,
+          })
+          await policy.getTranchInfo(1).should.eventually.matchObj({
+            state_: TRANCH_STATE_CANCELLED,
+          })
         })
 
         it('and it emits an event', async () => {
@@ -488,8 +531,12 @@ contract('Policy flow', accounts => {
 
           // now check
           await policy.getState().should.eventually.eq(POLICY_STATE_ACTIVE)
-          await policy.getTranchState(0).should.eventually.eq(TRANCH_STATE_CANCELLED)
-          await policy.getTranchState(1).should.eventually.eq(TRANCH_STATE_CANCELLED)
+          await policy.getTranchInfo(0).should.eventually.matchObj({
+            state_: TRANCH_STATE_CANCELLED,
+          })
+          await policy.getTranchInfo(1).should.eventually.matchObj({
+            state_: TRANCH_STATE_CANCELLED,
+          })
         })
 
         it('and it emits an event', async () => {
@@ -524,8 +571,12 @@ contract('Policy flow', accounts => {
 
           // now check
           await policy.getState().should.eventually.eq(POLICY_STATE_ACTIVE)
-          await policy.getTranchState(0).should.eventually.eq(TRANCH_STATE_ACTIVE)
-          await policy.getTranchState(1).should.eventually.eq(TRANCH_STATE_CANCELLED)
+          await policy.getTranchInfo(0).should.eventually.matchObj({
+            state_: TRANCH_STATE_ACTIVE,
+          })
+          await policy.getTranchInfo(1).should.eventually.matchObj({
+            state_: TRANCH_STATE_CANCELLED,
+          })
         })
 
         it('emits an event', async () => {
@@ -602,8 +653,12 @@ contract('Policy flow', accounts => {
 
       // sanity check
       await policy.getState().should.eventually.eq(POLICY_STATE_ACTIVE)
-      await policy.getTranchState(0).should.eventually.eq(TRANCH_STATE_ACTIVE)
-      await policy.getTranchState(1).should.eventually.eq(TRANCH_STATE_ACTIVE)
+      await policy.getTranchInfo(0).should.eventually.matchObj({
+        state_: TRANCH_STATE_ACTIVE,
+      })
+      await policy.getTranchInfo(1).should.eventually.matchObj({
+        state_: TRANCH_STATE_ACTIVE,
+      })
 
       // pass time: 2 x premiumIntervalSeconds
       await evmClock.moveTime(premiumIntervalSeconds * 2)
@@ -616,8 +671,12 @@ contract('Policy flow', accounts => {
       const result = await policy.checkAndUpdateState()
 
       await policy.getState().should.eventually.eq(POLICY_STATE_ACTIVE)
-      await policy.getTranchState(0).should.eventually.eq(TRANCH_STATE_ACTIVE)
-      await policy.getTranchState(1).should.eventually.eq(TRANCH_STATE_ACTIVE)
+      await policy.getTranchInfo(0).should.eventually.matchObj({
+        state_: TRANCH_STATE_ACTIVE,
+      })
+      await policy.getTranchInfo(1).should.eventually.matchObj({
+        state_: TRANCH_STATE_ACTIVE,
+      })
 
       expect(extractEventArgs(result, events.PolicyActive)).to.eq(null)
     })
@@ -629,8 +688,12 @@ contract('Policy flow', accounts => {
       const result = await policy.checkAndUpdateState()
 
       await policy.getState().should.eventually.eq(POLICY_STATE_ACTIVE)
-      await policy.getTranchState(0).should.eventually.eq(TRANCH_STATE_ACTIVE)
-      await policy.getTranchState(1).should.eventually.eq(TRANCH_STATE_CANCELLED)
+      await policy.getTranchInfo(0).should.eventually.matchObj({
+        state_: TRANCH_STATE_ACTIVE,
+      })
+      await policy.getTranchInfo(1).should.eventually.matchObj({
+        state_: TRANCH_STATE_CANCELLED,
+      })
 
       expect(extractEventArgs(result, events.PolicyActive)).to.eq(null)
     })
@@ -651,11 +714,20 @@ contract('Policy flow', accounts => {
           await policy.checkAndUpdateState()
 
           await policy.getState().should.eventually.eq(POLICY_STATE_MATURED)
-          await policy.getTranchState(0).should.eventually.eq(TRANCH_STATE_CANCELLED)
-          await policy.getTranchState(1).should.eventually.eq(TRANCH_STATE_CANCELLED)
 
-          await policy.getTranchFinalBuybackMarketOfferId(0).should.eventually.not.eq(0)
-          await policy.getTranchFinalBuybackMarketOfferId(0).should.eventually.not.eq(1)
+          await policy.getTranchInfo(0).should.eventually.matchObj({
+            state_: TRANCH_STATE_ACTIVE,
+          })
+          await policy.getTranchInfo(1).should.eventually.matchObj({
+            state_: TRANCH_STATE_CANCELLED,
+          })
+
+          await policy.getTranchInfo(0).should.eventually.not.matchObj({
+            finalBuybackofferId_: 0,
+          })
+          await policy.getTranchInfo(1).should.eventually.not.matchObj({
+            finalBuybackofferId_: 0,
+          })
         })
 
         it('and subsequent calls have no effect', async () => {

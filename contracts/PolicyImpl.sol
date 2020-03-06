@@ -39,11 +39,6 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     _;
   }
 
-  modifier assertIsBroker (address _addr) {
-    require(inRoleGroup(_addr, ROLEGROUP_BROKERS), 'must be broker');
-    _;
-  }
-
   /**
    * Constructor
    */
@@ -121,64 +116,33 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     return dataUint256["numTranches"];
   }
 
-  function getTranchToken (uint256 _index) public view returns (address) {
-    return dataAddress[__i(_index, "address")];
+  function getTranchInfo (uint256 _index) public view returns (
+    address token_,
+    uint256 state_,
+    uint256 balance_,
+    uint256 nextPremiumAmount_,
+    uint256 premiumPaymentsMissed_,
+    bool allPremiumsPaid_,
+    uint256 sharesSold_,
+    uint256 initialSaleOfferId_,
+    uint256 finalBuybackofferId_
+  ) {
+    token_ = dataAddress[__i(_index, "address")];
+    state_ = dataUint256[__i(_index, "state")];
+    balance_ = dataUint256[__i(_index, "balance")];
+    nextPremiumAmount_ = _getNextTranchPremiumAmount(_index);
+    premiumPaymentsMissed_ = _getNumberOfTranchPaymentsMissed(_index);
+    allPremiumsPaid_ = _tranchPaymentsAllMade(_index);
+    sharesSold_ = dataUint256[__i(_index, "sharesSold")];
+    initialSaleOfferId_ = dataUint256[__i(_index, "initialSaleOfferId")];
+    finalBuybackofferId_ = dataUint256[__i(_index, "finalBuybackOfferId")];
   }
 
-  function getTranchState (uint256 _index) public view returns (uint256) {
-    return dataUint256[__i(_index, "state")];
-  }
-
-  function getNumberOfTranchPaymentsMissed (uint256 _index) public view returns (uint256) {
-    uint256 expectedPaid = 0;
-
-    // if inititation date has passed
-    if (initiationDateHasPassed()) {
-      expectedPaid++;
-
-      // calculate the extra payments that should have been made by now
-      uint256 diff = now.sub(dataUint256["initiationDate"]).div(dataUint256["premiumIntervalSeconds"]);
-      expectedPaid = expectedPaid.add(diff);
-    }
-
-    // cap to no .of available premiums
-    uint256[] storage premiums = dataManyUint256[__i(_index, "premiums")];
-
-    if (expectedPaid > premiums.length) {
-      expectedPaid = premiums.length;
-    }
-
-    uint256 premiumsPaid = dataUint256[__i(_index, "premiumsPaid")];
-
-    if (expectedPaid >= premiumsPaid) {
-      return expectedPaid.sub(premiumsPaid);
-    } else {
-      return 0;
-    }
-  }
-
-  function tranchPaymentsAllMade (uint256 _index) public view returns (bool) {
-    uint256[] storage premiums = dataManyUint256[__i(_index, "premiums")];
-    uint256 done = dataUint256[__i(_index, "premiumsPaid")];
-
-    return (done >= premiums.length);
-  }
-
-  function getNextTranchPremiumAmount (uint256 _index) public view returns (uint256) {
-    uint256[] storage premiums = dataManyUint256[__i(_index, "premiums")];
-    uint256 numPremiumsAlreadyPaid = dataUint256[__i(_index, "premiumsPaid")];
-
-    if (numPremiumsAlreadyPaid >= premiums.length) {
-      return 0;
-    } else {
-      return premiums[numPremiumsAlreadyPaid];
-    }
-  }
 
   function payTranchPremium (uint256 _index) public {
-    require(!tranchPaymentsAllMade(_index), 'all payments already made');
+    require(!_tranchPaymentsAllMade(_index), 'all payments already made');
 
-    uint256 expectedAmount = getNextTranchPremiumAmount(_index);
+    uint256 expectedAmount = _getNextTranchPremiumAmount(_index);
 
     if (expectedAmount > 0) {
       // transfer
@@ -223,40 +187,22 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     return dataUint256["claimsCount"];
   }
 
-  function getNumberOfUnapprovedClaims () public view returns (uint256) {
-    return dataUint256["claimsUnapprovedCount"];
+  function getNumberOfPendingClaims () public view returns (uint256) {
+    return dataUint256["claimsPendingCount"];
   }
 
-  function getClaimAmount (uint256 _claimIndex) public view returns (uint256) {
-    return dataUint256[__i(_claimIndex, "claimAmount")];
-  }
-
-  function getClaimTranch (uint256 _claimIndex) public view returns (uint256) {
-    return dataUint256[__i(_claimIndex, "claimTranch")];
-  }
-
-  function isClaimPaid (uint256 _claimIndex) public view returns (bool) {
-    return dataBool[__i(_claimIndex, "claimPaid")];
-  }
-
-  function isClaimApproved (uint256 _claimIndex) public view returns (bool) {
-    return dataBool[__i(_claimIndex, "claimApproved")];
-  }
-
-  function getTranchBalance (uint256 _index) public view returns (uint256) {
-    return dataUint256[__i(_index, "balance")];
-  }
-
-  function getNumberOfTranchSharesSold (uint256 _index) public view returns (uint256) {
-    return dataUint256[__i(_index, "sharesSold")];
-  }
-
-  function getTranchInitialSaleMarketOfferId (uint256 _index) public view returns (uint256) {
-    return dataUint256[__i(_index, "initialSaleOfferId")];
-  }
-
-  function getTranchFinalBuybackMarketOfferId (uint256 _index) public view returns (uint256) {
-    return dataUint256[__i(_index, "finalBuybackOfferId")];
+  function getClaimInfo (uint256 _claimIndex) public view returns (
+    uint256 amount_,
+    uint256 tranchIndex_,
+    bool approved_,
+    bool declined_,
+    bool paid_
+  ) {
+    amount_ = dataUint256[__i(_claimIndex, "claimAmount")];
+    tranchIndex_ = dataUint256[__i(_claimIndex, "claimTranch")];
+    approved_ = dataBool[__i(_claimIndex, "claimApproved")];
+    declined_ = dataBool[__i(_claimIndex, "claimDeclined")];
+    paid_ = dataBool[__i(_claimIndex, "claimPaid")];
   }
 
   function initiationDateHasPassed () public view returns (bool) {
@@ -308,6 +254,14 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
   }
 
 
+  function declineClaim(uint256 _claimIndex) public {
+    _mutations().dcall(abi.encodeWithSelector(
+      "declineClaim(uint256)".dsig(),
+      _claimIndex
+    ));
+  }
+
+
   function payClaims() public {
     _mutations().dcall(abi.encodeWithSelector(
       "payClaims()".dsig()
@@ -318,33 +272,11 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
   function payCommissions (
     address _assetManagerEntity, address _assetManager,
     address _brokerEntity, address _broker
-  )
-    public
-    assertIsAssetManager(_assetManager)
-    assertIsBroker(_broker)
-  {
-    // check asset manager
-    bytes32 assetManagerEntityContext = AccessControl(_assetManagerEntity).aclContext();
-    require(acl().userSomeHasRoleInContext(assetManagerEntityContext, _assetManager), 'must have role in asset manager entity');
-
-    // check broker
-    bytes32 brokerEntityContext = AccessControl(_brokerEntity).aclContext();
-    require(acl().userSomeHasRoleInContext(brokerEntityContext, _broker), 'must have role in broker entity');
-
-    // get nayms entity
-    address naymsEntity = settings().getNaymsEntity();
-
-    // do payouts and update balances
-    IERC20 tkn = IERC20(dataAddress["unit"]);
-
-    tkn.transfer(_assetManagerEntity, dataUint256["assetManagerCommissionBalance"]);
-    dataUint256["assetManagerCommissionBalance"] = 0;
-
-    tkn.transfer(_brokerEntity, dataUint256["brokerCommissionBalance"]);
-    dataUint256["brokerCommissionBalance"] = 0;
-
-    tkn.transfer(naymsEntity, dataUint256["naymsCommissionBalance"]);
-    dataUint256["naymsCommissionBalance"] = 0;
+  ) public {
+    _mutations().dcall(abi.encodeWithSelector(
+      "payCommissions(address,address,address,address)".dsig(),
+      _assetManagerEntity, _assetManager, _brokerEntity, _broker
+    ));
   }
 
 
@@ -447,7 +379,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
 
       // check every tranch
       for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
-        require(0 >= getNumberOfTranchPaymentsMissed(i), 'tranch premiums are not up-to-date');
+        require(0 >= _getNumberOfTranchPaymentsMissed(i), 'tranch premiums are not up-to-date');
 
         // tranch/token address
         address tranchAddress = dataAddress[__i(i, "address")];
@@ -488,7 +420,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
       uint256 state = dataUint256[__i(i, "state")];
 
       // if tranch not yet fully sold OR if a payment has been missed
-      if (state == TRANCH_STATE_SELLING || 0 < getNumberOfTranchPaymentsMissed(i)) {
+      if (state == TRANCH_STATE_SELLING || 0 < _getNumberOfTranchPaymentsMissed(i)) {
         // cancel any outstanding market order
         _cancelTranchMarketOffer(i);
         // set state to cancelled
@@ -500,12 +432,16 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
 
   function _closePolicy () private {
     if (dataUint256["state"] != POLICY_STATE_MATURED) {
+      dataUint256["state"] = POLICY_STATE_MATURED;
+    }
+
+    // if no pending claims AND we haven't yet initiated tranch buyback
+    if (0 == getNumberOfPendingClaims() && !dataBool["buybackInitiated"]) {
+      dataBool["buybackInitiated"] = true;
+
       address marketAddress = settings().getMatchingMarket();
 
       IMarket market = IMarket(marketAddress);
-
-      // update state
-      dataUint256["state"] = POLICY_STATE_MATURED;
 
       // buy back all tranch tokens
       for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
@@ -514,7 +450,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
         }
 
         address unitAddress = dataAddress["unit"];
-        uint256 tranchBalance = getTranchBalance(i);
+        uint256 tranchBalance = dataUint256[__i(i, "balance")];
 
         IERC20 tkn = IERC20(unitAddress);
         tkn.approve(marketAddress, tranchBalance);
@@ -523,13 +459,59 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
         dataUint256[__i(i, "finalBuybackOfferId")] = market.offer(
           tranchBalance,
           dataAddress["unit"],
-          getNumberOfTranchSharesSold(i),
+          dataUint256[__i(i, "sharesSold")],
           dataAddress[__i(i, "address")],
           0,
           false
         );
       }
     }
+  }
+
+  function _getNextTranchPremiumAmount (uint256 _index) private view returns (uint256) {
+    uint256[] storage premiums = dataManyUint256[__i(_index, "premiums")];
+    uint256 numPremiumsAlreadyPaid = dataUint256[__i(_index, "premiumsPaid")];
+
+    if (numPremiumsAlreadyPaid >= premiums.length) {
+      return 0;
+    } else {
+      return premiums[numPremiumsAlreadyPaid];
+    }
+  }
+
+  function _getNumberOfTranchPaymentsMissed (uint256 _index) private view returns (uint256) {
+    uint256 expectedPaid = 0;
+
+    // if inititation date has passed
+    if (initiationDateHasPassed()) {
+      expectedPaid++;
+
+      // calculate the extra payments that should have been made by now
+      uint256 diff = now.sub(dataUint256["initiationDate"]).div(dataUint256["premiumIntervalSeconds"]);
+      expectedPaid = expectedPaid.add(diff);
+    }
+
+    // cap to no .of available premiums
+    uint256[] storage premiums = dataManyUint256[__i(_index, "premiums")];
+
+    if (expectedPaid > premiums.length) {
+      expectedPaid = premiums.length;
+    }
+
+    uint256 premiumsPaid = dataUint256[__i(_index, "premiumsPaid")];
+
+    if (expectedPaid >= premiumsPaid) {
+      return expectedPaid.sub(premiumsPaid);
+    } else {
+      return 0;
+    }
+  }
+
+  function _tranchPaymentsAllMade (uint256 _index) private view returns (bool) {
+    uint256[] storage premiums = dataManyUint256[__i(_index, "premiums")];
+    uint256 done = dataUint256[__i(_index, "premiumsPaid")];
+
+    return (done >= premiums.length);
   }
 
   // Sub-delegates

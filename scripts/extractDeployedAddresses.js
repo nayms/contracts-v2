@@ -11,9 +11,9 @@ const deployedAddressesJsonPath = path.join(projectDir, 'deployedAddresses.json'
 const raw = [
   'ACL',
   'EntityDeployer',
+  'MatchingMarket',
   'Settings',
   'EtherToken',
-  'PolicyImpl',
   'EntityImpl',
 ].reduce((m, name) => {
   const jsonPath = path.join(projectDir, 'build', 'contracts', `${name}.json`)

@@ -391,12 +391,12 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
         // calculate sale values
         uint256 pricePerShare = dataUint256[__i(i, "pricePerShareAmount")];
         uint256 totalPrice = totalSupply.mul(pricePerShare);
+        // set tranch state
+        dataUint256[__i(i, "state")] = TRANCH_STATE_SELLING;
         // offer tokens in initial sale
         dataUint256[__i(i, "initialSaleOfferId")] = market.offer(
           totalSupply, tranchAddress, totalPrice, dataAddress["unit"], 0, false
         );
-        // set tranch state
-        dataUint256[__i(i, "state")] = TRANCH_STATE_SELLING;
       }
 
       // set policy state to PENDING

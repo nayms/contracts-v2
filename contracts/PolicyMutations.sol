@@ -50,12 +50,12 @@ contract PolicyMutations is EternalStorage, Controller, IPolicyMutations, IPolic
     assertActiveState
     assertIsClientManager(msg.sender)
   {
-    // check that tranch is active
-    require(dataUint256[__i(_index, "state")] == TRANCH_STATE_ACTIVE, 'tranch must be active');
-
     // check client manager entity
     bytes32 clientManagerEntityContext = AccessControl(_clientManagerEntity).aclContext();
     require(acl().userSomeHasRoleInContext(clientManagerEntityContext, msg.sender), 'must have role in client manager entity');
+
+    // check that tranch is active
+    require(dataUint256[__i(_index, "state")] == TRANCH_STATE_ACTIVE, 'tranch must be active');
 
     // check amount
     require(

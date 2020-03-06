@@ -14,7 +14,7 @@ The package exposes the following properties:
 
 * `contracts` - the key contracts (see below)
 * `rawContracts` - ABIs of all Solidity contracts in the repo
-* `addresses` - on-chain addresses of contracts in `contracts`
+* `addresses` - on-chain addresses of contracts in `rawContracts`
 * `events` - ABIs for events to listen for
 * `extractEventsFromAbis()` - given an array of contract ABIs, this will extract the event ABIs within.
 * `ROLES` - role constants
@@ -23,6 +23,7 @@ The package exposes the following properties:
 The key contracts are:
 
 * `ACL (IACL.sol)` - Interface for our access control system. We have a single global ACL for our platform.
+* `AccessControl (AccessControl.sol)` - Interface for obtaining ACL context info from deployed contracts.
 * `EntityDeployer (IEntityDeployer.sol)` - Interface for the entity deployer. We have a single global deployer for our platform.
 * `Entity (IEntityImpl.sol)` - Interface for interacting with entities.
 * `ERC20 (IERC20.sol)` - Interface for interacting with ERC-20 contracts.

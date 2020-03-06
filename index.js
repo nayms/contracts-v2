@@ -8,6 +8,7 @@ const rawContracts = require('./contracts.generated.js')
 const { ROLES, ROLEGROUPS } = require('./utils/constants')
 
 const coreContracts = [
+  { name: 'AccessControl', actual: 'AccessControl' },
   { name: 'Settings', actual: 'ISettingsImpl' },
   { name: 'ACL', actual: 'IACL' },
   { name: 'Policy', actual: 'IPolicyImpl' },

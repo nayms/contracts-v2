@@ -51,6 +51,8 @@ contract('Policy', accounts => {
   let POLICY_STATE_ACTIVE
   let POLICY_STATE_MATURED
 
+  let TRANCH_STATE_CANCELLED
+
   let setupPolicy
 
   beforeEach(async () => {
@@ -90,6 +92,7 @@ contract('Policy', accounts => {
     POLICY_STATE_SELLING = await policyImpl.POLICY_STATE_SELLING()
     POLICY_STATE_ACTIVE = await policyImpl.POLICY_STATE_ACTIVE()
     POLICY_STATE_MATURED = await policyImpl.POLICY_STATE_MATURED()
+    TRANCH_STATE_CANCELLED = await policyImpl.TRANCH_STATE_CANCELLED()
 
     setupPolicy = async ({
       initiationDateDiff = 1000,
@@ -681,15 +684,6 @@ contract('Policy', accounts => {
           await policy.makeClaim(0, entity.address, 1, { from: clientManagerAddress }).should.be.fulfilled
         })
 
-        it.only('cannot be made in matured state', async () => {
-          await setupPolicyForClaims({ initiationDateDiff: 0, startDateDiff: 100, maturationDateDiff: 200 })
-          await policy.checkAndUpdateState()
-          await evmClock.setTime(200)
-          await policy.checkAndUpdateState()
-          await policy.getState().should.eventually.eq(POLICY_STATE_MATURED)
-          await policy.makeClaim(0, entity.address, 1).should.be.rejectedWith('must be in active state')
-        })
-
         describe('when in active state', () => {
           let clientManagerAddress
 
@@ -718,6 +712,9 @@ contract('Policy', accounts => {
             })
 
             it('claim must be against an active tranch', async () => {
+              await policy.getTranchInfo(2).should.eventually.matchObj({
+                state_: TRANCH_STATE_CANCELLED
+              })
               await policy.makeClaim(2, entity.address, 1, { from: clientManagerAddress }).should.be.rejectedWith('tranch must be active');
             })
 

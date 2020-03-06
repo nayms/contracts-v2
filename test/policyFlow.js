@@ -34,6 +34,7 @@ contract('Policy flow', accounts => {
   let policyImpl
   let policyProxy
   let policy
+  let entity
   let premiumIntervalSeconds
   let baseDate
   let initiationDate
@@ -43,6 +44,9 @@ contract('Policy flow', accounts => {
   let etherToken
   let entityManagerAddress
   let policyOwnerAddress
+
+  let clientManager
+  let assetManager
 
   let POLICY_STATE_CREATED
   let POLICY_STATE_SELLING
@@ -78,7 +82,7 @@ contract('Policy flow', accounts => {
     const entityAddress = extractEventArgs(deployEntityTx, events.NewEntity).entity
 
     const entityProxy = await Entity.at(entityAddress)
-    const entity = await IEntityImpl.at(entityAddress)
+    entity = await IEntityImpl.at(entityAddress)
     const entityContext = await entityProxy.aclContext()
 
     // entity manager
@@ -96,7 +100,7 @@ contract('Policy flow', accounts => {
     maturationDate = startDate + 2000
     premiumIntervalSeconds = 500
 
-    const createPolicyTx = await createPolicy(entity, policyImpl.address, {
+    const createPolicyTx = await createPolicy(entity, {
       initiationDate,
       startDate,
       maturationDate,
@@ -130,22 +134,29 @@ contract('Policy flow', accounts => {
     }, { from: policyOwnerAddress })
 
     getTranchToken = async idx => {
-      const tt = await policy.getTranchToken(idx)
+      const { token_: tt } = await policy.getTranchInfo(idx)
       return await IERC20.at(tt)
     }
 
-    POLICY_STATE_CREATED = await policy.POLICY_STATE_CREATED()
-    POLICY_STATE_SELLING = await policy.POLICY_STATE_SELLING()
-    POLICY_STATE_ACTIVE = await policy.POLICY_STATE_ACTIVE()
-    POLICY_STATE_MATURED = await policy.POLICY_STATE_MATURED()
+    POLICY_STATE_CREATED = await policyImpl.POLICY_STATE_CREATED()
+    POLICY_STATE_SELLING = await policyImpl.POLICY_STATE_SELLING()
+    POLICY_STATE_ACTIVE = await policyImpl.POLICY_STATE_ACTIVE()
+    POLICY_STATE_MATURED = await policyImpl.POLICY_STATE_MATURED()
 
-    TRANCH_STATE_CREATED = await policy.TRANCH_STATE_CREATED()
-    TRANCH_STATE_SELLING = await policy.TRANCH_STATE_SELLING()
-    TRANCH_STATE_ACTIVE = await policy.TRANCH_STATE_ACTIVE()
-    TRANCH_STATE_MATURED = await policy.TRANCH_STATE_MATURED()
-    TRANCH_STATE_CANCELLED = await policy.TRANCH_STATE_CANCELLED()
+    TRANCH_STATE_CREATED = await policyImpl.TRANCH_STATE_CREATED()
+    TRANCH_STATE_SELLING = await policyImpl.TRANCH_STATE_SELLING()
+    TRANCH_STATE_ACTIVE = await policyImpl.TRANCH_STATE_ACTIVE()
+    TRANCH_STATE_MATURED = await policyImpl.TRANCH_STATE_MATURED()
+    TRANCH_STATE_CANCELLED = await policyImpl.TRANCH_STATE_CANCELLED()
 
     evmClock = new EvmClock(baseDate)
+
+    assetManager = accounts[5]
+    await acl.assignRole(policyContext, assetManager, ROLES.ASSET_MANAGER)
+
+    clientManager = accounts[6]
+    await acl.assignRole(policyContext, clientManager, ROLES.CLIENT_MANAGER)
+    await acl.assignRole(entityContext, clientManager, ROLES.ENTITY_REP)
   })
 
   describe('tranches begin selling', async () => {
@@ -244,8 +255,12 @@ contract('Policy flow', accounts => {
             state_: TRANCH_STATE_SELLING,
           })
           await policy.getTranchInfo(1).should.eventually.matchObj({
-            sharesSold_: TRANCH_STATE_SELLING,
+            sharesSold_: 0,
           })
+        })
+
+        it('claims cannot yet be made', async () => {
+          await policy.makeClaim(0, entity.address, 1, { from: clientManager }).should.be.rejectedWith('must be in active state')
         })
       })
     })
@@ -274,10 +289,14 @@ contract('Policy flow', accounts => {
 
       tranchToken = await getTranchToken(0)
 
+      ;({ initialSaleOfferId_: marketOfferId } = await policy.getTranchInfo(0))
+
       // get some wrapped ETH for buyer account
       await etherToken.deposit({ from: accounts[2], value: 25 })
+    })
 
-      marketOfferId = await policy.getTranchInitialSaleMarketOfferId(0)
+    it('claims cannot yet be made', async () => {
+      await policy.makeClaim(0, entity.address, 1, { from: clientManager }).should.be.rejectedWith('must be in active state')
     })
 
     describe('another party can make an offer that does not match', () => {
@@ -310,7 +329,8 @@ contract('Policy flow', accounts => {
       })
 
       it('and tranch balance is unchanged', async () => {
-        await policy.getTranchBalance(0).should.eventually.eq(calcPremiumsMinusCommissions({
+        const b = (await policy.getTranchInfo(0)).balance_
+        expect(b.toNumber()).to.eq(calcPremiumsMinusCommissions({
           premiums: [10],
           assetManagerCommissionBP,
           brokerCommissionBP,
@@ -364,7 +384,8 @@ contract('Policy flow', accounts => {
       })
 
       it('and tranch balance has been updated', async () => {
-        await policy.getTranchBalance(0).should.eventually.eq(10 + calcPremiumsMinusCommissions({
+        const b = (await policy.getTranchInfo(0)).balance_
+        expect(b.toNumber()).to.eq(10 + calcPremiumsMinusCommissions({
           premiums: [10],
           assetManagerCommissionBP,
           brokerCommissionBP,
@@ -415,7 +436,8 @@ contract('Policy flow', accounts => {
       })
 
       it('then tranch balance has been updated', async () => {
-        await policy.getTranchBalance(0).should.eventually.eq(200 + calcPremiumsMinusCommissions({
+        const b = (await policy.getTranchInfo(0)).balance_
+        expect(b.toNumber()).to.eq(200 + calcPremiumsMinusCommissions({
           premiums: [10],
           assetManagerCommissionBP,
           brokerCommissionBP,
@@ -633,10 +655,10 @@ contract('Policy flow', accounts => {
       await etherToken.deposit({ value: 2000, from: accounts[2] })
       await etherToken.approve(market.address, 2000, { from: accounts[2] })
 
-      const tranch0Address = await policy.getTranchToken(0)
+      const tranch0Address = ((await getTranchToken(0))).address
       await market.offer(200, etherToken.address, 100, tranch0Address, 0, true, { from: accounts[2] })
 
-      const tranch1Address = await policy.getTranchToken(1)
+      const tranch1Address = ((await getTranchToken(1))).address
       await market.offer(100, etherToken.address, 50, tranch1Address, 0, true, { from: accounts[2] })
 
       // pay premiums upto start date
@@ -698,13 +720,46 @@ contract('Policy flow', accounts => {
       expect(extractEventArgs(result, events.PolicyActive)).to.eq(null)
     })
 
+    describe('claims can be made', () => {
+      beforeEach(async () => {
+        await policy.payTranchPremium(0)
+        await policy.payTranchPremium(1)
+
+        await policy.checkAndUpdateState()
+
+        await policy.makeClaim(0, entity.address, 1, { from: clientManager })
+        await policy.makeClaim(0, entity.address, 2, { from: clientManager })
+        await policy.makeClaim(1, entity.address, 4, { from: clientManager })
+        await policy.makeClaim(1, entity.address, 7, { from: clientManager })
+      })
+
+      it('which can then be approved or declined', async () => {
+        await policy.declineClaim(0, { from: assetManager })
+        await policy.approveClaim(1, { from: assetManager })
+      })
+
+      it('and approved ones can be paid out', async () => {
+        await policy.declineClaim(0, { from: assetManager })
+        await policy.approveClaim(1, { from: assetManager })
+        await policy.approveClaim(3, { from: assetManager })
+
+        const preBalance = ((await etherToken.balanceOf(entity.address)).toNumber())
+
+        await policy.payClaims()
+
+        const postBalance = ((await etherToken.balanceOf(entity.address)).toNumber())
+
+        expect(postBalance - preBalance).to.eq(9)
+      })
+    })
+
     describe('once maturation date has passed', () => {
       beforeEach(async () => {
         // pass the maturation date
         await evmClock.setTime(maturationDate)
       })
 
-      describe('if not all premium payments are up-to-date', () => {
+      describe('if there are no pending claims and not all premium payments are up-to-date', () => {
         beforeEach(async () => {
           await policy.payTranchPremium(0)
           await policy.payTranchPremium(1)
@@ -714,14 +769,38 @@ contract('Policy flow', accounts => {
           await policy.checkAndUpdateState()
 
           await policy.getState().should.eventually.eq(POLICY_STATE_MATURED)
-
           await policy.getTranchInfo(0).should.eventually.matchObj({
-            state_: TRANCH_STATE_ACTIVE,
+            state_: TRANCH_STATE_CANCELLED,
           })
           await policy.getTranchInfo(1).should.eventually.matchObj({
             state_: TRANCH_STATE_CANCELLED,
           })
+          await policy.getTranchInfo(0).should.eventually.not.matchObj({
+            finalBuybackofferId_: 0,
+          })
+          await policy.getTranchInfo(1).should.eventually.not.matchObj({
+            finalBuybackofferId_: 0,
+          })
+        })
 
+        it('unless there are pending claims', async () => {
+          await policy.makeClaim(0, entity.address, 1, { from: clientManager })
+          await policy.makeClaim(0, entity.address, 2, { from: clientManager })
+
+          await policy.checkAndUpdateState()
+
+          await policy.getState().should.eventually.eq(POLICY_STATE_MATURED)
+          await policy.getTranchInfo(0).should.eventually.matchObj({
+            finalBuybackofferId_: 0,
+          })
+          await policy.getTranchInfo(1).should.eventually.matchObj({
+            finalBuybackofferId_: 0,
+          })
+
+          await policy.declineClaim(0, { from: assetManager })
+          await policy.approveClaim(1, { from: assetManager })
+
+          await policy.checkAndUpdateState()
           await policy.getTranchInfo(0).should.eventually.not.matchObj({
             finalBuybackofferId_: 0,
           })
@@ -733,29 +812,43 @@ contract('Policy flow', accounts => {
         it('and subsequent calls have no effect', async () => {
           await policy.checkAndUpdateState()
 
-          const offer1 = await policy.getTranchFinalBuybackMarketOfferId(0).should.eventually.not.eq(0)
-          const offer2 = await policy.getTranchFinalBuybackMarketOfferId(0).should.eventually.not.eq(1)
+          const { finalBuybackofferId_: offer1 } = await policy.getTranchInfo(0)
+          expect(offer1).to.not.eq(0)
+          const { finalBuybackofferId_: offer2 } = await policy.getTranchInfo(1)
+          expect(offer2).to.not.eq(0)
 
           await policy.checkAndUpdateState()
 
           await policy.getState().should.eventually.eq(POLICY_STATE_MATURED)
-          await policy.getTranchState(0).should.eventually.eq(TRANCH_STATE_CANCELLED)
-          await policy.getTranchState(1).should.eventually.eq(TRANCH_STATE_CANCELLED)
+          await policy.getTranchInfo(0).should.eventually.matchObj({
+            state_: TRANCH_STATE_CANCELLED,
+          })
+          await policy.getTranchInfo(1).should.eventually.matchObj({
+            state_: TRANCH_STATE_CANCELLED,
+          })
+          await policy.getTranchInfo(0).should.eventually.matchObj({
+            finalBuybackofferId_: offer1,
+          })
+          await policy.getTranchInfo(1).should.eventually.matchObj({
+            finalBuybackofferId_: offer2,
+          })
+        })
 
-          await policy.getTranchFinalBuybackMarketOfferId(0).should.eventually.eq(offer1)
-          await policy.getTranchFinalBuybackMarketOfferId(0).should.eventually.eq(offer2)
+        it('and no more claims can be made', async () => {
+          await policy.checkAndUpdateState()
+          await policy.makeClaim(0, entity.address, 1, { from: clientManager }).should.be.rejectedWith('must be in active state')
         })
       })
 
-      describe('if all premium payments are up-to-date', () => {
+      describe('if there are no pending claims and all premium payments are up-to-date', () => {
         beforeEach(async () => {
           for (let i = 0; (maturationDate - startDate) / premiumIntervalSeconds >= i; i += 1) {
-            const allPaymentsMade0 = await policy.tranchPaymentsAllMade(0)
+            const allPaymentsMade0 = (await policy.getTranchInfo(0)).allPremiumsPaid_
             if (!allPaymentsMade0) {
               await policy.payTranchPremium(0)
             }
 
-            const allPaymentsMade1 = await policy.tranchPaymentsAllMade(1)
+            const allPaymentsMade1 = (await policy.getTranchInfo(1)).allPremiumsPaid_
             if (!allPaymentsMade1) {
               await policy.payTranchPremium(1)
             }
@@ -766,57 +859,117 @@ contract('Policy flow', accounts => {
           await policy.checkAndUpdateState()
 
           await policy.getState().should.eventually.eq(POLICY_STATE_MATURED)
-          await policy.getTranchState(0).should.eventually.eq(TRANCH_STATE_MATURED)
-          await policy.getTranchState(1).should.eventually.eq(TRANCH_STATE_MATURED)
+          await policy.getTranchInfo(0).should.eventually.matchObj({
+            state_: TRANCH_STATE_MATURED,
+          })
+          await policy.getTranchInfo(1).should.eventually.matchObj({
+            state_: TRANCH_STATE_MATURED,
+          })
+          await policy.getTranchInfo(0).should.eventually.not.matchObj({
+            finalBuybackofferId_: 0,
+          })
+          await policy.getTranchInfo(1).should.eventually.not.matchObj({
+            finalBuybackofferId_: 0,
+          })
+        })
 
-          await policy.getTranchFinalBuybackMarketOfferId(0).should.eventually.not.eq(0)
-          await policy.getTranchFinalBuybackMarketOfferId(0).should.eventually.not.eq(1)
+
+        it('unless there are pending claims', async () => {
+          await policy.makeClaim(0, entity.address, 1, { from: clientManager })
+          await policy.makeClaim(0, entity.address, 2, { from: clientManager })
+
+          await policy.checkAndUpdateState()
+
+          await policy.getState().should.eventually.eq(POLICY_STATE_MATURED)
+          await policy.getTranchInfo(0).should.eventually.matchObj({
+            finalBuybackofferId_: 0,
+          })
+          await policy.getTranchInfo(1).should.eventually.matchObj({
+            finalBuybackofferId_: 0,
+          })
+
+          await policy.declineClaim(0, { from: assetManager })
+          await policy.approveClaim(1, { from: assetManager })
+
+          await policy.checkAndUpdateState()
+          await policy.getTranchInfo(0).should.eventually.not.matchObj({
+            finalBuybackofferId_: 0,
+          })
+          await policy.getTranchInfo(1).should.eventually.not.matchObj({
+            finalBuybackofferId_: 0,
+          })
         })
 
         it('and subsequent calls have no effect', async () => {
           await policy.checkAndUpdateState()
 
-          const offer1 = await policy.getTranchFinalBuybackMarketOfferId(0).should.eventually.not.eq(0)
-          const offer2 = await policy.getTranchFinalBuybackMarketOfferId(0).should.eventually.not.eq(1)
+          const { finalBuybackofferId_: offer1 } = await policy.getTranchInfo(0)
+          expect(offer1).to.not.eq(0)
+          const { finalBuybackofferId_: offer2 } = await policy.getTranchInfo(1)
+          expect(offer2).to.not.eq(0)
 
           await policy.checkAndUpdateState()
 
           await policy.getState().should.eventually.eq(POLICY_STATE_MATURED)
-          await policy.getTranchState(0).should.eventually.eq(TRANCH_STATE_MATURED)
-          await policy.getTranchState(1).should.eventually.eq(TRANCH_STATE_MATURED)
-
-          await policy.getTranchFinalBuybackMarketOfferId(0).should.eventually.eq(offer1)
-          await policy.getTranchFinalBuybackMarketOfferId(0).should.eventually.eq(offer2)
+          await policy.getTranchInfo(0).should.eventually.matchObj({
+            state_: TRANCH_STATE_MATURED,
+          })
+          await policy.getTranchInfo(1).should.eventually.matchObj({
+            state_: TRANCH_STATE_MATURED,
+          })
+          await policy.getTranchInfo(0).should.eventually.matchObj({
+            finalBuybackofferId_: offer1,
+          })
+          await policy.getTranchInfo(1).should.eventually.matchObj({
+            finalBuybackofferId_: offer2,
+          })
         })
 
-        describe('once it tries to buy back all tokens', async () => {
-          beforeEach(async () => {
-            await policy.checkAndUpdateState()
+        it('and no more claims can be made', async () => {
+          await policy.checkAndUpdateState()
+          await policy.makeClaim(0, entity.address, 1, { from: clientManager }).should.be.rejectedWith('must be in active state')
+        })
+      })
+
+      describe('once it tries to buy back all tokens', async () => {
+        beforeEach(async () => {
+          for (let i = 0; (maturationDate - startDate) / premiumIntervalSeconds >= i; i += 1) {
+            const allPaymentsMade0 = (await policy.getTranchInfo(0)).allPremiumsPaid_
+            if (!allPaymentsMade0) {
+              await policy.payTranchPremium(0)
+            }
+
+            const allPaymentsMade1 = (await policy.getTranchInfo(1)).allPremiumsPaid_
+            if (!allPaymentsMade1) {
+              await policy.payTranchPremium(1)
+            }
+          }
+
+          await policy.checkAndUpdateState()
+        })
+
+        it('other people can trade their previously purchased tranch tokens in for (hopefully) profit ', async () => {
+          const preBalance = (await etherToken.balanceOf(accounts[2])).toNumber()
+
+          const { finalBuybackofferId_: buybackOfferId } = await policy.getTranchInfo(0)
+
+          const tranch0Address = (await getTranchToken(0)).address
+
+          await market.sellAllAmount(tranch0Address, 100, etherToken.address, 0, { from: accounts[2] });
+
+          // check that order has been fulfilled
+          await market.isActive(buybackOfferId).should.eventually.eq(false)
+
+          const postBalance = (await etherToken.balanceOf(accounts[2])).toNumber()
+
+          const expectedPremiumBalance = calcPremiumsMinusCommissions({
+            premiums: [10, 20, 30, 40, 50, 60, 70],
+            assetManagerCommissionBP,
+            brokerCommissionBP,
+            naymsCommissionBP,
           })
 
-          it('other people can trade their previously purchased tranch tokens in for (hopefully) profit ', async () => {
-            const preBalance = (await etherToken.balanceOf(accounts[2])).toNumber()
-
-            const buybackOfferId = await policy.getTranchFinalBuybackMarketOfferId(0)
-
-            const tranch0Address = await policy.getTranchToken(0)
-
-            await market.sellAllAmount(tranch0Address, 100, etherToken.address, 0, { from: accounts[2] });
-
-            // check that order has been fulfilled
-            await market.isActive(buybackOfferId).should.eventually.eq(false)
-
-            const postBalance = (await etherToken.balanceOf(accounts[2])).toNumber()
-
-            const expectedPremiumBalance = calcPremiumsMinusCommissions({
-              premiums: [10, 20, 30, 40, 50, 60, 70],
-              assetManagerCommissionBP,
-              brokerCommissionBP,
-              naymsCommissionBP,
-            })
-
-            expect(postBalance - preBalance).to.eq(200 + expectedPremiumBalance) /* 200 = initial sold amount */
-          })
+          expect(postBalance - preBalance).to.eq(200 + expectedPremiumBalance) /* 200 = initial sold amount */
         })
       })
     })

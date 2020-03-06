@@ -8,6 +8,8 @@ archive/*
 build/
 coverage
 coverageEnv
+.coverage_contracts
+.coverage_artifacts
 coverage.json
 tmp
 log/*.log

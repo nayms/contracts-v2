@@ -66,7 +66,7 @@ module.exports = {
       host: "localhost",
       network_id: "*",
       port: 8555,
-      gas: 17592186044415, // <-- Use this high gas value
+      gas: 0xfffffffffff, // <-- Use this high gas value
       gasPrice: 0x01      // <-- Use this low gas price
     },
   },
@@ -85,5 +85,9 @@ module.exports = {
         }
       }
     }
-  }
+  },
+
+  plugins: [
+    'solidity-coverage',
+  ]
 }

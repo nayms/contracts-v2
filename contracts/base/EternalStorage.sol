@@ -14,4 +14,17 @@ contract EternalStorage {
   mapping(string => int256[]) dataManyInt256;
   mapping(string => uint256[]) dataManyUint256;
   mapping(string => bool[]) dataManyBool;
+  // helpers
+  function __i (uint256 i1, string memory s) internal pure returns (string memory) {
+    return string(abi.encodePacked(i1, s));
+  }
+  function __ii (uint256 i1, uint256 i2, string memory s) internal pure returns (string memory) {
+    return string(abi.encodePacked(i1, i2, s));
+  }
+  function __ia (uint256 i1, address a1, string memory s) internal pure returns (string memory) {
+    return string(abi.encodePacked(i1, a1, s));
+  }
+  function __iaa (uint256 i1, address a1, address a2, string memory s) internal pure returns (string memory) {
+    return string(abi.encodePacked(i1, a1, a2, s));
+  }
 }

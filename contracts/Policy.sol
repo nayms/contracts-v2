@@ -37,8 +37,8 @@ contract Policy is Controller, Proxy {
     address assetMgr = getUpgradeSigner(_implementation, _assetMgrSig);
     address clientMgr = getUpgradeSigner(_implementation, _clientMgrSig);
 
-    require(hasRole(assetMgr, ROLE_ASSET_MANAGER), 'must be approved by asset manager');
-    require(hasRole(clientMgr, ROLE_CLIENT_MANAGER), 'must be approved by client manager');
+    require(inRoleGroup(assetMgr, ROLEGROUP_ASSET_MANAGERS), 'must be approved by asset manager');
+    require(inRoleGroup(clientMgr, ROLEGROUP_CLIENT_MANAGERS), 'must be approved by client manager');
 
     setImplementation(_implementation);
   }

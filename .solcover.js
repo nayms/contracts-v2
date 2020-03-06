@@ -1,6 +1,6 @@
 module.exports = {
   accounts: 10,
-  testrpcOptions: '-p 8555 -a 50 -m "funny door sample enrich female wedding stereo crane setup shop dwarf dismiss"',
+  testrpcOptions: '-p 8555 --gasLimit 17592186044415 -a 50 -m "funny door sample enrich female wedding stereo crane setup shop dwarf dismiss"',
   compileCommand: '../node_modules/.bin/truffle compile --network coverage && cp maker-otc/build/contracts/MatchingMarket.json build/contracts',
   testCommand: '../node_modules/.bin/babel-node ../node_modules/.bin/truffle test --network coverage',
   skipFiles: [

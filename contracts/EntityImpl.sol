@@ -46,7 +46,6 @@ import "./Policy.sol";
   // IEntityImpl
 
   function createPolicy(
-    address _impl,
     uint256 _initiationDate,
     uint256 _startDate,
     uint256 _maturationDate,
@@ -63,7 +62,7 @@ import "./Policy.sol";
       address(acl()),
       address(settings()),
       aclContext(),
-      _impl,
+      settings().getPolicyImplementation(),
       msg.sender,
       _initiationDate,
       _startDate,
@@ -76,7 +75,7 @@ import "./Policy.sol";
     );
 
     uint256 numPolicies = dataUint256["numPolicies"];
-    dataAddress[string(abi.encodePacked("policy", numPolicies))] = address(f);
+    dataAddress[__i(numPolicies, "policy")] = address(f);
     dataUint256["numPolicies"] = numPolicies + 1;
 
     emit NewPolicy(address(f), address(this), msg.sender);
@@ -88,7 +87,7 @@ import "./Policy.sol";
   }
 
   function getPolicy(uint256 _index) public view returns (address) {
-    return dataAddress[string(abi.encodePacked("policy", _index))];
+    return dataAddress[__i(_index, "policy")];
   }
 
   function deposit(address _unit, uint256 _amount) public {

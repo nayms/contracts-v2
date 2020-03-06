@@ -1,17 +1,8 @@
 pragma solidity >=0.5.8;
 
-contract IPolicyImpl {
-  uint256 constant public POLICY_STATE_CREATED = 0;
-  uint256 constant public POLICY_STATE_SELLING = 1;
-  uint256 constant public POLICY_STATE_ACTIVE = 2;
-  uint256 constant public POLICY_STATE_MATURED = 3;
+import "./IPolicyMutations.sol";
 
-  uint256 constant public TRANCH_STATE_CREATED = 0;
-  uint256 constant public TRANCH_STATE_SELLING = 1;
-  uint256 constant public TRANCH_STATE_ACTIVE = 2;
-  uint256 constant public TRANCH_STATE_MATURED = 3;
-  uint256 constant public TRANCH_STATE_CANCELLED = 4;
-
+contract IPolicyImpl is IPolicyMutations {
   function getStartDate () public view returns (uint256);
   function getState () public view returns (uint256);
 
@@ -23,21 +14,35 @@ contract IPolicyImpl {
   ) public returns (uint256);
 
   function getNumTranches () public view returns (uint256);
-  function getTranchToken (uint256 _index) public view returns (address);
-  function getTranchState (uint256 _index) public view returns (uint256);
 
-  function getNumberOfTranchPaymentsMissed (uint256 _index) public view returns (uint256);
-  function tranchPaymentsAllMade (uint256 _index) public view returns (bool);
-  function getNextTranchPremiumAmount (uint256 _index) public view returns (uint256);
+  function getTranchInfo (uint256 _index) public view returns (
+    address token_,
+    uint256 state_,
+    uint256 balance_,
+    uint256 nextPremiumAmount_,
+    uint256 premiumPaymentsMissed_,
+    bool allPremiumsPaid_,
+    uint256 sharesSold_,
+    uint256 initialSaleOfferId_,
+    uint256 finalBuybackofferId_
+  );
+
   function payTranchPremium (uint256 _index) public;
-  function getTranchBalance (uint256 _index) public view returns (uint256);
-  function getNumberOfTranchSharesSold (uint256 _index) public view returns (uint256);
-  function getTranchInitialSaleMarketOfferId (uint256 _index) public view returns (uint256);
-  function getTranchFinalBuybackMarketOfferId (uint256 _index) public view returns (uint256);
 
   function getAssetManagerCommissionBalance () public view returns (uint256);
   function getNaymsCommissionBalance () public view returns (uint256);
   function getBrokerCommissionBalance () public view returns (uint256);
+
+  function getNumberOfClaims () public view returns (uint256);
+  function getNumberOfPendingClaims () public view returns (uint256);
+
+  function getClaimInfo (uint256 _claimIndex) public view returns (
+    uint256 amount_,
+    uint256 tranchIndex_,
+    bool approved_,
+    bool declined_,
+    bool paid_
+  );
 
   function calculateMaxNumOfPremiums() public view returns (uint256);
   function initiationDateHasPassed () public view returns (bool);
@@ -45,10 +50,6 @@ contract IPolicyImpl {
   function maturationDateHasPassed () public view returns (bool);
 
   function checkAndUpdateState () public;
-  function payCommissions (
-    address _assetManagerEntity, address _assetManager,
-    address _brokerEntity, address _broker
-  ) public;
 
   // events
 

@@ -1,21 +1,21 @@
 import { extractEventArgs } from './utils'
 import { events } from '../'
-import { sha3 } from './utils/web3'
+import { keccak256 } from './utils/web3'
 import { ensureAclIsDeployed } from '../migrations/modules/acl'
 
 contract('ACL', accounts => {
-  const role1 = sha3('testrole1')
-  const role2 = sha3('testrole2')
-  const role3 = sha3('testrole3')
-  const role4 = sha3('testrole4')
+  const role1 = keccak256('testrole1')
+  const role2 = keccak256('testrole2')
+  const role3 = keccak256('testrole3')
+  const role4 = keccak256('testrole4')
 
-  const roleGroup1 = sha3('rolegroup1')
-  const roleGroup2 = sha3('rolegroup2')
-  const roleGroup3 = sha3('rolegroup3')
+  const roleGroup1 = keccak256('rolegroup1')
+  const roleGroup2 = keccak256('rolegroup2')
+  const roleGroup3 = keccak256('rolegroup3')
 
-  const context1 = sha3('test1')
-  const context2 = sha3('test2')
-  const context3 = sha3('test3')
+  const context1 = keccak256('test1')
+  const context2 = keccak256('test2')
+  const context3 = keccak256('test3')
 
   let acl
   let systemContext
@@ -108,8 +108,8 @@ contract('ACL', accounts => {
   })
 
   describe('can have a role group set', async () => {
-    const group1 = sha3('group1')
-    const group2 = sha3('group2')
+    const group1 = keccak256('group1')
+    const group2 = keccak256('group2')
 
     it('but not by a non-admin', async () => {
       await acl.setRoleGroup(group1, [ role1, role2 ], { from: accounts[1] }).should.be.rejectedWith('unauthorized')

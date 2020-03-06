@@ -1,4 +1,4 @@
-import { sha3 } from './utils/web3'
+import { keccak256 } from './utils/web3'
 
 import {
   extractEventArgs,
@@ -13,6 +13,7 @@ import { ensureEtherTokenIsDeployed, deployNewEtherToken } from '../migrations/m
 import { ensureAclIsDeployed } from '../migrations/modules/acl'
 import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
 import { ensureMarketIsDeployed } from '../migrations/modules/market'
+import { ensurePolicyImplementationsAreDeployed } from '../migrations/modules/policyImplementations'
 
 const IEntityImpl = artifacts.require("./base/IEntityImpl")
 const Proxy = artifacts.require('./base/Proxy')
@@ -37,6 +38,8 @@ contract('Entity', accounts => {
     settings = await ensureSettingsIsDeployed({ artifacts }, acl.address)
     market = await ensureMarketIsDeployed({ artifacts }, settings.address)
     etherToken = await ensureEtherTokenIsDeployed({ artifacts }, acl.address, settings.address)
+    await ensurePolicyImplementationsAreDeployed({ artifacts }, acl.address, settings.address)
+
     entityImpl = await EntityImpl.new(acl.address, settings.address)
     entityProxy = await Entity.new(
       acl.address,
@@ -80,13 +83,13 @@ contract('Entity', accounts => {
       const implVersion = await entityImpl2.getImplementationVersion()
 
       await acl.assignRole(entityContext, accounts[1], ROLES.ENTITY_ADMIN)
-      entityAdminSig = hdWallet.sign({ address: accounts[1], data: sha3(implVersion) })
+      entityAdminSig = hdWallet.sign({ address: accounts[1], data: keccak256(implVersion) })
 
       await acl.assignRole(entityContext, accounts[2], ROLES.ENTITY_MANAGER)
-      entityManagerSig = hdWallet.sign({ address: accounts[2], data: sha3(implVersion) })
+      entityManagerSig = hdWallet.sign({ address: accounts[2], data: keccak256(implVersion) })
 
       await acl.assignRole(entityContext, accounts[3], ROLES.ENTITY_REP)
-      entityRepresentativeSig = hdWallet.sign({ address: accounts[3], data: sha3(implVersion) })
+      entityRepresentativeSig = hdWallet.sign({ address: accounts[3], data: keccak256(implVersion) })
     })
 
     it('but not just by anyone', async () => {
@@ -107,7 +110,7 @@ contract('Entity', accounts => {
 
     it.skip('but not to the existing implementation', async () => {
       const oldVersion = await entityImpl.getImplementationVersion()
-      entityManagerSig = hdWallet.sign({ address: accounts[1], data: sha3(oldVersion) })
+      entityManagerSig = hdWallet.sign({ address: accounts[1], data: keccak256(oldVersion) })
       await entityProxy.upgrade(entityImpl.address, entityAdminSig).should.be.rejectedWith('already this implementation')
     })
 
@@ -226,7 +229,7 @@ contract('Entity', accounts => {
     let policyImpl
 
     beforeEach(async () => {
-      policyImpl = await PolicyImpl.new(acl.address, settings.address)
+      ;({ policyImpl } = await ensurePolicyImplementationsAreDeployed({ artifacts }, acl.address, settings.address))
 
       await acl.assignRole(entityContext, accounts[1], ROLES.ENTITY_ADMIN)
       await acl.assignRole(entityContext, accounts[2], ROLES.ENTITY_MANAGER)
@@ -234,15 +237,15 @@ contract('Entity', accounts => {
     })
 
     it('but not by entity admins', async () => {
-      await createPolicy(entity, policyImpl.address, {}, { from: accounts[1] }).should.be.rejectedWith('must be policy creator')
+      await createPolicy(entity, {}, { from: accounts[1] }).should.be.rejectedWith('must be policy creator')
     })
 
     it('but not by entity reps', async () => {
-      await createPolicy(entity, policyImpl.address, {}, { from: accounts[3] }).should.be.rejectedWith('must be policy creator')
+      await createPolicy(entity, {}, { from: accounts[3] }).should.be.rejectedWith('must be policy creator')
     })
 
     it('by entity managers', async () => {
-      const result = await createPolicy(entity, policyImpl.address, {}, { from: accounts[2] }).should.be.fulfilled
+      const result = await createPolicy(entity, {}, { from: accounts[2] }).should.be.fulfilled
 
       const eventArgs = extractEventArgs(result, events.NewPolicy)
 
@@ -257,13 +260,13 @@ contract('Entity', accounts => {
     it('and the entity records get updated accordingly', async () => {
       await entity.getNumPolicies().should.eventually.eq(0)
 
-      const result = await createPolicy(entity, policyImpl.address, {}, { from: accounts[2] })
+      const result = await createPolicy(entity, {}, { from: accounts[2] })
       const eventArgs = extractEventArgs(result, events.NewPolicy)
 
       await entity.getNumPolicies().should.eventually.eq(1)
       await entity.getPolicy(0).should.eventually.eq(eventArgs.policy)
 
-      const result2 = await createPolicy(entity, policyImpl.address, {}, { from: accounts[2] })
+      const result2 = await createPolicy(entity, {}, { from: accounts[2] })
       const eventArgs2 = extractEventArgs(result2, events.NewPolicy)
 
       await entity.getNumPolicies().should.eventually.eq(2)
@@ -273,7 +276,7 @@ contract('Entity', accounts => {
     it('and have their properties set', async () => {
       const startDate = ~~(Date.now() / 1000) + 1
 
-      const result = await createPolicy(entity, policyImpl.address, {
+      const result = await createPolicy(entity, {
         startDate,
       }, { from: accounts[2] })
 
@@ -287,7 +290,7 @@ contract('Entity', accounts => {
     })
 
     it('and have the original caller set as property owner', async () => {
-      const result = await createPolicy(entity, policyImpl.address, {}, { from: accounts[2] })
+      const result = await createPolicy(entity, {}, { from: accounts[2] })
 
       const eventArgs = extractEventArgs(result, events.NewPolicy)
 

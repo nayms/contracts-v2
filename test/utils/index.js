@@ -62,6 +62,32 @@ chai.use((_chai, utils) => {
         : new _chai.Assertion(r).to.be.equal(v)
     }
   })
+
+  utils.addMethod(_chai.Assertion.prototype, 'matchObj', function (val) {
+    let result = utils.flag(this, 'object')
+
+    if (result instanceof Object) {
+      const newResult = {}
+      const newVal = {}
+
+      Object.keys(result).forEach(i => {
+        const [r, v] = sanitizeResultVal(result[i], val[i])
+        if (typeof r !== 'undefined') {
+          newResult[i] = r
+        }
+        if (typeof v !== 'undefined') {
+          newVal[i] = v
+        }
+      })
+
+      return (utils.flag(this, 'negate'))
+        ? new _chai.Assertion(newResult).to.not.contain(newVal)
+        : new _chai.Assertion(newResult).to.contain(newVal)
+
+    } else {
+      throw new Error('Not an object', result)
+    }
+  })
 })
 
 chai.use(chaiAsPromised)
@@ -124,7 +150,7 @@ export const createTranch = (policy, attrs, ...callAttrs) => {
   )
 }
 
-export const createPolicy = (entity, policyImpl, attrs, ...callAttrs) => {
+export const createPolicy = (entity, attrs, ...callAttrs) => {
   const currentTime = ~~(Date.now() / 1000)
 
   const {
@@ -139,7 +165,6 @@ export const createPolicy = (entity, policyImpl, attrs, ...callAttrs) => {
   } = attrs
 
   return entity.createPolicy(
-    policyImpl,
     initiationDate,
     startDate,
     maturationDate,

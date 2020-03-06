@@ -1,4 +1,4 @@
-import { sha3 } from './utils/web3'
+import { keccak256 } from './utils/web3'
 import { ADDRESS_ZERO, hdWallet } from './utils'
 
 const TestProxy = artifacts.require("./test/TestProxy")
@@ -26,7 +26,7 @@ contract('Proxy base class', accounts => {
   })
 
   it('cannot get signer for null implementation', async () => {
-    const sig = hdWallet.sign({ address: accounts[0], data: sha3('test') })
+    const sig = hdWallet.sign({ address: accounts[0], data: keccak256('test') })
     await testProxy.getSigner(ADDRESS_ZERO, sig).should.be.rejectedWith('implementation must be valid')
   })
 

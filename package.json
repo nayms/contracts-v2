@@ -71,6 +71,7 @@
     "solgraph": "^0.3.2",
     "solhint": "^2.2.0",
     "solidity-coverage": "^0.6.7",
+    "solidity-docgen": "^0.3.14",
     "truffle": "^5.0.40",
     "truffle-hdwallet-provider": "^1.0.0-web3one.0",
     "uuid": "^3.0.1",

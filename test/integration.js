@@ -272,7 +272,7 @@ contract('End-to-end integration tests', accounts => {
     await policy1.checkAndUpdateState()
 
     // check states
-    await policy1.getState().should.eventually.eq(POLICY_STATE_SELLING)
+    await policy1.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_SELLING })
     await policy1.getTranchInfo(0).should.eventually.matchObj({
       state_: TRANCH_STATE_SELLING
     })
@@ -307,7 +307,7 @@ contract('End-to-end integration tests', accounts => {
     await etherToken.balanceOf(entity3Address).should.eventually.eq(entity3Balance)
 
     // check states
-    await policy1.getState().should.eventually.eq(POLICY_STATE_SELLING) // pending since start date not yet passed
+    await policy1.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_SELLING }) // pending since start date not yet passed
     await policy1.getTranchInfo(0).should.eventually.matchObj({
       state_: TRANCH_STATE_ACTIVE  // should be active since it's fully sold out
     })
@@ -321,7 +321,7 @@ contract('End-to-end integration tests', accounts => {
     // step 20: heartbeat
     await evmClock.setTime(10 * 60)
     await policy1.checkAndUpdateState()
-    await policy1.getState().should.eventually.eq(POLICY_STATE_ACTIVE) // active now since startdate has passed
+    await policy1.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_ACTIVE }) // active now since startdate has passed
     await policy1.getTranchInfo(0).should.eventually.matchObj({
       state_: TRANCH_STATE_ACTIVE
     })
@@ -337,7 +337,7 @@ contract('End-to-end integration tests', accounts => {
     // step 23: heartbeat
     await evmClock.setTime(15 * 60)
     await policy1.checkAndUpdateState()
-    await policy1.getState().should.eventually.eq(POLICY_STATE_ACTIVE)
+    await policy1.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_ACTIVE })
     await policy1.getTranchInfo(0).should.eventually.matchObj({
       state_: TRANCH_STATE_ACTIVE
     })
@@ -345,7 +345,7 @@ contract('End-to-end integration tests', accounts => {
     // step 24: heartbeat
     await evmClock.setTime(20 * 60)
     await policy1.checkAndUpdateState()
-    await policy1.getState().should.eventually.eq(POLICY_STATE_ACTIVE)
+    await policy1.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_ACTIVE })
     await policy1.getTranchInfo(0).should.eventually.matchObj({
       state_: TRANCH_STATE_ACTIVE // all premium payments are done so all ok!
     })
@@ -353,7 +353,7 @@ contract('End-to-end integration tests', accounts => {
     // step 25: heartbeat
     await evmClock.setTime(25 * 60)
     await policy1.checkAndUpdateState()
-    await policy1.getState().should.eventually.eq(POLICY_STATE_MATURED)
+    await policy1.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_MATURED })
     await policy1.getTranchInfo(0).should.eventually.matchObj({
       state_: TRANCH_STATE_MATURED
     })
@@ -378,9 +378,11 @@ contract('End-to-end integration tests', accounts => {
     expect(expectedCommissions.assetManagerCommission).to.eq(8)
     expect(expectedCommissions.brokerCommission).to.eq(4)
     expect(expectedCommissions.naymsCommission).to.eq(12)
-    await policy1.getAssetManagerCommissionBalance().should.eventually.eq(expectedCommissions.assetManagerCommission)
-    await policy1.getBrokerCommissionBalance().should.eventually.eq(expectedCommissions.brokerCommission)
-    await policy1.getNaymsCommissionBalance().should.eventually.eq(expectedCommissions.naymsCommission)
+    await policy1.getCommissionBalances().should.eventually.matchObj({
+      assetManagerCommissionBalance_: expectedCommissions.assetManagerCommission,
+      brokerCommissionBalance_: expectedCommissions.brokerCommission,
+      naymsCommissionBalance_: expectedCommissions.naymsCommission,
+    })
 
     // step 26: withdraw commission payments (both asset manager and broker belong to entity0 so we'll use that one!)
     await policy1.payCommissions(entity0Address, policy1AssetManager, entity0Address, policy1Broker)
@@ -523,7 +525,7 @@ contract('End-to-end integration tests', accounts => {
     await policy2.checkAndUpdateState()
 
     // check states
-    await policy2.getState().should.eventually.eq(POLICY_STATE_SELLING)
+    await policy2.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_SELLING })
     await policy2.getTranchInfo(0).should.eventually.matchObj({
       state_: TRANCH_STATE_SELLING
     })
@@ -549,7 +551,7 @@ contract('End-to-end integration tests', accounts => {
     await etherToken.balanceOf(entity2Address).should.eventually.eq(entity2Balance)
 
     // check states
-    await policy2.getState().should.eventually.eq(POLICY_STATE_SELLING) // pending since start date not yet passed
+    await policy2.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_SELLING }) // pending since start date not yet passed
     await policy2.getTranchInfo(0).should.eventually.matchObj({
       state_: TRANCH_STATE_ACTIVE // should be active since it's fully sold out
     })
@@ -565,7 +567,7 @@ contract('End-to-end integration tests', accounts => {
     // step 22: heartbeat
     await evmClock.setTime(10 * 60)
     await policy2.checkAndUpdateState()
-    await policy2.getState().should.eventually.eq(POLICY_STATE_ACTIVE) // active now since startdate has passed
+    await policy2.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_ACTIVE }) // active now since startdate has passed
     await policy2.getTranchInfo(0).should.eventually.matchObj({
       state_: TRANCH_STATE_ACTIVE
     })
@@ -579,7 +581,7 @@ contract('End-to-end integration tests', accounts => {
     // step 24: heartbeat
     await evmClock.setTime(15 * 60)
     await policy2.checkAndUpdateState()
-    await policy2.getState().should.eventually.eq(POLICY_STATE_ACTIVE)
+    await policy2.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_ACTIVE })
     await policy2.getTranchInfo(0).should.eventually.matchObj({
       state_: TRANCH_STATE_ACTIVE
     })
@@ -587,7 +589,7 @@ contract('End-to-end integration tests', accounts => {
     // step 25: heartbeat
     await evmClock.setTime(20 * 60)
     await policy2.checkAndUpdateState()
-    await policy2.getState().should.eventually.eq(POLICY_STATE_ACTIVE)
+    await policy2.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_ACTIVE })
     await policy2.getTranchInfo(0).should.eventually.matchObj({
       state_: TRANCH_STATE_ACTIVE // all premium payments are done so all ok!
     })
@@ -602,9 +604,11 @@ contract('End-to-end integration tests', accounts => {
     expect(expectedCommissions.assetManagerCommission).to.eq(8)
     expect(expectedCommissions.brokerCommission).to.eq(4)
     expect(expectedCommissions.naymsCommission).to.eq(12)
-    await policy2.getAssetManagerCommissionBalance().should.eventually.eq(expectedCommissions.assetManagerCommission)
-    await policy2.getBrokerCommissionBalance().should.eventually.eq(expectedCommissions.brokerCommission)
-    await policy2.getNaymsCommissionBalance().should.eventually.eq(expectedCommissions.naymsCommission)
+    await policy2.getCommissionBalances().should.eventually.matchObj({
+      assetManagerCommissionBalance_: expectedCommissions.assetManagerCommission,
+      brokerCommissionBalance_: expectedCommissions.brokerCommission,
+      naymsCommissionBalance_: expectedCommissions.naymsCommission,
+    })
 
     const policy2Tranch1ExpectedBalanceMinusCommissions = 100 + calcPremiumsMinusCommissions({
       premiums: [1000, 2000, 1000],
@@ -620,7 +624,7 @@ contract('End-to-end integration tests', accounts => {
     // step 27: heartbeat - policy matured but still have pending claims
     await evmClock.setTime(25 * 60)
     await policy2.checkAndUpdateState()
-    await policy2.getState().should.eventually.eq(POLICY_STATE_MATURED)
+    await policy2.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_MATURED })
     await policy2.getTranchInfo(0).should.eventually.matchObj({
       state_: TRANCH_STATE_ACTIVE // got pending claims so state unchanged
     })
@@ -641,7 +645,7 @@ contract('End-to-end integration tests', accounts => {
 
     // step 29: heartbeat
     await policy2.checkAndUpdateState()
-    await policy2.getState().should.eventually.eq(POLICY_STATE_MATURED)
+    await policy2.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_MATURED })
     await policy2.getTranchInfo(0).should.eventually.matchObj({
       state_: TRANCH_STATE_MATURED
     })

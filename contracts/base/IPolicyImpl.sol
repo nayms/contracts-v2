@@ -3,8 +3,6 @@ pragma solidity >=0.5.8;
 import "./IPolicyMutations.sol";
 
 contract IPolicyImpl is IPolicyMutations {
-  function getStartDate () public view returns (uint256);
-  function getState () public view returns (uint256);
 
   function createTranch (
     uint256 _numShares,
@@ -13,7 +11,20 @@ contract IPolicyImpl is IPolicyMutations {
     address _initialBalanceHolder
   ) public returns (uint256);
 
-  function getNumTranches () public view returns (uint256);
+  function getInfo () public view returns (
+    uint256 initiationDate_,
+    uint256 startDate_,
+    uint256 maturationDate_,
+    address unit_,
+    uint256 premiumIntervalSeconds_,
+    uint256 brokerCommissionRate_,
+    uint256 assetManagerCommissionRate_,
+    uint256 naymsCommissionRate_,
+    uint256 numTranches_,
+    uint256 state_,
+    uint256 numClaims_,
+    uint256 numPendingClaims_
+  );
 
   function getTranchInfo (uint256 _index) public view returns (
     address token_,
@@ -27,14 +38,13 @@ contract IPolicyImpl is IPolicyMutations {
     uint256 finalBuybackofferId_
   );
 
+  function getCommissionBalances() public view returns (
+    uint256 assetManagerCommissionBalance_,
+    uint256 naymsCommissionBalance_,
+    uint256 brokerCommissionBalance_
+  );
+
   function payTranchPremium (uint256 _index) public;
-
-  function getAssetManagerCommissionBalance () public view returns (uint256);
-  function getNaymsCommissionBalance () public view returns (uint256);
-  function getBrokerCommissionBalance () public view returns (uint256);
-
-  function getNumberOfClaims () public view returns (uint256);
-  function getNumberOfPendingClaims () public view returns (uint256);
 
   function getClaimInfo (uint256 _claimIndex) public view returns (
     uint256 amount_,

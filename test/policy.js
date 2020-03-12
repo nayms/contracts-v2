@@ -112,7 +112,7 @@ contract('Policy', accounts => {
       const t = await settings.getTime()
       const currentBlockTime = parseInt(t.toString(10))
 
-      const createPolicyTx = await createPolicy(entity, {
+      const attrs = {
         initiationDate: currentBlockTime + initiationDateDiff,
         startDate: currentBlockTime + startDateDiff,
         maturationDate: currentBlockTime + maturationDateDiff,
@@ -121,13 +121,17 @@ contract('Policy', accounts => {
         brokerCommissionBP,
         assetManagerCommissionBP,
         naymsCommissionBP,
-      }, { from: entityManagerAddress })
+      }
+
+      const createPolicyTx = await createPolicy(entity, attrs, { from: entityManagerAddress })
       const policyAddress = extractEventArgs(createPolicyTx, events.NewPolicy).policy
 
       policyProxy = await Policy.at(policyAddress)
       policy = await IPolicyImpl.at(policyAddress)
       policyContext = await policyProxy.aclContext()
       policyOwnerAddress = entityManagerAddress
+
+      return attrs
     }
   })
 
@@ -142,6 +146,30 @@ contract('Policy', accounts => {
 
     it('can return its implementation version', async () => {
       await policyImpl.getImplementationVersion().should.eventually.eq('v1')
+    })
+
+    it('can return its basic info', async () => {
+      const attrs = await setupPolicy({
+        premiumIntervalSeconds: 5,
+        assetManagerCommissionBP: 1,
+        brokerCommissionBP: 2,
+        naymsCommissionBP: 3,
+      })
+
+      await policy.getInfo().should.eventually.matchObj({
+        initiationDate_: attrs.initiationDate,
+        startDate_: attrs.startDate,
+        maturationDate_: attrs.maturationDate,
+        unit_: attrs.unit,
+        premiumIntervalSeconds_: 5,
+        assetManagerCommissionBP_: 1,
+        brokerCommissionBP_: 2,
+        naymsCommissionBP_: 3,
+        numTranches_: 0,
+        state_: POLICY_STATE_CREATED,
+        numClaims_: 0,
+        numPendingClaims_: 0,
+      })
     })
   })
 
@@ -247,7 +275,7 @@ contract('Policy', accounts => {
         expect(log.args.initialBalanceHolder).to.eq(policy.address)
         expect(log.args.index).to.eq('0')
 
-        await policy.getNumTranches().should.eventually.eq(1)
+        await policy.getInfo().should.eventually.matchObj({ numTranches: 1 })
       })
 
       it('can be created and have initial balance allocated to a specific address', async () => {
@@ -299,7 +327,7 @@ contract('Policy', accounts => {
           from: accounts[2]
         }).should.be.fulfilled
 
-        await policy.getNumTranches().should.eventually.eq(2)
+        await policy.getInfo().should.eventually.matchObj({ numTranches_: 2 })
 
         const addresses = {}
 
@@ -316,7 +344,7 @@ contract('Policy', accounts => {
       it('cannot be created once already in selling state', async () => {
         await setupPolicy({ initiationDateDiff: 0 })
         await policy.checkAndUpdateState() // kick-off sale
-        await policy.getState().should.eventually.eq(POLICY_STATE_SELLING)
+        await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_SELLING })
         await createTranch(policy, {}, { from: accounts[2] }).should.be.rejectedWith('must be in created state')
       })
     })
@@ -513,9 +541,11 @@ contract('Policy', accounts => {
 
           await policy.payTranchPremium(0)
 
-          await policy.getAssetManagerCommissionBalance().should.eventually.eq(2) /* 0.1% of 2000 */
-          await policy.getBrokerCommissionBalance().should.eventually.eq(4) /* 0.2% of 2000 */
-          await policy.getNaymsCommissionBalance().should.eventually.eq(6) /* 0.3% of 2000 */
+          await policy.getCommissionBalances().should.eventually.matchObj({
+            assetManagerCommissionBalance_: 2, /* 0.1% of 2000 */
+            brokerCommissionBalance_: 4, /* 0.2% of 2000 */
+            naymsCommissionBalance_: 6, /* 0.3% of 2000 */
+          })
 
           await policy.getTranchInfo(0).should.eventually.matchObj({
             balance_: 1988, /* 2000 - (2 + 4 + 6) */
@@ -523,18 +553,22 @@ contract('Policy', accounts => {
 
           await policy.payTranchPremium(0)
 
-          await policy.getAssetManagerCommissionBalance().should.eventually.eq(5) /* 2 + 3 (=0.1% of 3000) */
-          await policy.getBrokerCommissionBalance().should.eventually.eq(10) /* 4 + 6 (=0.2% of 3000) */
-          await policy.getNaymsCommissionBalance().should.eventually.eq(15) /* 6 + 9 (=0.3% of 3000) */
+          await policy.getCommissionBalances().should.eventually.matchObj({
+            assetManagerCommissionBalance_: 5, /* 2 + 3 (=0.1% of 3000) */
+            brokerCommissionBalance_: 10, /* 4 + 6 (=0.2% of 3000) */
+            naymsCommissionBalance_: 15, /* 6 + 9 (=0.3% of 3000) */
+          })
           await policy.getTranchInfo(0).should.eventually.matchObj({
             balance_: 4970, /* 1988 + 3000 - (3 + 6 + 9) */
           })
 
           await policy.payTranchPremium(0)
 
-          await policy.getAssetManagerCommissionBalance().should.eventually.eq(9) /* 5 + 4 (=0.1% of 4000) */
-          await policy.getBrokerCommissionBalance().should.eventually.eq(18) /* 10 + 8 (=0.2% of 4000) */
-          await policy.getNaymsCommissionBalance().should.eventually.eq(27) /* 15 + 12 (=0.3% of 4000) */
+          await policy.getCommissionBalances().should.eventually.matchObj({
+            assetManagerCommissionBalance_: 9, /* 5 + 4 (=0.1% of 4000) */
+            brokerCommissionBalance_: 18, /* 10 + 8 (=0.2% of 4000) */
+            naymsCommissionBalance_: 27, /* 15 + 12 (=0.3% of 4000) */
+          })
           await policy.getTranchInfo(0).should.eventually.matchObj({
             balance_: 8946, /* 4970 + 4000 - (4 + 8 + 12) */
           })
@@ -600,9 +634,11 @@ contract('Policy', accounts => {
 
           it('and updates internal balance values', async () => {
             await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6])
-            await policy.getAssetManagerCommissionBalance().should.eventually.eq(0)
-            await policy.getBrokerCommissionBalance().should.eventually.eq(0)
-            await policy.getNaymsCommissionBalance().should.eventually.eq(0)
+            await policy.getCommissionBalances().should.eventually.matchObj({
+              assetManagerCommissionBalance_: 0,
+              brokerCommissionBalance_: 0,
+              naymsCommissionBalance_: 0,
+            })
           })
 
           it('and allows multiple calls', async () => {
@@ -617,9 +653,11 @@ contract('Policy', accounts => {
             const naymsEntityBalance = (await etherToken.balanceOf(naymsEntityAddress)).toNumber()
             expect(naymsEntityBalance).to.eq(27)
 
-            await policy.getAssetManagerCommissionBalance().should.eventually.eq(0)
-            await policy.getBrokerCommissionBalance().should.eventually.eq(0)
-            await policy.getNaymsCommissionBalance().should.eventually.eq(0)
+            await policy.getCommissionBalances().should.eventually.matchObj({
+              assetManagerCommissionBalance_: 0,
+              brokerCommissionBalance_: 0,
+              naymsCommissionBalance_: 0,
+            })
           })
         })
       })
@@ -786,14 +824,14 @@ contract('Policy', accounts => {
 
       it('cannot be made in created state', async () => {
         await setupPolicyForClaims()
-        await policy.getState().should.eventually.eq(POLICY_STATE_CREATED)
+        await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_CREATED })
         await policy.makeClaim(0, entity.address, 1).should.be.rejectedWith('must be in active state')
       })
 
       it('cannot be made in selling state', async () => {
         await setupPolicyForClaims({ initiationDateDiff: 0, startDateDiff: 100 })
         await policy.checkAndUpdateState()
-        await policy.getState().should.eventually.eq(POLICY_STATE_SELLING)
+        await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_SELLING })
         await policy.makeClaim(0, entity.address, 1).should.be.rejectedWith('must be in active state')
       })
 
@@ -805,7 +843,7 @@ contract('Policy', accounts => {
         await buyAllTranchTokens()
         await policy.checkAndUpdateState()
 
-        await policy.getState().should.eventually.eq(POLICY_STATE_ACTIVE)
+        await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_ACTIVE })
         await policy.getTranchInfo(0).should.eventually.matchObj({
           state_: TRANCH_STATE_ACTIVE
         })
@@ -825,7 +863,7 @@ contract('Policy', accounts => {
         await evmClock.setTime(200)
         await policy.checkAndUpdateState()
 
-        await policy.getState().should.eventually.eq(POLICY_STATE_MATURED)
+        await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_MATURED })
         await policy.getTranchInfo(0).should.eventually.matchObj({
           state_: TRANCH_STATE_MATURED
         })
@@ -846,7 +884,7 @@ contract('Policy', accounts => {
           await evmClock.setTime(100)
           await buyAllTranchTokens()
           await policy.checkAndUpdateState()
-          await policy.getState().should.eventually.eq(POLICY_STATE_ACTIVE)
+          await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_ACTIVE })
 
           await acl.assignRole(policyContext, accounts[5], ROLES.CLIENT_MANAGER);
           clientManagerAddress = accounts[5]
@@ -892,8 +930,10 @@ contract('Policy', accounts => {
             await policy.makeClaim(1, entity.address, 1, { from: clientManagerAddress }).should.be.fulfilled
             await policy.makeClaim(1, entity.address, 5, { from: clientManagerAddress }).should.be.fulfilled
 
-            await policy.getNumberOfClaims().should.eventually.eq(3)
-            await policy.getNumberOfPendingClaims().should.eventually.eq(3)
+            await policy.getInfo().should.eventually.matchObj({
+              numClaims_: 3,
+              numPendingClaims_: 3,
+            })
 
             await policy.getClaimInfo(0).should.eventually.matchObj({
               amount_: 4,
@@ -961,8 +1001,10 @@ contract('Policy', accounts => {
             it('updates internal stats', async () => {
               await policy.declineClaim(0, { from: assetManagerAddress }).should.be.fulfilled
 
-              await policy.getNumberOfClaims().should.eventually.eq(3)
-              await policy.getNumberOfPendingClaims().should.eventually.eq(2)
+              await policy.getInfo().should.eventually.matchObj({
+                numClaims_: 3,
+                numPendingClaims_: 2,
+              })
 
               await policy.getClaimInfo(0).should.eventually.matchObj({
                 approved_: false,
@@ -1027,8 +1069,10 @@ contract('Policy', accounts => {
             it('updates internal stats', async () => {
               await policy.approveClaim(0, { from: assetManagerAddress }).should.be.fulfilled
 
-              await policy.getNumberOfClaims().should.eventually.eq(3)
-              await policy.getNumberOfPendingClaims().should.eventually.eq(2)
+              await policy.getInfo().should.eventually.matchObj({
+                numClaims_: 3,
+                numPendingClaims_: 2,
+              })
 
               await policy.getClaimInfo(0).should.eventually.matchObj({
                 approved_: true,
@@ -1100,8 +1144,10 @@ contract('Policy', accounts => {
             it('and it updates the internal stats', async () => {
               await policy.payClaims()
 
-              await policy.getNumberOfClaims().should.eventually.eq(4)
-              await policy.getNumberOfPendingClaims().should.eventually.eq(1)
+              await policy.getInfo().should.eventually.matchObj({
+                numClaims_: 4,
+                numPendingClaims_: 1,
+              })
 
               await policy.getClaimInfo(0).should.eventually.matchObj({
                 approved_: true,

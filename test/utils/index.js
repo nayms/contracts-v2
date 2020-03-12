@@ -9,7 +9,7 @@ import { extractEventsFromAbis } from '../../'
 import { toBN, isBN } from './web3'
 
 const MNEMONIC = (packageJson.scripts.devnet.match(/\'(.+)\'/))[1]
-console.log(`Mnemonic: ${MNEMONIC}`)
+console.log(`Mnemonic: [ ${MNEMONIC} ]`)
 
 chai.use((_chai, utils) => {
   const sanitizeResultVal = (result, val) => {

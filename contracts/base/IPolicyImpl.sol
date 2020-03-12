@@ -17,11 +17,14 @@ contract IPolicyImpl is IPolicyMutations {
     uint256 maturationDate_,
     address unit_,
     uint256 premiumIntervalSeconds_,
-    uint256 brokerCommissionRate_,
-    uint256 assetManagerCommissionRate_,
-    uint256 naymsCommissionRate_,
+    uint256 brokerCommissionBP_,
+    uint256 assetManagerCommissionBP_,
+    uint256 naymsCommissionBP_,
     uint256 numTranches_,
-    uint256 state_,
+    uint256 state_
+  );
+
+  function getClaimStats() public view returns (
     uint256 numClaims_,
     uint256 numPendingClaims_
   );
@@ -39,9 +42,9 @@ contract IPolicyImpl is IPolicyMutations {
   );
 
   function getCommissionBalances() public view returns (
+    uint256 brokerCommissionBalance_,
     uint256 assetManagerCommissionBalance_,
-    uint256 naymsCommissionBalance_,
-    uint256 brokerCommissionBalance_
+    uint256 naymsCommissionBalance_
   );
 
   function payTranchPremium (uint256 _index) public;

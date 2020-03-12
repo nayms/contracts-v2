@@ -361,8 +361,8 @@ contract('End-to-end integration tests', accounts => {
     // sanity check balances
     const policy1Tranch1ExpectedBalance = 100 + calcPremiumsMinusCommissions({
       premiums: [1000, 2000, 1000],
-      brokerCommissionBP: 1,
       assetManagerCommissionBP: 2,
+      brokerCommissionBP: 1,
       naymsCommissionBP: 3,
     })
     expect(policy1Tranch1ExpectedBalance).to.eq(4076)
@@ -371,8 +371,8 @@ contract('End-to-end integration tests', accounts => {
     })
     const expectedCommissions = calcCommissions({
       premiums: [1000, 2000, 1000],
-      brokerCommissionBP: 1,
       assetManagerCommissionBP: 2,
+      brokerCommissionBP: 1,
       naymsCommissionBP: 3,
     })
     expect(expectedCommissions.assetManagerCommission).to.eq(8)

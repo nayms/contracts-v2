@@ -166,9 +166,7 @@ contract('Policy', accounts => {
         brokerCommissionBP_: 2,
         naymsCommissionBP_: 3,
         numTranches_: 0,
-        state_: POLICY_STATE_CREATED,
-        numClaims_: 0,
-        numPendingClaims_: 0,
+        state_: POLICY_STATE_CREATED
       })
     })
   })
@@ -525,8 +523,8 @@ contract('Policy', accounts => {
       describe('commissions', () => {
         beforeEach(async () => {
           await setupPolicy({
-            assetManagerCommissionBP: 1,
             brokerCommissionBP: 2,
+            assetManagerCommissionBP: 1,
             naymsCommissionBP: 3,
           })
 
@@ -930,7 +928,7 @@ contract('Policy', accounts => {
             await policy.makeClaim(1, entity.address, 1, { from: clientManagerAddress }).should.be.fulfilled
             await policy.makeClaim(1, entity.address, 5, { from: clientManagerAddress }).should.be.fulfilled
 
-            await policy.getInfo().should.eventually.matchObj({
+            await policy.getClaimStats().should.eventually.matchObj({
               numClaims_: 3,
               numPendingClaims_: 3,
             })
@@ -1001,7 +999,7 @@ contract('Policy', accounts => {
             it('updates internal stats', async () => {
               await policy.declineClaim(0, { from: assetManagerAddress }).should.be.fulfilled
 
-              await policy.getInfo().should.eventually.matchObj({
+              await policy.getClaimStats().should.eventually.matchObj({
                 numClaims_: 3,
                 numPendingClaims_: 2,
               })
@@ -1069,7 +1067,7 @@ contract('Policy', accounts => {
             it('updates internal stats', async () => {
               await policy.approveClaim(0, { from: assetManagerAddress }).should.be.fulfilled
 
-              await policy.getInfo().should.eventually.matchObj({
+              await policy.getClaimStats().should.eventually.matchObj({
                 numClaims_: 3,
                 numPendingClaims_: 2,
               })
@@ -1144,7 +1142,7 @@ contract('Policy', accounts => {
             it('and it updates the internal stats', async () => {
               await policy.payClaims()
 
-              await policy.getInfo().should.eventually.matchObj({
+              await policy.getClaimStats().should.eventually.matchObj({
                 numClaims_: 4,
                 numPendingClaims_: 1,
               })

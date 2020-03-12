@@ -110,9 +110,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     uint256 assetManagerCommissionBP_,
     uint256 naymsCommissionBP_,
     uint256 numTranches_,
-    uint256 state_,
-    uint256 numClaims_,
-    uint256 numPendingClaims_
+    uint256 state_
   ) {
     initiationDate_ = dataUint256["initiationDate"];
     startDate_ = dataUint256["startDate"];
@@ -124,6 +122,12 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     naymsCommissionBP_ = dataUint256["naymsCommissionBP"];
     numTranches_ = dataUint256["numTranches"];
     state_ = dataUint256["state"];
+  }
+
+  function getClaimStats() public view returns (
+    uint256 numClaims_,
+    uint256 numPendingClaims_
+  ) {
     numClaims_ = dataUint256["claimsCount"];
     numPendingClaims_ = dataUint256["claimsPendingCount"];
   }
@@ -184,12 +188,12 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
   }
 
   function getCommissionBalances() public view returns (
-    uint256 assetManagerCommissionBalance_,
     uint256 brokerCommissionBalance_,
+    uint256 assetManagerCommissionBalance_,
     uint256 naymsCommissionBalance_
   ) {
-    assetManagerCommissionBalance_ = dataUint256["assetManagerCommissionBalance"];
     brokerCommissionBalance_ = dataUint256["brokerCommissionBalance"];
+    assetManagerCommissionBalance_ = dataUint256["assetManagerCommissionBalance"];
     naymsCommissionBalance_ = dataUint256["naymsCommissionBalance"];
   }
 

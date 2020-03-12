@@ -34,11 +34,6 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     _;
   }
 
-  modifier assertIsAssetManager (address _addr) {
-    require(inRoleGroup(_addr, ROLEGROUP_ASSET_MANAGERS), 'must be asset manager');
-    _;
-  }
-
   /**
    * Constructor
    */
@@ -55,13 +50,6 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
 
   // IPolicyImpl //
 
-  function getStartDate () public view returns (uint256) {
-    return dataUint256["startDate"];
-  }
-
-  function getState () public view returns (uint256) {
-    return dataUint256["state"];
-  }
 
   function createTranch (
     uint256 _numShares,
@@ -112,8 +100,36 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     return i;
   }
 
-  function getNumTranches () public view returns (uint256) {
-    return dataUint256["numTranches"];
+  function getInfo () public view returns (
+    uint256 initiationDate_,
+    uint256 startDate_,
+    uint256 maturationDate_,
+    address unit_,
+    uint256 premiumIntervalSeconds_,
+    uint256 brokerCommissionBP_,
+    uint256 assetManagerCommissionBP_,
+    uint256 naymsCommissionBP_,
+    uint256 numTranches_,
+    uint256 state_
+  ) {
+    initiationDate_ = dataUint256["initiationDate"];
+    startDate_ = dataUint256["startDate"];
+    maturationDate_ = dataUint256["maturationDate"];
+    unit_ = dataAddress["unit"];
+    premiumIntervalSeconds_ = dataUint256["premiumIntervalSeconds"];
+    brokerCommissionBP_ = dataUint256["brokerCommissionBP"];
+    assetManagerCommissionBP_ = dataUint256["assetManagerCommissionBP"];
+    naymsCommissionBP_ = dataUint256["naymsCommissionBP"];
+    numTranches_ = dataUint256["numTranches"];
+    state_ = dataUint256["state"];
+  }
+
+  function getClaimStats() public view returns (
+    uint256 numClaims_,
+    uint256 numPendingClaims_
+  ) {
+    numClaims_ = dataUint256["claimsCount"];
+    numPendingClaims_ = dataUint256["claimsPendingCount"];
   }
 
   function getTranchInfo (uint256 _index) public view returns (
@@ -171,24 +187,14 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     dataUint256[__i(_index, "balance")] = dataUint256[__i(_index, "balance")].add(tranchBalanceDelta);
   }
 
-  function getAssetManagerCommissionBalance () public view returns (uint256) {
-    return dataUint256["assetManagerCommissionBalance"];
-  }
-
-  function getNaymsCommissionBalance () public view returns (uint256) {
-    return dataUint256["naymsCommissionBalance"];
-  }
-
-  function getBrokerCommissionBalance () public view returns (uint256) {
-    return dataUint256["brokerCommissionBalance"];
-  }
-
-  function getNumberOfClaims () public view returns (uint256) {
-    return dataUint256["claimsCount"];
-  }
-
-  function getNumberOfPendingClaims () public view returns (uint256) {
-    return dataUint256["claimsPendingCount"];
+  function getCommissionBalances() public view returns (
+    uint256 brokerCommissionBalance_,
+    uint256 assetManagerCommissionBalance_,
+    uint256 naymsCommissionBalance_
+  ) {
+    brokerCommissionBalance_ = dataUint256["brokerCommissionBalance"];
+    assetManagerCommissionBalance_ = dataUint256["assetManagerCommissionBalance"];
+    naymsCommissionBalance_ = dataUint256["naymsCommissionBalance"];
   }
 
   function getClaimInfo (uint256 _claimIndex) public view returns (
@@ -436,7 +442,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     }
 
     // if no pending claims AND we haven't yet initiated tranch buyback
-    if (0 == getNumberOfPendingClaims() && !dataBool["buybackInitiated"]) {
+    if (0 == dataUint256["claimsPendingCount"] && !dataBool["buybackInitiated"]) {
       dataBool["buybackInitiated"] = true;
 
       address marketAddress = settings().getMatchingMarket();

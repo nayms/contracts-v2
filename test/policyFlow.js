@@ -162,7 +162,7 @@ contract('Policy flow', accounts => {
   describe('tranches begin selling', async () => {
     it('but not if initiation date has not yet passed', async () => {
       await policy.checkAndUpdateState()
-      await policy.getState().should.eventually.eq(POLICY_STATE_CREATED)
+      await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_CREATED })
     })
 
     describe('if initiation date has passed', () => {
@@ -246,7 +246,7 @@ contract('Policy flow', accounts => {
 
         it('and then policy state gets updated', async () => {
           await policy.checkAndUpdateState()
-          await policy.getState().should.eventually.eq(POLICY_STATE_SELLING)
+          await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_SELLING })
         })
 
         it('and then tranch states get updated', async () => {
@@ -472,7 +472,7 @@ contract('Policy flow', accounts => {
       await policy.checkAndUpdateState()
       await policy.checkAndUpdateState()
 
-      await policy.getState().should.eventually.eq(POLICY_STATE_SELLING)
+      await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_SELLING })
     })
 
     describe('once start date has passed', () => {
@@ -518,7 +518,7 @@ contract('Policy flow', accounts => {
         it('and updates internal state', async () => {
           await policy.checkAndUpdateState()
 
-          await policy.getState().should.eventually.eq(POLICY_STATE_ACTIVE)
+          await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_ACTIVE })
 
           await policy.getTranchInfo(0).should.eventually.matchObj({
             state_: TRANCH_STATE_CANCELLED,
@@ -552,7 +552,7 @@ contract('Policy flow', accounts => {
           await policy.checkAndUpdateState()
 
           // now check
-          await policy.getState().should.eventually.eq(POLICY_STATE_ACTIVE)
+          await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_ACTIVE })
           await policy.getTranchInfo(0).should.eventually.matchObj({
             state_: TRANCH_STATE_CANCELLED,
           })
@@ -592,7 +592,7 @@ contract('Policy flow', accounts => {
           await policy.checkAndUpdateState()
 
           // now check
-          await policy.getState().should.eventually.eq(POLICY_STATE_ACTIVE)
+          await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_ACTIVE })
           await policy.getTranchInfo(0).should.eventually.matchObj({
             state_: TRANCH_STATE_ACTIVE,
           })
@@ -674,7 +674,7 @@ contract('Policy flow', accounts => {
       await policy.checkAndUpdateState()
 
       // sanity check
-      await policy.getState().should.eventually.eq(POLICY_STATE_ACTIVE)
+      await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_ACTIVE })
       await policy.getTranchInfo(0).should.eventually.matchObj({
         state_: TRANCH_STATE_ACTIVE,
       })
@@ -692,7 +692,7 @@ contract('Policy flow', accounts => {
 
       const result = await policy.checkAndUpdateState()
 
-      await policy.getState().should.eventually.eq(POLICY_STATE_ACTIVE)
+      await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_ACTIVE })
       await policy.getTranchInfo(0).should.eventually.matchObj({
         state_: TRANCH_STATE_ACTIVE,
       })
@@ -709,7 +709,7 @@ contract('Policy flow', accounts => {
 
       const result = await policy.checkAndUpdateState()
 
-      await policy.getState().should.eventually.eq(POLICY_STATE_ACTIVE)
+      await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_ACTIVE })
       await policy.getTranchInfo(0).should.eventually.matchObj({
         state_: TRANCH_STATE_ACTIVE,
       })
@@ -768,7 +768,7 @@ contract('Policy flow', accounts => {
         it('closes the policy and tries to buys back all tranch tokens', async () => {
           await policy.checkAndUpdateState()
 
-          await policy.getState().should.eventually.eq(POLICY_STATE_MATURED)
+          await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_MATURED })
           await policy.getTranchInfo(0).should.eventually.matchObj({
             state_: TRANCH_STATE_CANCELLED,
           })
@@ -789,7 +789,7 @@ contract('Policy flow', accounts => {
 
           await policy.checkAndUpdateState()
 
-          await policy.getState().should.eventually.eq(POLICY_STATE_MATURED)
+          await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_MATURED })
           await policy.getTranchInfo(0).should.eventually.matchObj({
             finalBuybackofferId_: 0,
           })
@@ -819,7 +819,7 @@ contract('Policy flow', accounts => {
 
           await policy.checkAndUpdateState()
 
-          await policy.getState().should.eventually.eq(POLICY_STATE_MATURED)
+          await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_MATURED })
           await policy.getTranchInfo(0).should.eventually.matchObj({
             state_: TRANCH_STATE_CANCELLED,
           })
@@ -858,7 +858,7 @@ contract('Policy flow', accounts => {
         it('closes the policy and tries to buys back all tranch tokens', async () => {
           await policy.checkAndUpdateState()
 
-          await policy.getState().should.eventually.eq(POLICY_STATE_MATURED)
+          await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_MATURED })
           await policy.getTranchInfo(0).should.eventually.matchObj({
             state_: TRANCH_STATE_MATURED,
           })
@@ -880,7 +880,7 @@ contract('Policy flow', accounts => {
 
           await policy.checkAndUpdateState()
 
-          await policy.getState().should.eventually.eq(POLICY_STATE_MATURED)
+          await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_MATURED })
           await policy.getTranchInfo(0).should.eventually.matchObj({
             finalBuybackofferId_: 0,
           })
@@ -910,7 +910,7 @@ contract('Policy flow', accounts => {
 
           await policy.checkAndUpdateState()
 
-          await policy.getState().should.eventually.eq(POLICY_STATE_MATURED)
+          await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_MATURED })
           await policy.getTranchInfo(0).should.eventually.matchObj({
             state_: TRANCH_STATE_MATURED,
           })

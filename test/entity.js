@@ -283,7 +283,9 @@ contract('Entity', accounts => {
       const eventArgs = extractEventArgs(result, events.NewPolicy)
 
       const policy = await PolicyImpl.at(eventArgs.policy)
-      await policy.getStartDate().should.eventually.eq(startDate)
+      await policy.getInfo().should.eventually.matchObj({
+        startDate: startDate
+      })
 
       const proxy = await Proxy.at(eventArgs.policy)
       await proxy.getImplementation().should.eventually.eq(policyImpl.address)

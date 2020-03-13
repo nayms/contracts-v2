@@ -174,6 +174,84 @@
       ]
     },
     {
+      "id": "genContext",
+      "title": "ACL: Generate context for address",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "ACL contract address",
+          "description": "The address of the ACL contract",
+          "type": "address",
+          "initialValue": "@constant[aclAddress]",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "address",
+          "title": "Address",
+          "type": "address"
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "ACL",
+          "method": "generateContextFromAddress",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_addr": "@input[address]"
+          },
+          "saveResultAsInput": "generatedContext"
+        }
+      ],
+      "outputs": [
+        {
+          "title": "Generated context",
+          "type": "string",
+          "value": "@input[generatedContext]"
+        }
+      ]
+    },
+    {
+      "id": "getContextForContract",
+      "title": "Get contract's own context",
+      "description": "This only works for contracts which talk to the ACL.",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "Contract address",
+          "description": "The address of the contract",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "AccessControl",
+          "method": "aclContext",
+          "address": "@input[contractAddress]",
+          "saveResultAsInput": "aclContext"
+        }
+      ],
+      "outputs": [
+        {
+          "title": "Contract's own context",
+          "type": "string",
+          "value": "@input[aclContext]"
+        }
+      ]
+    },
+    {
       "id": "assignRole",
       "title": "ACL: Assign role",
       "description": "You must be an admin or an assigner for the role to do this",

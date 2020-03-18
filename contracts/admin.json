@@ -597,6 +597,8 @@
         {
           "title": "Next premium amount due",
           "type": "int",
+          "scale": "-18",
+          "unit": "Tokens",
           "value": "@input[policyInfo][nextPremiumAmount_]"
         }
       ]

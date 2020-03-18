@@ -529,13 +529,13 @@
       ]
     },
     {
-      "id": "createPolicy",
-      "title": "Entity: Create a policy",
-      "description": "Only those in the policy creator rolegroup can do this.",
+      "id": "heartbeat",
+      "title": "Policy: Heartbeat",
+      "description": "Anyone can call this",
       "inputs": [
         {
           "name": "contractAddress",
-          "title": "Entity contract address",
+          "title": "Policy address",
           "type": "address",
           "validation": [
             {
@@ -543,77 +543,14 @@
               "contract": true
             }
           ]
-        },
-        {
-          "name": "unit",
-          "title": "Payment unit",
-          "type": "address",
-          "validation": [
-            {
-              "type": "allowedTypes",
-              "contract": true
-            }
-          ]
-        },
-        {
-          "name": "initiationDate",
-          "title": "Initiation date",
-          "type": "int",
-          "initialValue": "1735603200"
-        },
-        {
-          "name": "startDate",
-          "title": "Start date",
-          "type": "int",
-          "initialValue": "1735603200"
-        },
-        {
-          "name": "maturationDate",
-          "title": "Maturation date",
-          "type": "int",
-          "initialValue": "1735603200"
-        },
-        {
-          "name": "premiumIntervalSeconds",
-          "title": "Premium interval (seconds)",
-          "type": "int",
-          "initialValue": "5"
-        },
-        {
-          "name": "brokerCommissionBP",
-          "title": "Broker commission basis-points",
-          "type": "int",
-          "initialValue": "0"
-        },
-        {
-          "name": "assetManagerCommissionBP",
-          "title": "Asset mgr commission basis-points",
-          "type": "int",
-          "initialValue": "0"
-        },
-        {
-          "name": "naymsCommissionBP",
-          "title": "Nayms commission basis-points",
-          "type": "int",
-          "initialValue": "0"
         }
       ],
       "execs": [
         {
           "type": "send",
-          "contract": "EntityImpl",
-          "method": "createPolicy",
-          "address": "@input[contractAddress]",
-          "args": {
-            "_initiationDate": "@input[initiationDate]",
-            "_startDate": "@input[startDate]",
-            "_maturationDate": "@input[maturationDate]",
-            "_unit": "@input[unit]",
-            "_premiumIntervalSeconds": "@input[premiumIntervalSeconds]",
-            "_brokerCommissionBP": "@input[brokerCommissionBP]",
-            "_assetManagerCommissionBP": "@input[assetManagerCommissionBP]",
-            "_naymsCommissionBP": "@input[naymsCommissionBP]"
-          }
+          "contract": "PolicyImpl",
+          "method": "checkAndUpdateState",
+          "address": "@input[contractAddress]"
         }
       ]
     },

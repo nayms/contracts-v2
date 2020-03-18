@@ -218,7 +218,7 @@
     },
     {
       "id": "getContextForContract",
-      "title": "Get contract's own context",
+      "title": "AccessControl: Get contract's own context",
       "description": "This only works for contracts which talk to the ACL.",
       "inputs": [
         {
@@ -525,6 +525,182 @@
           "title": "Entity",
           "type": "address",
           "value": "@input[entityAddress]"
+        }
+      ]
+    },
+    {
+      "id": "createPolicy",
+      "title": "Entity: Create a policy",
+      "description": "Only those in the policy creator rolegroup can do this.",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "Entity contract address",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "unit",
+          "title": "Payment unit",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "initiationDate",
+          "title": "Initiation date",
+          "type": "int",
+          "initialValue": "1735603200"
+        },
+        {
+          "name": "startDate",
+          "title": "Start date",
+          "type": "int",
+          "initialValue": "1735603200"
+        },
+        {
+          "name": "maturationDate",
+          "title": "Maturation date",
+          "type": "int",
+          "initialValue": "1735603200"
+        },
+        {
+          "name": "premiumIntervalSeconds",
+          "title": "Premium interval (seconds)",
+          "type": "int",
+          "initialValue": "5"
+        },
+        {
+          "name": "brokerCommissionBP",
+          "title": "Broker commission basis-points",
+          "type": "int",
+          "initialValue": "0"
+        },
+        {
+          "name": "assetManagerCommissionBP",
+          "title": "Asset mgr commission basis-points",
+          "type": "int",
+          "initialValue": "0"
+        },
+        {
+          "name": "naymsCommissionBP",
+          "title": "Nayms commission basis-points",
+          "type": "int",
+          "initialValue": "0"
+        }
+      ],
+      "execs": [
+        {
+          "type": "send",
+          "contract": "EntityImpl",
+          "method": "createPolicy",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_initiationDate": "@input[initiationDate]",
+            "_startDate": "@input[startDate]",
+            "_maturationDate": "@input[maturationDate]",
+            "_unit": "@input[unit]",
+            "_premiumIntervalSeconds": "@input[premiumIntervalSeconds]",
+            "_brokerCommissionBP": "@input[brokerCommissionBP]",
+            "_assetManagerCommissionBP": "@input[assetManagerCommissionBP]",
+            "_naymsCommissionBP": "@input[naymsCommissionBP]"
+          }
+        }
+      ]
+    },
+    {
+      "id": "getNextPremium",
+      "title": "Policy: Get next premium payment amount",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "Policy contract address",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "index",
+          "title": "Tranche index (0-based)",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "PolicyImpl",
+          "method": "getTranchInfo",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_index": "@input[index]"
+          },
+          "saveResultAsInput": "policyInfo"
+        }
+      ],
+      "outputs": [
+        {
+          "title": "Next premium amount due",
+          "type": "int",
+          "value": "@input[policyInfo][nextPremiumAmount_]"
+        }
+      ]
+    },
+    {
+      "id": "payPremium",
+      "title": "Policy: Pay a tranche premium",
+      "description": "Anyone can do this. Just ensure the payment token has approved the policy to transfer.",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "Policy contract address",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "index",
+          "title": "Tranch index (0-based)",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "send",
+          "contract": "PolicyImpl",
+          "method": "payTranchPremium",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_index": "@input[index]"
+          }
         }
       ]
     }

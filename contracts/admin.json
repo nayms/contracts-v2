@@ -10,6 +10,9 @@
     },
     "entityDeployerAddress": {
       "default": ""
+    },
+    "settingsAddress": {
+      "default": ""
     }
   },
   "panels": [
@@ -555,8 +558,8 @@
       ]
     },
     {
-      "id": "getNextPremium",
-      "title": "Policy: Get next premium payment amount",
+      "id": "getTranchInfo",
+      "title": "Policy: Get tranche info",
       "inputs": [
         {
           "name": "contractAddress",
@@ -595,11 +598,43 @@
       ],
       "outputs": [
         {
+          "title": "Token address",
+          "type": "address",
+          "value": "@input[policyInfo][token_]"
+        },
+        {
+          "title": "State",
+          "type": "int",
+          "value": "@input[policyInfo][state_]"
+        },
+        {
+          "title": "Balance (payment unit tokens)",
+          "type": "int",
+          "scale": "-18",
+          "unit": "Tokens",
+          "value": "@input[policyInfo][balance_]"
+        },
+        {
+          "title": "No. of premium payments missed",
+          "type": "int",
+          "value": "@input[policyInfo][premiumPaymentsMissed_]"
+        },
+        {
+          "title": "All premiums paid?",
+          "type": "bool",
+          "value": "@input[policyInfo][allPremiumsPaid_]"
+        },
+        {
           "title": "Next premium amount due",
           "type": "int",
           "scale": "-18",
           "unit": "Tokens",
           "value": "@input[policyInfo][nextPremiumAmount_]"
+        },
+        {
+          "title": "Shared sold",
+          "type": "int",
+          "value": "@input[policyInfo][sharesSold_]"
         }
       ]
     },
@@ -640,6 +675,100 @@
           "args": {
             "_index": "@input[index]"
           }
+        }
+      ]
+    },
+    {
+      "id": "getSettings",
+      "title": "Settings: Check addresses",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "Settings contract",
+          "type": "address",
+          "initialValue": "@constant[settingsAddress]",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "SettingsImpl",
+          "method": "getMatchingMarket",
+          "address": "@input[contractAddress]",
+          "saveResultAsInput": "getMatchingMarket"
+        },
+        {
+          "type": "call",
+          "contract": "SettingsImpl",
+          "method": "getEntityDeployer",
+          "address": "@input[contractAddress]",
+          "saveResultAsInput": "getEntityDeployer"
+        },
+        {
+          "type": "call",
+          "contract": "SettingsImpl",
+          "method": "getPolicyImplementation",
+          "address": "@input[contractAddress]",
+          "saveResultAsInput": "getPolicyImplementation"
+        },
+        {
+          "type": "call",
+          "contract": "SettingsImpl",
+          "method": "getPolicyMutations",
+          "address": "@input[contractAddress]",
+          "saveResultAsInput": "getPolicyMutations"
+        },
+        {
+          "type": "call",
+          "contract": "SettingsImpl",
+          "method": "getNaymsEntity",
+          "address": "@input[contractAddress]",
+          "saveResultAsInput": "getNaymsEntity"
+        },
+        {
+          "type": "call",
+          "contract": "SettingsImpl",
+          "method": "getTime",
+          "address": "@input[contractAddress]",
+          "saveResultAsInput": "getTime"
+        }
+      ],
+      "outputs": [
+        {
+          "title": "Current time",
+          "type": "address",
+          "value": "@input[getTime]"
+        },
+        {
+          "title": "Matching market",
+          "type": "address",
+          "value": "@input[getMatchingMarket]"
+        },
+        {
+          "title": "Entity deployer",
+          "type": "address",
+          "value": "@input[getEntityDeployer]"
+        },
+        {
+          "title": "Policy implementation",
+          "type": "address",
+          "value": "@input[getPolicyImplementation]"
+        },
+        {
+          "title": "Policy mutations",
+          "type": "address",
+          "value": "@input[getPolicyMutations]"
+        },
+        {
+          "title": "Nayms entity",
+          "type": "address",
+          "value": "@input[getNaymsEntity]"
         }
       ]
     }

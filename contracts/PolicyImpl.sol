@@ -383,10 +383,18 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     if (dataUint256["state"] == POLICY_STATE_CREATED) {
       IMarket market = IMarket(settings().getMatchingMarket());
 
+      bool allReady = true;
       // check every tranch
       for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
-        require(0 >= _getNumberOfTranchPaymentsMissed(i), 'tranch premiums are not up-to-date');
+        allReady = allReady && (0 >= _getNumberOfTranchPaymentsMissed(i));
+      }
 
+      // stop processing if some tranch payments have been missed
+      if (!allReady) {
+        return;
+      }
+
+      for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
         // tranch/token address
         address tranchAddress = dataAddress[__i(i, "address")];
         // initial token holder must be contract address

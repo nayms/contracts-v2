@@ -5,6 +5,7 @@ import "./base/EternalStorage.sol";
 import "./base/IEntityImpl.sol";
 import "./base/IERC20.sol";
 import "./base/IMarket.sol";
+import "./base/IPolicyImpl.sol";
 import "./Policy.sol";
 
 /**
@@ -23,6 +24,14 @@ import "./Policy.sol";
 
   modifier assertCanTradeTranchTokens () {
     require(inRoleGroup(msg.sender, ROLEGROUP_TRADERS), 'must be trader');
+    _;
+  }
+
+  modifier assertCanPayTranchPremiums (address _policyAddress) {
+    require(inRoleGroup(msg.sender, ROLEGROUP_ENTITY_REPS), 'must be entity rep');
+    AccessControl a = AccessControl(_policyAddress);
+    bytes32 ctx = a.aclContext();
+    require(inRoleGroupWithContext(ctx, msg.sender, ROLEGROUP_CLIENT_MANAGERS), 'must be client manager');
     _;
   }
 
@@ -98,6 +107,29 @@ import "./Policy.sol";
   function withdraw(address _unit, uint256 _amount) public assertCanWithdraw {
     IERC20 tok = IERC20(_unit);
     tok.transfer(msg.sender, _amount);
+  }
+
+  function payTranchPremium(address _policyAddress, uint256 _tranchIndex)
+    public
+    assertCanPayTranchPremiums(_policyAddress)
+  {
+    address policyUnitAddress;
+    uint256 nextPremiumAmount;
+    uint256 i1;
+    uint256 i2;
+    uint256 i3;
+    address a1;
+
+    IPolicyImpl p = IPolicyImpl(_policyAddress);
+    // policy's unit
+    (i1, i2, i3, policyUnitAddress, , , , , ,) = p.getInfo();
+    // next premium amount
+    (a1, i1, i2, nextPremiumAmount, , , , ,) = p.getTranchInfo(_tranchIndex);
+    // approve transfer
+    IERC20 tok = IERC20(policyUnitAddress);
+    tok.approve(_policyAddress, nextPremiumAmount);
+    // do it
+    p.payTranchPremium(_tranchIndex);
   }
 
   function trade(address _payUnit, uint256 _payAmount, address _buyUnit, uint256 _buyAmount)

@@ -42,7 +42,7 @@
   "devDependencies": {
     "@0x/sol-profiler": "^3.1.8",
     "@0x/sol-trace": "^2.0.14",
-    "@solui/cli": "^1.7.1",
+    "@solui/cli": "^1.9.1",
     "argv": "0.0.2",
     "babel-cli": "^6.26.0",
     "babel-preset-env": "^1.7.0",

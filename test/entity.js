@@ -17,6 +17,7 @@ import { ensurePolicyImplementationsAreDeployed } from '../migrations/modules/po
 
 const IEntityImpl = artifacts.require("./base/IEntityImpl")
 const Proxy = artifacts.require('./base/Proxy')
+const AccessControl = artifacts.require('./base/AccessControl')
 const TestEntityImpl = artifacts.require("./test/TestEntityImpl")
 const Entity = artifacts.require("./Entity")
 const EntityImpl = artifacts.require("./EntityImpl")
@@ -301,6 +302,52 @@ contract('Entity', accounts => {
       const policyContext = await policy.aclContext()
 
       await acl.hasRole(policyContext, accounts[2], ROLES.POLICY_OWNER).should.eventually.eq(true)
+    })
+
+    describe('and policy tranch premiums can be paid', () => {
+      let policyOwner
+      let policy
+      let policyContext
+
+      beforeEach(async () => {
+        policyOwner = accounts[2]
+
+        const result = await createPolicy(entity, {
+          unit: etherToken.address
+        }, { from: policyOwner }).should.be.fulfilled
+
+        const eventArgs = extractEventArgs(result, events.NewPolicy)
+
+        policy = await PolicyImpl.at(eventArgs.policy);
+        const accessControl = await AccessControl.at(policy.address)
+        policyContext = await accessControl.aclContext()
+
+        await policy.createTranch(1, 1, [ 1 ], ADDRESS_ZERO, { from: policyOwner })
+      })
+
+      it('but not by anyone', async () => {
+        await entity.payTranchPremium(policy.address, 0, { from: policyOwner }).should.be.rejectedWith('must be entity rep')
+      })
+
+      it('but not by entity rep who is not registered as a client manager on the policy', async () => {
+        const entityRep = accounts[3]
+        await entity.payTranchPremium(policy.address, 0, { from: entityRep }).should.be.rejectedWith('must be client manager')
+      })
+
+      it('but not by entity rep if we do not have enough tokens to pay with', async () => {
+        const entityRep = accounts[3]
+        await acl.assignRole(policyContext, entityRep, ROLES.CLIENT_MANAGER)
+        await entity.payTranchPremium(policy.address, 0, { from: entityRep }).should.be.rejectedWith('transfer amount exceeds balance')
+      })
+
+      it('by entity rep if we have enough tokens to pay with', async () => {
+        await etherToken.deposit({ value: 1 })
+        await etherToken.approve(entity.address, 1)
+        await entity.deposit(etherToken.address, 1)
+        const entityRep = accounts[3]
+        await acl.assignRole(policyContext, entityRep, ROLES.CLIENT_MANAGER)
+        await entity.payTranchPremium(policy.address, 0, { from: entityRep }).should.be.fulfilled
+      })
     })
   })
 })

@@ -13,6 +13,9 @@
     },
     "settingsAddress": {
       "default": ""
+    },
+    "matchingMarketAddress": {
+      "default": ""
     }
   },
   "panels": [
@@ -807,6 +810,16 @@
           "title": "Shared sold",
           "type": "int",
           "value": "@input[tranchInfo][sharesSold_]"
+        },
+        {
+          "title": "Market offer id for initial sale",
+          "type": "int",
+          "value": "@input[tranchInfo][initialSaleOfferId_]"
+        },
+        {
+          "title": "Market offer id for buyback",
+          "type": "int",
+          "value": "@input[tranchInfo][finalBuybackofferId_]"
         }
       ]
     },
@@ -847,6 +860,99 @@
           "args": {
             "_index": "@input[index]"
           }
+        }
+      ]
+    },
+    {
+      "id": "isOfferActive",
+      "title": "Market: Get offer status",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "Market address",
+          "initialValue": "@constant[matchingMarketAddress]",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "offerId",
+          "title": "Offer id",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "MatchingMarket",
+          "method": "isActive",
+          "address": "@input[contractAddress]",
+          "args": {
+            "id": "@input[offerId]"
+          },
+          "saveResultAsInput": "isActive"
+        },
+        {
+          "type": "call",
+          "contract": "MatchingMarket",
+          "method": "getOwner",
+          "address": "@input[contractAddress]",
+          "args": {
+            "id": "@input[offerId]"
+          },
+          "saveResultAsInput": "owner"
+        },
+        {
+          "type": "call",
+          "contract": "MatchingMarket",
+          "method": "getOffer",
+          "address": "@input[contractAddress]",
+          "args": {
+            "id": "@input[offerId]"
+          },
+          "saveResultAsInput": "details"
+        }
+      ],
+      "outputs": [
+        {
+          "title": "Is active?",
+          "type": "bool",
+          "value": "@input[isActive]"
+        },
+        {
+          "title": "Owner",
+          "type": "address",
+          "value": "@input[owner]"
+        },
+        {
+          "title": "Sell amount",
+          "type": "int",
+          "value": "@input[details][0]"
+        },
+        {
+          "title": "Sell token",
+          "type": "address",
+          "value": "@input[details][1]"
+        },
+        {
+          "title": "Buy amount",
+          "type": "int",
+          "value": "@input[details][2]"
+        },
+        {
+          "title": "Buy token",
+          "type": "address",
+          "value": "@input[details][3]"
         }
       ]
     }

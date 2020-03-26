@@ -184,7 +184,11 @@ contract('Policy flow', accounts => {
         await policy.payTranchPremium(0)
         await policy.payTranchPremium(2)
 
-        await policy.checkAndUpdateState().should.be.rejectedWith('tranch premiums are not up-to-date')
+        await policy.checkAndUpdateState().should.be.fulfilled
+        await policy.getTranchInfo(0).should.eventually.matchObj({
+          initialSaleOfferId_: 0,
+        })
+        await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_CREATED })
       })
 
       describe('once tranch premiums are up-to-date', () => {

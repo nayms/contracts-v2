@@ -10,4 +10,6 @@ interface IMarket {
   function cancel(uint id) external returns (bool);
   function last_offer_id() external view returns (uint);
   function isActive(uint id) external view returns (bool);
+  function getOwner(uint id) external view returns (address);
+  function getOffer(uint id) external view returns (uint, address, uint, address);
 }

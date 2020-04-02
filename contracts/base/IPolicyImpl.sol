@@ -72,7 +72,4 @@ contract IPolicyImpl is IPolicyMutations {
     address indexed initialBalanceHolder,
     uint256 index
   );
-
-  event BeginSale(address indexed policy, address indexed caller);
-  event PolicyActive(address indexed policy, address indexed caller);
 }

@@ -356,10 +356,10 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
       // update tranch balance
       dataUint256[__i(_index, "balance")] = dataUint256[__i(_index, "balance")].add(_value * dataUint256[__i(_index, "pricePerShareAmount")]);
 
-      // if the tranch has fully sold out (i.e market no longer holds any tranch tokens)
-      if (dataUint256[fromKey] == 0) {
+      // if the tranch has fully sold out
+      if (dataUint256[__i(_index, "sharesSold")] == dataUint256[__i(_index, "numShares")]) {
         // flip tranch state to ACTIVE
-        dataUint256[__i(_index, "state")] = TRANCH_STATE_ACTIVE;
+        _setTranchState(_index, TRANCH_STATE_ACTIVE);
       }
     }
   }
@@ -402,7 +402,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
         uint256 pricePerShare = dataUint256[__i(i, "pricePerShareAmount")];
         uint256 totalPrice = totalSupply.mul(pricePerShare);
         // set tranch state
-        dataUint256[__i(i, "state")] = TRANCH_STATE_SELLING;
+        _setTranchState(i, TRANCH_STATE_SELLING);
         // offer tokens in initial sale
         dataUint256[__i(i, "initialSaleOfferId")] = market.offer(
           totalSupply, tranchAddress, totalPrice, dataAddress["unit"], 0, false
@@ -410,17 +410,14 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
       }
 
       // set policy state to PENDING
-      dataUint256["state"] = POLICY_STATE_SELLING;
-
-      emit BeginSale(address(this), msg.sender);
+      _setPolicyState(POLICY_STATE_SELLING);
     }
   }
 
   function _activatePolicyIfPending() private {
     // make policy active if necessary
     if (dataUint256["state"] == POLICY_STATE_SELLING) {
-      dataUint256["state"] = POLICY_STATE_ACTIVE;
-      emit PolicyActive(address(this), msg.sender);
+      _setPolicyState(POLICY_STATE_ACTIVE);
     }
   }
 
@@ -431,19 +428,18 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
 
       // if tranch not yet fully sold OR if a payment has been missed
       if (state == TRANCH_STATE_SELLING || 0 < _getNumberOfTranchPaymentsMissed(i)) {
+        // set state to cancelled
+        // (do this before cancelling market order otherwise _transfer() logic goes haywire)
+        _setTranchState(i, TRANCH_STATE_CANCELLED);
         // cancel any outstanding market order
         _cancelTranchMarketOffer(i);
-        // set state to cancelled
-        dataUint256[__i(i, "state")] = TRANCH_STATE_CANCELLED;
       }
     }
   }
 
 
   function _closePolicy () private {
-    if (dataUint256["state"] != POLICY_STATE_MATURED) {
-      dataUint256["state"] = POLICY_STATE_MATURED;
-    }
+    _setPolicyState(POLICY_STATE_MATURED);
 
     // if no pending claims AND we haven't yet initiated tranch buyback
     if (0 == dataUint256["claimsPendingCount"] && !dataBool["buybackInitiated"]) {
@@ -456,7 +452,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
       // buy back all tranch tokens
       for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
         if (dataUint256[__i(i, "state")] == TRANCH_STATE_ACTIVE) {
-          dataUint256[__i(i, "state")] = TRANCH_STATE_MATURED;
+          _setTranchState(i, TRANCH_STATE_MATURED);
         }
 
         address unitAddress = dataAddress["unit"];
@@ -522,6 +518,20 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     uint256 done = dataUint256[__i(_index, "premiumsPaid")];
 
     return (done >= premiums.length);
+  }
+
+  function _setPolicyState (uint256 _newState) private {
+    if (dataUint256["state"] != _newState) {
+      dataUint256["state"] = _newState;
+      emit PolicyStateUpdated(_newState, msg.sender);
+    }
+  }
+
+  function _setTranchState (uint256 _tranchIndex, uint256 _newState) private {
+    if (dataUint256[__i(_tranchIndex, "state")] != _newState) {
+      dataUint256[__i(_tranchIndex, "state")] = _newState;
+      emit TranchStateUpdated(_tranchIndex, _newState, msg.sender);
+    }
   }
 
   // Sub-delegates

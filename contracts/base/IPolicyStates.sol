@@ -11,4 +11,7 @@ contract IPolicyStates {
   uint256 constant public TRANCH_STATE_ACTIVE = 2;
   uint256 constant public TRANCH_STATE_MATURED = 3;
   uint256 constant public TRANCH_STATE_CANCELLED = 4;
+
+  event PolicyStateUpdated (uint256 indexed state, address indexed caller);
+  event TranchStateUpdated (uint256 indexed tranchIndex, uint256 indexed state, address indexed caller);
 }

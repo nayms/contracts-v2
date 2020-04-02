@@ -360,8 +360,6 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
       if (dataUint256[fromKey] == 0) {
         // flip tranch state to ACTIVE
         dataUint256[__i(_index, "state")] = TRANCH_STATE_ACTIVE;
-        // clear offer id (market has already deleted offer since it has been fulfilled)
-        dataUint256[__i(_index, "initialSaleOfferId")] = 0;
       }
     }
   }
@@ -374,8 +372,6 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     if (market.isActive(initialSaleOfferId)) {
       market.cancel(initialSaleOfferId);
     }
-
-    dataUint256[__i(_index, "initialSaleOfferId")] = 0;
   }
 
 

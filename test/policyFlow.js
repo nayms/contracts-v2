@@ -457,7 +457,7 @@ contract('Policy flow', accounts => {
 
       it('and the market offer is closed', async () => {
         await policy.getTranchInfo(0).should.eventually.matchObj({
-          initialSaleOfferId_: 0,
+          initialSaleOfferId_: marketOfferId,
         })
         await market.isActive(marketOfferId).should.eventually.eq(false)
       })
@@ -508,10 +508,10 @@ contract('Policy flow', accounts => {
         await policy.checkAndUpdateState()
 
         await policy.getTranchInfo(0).should.eventually.matchObj({
-          initialSaleOfferId_: 0,
+          initialSaleOfferId_: offerId0,
         })
         await policy.getTranchInfo(1).should.eventually.matchObj({
-          initialSaleOfferId_: 0,
+          initialSaleOfferId_: offerId1,
         })
 
         await market.isActive(offerId0).should.eventually.eq(false)

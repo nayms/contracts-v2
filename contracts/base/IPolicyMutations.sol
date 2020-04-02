@@ -9,4 +9,10 @@ interface IPolicyMutations {
     address _assetManagerEntity, address _assetManager,
     address _brokerEntity, address _broker
   ) external;
+
+  event NewClaim(uint256 indexed tranchIndex, uint256 indexed claimIndex, address indexed caller);
+  event ClaimApproved(uint256 indexed tranchIndex, uint256 indexed claimIndex, address indexed caller);
+  event ClaimDeclined(uint256 indexed tranchIndex, uint256 indexed claimIndex, address indexed caller);
+  event PaidClaims(address indexed caller);
+  event PaidCommissions(address indexed assetManagerEntity, address indexed brokerEntity, address indexed caller);
 }

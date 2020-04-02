@@ -229,10 +229,8 @@ contract('Policy flow', accounts => {
 
           const result = await policy.checkAndUpdateState()
 
-          expect(extractEventArgs(result, events.PolicyStateUpdated)).to.include({
-            state: POLICY_STATE_SELLING,
-            caller: accounts[0],
-          })
+          const ev = extractEventArgs(result, events.PolicyStateUpdated)
+          expect(ev.state).to.eq(POLICY_STATE_SELLING.toString())
 
           await tranchTokens[0].balanceOf(market.address).should.eventually.eq(100)
           await tranchTokens[1].balanceOf(market.address).should.eventually.eq(50)
@@ -559,9 +557,8 @@ contract('Policy flow', accounts => {
         it('and it emits an event', async () => {
           const result = await policy.checkAndUpdateState()
 
-          expect(extractEventArgs(result, events.PolicyStateUpdated)).to.include({
-            state: POLICY_STATE_ACTIVE,
-          })
+          const ev = extractEventArgs(result, events.PolicyStateUpdated)
+          expect(ev.state).to.eq(POLICY_STATE_ACTIVE.toString())
         })
       })
 
@@ -593,9 +590,12 @@ contract('Policy flow', accounts => {
           // end sale
           const result = await policy.checkAndUpdateState()
 
-          expect(extractEventArgs(result, events.PolicyActive)).to.include({
-            policy: policy.address,
-          })
+          const evs = parseEvents(result, events.TranchStateUpdated)
+          expect(evs.length).to.eq(2)
+
+          const evsStates = evs.map(e => e.args.state)
+          expect(evsStates[0]).to.eq(TRANCH_STATE_CANCELLED.toString())
+          expect(evsStates[1]).to.eq(TRANCH_STATE_CANCELLED.toString())
         })
       })
 
@@ -638,9 +638,12 @@ contract('Policy flow', accounts => {
           // end sale
           const result = await policy.checkAndUpdateState()
 
-          expect(extractEventArgs(result, events.PolicyActive)).to.include({
-            policy: policy.address,
-          })
+          const evs = parseEvents(result, events.TranchStateUpdated)
+          expect(evs.length).to.eq(1)
+
+          const [ ev ] = evs
+          expect(ev.args.state).to.eq(TRANCH_STATE_CANCELLED.toString())
+          expect(ev.args.tranchIndex).to.eq('1')
         })
       })
 
@@ -732,8 +735,6 @@ contract('Policy flow', accounts => {
       await policy.getTranchInfo(1).should.eventually.matchObj({
         state_: TRANCH_STATE_ACTIVE,
       })
-
-      expect(extractEventArgs(result, events.PolicyActive)).to.eq(null)
     })
 
     it('and it still stays active if any tranch premium payments have been missed, though that tranch gets cancelled', async () => {
@@ -749,8 +750,6 @@ contract('Policy flow', accounts => {
       await policy.getTranchInfo(1).should.eventually.matchObj({
         state_: TRANCH_STATE_CANCELLED,
       })
-
-      expect(extractEventArgs(result, events.PolicyActive)).to.eq(null)
     })
 
     describe('claims can be made', () => {

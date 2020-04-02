@@ -615,6 +615,15 @@ contract('Policy', accounts => {
             await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6]).should.be.rejectedWith('must have role in broker entity')
           })
 
+          it('and emits an event', async () => {
+            const ret = await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6])
+
+            expect(extractEventArgs(ret, events.PaidCommissions)).to.include({
+              assetManagerEntity: entity.address,
+              brokerEntity: entity.address
+            })
+          })
+
           it('and gets transferred', async () => {
             const preBalance = (await etherToken.balanceOf(entity.address)).toNumber()
 
@@ -923,6 +932,15 @@ contract('Policy', accounts => {
             await policy.makeClaim(1, entity.address, 1, { from: clientManagerAddress }).should.be.fulfilled
           })
 
+          it('emits an event', async () => {
+            const ret = await policy.makeClaim(0, entity.address, 4, { from: clientManagerAddress })
+
+            expect(extractEventArgs(ret, events.NewClaim)).to.include({
+              tranchIndex: '0',
+              claimIndex: '0'
+            })
+          })
+
           it('claim updates internal stats', async () => {
             await policy.makeClaim(0, entity.address, 4, { from: clientManagerAddress }).should.be.fulfilled
             await policy.makeClaim(1, entity.address, 1, { from: clientManagerAddress }).should.be.fulfilled
@@ -996,6 +1014,14 @@ contract('Policy', accounts => {
               await policy.makeClaim(0, entity.address, tranchBalance, { from: clientManagerAddress }).should.be.fulfilled
             })
 
+            it('emits an event', async () => {
+              const ret = await policy.declineClaim(0, { from: assetManagerAddress })
+
+              expect(extractEventArgs(ret, events.ClaimDeclined)).to.include({
+                claimIndex: '0'
+              })
+            })
+
             it('updates internal stats', async () => {
               await policy.declineClaim(0, { from: assetManagerAddress }).should.be.fulfilled
 
@@ -1064,6 +1090,14 @@ contract('Policy', accounts => {
               await policy.approveClaim(0, { from: assetManagerAddress }).should.be.rejectedWith('already declined')
             })
 
+            it('emits an event', async () => {
+              const ret = await policy.approveClaim(0, { from: assetManagerAddress })
+
+              expect(extractEventArgs(ret, events.ClaimApproved)).to.include({
+                claimIndex: '0'
+              })
+            })
+
             it('updates internal stats', async () => {
               await policy.approveClaim(0, { from: assetManagerAddress }).should.be.fulfilled
 
@@ -1115,6 +1149,12 @@ contract('Policy', accounts => {
               await policy.approveClaim(0, { from: assetManagerAddress })
               await policy.declineClaim(1, { from: assetManagerAddress })
               await policy.approveClaim(2, { from: assetManagerAddress })
+            })
+
+            it('and an event gets emitted', async () => {
+              const ret = await policy.payClaims()
+
+              expect(extractEventArgs(ret, events.PaidClaims)).to.exist
             })
 
             it('and the payout goes to the client manager entities', async () => {

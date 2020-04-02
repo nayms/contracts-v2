@@ -758,30 +758,35 @@ contract('Policy flow', accounts => {
         await policy.payTranchPremium(1)
 
         await policy.checkAndUpdateState()
-
-        await policy.makeClaim(0, entity.address, 1, { from: clientManager })
-        await policy.makeClaim(0, entity.address, 2, { from: clientManager })
-        await policy.makeClaim(1, entity.address, 4, { from: clientManager })
-        await policy.makeClaim(1, entity.address, 7, { from: clientManager })
       })
 
-      it('which can then be approved or declined', async () => {
-        await policy.declineClaim(0, { from: assetManager })
-        await policy.approveClaim(1, { from: assetManager })
-      })
+      describe('and once made', () => {
+        beforeEach(async () => {
+          await policy.makeClaim(0, entity.address, 1, { from: clientManager })
+          await policy.makeClaim(0, entity.address, 2, { from: clientManager })
+          await policy.makeClaim(1, entity.address, 4, { from: clientManager })
+          await policy.makeClaim(1, entity.address, 7, { from: clientManager })
+        })
 
-      it('and approved ones can be paid out', async () => {
-        await policy.declineClaim(0, { from: assetManager })
-        await policy.approveClaim(1, { from: assetManager })
-        await policy.approveClaim(3, { from: assetManager })
+        it('they can then be approved or declined', async () => {
+          await policy.declineClaim(0, { from: assetManager })
+          await policy.makeClaim(0, entity.address, 1, { from: clientManager })
+          await policy.approveClaim(1, { from: assetManager })
+        })
 
-        const preBalance = ((await etherToken.balanceOf(entity.address)).toNumber())
+        it('and approved ones can be paid out', async () => {
+          await policy.declineClaim(0, { from: assetManager })
+          await policy.approveClaim(1, { from: assetManager })
+          await policy.approveClaim(3, { from: assetManager })
 
-        await policy.payClaims()
+          const preBalance = ((await etherToken.balanceOf(entity.address)).toNumber())
 
-        const postBalance = ((await etherToken.balanceOf(entity.address)).toNumber())
+          await policy.payClaims()
 
-        expect(postBalance - preBalance).to.eq(9)
+          const postBalance = ((await etherToken.balanceOf(entity.address)).toNumber())
+
+          expect(postBalance - preBalance).to.eq(9)
+        })
       })
     })
 

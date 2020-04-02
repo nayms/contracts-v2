@@ -72,4 +72,6 @@ contract IPolicyImpl is IPolicyMutations {
     address indexed initialBalanceHolder,
     uint256 index
   );
+
+  event PremiumPayment (uint256 indexed tranchIndex, uint256 indexed amount, address indexed caller);
 }

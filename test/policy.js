@@ -484,6 +484,21 @@ contract('Policy', accounts => {
           await policy.payTranchPremium(0).should.be.rejectedWith('amount exceeds balance')
         })
 
+        it('emits an event', async () => {
+          await createTranch(policy, {
+            premiums: [2, 3, 4]
+          }, { from: policyOwnerAddress })
+
+          await etherToken.deposit({ value: 2 })
+          await etherToken.approve(policy.address, 2)
+          const ret = await policy.payTranchPremium(0)
+
+          expect(extractEventArgs(ret, events.PremiumPayment)).to.include({
+            tranchIndex: '0',
+            amount: '2',
+          })
+        })
+
         it('updates the internal stats once first payment is made', async () => {
           await createTranch(policy, {
             premiums: [2, 3, 4]

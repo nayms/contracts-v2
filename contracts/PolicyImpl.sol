@@ -185,6 +185,8 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     // add to tranch balance
     uint256 tranchBalanceDelta = expectedAmount.sub(brokerCommission.add(assetManagerCommission).add(naymsCommission));
     dataUint256[__i(_index, "balance")] = dataUint256[__i(_index, "balance")].add(tranchBalanceDelta);
+
+    emit PremiumPayment(_index, expectedAmount, msg.sender);
   }
 
   function getCommissionBalances() public view returns (

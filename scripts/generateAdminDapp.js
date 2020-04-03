@@ -7,6 +7,7 @@ const fs = require('fs')
 const path = require('path')
 
 const projectDir = path.join(__dirname, '..')
+const { ROLES } = require(path.join(projectDir, 'utils', 'constants.js'))
 const addresses = require(path.join(projectDir, 'deployedAddresses.json'))
 const dapp = require(path.join(projectDir, 'contracts', 'admin.json'))
 
@@ -20,5 +21,14 @@ Object.keys(addresses).forEach(contractName => {
     dapp.constants[n][networkId] = addresses[contractName][networkId].address
   })
 })
+
+dapp.constants.roles = {
+  default: Object.keys(ROLES).map(name => {
+    return {
+      label: name,
+      value: ROLES[name],
+    }
+  })
+}
 
 fs.writeFileSync(path.join(projectDir, 'dapp-generated.json'), JSON.stringify(dapp, null, 2), 'utf-8')

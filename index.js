@@ -24,7 +24,7 @@ const coreContracts = [
 }, {})
 
 const extractEventsFromAbis = abis => abis.reduce((output, contract) => {
-  contract.abi.filter(({ type, name }) => type === 'event').forEach(e => {
+  contract.abi.filter(({ type }) => type === 'event').forEach(e => {
     if (!output[e.name]) {
       output[e.name] = e
     }
@@ -36,7 +36,7 @@ module.exports = {
   addresses: deployedAddresses,
   contracts: coreContracts,
   rawContracts,
-  events: extractEventsFromAbis(Object.values(coreContracts)),
+  events: extractEventsFromAbis(Object.values(rawContracts)),
   extractEventsFromAbis,
   ROLES,
   ROLEGROUPS,

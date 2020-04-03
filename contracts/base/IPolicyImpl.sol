@@ -73,6 +73,5 @@ contract IPolicyImpl is IPolicyMutations {
     uint256 index
   );
 
-  event BeginSale(address indexed policy, address indexed caller);
-  event PolicyActive(address indexed policy, address indexed caller);
+  event PremiumPayment (uint256 indexed tranchIndex, uint256 indexed amount, address indexed caller);
 }

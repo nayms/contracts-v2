@@ -16,6 +16,14 @@
     },
     "matchingMarketAddress": {
       "default": ""
+    },
+    "roles": {
+      "default": [
+        {
+          "label": "invalid",
+          "value": "invalid"
+        }
+      ]
     }
   },
   "panels": [
@@ -84,7 +92,13 @@
         {
           "title": "Current time",
           "type": "address",
-          "value": "@input[getTime]"
+          "value": "@input[getTime]",
+          "transform": [
+            {
+              "type": "intToDateString",
+              "format": "MMM dd, yyyy - HH:mm:ss"
+            }
+          ]
         },
         {
           "title": "Matching market",
@@ -369,36 +383,41 @@
           ]
         },
         {
-          "name": "context",
-          "title": "Context",
-          "type": "string",
-          "validation": [
-            {
-              "type": "length",
-              "min": "0"
-            }
-          ]
+          "name": "contextAddress",
+          "title": "Context address",
+          "type": "address"
         },
         {
-          "name": "address",
-          "title": "Address",
+          "name": "userAddress",
+          "title": "User address",
           "type": "address"
         },
         {
           "name": "role",
           "title": "Role",
-          "type": "bytes32"
+          "type": "bytes32",
+          "options": "@constant[roles]"
         }
       ],
       "execs": [
+        {
+          "type": "call",
+          "contract": "ACL",
+          "method": "generateContextFromAddress",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_addr": "@input[contextAddress]"
+          },
+          "saveResultAsInput": "generatedContext"
+        },
         {
           "type": "send",
           "contract": "ACL",
           "method": "assignRole",
           "address": "@input[contractAddress]",
           "args": {
-            "_context": "@input[context]",
-            "_addr": "@input[address]",
+            "_context": "@input[generatedContext]",
+            "_addr": "@input[userAddress]",
             "_role": "@input[role]"
           }
         }
@@ -422,37 +441,41 @@
           ]
         },
         {
-          "name": "context",
-          "title": "Context",
-          "type": "bytes32",
-          "placeholder": "A bytes32 value",
-          "validation": [
-            {
-              "type": "length",
-              "min": "0"
-            }
-          ]
+          "name": "contextAddress",
+          "title": "Context address",
+          "type": "address"
         },
         {
-          "name": "address",
-          "title": "Address",
+          "name": "userAddress",
+          "title": "User address",
           "type": "address"
         },
         {
           "name": "role",
           "title": "Role",
-          "type": "bytes32"
+          "type": "bytes32",
+          "options": "@constant[roles]"
         }
       ],
       "execs": [
+        {
+          "type": "call",
+          "contract": "ACL",
+          "method": "generateContextFromAddress",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_addr": "@input[contextAddress]"
+          },
+          "saveResultAsInput": "generatedContext"
+        },
         {
           "type": "send",
           "contract": "ACL",
           "method": "unassignRole",
           "address": "@input[contractAddress]",
           "args": {
-            "_context": "@input[context]",
-            "_addr": "@input[address]",
+            "_context": "@input[generatedContext]",
+            "_addr": "@input[userAddress]",
             "_role": "@input[role]"
           }
         }
@@ -475,16 +498,9 @@
           ]
         },
         {
-          "name": "context",
-          "title": "Context",
-          "type": "bytes32",
-          "placeholder": "A bytes32 value",
-          "validation": [
-            {
-              "type": "length",
-              "min": "0"
-            }
-          ]
+          "name": "contextAddress",
+          "title": "Context address",
+          "type": "address"
         },
         {
           "name": "address",
@@ -494,17 +510,28 @@
         {
           "name": "role",
           "title": "Role",
-          "type": "bytes32"
+          "type": "bytes32",
+          "options": "@constant[roles]"
         }
       ],
       "execs": [
         {
           "type": "call",
           "contract": "ACL",
+          "method": "generateContextFromAddress",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_addr": "@input[contextAddress]"
+          },
+          "saveResultAsInput": "generatedContext"
+        },
+        {
+          "type": "call",
+          "contract": "ACL",
           "method": "hasRole",
           "address": "@input[contractAddress]",
           "args": {
-            "_context": "@input[context]",
+            "_context": "@input[generatedContext]",
             "_addr": "@input[address]",
             "_role": "@input[role]"
           },
@@ -693,22 +720,51 @@
         {
           "title": "State",
           "type": "int",
-          "value": "@input[policyInfo][state_]"
+          "value": "@input[policyInfo][state_]",
+          "transform": [
+            {
+              "type": "toMappedString",
+              "options": {
+                "0": "Created",
+                "1": "Initial sale",
+                "2": "Active",
+                "3": "Matured"
+              }
+            }
+          ]
         },
         {
           "title": "Initiation date",
           "type": "int",
-          "value": "@input[policyInfo][initiationDate_]"
+          "value": "@input[policyInfo][initiationDate_]",
+          "transform": [
+            {
+              "type": "intToDateString",
+              "format": "MMM dd, yyyy - HH:mm:ss"
+            }
+          ]
         },
         {
           "title": "Start date",
           "type": "int",
-          "value": "@input[policyInfo][startDate_]"
+          "value": "@input[policyInfo][startDate_]",
+          "transform": [
+            {
+              "type": "intToDateString",
+              "format": "MMM dd, yyyy - HH:mm:ss"
+            }
+          ]
         },
         {
           "title": "Maturation date",
           "type": "int",
-          "value": "@input[policyInfo][maturationDate_]"
+          "value": "@input[policyInfo][maturationDate_]",
+          "transform": [
+            {
+              "type": "intToDateString",
+              "format": "MMM dd, yyyy - HH:mm:ss"
+            }
+          ]
         },
         {
           "title": "Premium interval (seconds)",
@@ -780,7 +836,19 @@
         {
           "title": "State",
           "type": "int",
-          "value": "@input[tranchInfo][state_]"
+          "value": "@input[tranchInfo][state_]",
+          "transform": [
+            {
+              "type": "toMappedString",
+              "options": {
+                "0": "Created",
+                "1": "Initial sale",
+                "2": "Active",
+                "3": "Matured",
+                "4": "Cancelled"
+              }
+            }
+          ]
         },
         {
           "title": "Balance (payment unit tokens)",

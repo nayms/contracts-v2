@@ -60,7 +60,6 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     public
     assertCanCreateTranch
     assertCreatedState
-    returns (uint256)
   {
     require(_numShares > 0, 'invalid num of shares');
     require(_pricePerShareAmount > 0, 'invalid price');
@@ -95,9 +94,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     string memory addressKey = __i(i, "address");
     dataAddress[addressKey] = address(t);
 
-    emit CreateTranch(address(this), address(t), dataAddress[initialHolderKey], i);
-
-    return i;
+    emit CreateTranch(address(t), dataAddress[initialHolderKey], i);
   }
 
   function getInfo () public view returns (
@@ -289,7 +286,6 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
 
 
   function calculateMaxNumOfPremiums() public view returns (uint256) {
-    // first 2 payments + (endDate - startDate) / paymentInterval - 1
     return (dataUint256["maturationDate"] - dataUint256["initiationDate"]) / dataUint256["premiumIntervalSeconds"] + 1;
   }
 

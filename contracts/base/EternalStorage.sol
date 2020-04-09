@@ -1,5 +1,8 @@
 pragma solidity >=0.5.8;
 
+/**
+ * @dev Base contract for any upgradeable contract that wishes to store data.
+ */
 contract EternalStorage {
   // scalars
   mapping(string => address) dataAddress;

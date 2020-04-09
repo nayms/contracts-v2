@@ -29,7 +29,7 @@ interface IEtherToken {
   event Deposit(address indexed sender, uint value);
   /**
    * @dev Emitted when tokens are burnt and ETH is withdrawn.
-   * @param sender The account.
+   * @param receiver The account.
    * @param value The amount withdrawn/burnt.
    */
   event Withdrawal(address indexed receiver, uint value);

@@ -6,14 +6,14 @@ pragma solidity >=0.5.8;
 interface IEntityImpl {
   /**
    * @dev Create a new policy.
-   * @param _initiationDate The initiation date.
-   * @param _startDate The start date.
-   * @param _maturationDate The maturation date.
+   * @param _initiationDate The initiation date (seconds since epoch).
+   * @param _startDate The start date (seconds since epoch).
+   * @param _maturationDate The maturation date (seconds since epoch).
    * @param _unit The payment unit.
    * @param _premiumIntervalSeconds The time between successive premium payments (seconds).
-   * @param _brokerCommission The commission to pay the broker (1 = 0.1%)
-   * @param _assetManagerCommission The commission to pay the asset manager (1 = 0.1%)
-   * @param _naymsCommission The commission to pay Nayms (1 = 0.1%)
+   * @param _brokerCommissionBP The commission to pay the broker (1 = 0.1%)
+   * @param _assetManagerCommissionBP The commission to pay the asset manager (1 = 0.1%)
+   * @param _naymsCommissionBP The commission to pay Nayms (1 = 0.1%)
    */
   function createPolicy(
     uint256 _initiationDate,

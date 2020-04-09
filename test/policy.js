@@ -268,8 +268,7 @@ contract('Policy', accounts => {
         const { token_: addr } = await policy.getTranchInfo(0)
         expect(addr.length).to.eq(42)
 
-        expect(log.args.policy).to.eq(policy.address)
-        expect(log.args.tranch).to.eq(addr)
+        expect(log.args.token).to.eq(addr)
         expect(log.args.initialBalanceHolder).to.eq(policy.address)
         expect(log.args.index).to.eq('0')
 

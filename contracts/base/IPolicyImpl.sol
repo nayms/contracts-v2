@@ -24,9 +24,9 @@ contract IPolicyImpl is IPolicyMutations {
   /**
    * @dev Get policy info.
    *
-   * @return initiationDate_ Initiation date (when initial should begin).
-   * @return startDate_ Start date (once initial sale is complete).
-   * @return maturationDate_ Maturation date.
+   * @return initiationDate_ Initiation date  (seconds since epoch).
+   * @return startDate_ Start date  (seconds since epoch).
+   * @return maturationDate_ Maturation date (seconds since epoch).
    * @return unit_ Payment unit (for tranch sale, premiums, claim payouts, etc).
    * @return premiumIntervalSeconds_ Time between premium payments (seconds).
    * @return brokerCommissionBP_ Broker's commission rate (1 = 0.1%)

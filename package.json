@@ -70,7 +70,6 @@
     "solc": ">=0.5.8",
     "solgraph": "^0.3.2",
     "solhint": "^2.2.0",
-    "solidity-docgen": "^0.3.14",
     "solidity-coverage": "^0.7.2",
     "truffle": "^5.0.40",
     "truffle-hdwallet-provider": "^1.0.0-web3one.0",

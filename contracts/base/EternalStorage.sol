@@ -1,9 +1,7 @@
 pragma solidity >=0.5.8;
 
 /**
- * @dev Base contract for any contract that wishes to store information.
- *
- * This is particularly important for contracts that intend to be upgradeable.
+ * @dev Base contract for any upgradeable contract that wishes to store data.
  */
 contract EternalStorage {
   // scalars

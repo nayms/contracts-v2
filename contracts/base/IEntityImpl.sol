@@ -1,5 +1,8 @@
 pragma solidity >=0.5.8;
 
+/**
+ * @dev Entities.
+ */
 interface IEntityImpl {
   /**
    * @dev Create a new policy.

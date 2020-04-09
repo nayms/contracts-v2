@@ -1,7 +1,7 @@
 pragma solidity >=0.5.8;
 
 /**
- * Implements logic for tranch token
+ * @dev Tranch token helpers
  */
 interface ITranchTokenHelper {
   // ERC-20 queries

@@ -94,7 +94,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     string memory addressKey = __i(i, "address");
     dataAddress[addressKey] = address(t);
 
-    emit CreateTranch(address(this), address(t), dataAddress[initialHolderKey], i);
+    emit CreateTranch(address(t), dataAddress[initialHolderKey], i);
   }
 
   function getInfo () public view returns (

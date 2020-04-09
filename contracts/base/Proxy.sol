@@ -5,14 +5,10 @@ import "./IProxyImpl.sol";
 import "./ECDSA.sol";
 
 /*
-TODO: what do we need in an upgradeable contract?
-
-* ability to get owner to opt-in to allow upgrades
-* ability to get/set implementation, protected by admin access
-* ability to delegate all calls to implementation
-
-Based on https://github.com/zeppelinos/labs/blob/master/upgradeability_using_eternal_storage/contracts
-*/
+ * Base for upgradeable contracts.
+ *
+ * Based onhttps://github.com/zeppelinos/labs/blob/master/upgradeability_using_eternal_storage/contracts
+ */
 contract Proxy is EternalStorage {
   /**
   * @dev This event will be emitted every time the implementation gets upgraded
@@ -22,6 +18,7 @@ contract Proxy is EternalStorage {
 
   /**
    * Constructor.
+   * @param _implementation The initial implementation.
    */
   constructor (address _implementation) public {
     require(_implementation != address(0), 'implementation must be valid');
@@ -38,7 +35,10 @@ contract Proxy is EternalStorage {
 
   /**
    * @dev Point to a new implementation.
+   *
    * This is internal so that descendants can control access to this in custom ways.
+   *
+   * @param _implementation The new implementation.
    */
   function setImplementation(address _implementation) internal {
     require(_implementation != address(0), 'implementation must be valid');
@@ -51,7 +51,14 @@ contract Proxy is EternalStorage {
     emit Upgraded(_implementation, version);
   }
 
-  function getUpgradeSigner(address _implementation, bytes memory _signature) pure internal returns (address) {
+  /**
+   * @dev Get signer of given upgrade authorization.
+   *
+   * @param _implementation The new implementation.
+   * @param _signature Upgrade auth signature.
+   * @return The signer, or empty address if invalid signature.
+   */
+  function getUpgradeSigner(address _implementation, bytes memory _signature) internal pure returns (address) {
     require(_implementation != address(0), 'implementation must be valid');
 
     // get implementation version

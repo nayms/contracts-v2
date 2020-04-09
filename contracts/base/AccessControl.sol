@@ -107,7 +107,7 @@ contract AccessControl is EternalStorage {
   }
 
   /**
-   * @dev Get reference to the ACL.
+   * @dev Get ACL reference.
    * @return ACL reference.
    */
   function acl () internal view returns (IACL) {

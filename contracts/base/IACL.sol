@@ -1,7 +1,7 @@
 pragma solidity >=0.5.8;
 
 /**
- * @dev ACL (Access Control List) interface.
+ * @dev ACL (Access Control List).
  */
 interface IACL {
   // admin
@@ -181,6 +181,7 @@ interface IACL {
 
   /**
    * @dev Generate the context name which represents the given address.
+   *
    * @param _addr Address.
    * @return context name.
    */

@@ -1,5 +1,8 @@
 pragma solidity >=0.5.8;
 
+/**
+ * @dev Entity deployer.
+ */
 interface IEntityDeployer {
   /**
    * @dev Deploy a new entity.

@@ -1,8 +1,11 @@
 pragma solidity >=0.5.8;
 
+/**
+ * @dev Our Wrapped ETH implementation.
+ *
+ * See https://github.com/gnosis/util-contracts/blob/master/contracts/EtherToken.sol
+ */
 interface IEtherToken {
-  // From: https://github.com/gnosis/util-contracts/blob/master/contracts/EtherToken.sol
-
   /**
    * @dev Deposit ETH and mint tokens.
    *

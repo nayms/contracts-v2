@@ -1,7 +1,9 @@
 pragma solidity >=0.5.8;
 
 /**
- * Interface derived from MatchingMarket - https://github.com/nayms/maker-otc
+ * @dev Matching market.
+ *
+ * Derived from https://github.com/nayms/maker-otc
  */
 interface IMarket {
   /**

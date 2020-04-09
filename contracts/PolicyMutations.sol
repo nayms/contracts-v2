@@ -70,6 +70,8 @@ contract PolicyMutations is EternalStorage, Controller, IPolicyMutations, IPolic
 
     dataUint256["claimsCount"] = claimIndex + 1;
     dataUint256["claimsPendingCount"] += 1;
+
+    emit NewClaim(_index, claimIndex, msg.sender);
   }
 
   function approveClaim(uint256 _claimIndex)
@@ -90,6 +92,8 @@ contract PolicyMutations is EternalStorage, Controller, IPolicyMutations, IPolic
     uint256 claimTranch = dataUint256[__i(_claimIndex, "claimTranch")];
 
     dataUint256[__i(claimTranch, "balance")] = dataUint256[__i(claimTranch, "balance")].sub(claimAmount);
+
+    emit ClaimApproved(_claimIndex, msg.sender);
   }
 
 
@@ -105,6 +109,8 @@ contract PolicyMutations is EternalStorage, Controller, IPolicyMutations, IPolic
     // mark claim as declined
     dataBool[__i(_claimIndex, "claimDeclined")] = true;
     dataUint256["claimsPendingCount"] -= 1;
+
+    emit ClaimDeclined(_claimIndex, msg.sender);
   }
 
 
@@ -121,6 +127,8 @@ contract PolicyMutations is EternalStorage, Controller, IPolicyMutations, IPolic
         dataBool[__i(i, "claimPaid")] = true;
       }
     }
+
+    emit PaidClaims(msg.sender);
   }
 
   function payCommissions (
@@ -153,6 +161,8 @@ contract PolicyMutations is EternalStorage, Controller, IPolicyMutations, IPolic
 
     tkn.transfer(naymsEntity, dataUint256["naymsCommissionBalance"]);
     dataUint256["naymsCommissionBalance"] = 0;
+
+    emit PaidCommissions(_assetManagerEntity, _brokerEntity, msg.sender);
   }
 
   // Internal methods

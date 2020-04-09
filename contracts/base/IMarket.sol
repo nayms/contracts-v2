@@ -53,4 +53,18 @@ interface IMarket {
    * @return true if active, false otherwise.
    */
   function isActive(uint id) external view returns (bool);
+  /**
+   * @dev Get offer creator.
+   *
+   * @param id Offer id.
+   * @return Address that created the offer.
+   */
+  function getOwner(uint id) external view returns (address);
+  /**
+   * @dev Get offer details.
+   *
+   * @param id Offer id.
+   * @return (pay amount, pay token, buy amount, buy token)
+   */
+  function getOffer(uint id) external view returns (uint, address, uint, address);
 }

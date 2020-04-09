@@ -34,11 +34,6 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     _;
   }
 
-  modifier assertIsAssetManager (address _addr) {
-    require(inRoleGroup(_addr, ROLEGROUP_ASSET_MANAGERS), 'must be asset manager');
-    _;
-  }
-
   /**
    * Constructor
    */
@@ -55,13 +50,6 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
 
   // IPolicyImpl //
 
-  function getStartDate () public view returns (uint256) {
-    return dataUint256["startDate"];
-  }
-
-  function getState () public view returns (uint256) {
-    return dataUint256["state"];
-  }
 
   function createTranch (
     uint256 _numShares,
@@ -109,8 +97,36 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     emit CreateTranch(address(this), address(t), dataAddress[initialHolderKey], i);
   }
 
-  function getNumTranches () public view returns (uint256) {
-    return dataUint256["numTranches"];
+  function getInfo () public view returns (
+    uint256 initiationDate_,
+    uint256 startDate_,
+    uint256 maturationDate_,
+    address unit_,
+    uint256 premiumIntervalSeconds_,
+    uint256 brokerCommissionBP_,
+    uint256 assetManagerCommissionBP_,
+    uint256 naymsCommissionBP_,
+    uint256 numTranches_,
+    uint256 state_
+  ) {
+    initiationDate_ = dataUint256["initiationDate"];
+    startDate_ = dataUint256["startDate"];
+    maturationDate_ = dataUint256["maturationDate"];
+    unit_ = dataAddress["unit"];
+    premiumIntervalSeconds_ = dataUint256["premiumIntervalSeconds"];
+    brokerCommissionBP_ = dataUint256["brokerCommissionBP"];
+    assetManagerCommissionBP_ = dataUint256["assetManagerCommissionBP"];
+    naymsCommissionBP_ = dataUint256["naymsCommissionBP"];
+    numTranches_ = dataUint256["numTranches"];
+    state_ = dataUint256["state"];
+  }
+
+  function getClaimStats() public view returns (
+    uint256 numClaims_,
+    uint256 numPendingClaims_
+  ) {
+    numClaims_ = dataUint256["claimsCount"];
+    numPendingClaims_ = dataUint256["claimsPendingCount"];
   }
 
   function getTranchInfo (uint256 _index) public view returns (
@@ -166,26 +182,18 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     // add to tranch balance
     uint256 tranchBalanceDelta = expectedAmount.sub(brokerCommission.add(assetManagerCommission).add(naymsCommission));
     dataUint256[__i(_index, "balance")] = dataUint256[__i(_index, "balance")].add(tranchBalanceDelta);
+
+    emit PremiumPayment(_index, expectedAmount, msg.sender);
   }
 
-  function getAssetManagerCommissionBalance () public view returns (uint256) {
-    return dataUint256["assetManagerCommissionBalance"];
-  }
-
-  function getNaymsCommissionBalance () public view returns (uint256) {
-    return dataUint256["naymsCommissionBalance"];
-  }
-
-  function getBrokerCommissionBalance () public view returns (uint256) {
-    return dataUint256["brokerCommissionBalance"];
-  }
-
-  function getNumberOfClaims () public view returns (uint256) {
-    return dataUint256["claimsCount"];
-  }
-
-  function getNumberOfPendingClaims () public view returns (uint256) {
-    return dataUint256["claimsPendingCount"];
+  function getCommissionBalances() public view returns (
+    uint256 brokerCommissionBalance_,
+    uint256 assetManagerCommissionBalance_,
+    uint256 naymsCommissionBalance_
+  ) {
+    brokerCommissionBalance_ = dataUint256["brokerCommissionBalance"];
+    assetManagerCommissionBalance_ = dataUint256["assetManagerCommissionBalance"];
+    naymsCommissionBalance_ = dataUint256["naymsCommissionBalance"];
   }
 
   function getClaimInfo (uint256 _claimIndex) public view returns (
@@ -346,12 +354,10 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
       // update tranch balance
       dataUint256[__i(_index, "balance")] = dataUint256[__i(_index, "balance")].add(_value * dataUint256[__i(_index, "pricePerShareAmount")]);
 
-      // if the tranch has fully sold out (i.e market no longer holds any tranch tokens)
-      if (dataUint256[fromKey] == 0) {
+      // if the tranch has fully sold out
+      if (dataUint256[__i(_index, "sharesSold")] == dataUint256[__i(_index, "numShares")]) {
         // flip tranch state to ACTIVE
-        dataUint256[__i(_index, "state")] = TRANCH_STATE_ACTIVE;
-        // clear offer id (market has already deleted offer since it has been fulfilled)
-        dataUint256[__i(_index, "initialSaleOfferId")] = 0;
+        _setTranchState(_index, TRANCH_STATE_ACTIVE);
       }
     }
   }
@@ -364,8 +370,6 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     if (market.isActive(initialSaleOfferId)) {
       market.cancel(initialSaleOfferId);
     }
-
-    dataUint256[__i(_index, "initialSaleOfferId")] = 0;
   }
 
 
@@ -373,10 +377,18 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     if (dataUint256["state"] == POLICY_STATE_CREATED) {
       IMarket market = IMarket(settings().getMatchingMarket());
 
+      bool allReady = true;
       // check every tranch
       for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
-        require(0 >= _getNumberOfTranchPaymentsMissed(i), 'tranch premiums are not up-to-date');
+        allReady = allReady && (0 >= _getNumberOfTranchPaymentsMissed(i));
+      }
 
+      // stop processing if some tranch payments have been missed
+      if (!allReady) {
+        return;
+      }
+
+      for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
         // tranch/token address
         address tranchAddress = dataAddress[__i(i, "address")];
         // initial token holder must be contract address
@@ -388,7 +400,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
         uint256 pricePerShare = dataUint256[__i(i, "pricePerShareAmount")];
         uint256 totalPrice = totalSupply.mul(pricePerShare);
         // set tranch state
-        dataUint256[__i(i, "state")] = TRANCH_STATE_SELLING;
+        _setTranchState(i, TRANCH_STATE_SELLING);
         // offer tokens in initial sale
         dataUint256[__i(i, "initialSaleOfferId")] = market.offer(
           totalSupply, tranchAddress, totalPrice, dataAddress["unit"], 0, false
@@ -396,17 +408,14 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
       }
 
       // set policy state to PENDING
-      dataUint256["state"] = POLICY_STATE_SELLING;
-
-      emit BeginSale(address(this), msg.sender);
+      _setPolicyState(POLICY_STATE_SELLING);
     }
   }
 
   function _activatePolicyIfPending() private {
     // make policy active if necessary
     if (dataUint256["state"] == POLICY_STATE_SELLING) {
-      dataUint256["state"] = POLICY_STATE_ACTIVE;
-      emit PolicyActive(address(this), msg.sender);
+      _setPolicyState(POLICY_STATE_ACTIVE);
     }
   }
 
@@ -417,22 +426,21 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
 
       // if tranch not yet fully sold OR if a payment has been missed
       if (state == TRANCH_STATE_SELLING || 0 < _getNumberOfTranchPaymentsMissed(i)) {
+        // set state to cancelled
+        // (do this before cancelling market order otherwise _transfer() logic goes haywire)
+        _setTranchState(i, TRANCH_STATE_CANCELLED);
         // cancel any outstanding market order
         _cancelTranchMarketOffer(i);
-        // set state to cancelled
-        dataUint256[__i(i, "state")] = TRANCH_STATE_CANCELLED;
       }
     }
   }
 
 
   function _closePolicy () private {
-    if (dataUint256["state"] != POLICY_STATE_MATURED) {
-      dataUint256["state"] = POLICY_STATE_MATURED;
-    }
+    _setPolicyState(POLICY_STATE_MATURED);
 
     // if no pending claims AND we haven't yet initiated tranch buyback
-    if (0 == getNumberOfPendingClaims() && !dataBool["buybackInitiated"]) {
+    if (0 == dataUint256["claimsPendingCount"] && !dataBool["buybackInitiated"]) {
       dataBool["buybackInitiated"] = true;
 
       address marketAddress = settings().getMatchingMarket();
@@ -442,7 +450,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
       // buy back all tranch tokens
       for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
         if (dataUint256[__i(i, "state")] == TRANCH_STATE_ACTIVE) {
-          dataUint256[__i(i, "state")] = TRANCH_STATE_MATURED;
+          _setTranchState(i, TRANCH_STATE_MATURED);
         }
 
         address unitAddress = dataAddress["unit"];
@@ -508,6 +516,20 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     uint256 done = dataUint256[__i(_index, "premiumsPaid")];
 
     return (done >= premiums.length);
+  }
+
+  function _setPolicyState (uint256 _newState) private {
+    if (dataUint256["state"] != _newState) {
+      dataUint256["state"] = _newState;
+      emit PolicyStateUpdated(_newState, msg.sender);
+    }
+  }
+
+  function _setTranchState (uint256 _tranchIndex, uint256 _newState) private {
+    if (dataUint256[__i(_tranchIndex, "state")] != _newState) {
+      dataUint256[__i(_tranchIndex, "state")] = _newState;
+      emit TranchStateUpdated(_tranchIndex, _newState, msg.sender);
+    }
   }
 
   // Sub-delegates

@@ -1,11 +1,28 @@
+const path = require('path')
+const fse = require('fs-extra')
+
+const MNEMONIC = (require('./package.json').scripts.devnet.match(/\'(.+)\'/))[1]
+
+console.log(`Mnemonic: [ ${MNEMONIC} ]`)
+
+const projectDir = __dirname
+
 module.exports = {
-  accounts: 10,
-  testrpcOptions: '-p 8555 --gasLimit 17592186044415 -a 50 -m "funny door sample enrich female wedding stereo crane setup shop dwarf dismiss"',
-  compileCommand: '../node_modules/.bin/truffle compile --network coverage && cp maker-otc/build/contracts/MatchingMarket.json build/contracts',
-  testCommand: '../node_modules/.bin/babel-node ../node_modules/.bin/truffle test --network coverage',
+  providerOptions: {
+    total_accounts: 50,
+    port: 8555,
+    mnemonic: MNEMONIC,
+    gasLimit: '0xfffffffffff',
+  },
+  istanbulFolder: './coverage',
+  istanbulReporter: [ 'lcov', 'html' ],
   skipFiles: [
     "base/Address.sol",
     "base/SafeMath.sol",
     "base/ECDSA.sol",
   ],
+  onCompileComplete: () => {
+    console.log('Copying over maker-otc contract artifacts...')
+    fse.copySync(path.join(projectDir, 'maker-otc', 'build', 'contracts', 'MatchingMarket.json'), path.join(projectDir, '.coverage_artifacts', 'contracts', 'MatchingMarket.json'))
+  }
 }

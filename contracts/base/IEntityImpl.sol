@@ -18,9 +18,9 @@ interface IEntityImpl {
     uint256 _maturationDate,
     address _unit,
     uint256 _premiumIntervalSeconds,
-    uint256 _brokerCommission,
-    uint256 _assetManagerCommission,
-    uint256 _naymsCommission
+    uint256 _brokerCommissionBP,
+    uint256 _assetManagerCommissionBP,
+    uint256 _naymsCommissionBP
   ) external;
 
   /**
@@ -53,6 +53,14 @@ interface IEntityImpl {
    * @param _amount Amount to withdraw.
    */
   function withdraw(address _unit, uint256 _amount) external;
+
+  /**
+   * @dev Pay the next expected premium for a tranch using the assets owned by this entity.
+   *
+   * @param _policy Policy which owns the tranch.
+   * @param _tranchIndex Index of the tranch in the policy.
+   */
+  function payTranchPremium(address _policy, uint256 _tranchIndex) external;
 
   /**
    * @dev Trade assets at a specific price-point.

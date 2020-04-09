@@ -38,4 +38,7 @@ contract IPolicyStates {
    * @dev State: The tranch has been cancelled.
    */
   uint256 constant public TRANCH_STATE_CANCELLED = 4;
+
+  event PolicyStateUpdated (uint256 indexed state, address indexed caller);
+  event TranchStateUpdated (uint256 indexed tranchIndex, uint256 indexed state, address indexed caller);
 }

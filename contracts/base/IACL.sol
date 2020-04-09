@@ -186,9 +186,39 @@ interface IACL {
    */
   function generateContextFromAddress (address _addr) external pure returns (bytes32);
 
+  /**
+   * @dev Emitted when a role group gets updated.
+   * @param roleGroup The rolegroup which got updated.
+   */
   event RoleGroupUpdated(bytes32 indexed roleGroup);
+
+  /**
+   * @dev Emitted when a role gets assigned.
+   * @param context The context within which the role got assigned.
+   * @param addr The address the role got assigned to.
+   * @param role The role which got assigned.
+   */
   event RoleAssigned(bytes32 indexed context, address indexed addr, bytes32 indexed role);
+
+  /**
+   * @dev Emitted when a role gets unassigned.
+   * @param context The context within which the role got assigned.
+   * @param addr The address the role got assigned to.
+   * @param role The role which got unassigned.
+   */
   event RoleUnassigned(bytes32 indexed context, address indexed addr, bytes32 indexed role);
+
+  /**
+   * @dev Emitted when a role assigner gets added.
+   * @param role The role that can be assigned.
+   * @param roleGroup The rolegroup that will be able to assign this role.
+   */
   event AssignerAdded(bytes32 indexed role, bytes32 indexed roleGroup);
+
+  /**
+   * @dev Emitted when a role assigner gets removed.
+   * @param role The role that can be assigned.
+   * @param roleGroup The rolegroup that will no longer be able to assign this role.
+   */
   event AssignerRemoved(bytes32 indexed role, bytes32 indexed roleGroup);
 }

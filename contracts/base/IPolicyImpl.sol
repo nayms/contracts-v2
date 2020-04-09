@@ -11,7 +11,7 @@ contract IPolicyImpl is IPolicyMutations {
     uint256 _pricePerShareAmount,
     uint256[] memory _premiums,
     address _initialBalanceHolder
-  ) public returns (uint256);
+  ) public;
 
   function getNumTranches () public view returns (uint256);
 

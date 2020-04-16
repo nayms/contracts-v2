@@ -5,7 +5,7 @@ import "./IPolicyMutations.sol";
 /**
  * @dev Policies.
  */
-contract IPolicyImpl is IPolicyMutations {
+abstract contract IPolicyImpl is IPolicyMutations {
   /**
    * @dev Create tranch.
    *
@@ -19,7 +19,7 @@ contract IPolicyImpl is IPolicyMutations {
     uint256 _pricePerShareAmount,
     uint256[] memory _premiums,
     address _initialBalanceHolder
-  ) public;
+  ) public virtual;
 
   /**
    * @dev Get policy info.
@@ -35,7 +35,7 @@ contract IPolicyImpl is IPolicyMutations {
    * @return numTranches_ No. of tranches created.
    * @return state_ Current policy state.
    */
-  function getInfo () public view returns (
+  function getInfo () public view virtual returns (
     uint256 initiationDate_,
     uint256 startDate_,
     uint256 maturationDate_,
@@ -53,7 +53,7 @@ contract IPolicyImpl is IPolicyMutations {
    * @return numClaims_ No. of claims raised in total.
    * @return numPendingClaims_ No. of claims yet to be approved/declined.
    */
-  function getClaimStats() public view returns (
+  function getClaimStats() public view virtual returns (
     uint256 numClaims_,
     uint256 numPendingClaims_
   );
@@ -65,24 +65,47 @@ contract IPolicyImpl is IPolicyMutations {
    * @return token_ Tranch ERC-20 token address.
    * @return state_ Current tranch state.
    * @return balance_ Current tranch balance (of the payment unit)
+   * @return numPremiums_ No. of premium payments required in total.
    * @return nextPremiumAmount_ Payment due by the next premium interval.
+   * @return nextPremiumDueAt_ When the next premium payment is due by (timestamp - seconds since epoch).
    * @return premiumPaymentsMissed_ No. of previous premium payments that have been missed.
    * @return allPremiumsPaid_ Whether all expected premiums have been paid so far.
    * @return sharesSold_ No. of shared sold (during the initial sale period).
    * @return initialSaleOfferId_ Market offer id of the initial sale.
    * @return finalBuybackofferId_ Market offer id of the post-maturation/cancellation token buyback.
    */
-  function getTranchInfo (uint256 _index) public view returns (
+  function getTranchInfo (uint256 _index) public view virtual returns (
     address token_,
     uint256 state_,
     uint256 balance_,
+    uint256 numPremiums_,
     uint256 nextPremiumAmount_,
+    uint256 nextPremiumDueAt_,
     uint256 premiumPaymentsMissed_,
     bool allPremiumsPaid_,
     uint256 sharesSold_,
     uint256 initialSaleOfferId_,
     uint256 finalBuybackofferId_
   );
+
+
+  /**
+   * @dev Get tranch info.
+   *
+   * @param _tranchIndex Tranch index.
+   * @param _premiumIndex Premium index.
+   * @return amount_ Amount due.
+   * @return dueAt_ When it is due by (timestamp - seconds since epoch).
+   * @return paidAt_ When it was paid.
+   * @return paidBy_ Who paid it.
+   */
+  function getTranchPremiumInfo (uint256 _tranchIndex, uint256 _premiumIndex) public view virtual returns (
+    uint256 amount_,
+    uint256 dueAt_,
+    uint256 paidAt_,
+    address paidBy_
+  );
+
 
   /**
    * @dev Get accumulated commission balances.
@@ -93,7 +116,7 @@ contract IPolicyImpl is IPolicyMutations {
    * @return assetManagerCommissionBalance_ Currently accumulated asset manager commission.
    * @return naymsCommissionBalance_ Currently accumulated Nayms commission.
    */
-  function getCommissionBalances() public view returns (
+  function getCommissionBalances() public view virtual returns (
     uint256 brokerCommissionBalance_,
     uint256 assetManagerCommissionBalance_,
     uint256 naymsCommissionBalance_
@@ -106,7 +129,7 @@ contract IPolicyImpl is IPolicyMutations {
    *
    * @param _index Tranch index.
    */
-  function payTranchPremium (uint256 _index) public;
+  function payTranchPremium (uint256 _index) public virtual;
 
   /**
    * @dev Get claim info.
@@ -117,7 +140,7 @@ contract IPolicyImpl is IPolicyMutations {
    * @return declined_ Whether the claim has been declined.
    * @return paid_ Whether the claim has been paid out.
    */
-  function getClaimInfo (uint256 _claimIndex) public view returns (
+  function getClaimInfo (uint256 _claimIndex) public view virtual returns (
     uint256 amount_,
     uint256 tranchIndex_,
     bool approved_,
@@ -130,30 +153,30 @@ contract IPolicyImpl is IPolicyMutations {
    *
    * @return Max. no. of premium payments possible.
    */
-  function calculateMaxNumOfPremiums() public view returns (uint256);
+  function calculateMaxNumOfPremiums() public view virtual returns (uint256);
   /**
    * @dev Get whether the initiation date has passed.
    *
    * @return true if so, false otherwise.
    */
-  function initiationDateHasPassed () public view returns (bool);
+  function initiationDateHasPassed () public view virtual returns (bool);
   /**
    * @dev Get whether the start date has passed.
    *
    * @return true if so, false otherwise.
    */
-  function startDateHasPassed () public view returns (bool);
+  function startDateHasPassed () public view virtual returns (bool);
   /**
    * @dev Get whether the maturation date has passed.
    *
    * @return true if so, false otherwise.
    */
-  function maturationDateHasPassed () public view returns (bool);
+  function maturationDateHasPassed () public view virtual returns (bool);
 
   /**
    * @dev Heartbeat: Ensure the policy and tranch states are up-to-date.
    */
-  function checkAndUpdateState () public;
+  function checkAndUpdateState () public virtual;
 
   // events
 

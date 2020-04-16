@@ -3,7 +3,7 @@ pragma solidity >=0.5.8;
 /**
  * @dev Policy and tranch states.
  */
-contract IPolicyStates {
+abstract contract IPolicyStates {
   /**
    * @dev State: The policy has just been created.
    */

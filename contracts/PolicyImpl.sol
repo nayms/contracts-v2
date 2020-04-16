@@ -63,7 +63,6 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
   {
     require(_numShares > 0, 'invalid num of shares');
     require(_pricePerShareAmount > 0, 'invalid price');
-    require(_premiums.length <= calculateMaxNumOfPremiums(), 'too many premiums');
 
     // instantiate tranches
     uint256 i = dataUint256["numTranches"];
@@ -72,7 +71,24 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     // setup initial data for tranch
     dataUint256[__i(i, "numShares")] = _numShares;
     dataUint256[__i(i, "pricePerShareAmount")] = _pricePerShareAmount;
-    dataManyUint256[__i(i, "premiums")] = _premiums;
+
+    // iterate through premiums and figure out what needs to paid and when
+    uint256 nextPayTime = dataUint256["initiationDate"];
+    uint256 numPremiums = 0;
+    for (uint256 p = 0; _premiums.length > p; p += 1) {
+      // we only care about premiums > 0
+      if (_premiums[p] > 0) {
+        numPremiums += 1;
+        dataUint256[__ii(i, numPremiums, "premiumAmount")] = _premiums[p];
+        dataUint256[__ii(i, numPremiums, "premiumDueAt")] = nextPayTime;
+      }
+
+      // the premium interval still counts
+      nextPayTime += dataUint256["premiumIntervalSeconds"];
+    }
+    // save total premiums
+    require(numPremiums <= calculateMaxNumOfPremiums(), 'too many premiums');
+    dataUint256[__i(i, "numPremiums")] = numPremiums;
 
     // deploy token contract
     TranchToken t = new TranchToken(address(this), i);
@@ -134,6 +150,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     uint256 state_,
     uint256 balance_,
     uint256 nextPremiumAmount_,
+    uint256 nextPremiumDueAt_,
     uint256 premiumPaymentsMissed_,
     bool allPremiumsPaid_,
     uint256 sharesSold_,
@@ -143,7 +160,8 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     token_ = dataAddress[__i(_index, "address")];
     state_ = dataUint256[__i(_index, "state")];
     balance_ = dataUint256[__i(_index, "balance")];
-    nextPremiumAmount_ = _getNextTranchPremiumAmount(_index);
+    numPremiums_ = dataUint256[__i(_index, "numPremiums")];
+    (nextPremiumAmount_, nextPremiumDueAt_) = _getNextTranchPremium(_index);
     premiumPaymentsMissed_ = _getNumberOfTranchPaymentsMissed(_index);
     allPremiumsPaid_ = _tranchPaymentsAllMade(_index);
     sharesSold_ = dataUint256[__i(_index, "sharesSold")];
@@ -152,22 +170,39 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
   }
 
 
+  function getTranchPremiumInfo (uint256 _tranchIndex, uint256 _premiumIndex) public view returns (
+    uint256 amount_,
+    uint256 dueAt_,
+    uint256 paidAt_,
+    address paidBy_
+  ) {
+    amount_ = dataUint256[__ii(_tranchIndex, _premiumIndex, "premiumAmount")];
+    dueBy_ = dataUint256[__ii(_tranchIndex, _premiumIndex, "premiumDueAt")];
+    paidAt_ = dataUint256[__ii(_tranchIndex, _premiumIndex, "premiumPaidAt")];
+    paidBy_ = dataUint256[__ii(_tranchIndex, _premiumIndex, "premiumPaidBy")];
+  }
+
+
   function payTranchPremium (uint256 _index) public {
     require(!_tranchPaymentsAllMade(_index), 'all payments already made');
 
-    uint256 expectedAmount = _getNextTranchPremiumAmount(_index);
+    uint256 expectedAmount;
+    uint256 expectedAt;
 
-    if (expectedAmount > 0) {
-      // transfer
-      IERC20 tkn = IERC20(dataAddress["unit"]);
-      tkn.transferFrom(msg.sender, address(this), expectedAmount);
-    }
+    (expectedAmount, expectedAt) = _getNextTranchPremium(_index);
+
+    require(expectedAt >= now, 'payment too late');
+
+    // transfer
+    IERC20 tkn = IERC20(dataAddress["unit"]);
+    tkn.transferFrom(msg.sender, address(this), expectedAmount);
 
     // record the payments
-    uint256 paymentIndex = dataUint256[__i(_index, "premiumsPaid")];
-    dataUint256[__ii(_index, paymentIndex, "premiumPayment")] = expectedAmount;
-    dataAddress[__ii(_index, paymentIndex, "premiumPayer")] = msg.sender;
-    dataUint256[__i(_index, "premiumsPaid")] = paymentIndex + 1;
+    uint256 numPremiumsPaid = dataUint256[__i(_index, "numPremiumsPaid")];
+    numPremiumsPaid += 1;
+    dataUint256[__i(_index, "numPremiumsPaid")] = numPremiumsPaid;
+    dataUint256[__ii(_index, numPremiumsPaid, "premiumPaidAt")] = now;
+    dataAddress[__ii(_index, numPremiumsPaid, "premiumPaidBy")] = msg.sender;
 
     // calculate commissions
     uint256 brokerCommission = dataUint256["brokerCommissionBP"].mul(expectedAmount).div(1000);
@@ -472,50 +507,40 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     }
   }
 
-  function _getNextTranchPremiumAmount (uint256 _index) private view returns (uint256) {
-    uint256[] storage premiums = dataManyUint256[__i(_index, "premiums")];
-    uint256 numPremiumsAlreadyPaid = dataUint256[__i(_index, "premiumsPaid")];
+  function _getNextTranchPremium (uint256 _index) private view returns (uint256, uint256) {
+    uint256 numPremiumsPaid = dataUint256[__i(_index, "numPremiumsPaid")];
 
-    if (numPremiumsAlreadyPaid >= premiums.length) {
-      return 0;
-    } else {
-      return premiums[numPremiumsAlreadyPaid];
-    }
+    return (
+      dataUint256[__i(_index, numPremiumsPaid + 1, "premiumAmount")],
+      dataUint256[__i(_index, numPremiumsPaid + 1, "premiumDueAt")]
+    );
   }
 
   function _getNumberOfTranchPaymentsMissed (uint256 _index) private view returns (uint256) {
-    uint256 expectedPaid = 0;
+    uint256 numPremiums = dataUint256[__i(_index, "numPremiums")];
+    uint256 numPremiumsPaid = dataUint256[__i(_index, "numPremiumsPaid")];
 
-    // if inititation date has passed
-    if (initiationDateHasPassed()) {
-      expectedPaid++;
+    uint256 expectedNumPremiumsPaid = 0;
 
-      // calculate the extra payments that should have been made by now
-      uint256 diff = now.sub(dataUint256["initiationDate"]).div(dataUint256["premiumIntervalSeconds"]);
-      expectedPaid = expectedPaid.add(diff);
+    for (uint256 i = 1; numPremiums >= i; i += 1) {
+      uint256 dueAt = dataUint256[__i(_index, i, "premiumDueAt")];
+
+      if (dueAt <= now) {
+        expectedNumPremiumsPaid += 1;
+      }
     }
 
-    // cap to no .of available premiums
-    uint256[] storage premiums = dataManyUint256[__i(_index, "premiums")];
-
-    if (expectedPaid > premiums.length) {
-      expectedPaid = premiums.length;
-    }
-
-    uint256 premiumsPaid = dataUint256[__i(_index, "premiumsPaid")];
-
-    if (expectedPaid >= premiumsPaid) {
-      return expectedPaid.sub(premiumsPaid);
+    if (expectedNumPremiumsPaid >= numPremiumsPaid) {
+      return expectedNumPremiumsPaid >= numPremiumsPaid;
     } else {
       return 0;
     }
   }
 
   function _tranchPaymentsAllMade (uint256 _index) private view returns (bool) {
-    uint256[] storage premiums = dataManyUint256[__i(_index, "premiums")];
-    uint256 done = dataUint256[__i(_index, "premiumsPaid")];
-
-    return (done >= premiums.length);
+    uint256 numPremiums = dataUint256[__i(_index, "numPremiums")];
+    uint256 numPremiumsPaid = dataUint256[__i(_index, "numPremiumsPaid")];
+    return (numPremiumsPaid == numPremiums);
   }
 
   function _setPolicyState (uint256 _newState) private {

@@ -25,32 +25,48 @@ import "./base/ISettings.sol";
 
   // ISettings
 
-  function getAddress(address _context, bytes32 _key) public returns (address) {
+  function getAddress(address _context, bytes32 _key) public view returns (address) {
     return dataAddress[__ab(_context, _key)];
+  }
+
+  function getAddress(bytes32 _key) public view returns (address) {
+    return getAddress(address(this), _key);
   }
 
   function setAddress(address _context, bytes32 _key, address _value) public assertIsAuthorized(_context) {
     dataAddress[__ab(_context, _key)] = _value;
   }
 
-  function getBool(address _context, bytes32 _key) public returns (address) {
+  function getBool(address _context, bytes32 _key) public view returns (bool) {
     return dataBool[__ab(_context, _key)];
+  }
+
+  function getBool(bytes32 _key) public view returns (bool) {
+    return getBool(address(this), _key);
   }
 
   function setBool(address _context, bytes32 _key, bool _value) public assertIsAuthorized(_context) {
     dataBool[__ab(_context, _key)] = _value;
   }
 
-  function getUint256(address _context, bytes32 _key) public returns (address) {
+  function getUint256(address _context, bytes32 _key) public view returns (uint256) {
     return dataUint256[__ab(_context, _key)];
+  }
+
+  function getUint256(bytes32 _key) public view returns (uint256) {
+    return getUint256(address(this), _key);
   }
 
   function setUint256(address _context, bytes32 _key, uint256 _value) public assertIsAuthorized(_context) {
     dataUint256[__ab(_context, _key)] = _value;
   }
 
-  function getString(address _context, bytes32 _key) public returns (string memory) {
+  function getString(address _context, bytes32 _key) public view returns (string memory) {
     return dataString[__ab(_context, _key)];
+  }
+
+  function getString(bytes32 _key) public view returns (string memory) {
+    return getString(address(this), _key);
   }
 
   function setString(address _context, bytes32 _key, string memory _value) public assertIsAuthorized(_context) {

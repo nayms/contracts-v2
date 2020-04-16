@@ -1,12 +1,13 @@
 pragma solidity >=0.5.8;
 
 import "./EternalStorage.sol";
-import "./ISettingsImpl.sol";
+import "./ISettings.sol";
+import "./ISettingsKeys.sol";
 
 /**
  * @dev Base contract for interacting with Settings.
  */
-contract SettingsControl is EternalStorage {
+contract SettingsControl is EternalStorage, ISettingsKeys {
   /**
    * @dev Constructor.
    * @param _settings Settings address.
@@ -19,7 +20,7 @@ contract SettingsControl is EternalStorage {
    * @dev Get Settings reference.
    * @return Settings reference.
    */
-  function settings () internal view returns (ISettingsImpl) {
-    return ISettingsImpl(dataAddress["settings"]);
+  function settings () internal view returns (ISettings) {
+    return ISettings(dataAddress["settings"]);
   }
 }

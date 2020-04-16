@@ -148,7 +148,7 @@ contract PolicyMutations is EternalStorage, Controller, IPolicyMutations, IPolic
     require(acl().userSomeHasRoleInContext(brokerEntityContext, _broker), 'must have role in broker entity');
 
     // get nayms entity
-    address naymsEntity = settings().getNaymsEntity();
+    address naymsEntity = settings().getAddress(SETTING_NAYMS_ENTITY);
 
     // do payouts and update balances
     IERC20 tkn = IERC20(dataAddress["unit"]);

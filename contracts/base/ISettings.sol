@@ -14,7 +14,16 @@ contract ISettings is ISettingsKeys {
    *
    * @return The value.
    */
-  function getAddress(bytes32 _context, bytes32 _key) public returns (address);
+  function getAddress(address _context, bytes32 _key) public view returns (address);
+
+  /**
+   * @dev Get an address in the system context.
+   *
+   * @param _key The key.
+   *
+   * @return The value.
+   */
+  function getAddress(bytes32 _key) public view returns (address);
 
   /**
    * @dev Set an address.
@@ -23,7 +32,7 @@ contract ISettings is ISettingsKeys {
    * @param _key The key.
    * @param _value The value.
    */
-  function setAddress(bytes32 _context, bytes32 _key, address _value) public;
+  function setAddress(address _context, bytes32 _key, address _value) public;
 
   /**
    * @dev Get a boolean.
@@ -33,7 +42,16 @@ contract ISettings is ISettingsKeys {
    *
    * @return The value.
    */
-  function getBool(bytes32 _context, bytes32 _key) public returns (address);
+  function getBool(address _context, bytes32 _key) public view returns (bool);
+
+  /**
+   * @dev Get a boolean in the system context.
+   *
+   * @param _key The key.
+   *
+   * @return The value.
+   */
+  function getBool(bytes32 _key) public view returns (bool);
 
   /**
    * @dev Set a boolean.
@@ -42,7 +60,7 @@ contract ISettings is ISettingsKeys {
    * @param _key The key.
    * @param _value The value.
    */
-  function setBool(bytes32 _context, bytes32 _key, bool _value) public;
+  function setBool(address _context, bytes32 _key, bool _value) public;
 
   /**
    * @dev Get a number.
@@ -52,16 +70,25 @@ contract ISettings is ISettingsKeys {
    *
    * @return The value.
    */
-  function getUint256(bytes32 _context, bytes32 _key) public returns (address);
+  function getUint256(address _context, bytes32 _key) public view returns (uint256);
 
   /**
-   * @dev Set an number.
+   * @dev Get a number in the system context.
+   *
+   * @param _key The key.
+   *
+   * @return The value.
+   */
+  function getUint256(bytes32 _key) public view returns (uint256);
+
+  /**
+   * @dev Set a number.
    *
    * @param _context The context.
    * @param _key The key.
    * @param _value The value.
    */
-  function setUint256(bytes32 _context, bytes32 _key, uint256 _value) public;
+  function setUint256(address _context, bytes32 _key, uint256 _value) public;
 
   /**
    * @dev Get a string.
@@ -71,7 +98,16 @@ contract ISettings is ISettingsKeys {
    *
    * @return The value.
    */
-  function getString(bytes32 _context, bytes32 _key) public returns (string memory);
+  function getString(address _context, bytes32 _key) public view returns (string memory);
+
+  /**
+   * @dev Get a string in the system context.
+   *
+   * @param _key The key.
+   *
+   * @return The value.
+   */
+  function getString(bytes32 _key) public view returns (string memory);
 
   /**
    * @dev Set a string.
@@ -80,7 +116,7 @@ contract ISettings is ISettingsKeys {
    * @param _key The key.
    * @param _value The value.
    */
-  function setString(bytes32 _context, bytes32 _key, string memory _value) public;
+  function setString(address _context, bytes32 _key, string memory _value) public;
 
 
   /**

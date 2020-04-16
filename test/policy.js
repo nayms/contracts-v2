@@ -448,17 +448,20 @@ contract('Policy', accounts => {
 
     describe('premiums', () => {
       describe('basic tests', () => {
+        let policyAttrs
+
         beforeEach(async () => {
-          await setupPolicy()
+          policyAttrs = await setupPolicy()
         })
 
-        it('initially no premium is expected', async () => {
+        it.only('initially no premium is expected', async () => {
           await createTranch(policy, {
             premiums: [2, 3, 4]
           }, { from: policyOwnerAddress })
 
           await policy.getTranchInfo(0).should.eventually.matchObj({
             nextPremiumAmount_: 2,
+            nextPremiumDueAt_: policyAttrs.initiationDate,
             premiumPaymentsMissed_: 0,
             allPremiumsPaid_: false,
           })

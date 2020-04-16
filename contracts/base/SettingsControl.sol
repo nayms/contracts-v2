@@ -6,7 +6,7 @@ import "./ISettingsImpl.sol";
 /**
  * @dev Base contract for interacting with Settings.
  */
-abstract contract SettingsControl is EternalStorage {
+contract SettingsControl is EternalStorage {
   /**
    * @dev Constructor.
    * @param _settings Settings address.

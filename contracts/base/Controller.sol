@@ -6,7 +6,7 @@ import "./AccessControl.sol";
 /**
  * @dev Base contract for interacting with the ACL and Settings contracts.
  */
-abstract contract Controller is AccessControl, SettingsControl {
+contract Controller is AccessControl, SettingsControl {
   /**
    * @dev Constructor.
    * @param _acl ACL address.

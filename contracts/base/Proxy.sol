@@ -9,7 +9,7 @@ import "./ECDSA.sol";
  *
  * Based onhttps://github.com/zeppelinos/labs/blob/master/upgradeability_using_eternal_storage/contracts
  */
-abstract contract Proxy is EternalStorage {
+contract Proxy is EternalStorage {
   /**
   * @dev This event will be emitted every time the implementation gets upgraded
   * @param implementation representing the address of the upgraded implementation

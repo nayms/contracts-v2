@@ -78,9 +78,9 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     for (uint256 p = 0; _premiums.length > p; p += 1) {
       // we only care about premiums > 0
       if (_premiums[p] > 0) {
-        numPremiums += 1;
         dataUint256[__ii(i, numPremiums, "premiumAmount")] = _premiums[p];
         dataUint256[__ii(i, numPremiums, "premiumDueAt")] = nextPayTime;
+        numPremiums += 1;
       }
 
       // the premium interval still counts
@@ -149,10 +149,11 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     address token_,
     uint256 state_,
     uint256 balance_,
+    uint256 numPremiums_,
     uint256 nextPremiumAmount_,
     uint256 nextPremiumDueAt_,
     uint256 premiumPaymentsMissed_,
-    bool allPremiumsPaid_,
+    uint256 numPremiumsPaid_,
     uint256 sharesSold_,
     uint256 initialSaleOfferId_,
     uint256 finalBuybackofferId_
@@ -163,24 +164,24 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     numPremiums_ = dataUint256[__i(_index, "numPremiums")];
     (nextPremiumAmount_, nextPremiumDueAt_) = _getNextTranchPremium(_index);
     premiumPaymentsMissed_ = _getNumberOfTranchPaymentsMissed(_index);
-    allPremiumsPaid_ = _tranchPaymentsAllMade(_index);
+    numPremiumsPaid_ = dataUint256[__i(_index, "numPremiumsPaid")];
     sharesSold_ = dataUint256[__i(_index, "sharesSold")];
     initialSaleOfferId_ = dataUint256[__i(_index, "initialSaleOfferId")];
     finalBuybackofferId_ = dataUint256[__i(_index, "finalBuybackOfferId")];
   }
 
 
-  function getTranchPremiumInfo (uint256 _tranchIndex, uint256 _premiumIndex) public view returns (
-    uint256 amount_,
-    uint256 dueAt_,
-    uint256 paidAt_,
-    address paidBy_
-  ) {
-    amount_ = dataUint256[__ii(_tranchIndex, _premiumIndex, "premiumAmount")];
-    dueBy_ = dataUint256[__ii(_tranchIndex, _premiumIndex, "premiumDueAt")];
-    paidAt_ = dataUint256[__ii(_tranchIndex, _premiumIndex, "premiumPaidAt")];
-    paidBy_ = dataUint256[__ii(_tranchIndex, _premiumIndex, "premiumPaidBy")];
-  }
+  // function getTranchPremiumInfo (uint256 _tranchIndex, uint256 _premiumIndex) public view returns (
+  //   uint256 amount_,
+  //   uint256 dueAt_,
+  //   uint256 paidAt_,
+  //   address paidBy_
+  // ) {
+  //   amount_ = dataUint256[__ii(_tranchIndex, _premiumIndex, "premiumAmount")];
+  //   dueAt_ = dataUint256[__ii(_tranchIndex, _premiumIndex, "premiumDueAt")];
+  //   paidAt_ = dataUint256[__ii(_tranchIndex, _premiumIndex, "premiumPaidAt")];
+  //   paidBy_ = dataAddress[__ii(_tranchIndex, _premiumIndex, "premiumPaidBy")];
+  // }
 
 
   function payTranchPremium (uint256 _index) public {
@@ -199,8 +200,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
 
     // record the payments
     uint256 numPremiumsPaid = dataUint256[__i(_index, "numPremiumsPaid")];
-    numPremiumsPaid += 1;
-    dataUint256[__i(_index, "numPremiumsPaid")] = numPremiumsPaid;
+    dataUint256[__i(_index, "numPremiumsPaid")] = numPremiumsPaid + 1;
     dataUint256[__ii(_index, numPremiumsPaid, "premiumPaidAt")] = now;
     dataAddress[__ii(_index, numPremiumsPaid, "premiumPaidBy")] = msg.sender;
 
@@ -511,8 +511,8 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     uint256 numPremiumsPaid = dataUint256[__i(_index, "numPremiumsPaid")];
 
     return (
-      dataUint256[__i(_index, numPremiumsPaid + 1, "premiumAmount")],
-      dataUint256[__i(_index, numPremiumsPaid + 1, "premiumDueAt")]
+      dataUint256[__ii(_index, numPremiumsPaid, "premiumAmount")],
+      dataUint256[__ii(_index, numPremiumsPaid, "premiumDueAt")]
     );
   }
 
@@ -522,8 +522,8 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
 
     uint256 expectedNumPremiumsPaid = 0;
 
-    for (uint256 i = 1; numPremiums >= i; i += 1) {
-      uint256 dueAt = dataUint256[__i(_index, i, "premiumDueAt")];
+    for (uint256 i = 0; numPremiums > i; i += 1) {
+      uint256 dueAt = dataUint256[__ii(_index, i, "premiumDueAt")];
 
       if (dueAt <= now) {
         expectedNumPremiumsPaid += 1;
@@ -531,7 +531,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     }
 
     if (expectedNumPremiumsPaid >= numPremiumsPaid) {
-      return expectedNumPremiumsPaid >= numPremiumsPaid;
+      return expectedNumPremiumsPaid - numPremiumsPaid;
     } else {
       return 0;
     }

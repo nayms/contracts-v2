@@ -5,7 +5,7 @@ import "./Controller.sol";
 /**
  * @dev Base contract that can be destroyed by owner. All funds in contract will be sent to the owner.
  */
-abstract contract Destructible is Controller {
+contract Destructible is Controller {
   /**
    * @dev Constructor.
    * @param _acl ACL address.

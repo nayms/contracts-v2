@@ -2,6 +2,7 @@ const { keccak256 } = require('./functions')
 
 exports.ROLES = {}
 exports.ROLEGROUPS = {}
+exports.SETTINGS = {}
 
 ;[
   'ASSET_MANAGER',
@@ -36,3 +37,17 @@ exports.ROLEGROUPS = {}
 ].forEach(r => {
   exports.ROLEGROUPS[r] = keccak256(`role_${r}`)
 })
+
+
+;[
+  'MARKET',
+  'POLICY_IMPL',
+  'POLICY_CLAIMS_IMPL',
+  'POLICY_PREMIUMS_IMPL',
+  'ENTITY_DEPLOYER',
+  'NAYMS_ENTITY',
+].forEach(r => {
+  exports.SETTINGS[r] = keccak256(`setting_${r}`)
+})
+
+

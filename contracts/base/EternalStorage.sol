@@ -3,7 +3,7 @@ pragma solidity >=0.5.8;
 /**
  * @dev Base contract for any upgradeable contract that wishes to store data.
  */
-abstract contract EternalStorage {
+contract EternalStorage {
   // scalars
   mapping(string => address) dataAddress;
   mapping(string => string) dataString;
@@ -29,5 +29,8 @@ abstract contract EternalStorage {
   }
   function __iaa (uint256 i1, address a1, address a2, string memory s) internal pure returns (string memory) {
     return string(abi.encodePacked(i1, a1, a2, s));
+  }
+  function __ab (address a1, bytes32 b1) internal pure returns (string memory) {
+    return string(abi.encodePacked(a1, b1));
   }
 }

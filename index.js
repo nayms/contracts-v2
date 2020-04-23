@@ -9,7 +9,7 @@ const { ROLES, ROLEGROUPS } = require('./utils/constants')
 
 const coreContracts = [
   { name: 'AccessControl', actual: 'AccessControl' },
-  { name: 'Settings', actual: 'ISettingsImpl' },
+  { name: 'Settings', actual: 'ISettings' },
   { name: 'ACL', actual: 'IACL' },
   { name: 'Policy', actual: 'IPolicyImpl' },
   { name: 'EntityDeployer', actual: 'IEntityDeployer' },

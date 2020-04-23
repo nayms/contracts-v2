@@ -171,55 +171,19 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
   }
 
 
-  // function getTranchPremiumInfo (uint256 _tranchIndex, uint256 _premiumIndex) public view returns (
-  //   uint256 amount_,
-  //   uint256 dueAt_,
-  //   uint256 paidAt_,
-  //   address paidBy_
-  // ) {
-  //   amount_ = dataUint256[__ii(_tranchIndex, _premiumIndex, "premiumAmount")];
-  //   dueAt_ = dataUint256[__ii(_tranchIndex, _premiumIndex, "premiumDueAt")];
-  //   paidAt_ = dataUint256[__ii(_tranchIndex, _premiumIndex, "premiumPaidAt")];
-  //   paidBy_ = dataAddress[__ii(_tranchIndex, _premiumIndex, "premiumPaidBy")];
-  // }
-
-
-  function payTranchPremium (uint256 _index) public {
-    require(!_tranchPaymentsAllMade(_index), 'all payments already made');
-
-    uint256 expectedAmount;
-    uint256 expectedAt;
-
-    (expectedAmount, expectedAt) = _getNextTranchPremium(_index);
-
-    require(expectedAt >= now, 'payment too late');
-
-    // transfer
-    IERC20 tkn = IERC20(dataAddress["unit"]);
-    tkn.transferFrom(msg.sender, address(this), expectedAmount);
-
-    // record the payments
-    uint256 numPremiumsPaid = dataUint256[__i(_index, "numPremiumsPaid")];
-    dataUint256[__i(_index, "numPremiumsPaid")] = numPremiumsPaid + 1;
-    dataUint256[__ii(_index, numPremiumsPaid, "premiumPaidAt")] = now;
-    dataAddress[__ii(_index, numPremiumsPaid, "premiumPaidBy")] = msg.sender;
-
-    // calculate commissions
-    uint256 brokerCommission = dataUint256["brokerCommissionBP"].mul(expectedAmount).div(1000);
-    uint256 assetManagerCommission = dataUint256["assetManagerCommissionBP"].mul(expectedAmount).div(1000);
-    uint256 naymsCommission = dataUint256["naymsCommissionBP"].mul(expectedAmount).div(1000);
-
-    // add to commission balances
-    dataUint256["brokerCommissionBalance"] = dataUint256["brokerCommissionBalance"].add(brokerCommission);
-    dataUint256["assetManagerCommissionBalance"] = dataUint256["assetManagerCommissionBalance"].add(assetManagerCommission);
-    dataUint256["naymsCommissionBalance"] = dataUint256["naymsCommissionBalance"].add(naymsCommission);
-
-    // add to tranch balance
-    uint256 tranchBalanceDelta = expectedAmount.sub(brokerCommission.add(assetManagerCommission).add(naymsCommission));
-    dataUint256[__i(_index, "balance")] = dataUint256[__i(_index, "balance")].add(tranchBalanceDelta);
-
-    emit PremiumPayment(_index, expectedAmount, msg.sender);
+  function getTranchPremiumInfo (uint256 _tranchIndex, uint256 _premiumIndex) public view returns (
+    uint256 amount_,
+    uint256 dueAt_,
+    uint256 paidAt_,
+    address paidBy_
+  ) {
+    amount_ = dataUint256[__ii(_tranchIndex, _premiumIndex, "premiumAmount")];
+    dueAt_ = dataUint256[__ii(_tranchIndex, _premiumIndex, "premiumDueAt")];
+    paidAt_ = dataUint256[__ii(_tranchIndex, _premiumIndex, "premiumPaidAt")];
+    paidBy_ = dataAddress[__ii(_tranchIndex, _premiumIndex, "premiumPaidBy")];
   }
+
+
 
   function getCommissionBalances() public view returns (
     uint256 brokerCommissionBalance_,
@@ -278,8 +242,16 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     }
   }
 
+  function payTranchPremium (uint256 _index) public {
+    _premiums().dcall(abi.encodeWithSelector(
+      "payTranchPremium(uint256)".dsig(),
+      _index
+    ));
+  }
+
+
   function makeClaim(uint256 _index, address _clientManagerEntity, uint256 _amount) public {
-    _mutations().dcall(abi.encodeWithSelector(
+    _claims().dcall(abi.encodeWithSelector(
       "makeClaim(uint256,address,uint256)".dsig(),
       _index, _clientManagerEntity, _amount
     ));
@@ -287,7 +259,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
 
 
   function approveClaim(uint256 _claimIndex) public {
-    _mutations().dcall(abi.encodeWithSelector(
+    _claims().dcall(abi.encodeWithSelector(
       "approveClaim(uint256)".dsig(),
       _claimIndex
     ));
@@ -295,7 +267,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
 
 
   function declineClaim(uint256 _claimIndex) public {
-    _mutations().dcall(abi.encodeWithSelector(
+    _claims().dcall(abi.encodeWithSelector(
       "declineClaim(uint256)".dsig(),
       _claimIndex
     ));
@@ -303,7 +275,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
 
 
   function payClaims() public {
-    _mutations().dcall(abi.encodeWithSelector(
+    _claims().dcall(abi.encodeWithSelector(
       "payClaims()".dsig()
     ));
   }
@@ -313,7 +285,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     address _assetManagerEntity, address _assetManager,
     address _brokerEntity, address _broker
   ) public {
-    _mutations().dcall(abi.encodeWithSelector(
+    _commissions().dcall(abi.encodeWithSelector(
       "payCommissions(address,address,address,address)".dsig(),
       _assetManagerEntity, _assetManager, _brokerEntity, _broker
     ));
@@ -559,7 +531,15 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
 
   // Sub-delegates
 
-  function _mutations () private view returns (address) {
-    return settings().getAddress(SETTING_POLICY_MUTATIONS_IMPL);
+  function _claims () private view returns (address) {
+    return settings().getAddress(SETTING_POLICY_CLAIMS_IMPL);
+  }
+
+  function _commissions () private view returns (address) {
+    return settings().getAddress(SETTING_POLICY_COMMISSIONS_IMPL);
+  }
+
+  function _premiums () private view returns (address) {
+    return settings().getAddress(SETTING_POLICY_PREMIUMS_IMPL);
   }
 }

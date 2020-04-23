@@ -1,11 +1,13 @@
 pragma solidity >=0.5.8;
 
-import "./IPolicyMutations.sol";
+import "./IPolicyClaims.sol";
+import "./IPolicyCommissions.sol";
+import "./IPolicyPremiums.sol";
 
 /**
  * @dev Policies.
  */
-contract IPolicyImpl is IPolicyMutations {
+contract IPolicyImpl is IPolicyClaims, IPolicyCommissions, IPolicyPremiums {
   /**
    * @dev Create tranch.
    *
@@ -99,12 +101,12 @@ contract IPolicyImpl is IPolicyMutations {
    * @return paidAt_ When it was paid.
    * @return paidBy_ Who paid it.
    */
-  // function getTranchPremiumInfo (uint256 _tranchIndex, uint256 _premiumIndex) public view returns (
-  //   uint256 amount_,
-  //   uint256 dueAt_,
-  //   uint256 paidAt_,
-  //   address paidBy_
-  // );
+  function getTranchPremiumInfo (uint256 _tranchIndex, uint256 _premiumIndex) public view returns (
+    uint256 amount_,
+    uint256 dueAt_,
+    uint256 paidAt_,
+    address paidBy_
+  );
 
 
   /**
@@ -121,15 +123,6 @@ contract IPolicyImpl is IPolicyMutations {
     uint256 assetManagerCommissionBalance_,
     uint256 naymsCommissionBalance_
   );
-
-  /**
-   * @dev Pay the next expected premium for the given tranch.
-   *
-   * The caller should ensure they have approved the policy to transfer tokens on their behalf.
-   *
-   * @param _index Tranch index.
-   */
-  function payTranchPremium (uint256 _index) public;
 
   /**
    * @dev Get claim info.
@@ -191,12 +184,4 @@ contract IPolicyImpl is IPolicyMutations {
     address indexed initialBalanceHolder,
     uint256 index
   );
-
-  /**
-   * @dev Emitted when a premium payment has been made.
-   * @param tranchIndex The tranch token address.
-   * @param amount The amount paid.
-   * @param caller The payer.
-   */
-  event PremiumPayment (uint256 indexed tranchIndex, uint256 indexed amount, address indexed caller);
 }

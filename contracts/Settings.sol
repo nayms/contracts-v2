@@ -35,6 +35,7 @@ import "./base/ISettings.sol";
 
   function setAddress(address _context, bytes32 _key, address _value) public assertIsAuthorized(_context) {
     dataAddress[__ab(_context, _key)] = _value;
+    emit SettingChanged(_context, _key, msg.sender, 'address');
   }
 
   function getBool(address _context, bytes32 _key) public view returns (bool) {
@@ -47,6 +48,7 @@ import "./base/ISettings.sol";
 
   function setBool(address _context, bytes32 _key, bool _value) public assertIsAuthorized(_context) {
     dataBool[__ab(_context, _key)] = _value;
+    emit SettingChanged(_context, _key, msg.sender, 'bool');
   }
 
   function getUint256(address _context, bytes32 _key) public view returns (uint256) {
@@ -59,6 +61,7 @@ import "./base/ISettings.sol";
 
   function setUint256(address _context, bytes32 _key, uint256 _value) public assertIsAuthorized(_context) {
     dataUint256[__ab(_context, _key)] = _value;
+    emit SettingChanged(_context, _key, msg.sender, 'uint256');
   }
 
   function getString(address _context, bytes32 _key) public view returns (string memory) {
@@ -71,6 +74,7 @@ import "./base/ISettings.sol";
 
   function setString(address _context, bytes32 _key, string memory _value) public assertIsAuthorized(_context) {
     dataString[__ab(_context, _key)] = _value;
+    emit SettingChanged(_context, _key, msg.sender, 'string');
   }
 
   function getTime() public view returns (uint256) {

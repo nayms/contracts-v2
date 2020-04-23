@@ -125,4 +125,16 @@ contract ISettings is ISettingsKeys {
    * @return Block time.
    */
   function getTime() external view returns (uint256);
+
+
+  // events
+
+  /**
+   * @dev Emitted when a setting gets updated.
+   * @param context The context.
+   * @param key The key.
+   * @param caller The caller.
+   * @param keyType The type of setting which changed.
+   */
+  event SettingChanged (address indexed context, bytes32 indexed key, address indexed caller, string keyType);
 }

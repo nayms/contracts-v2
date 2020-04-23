@@ -81,5 +81,51 @@ contract('Settings', accounts => {
         await settings.getString(accounts[0], key).should.eventually.eq('test')
       })
     })
+
+    describe('and events get emitted', () => {
+      it('setAddress', async () => {
+        const ret = await settings.setAddress(accounts[0], key, accounts[3])
+
+        expect(extractEventArgs(ret, events.SettingChanged)).to.include({
+          context: accounts[0],
+          key,
+          caller: accounts[0],
+          keyType: 'address',
+        })
+      })
+
+      it('setBool', async () => {
+        const ret = await settings.setBool(accounts[0], key, true)
+
+        expect(extractEventArgs(ret, events.SettingChanged)).to.include({
+          context: accounts[0],
+          key,
+          caller: accounts[0],
+          keyType: 'bool',
+        })
+      })
+
+      it('setUint256', async () => {
+        const ret = await settings.setUint256(accounts[0], key, 123)
+
+        expect(extractEventArgs(ret, events.SettingChanged)).to.include({
+          context: accounts[0],
+          key,
+          caller: accounts[0],
+          keyType: 'uint256',
+        })
+      })
+
+      it('setString', async () => {
+        const ret = await settings.setString(accounts[0], key, 'test')
+
+        expect(extractEventArgs(ret, events.SettingChanged)).to.include({
+          context: accounts[0],
+          key,
+          caller: accounts[0],
+          keyType: 'string',
+        })
+      })
+    })
   })
 })

@@ -899,13 +899,13 @@ contract('Policy flow', accounts => {
       describe('if there are no pending claims and all premium payments are up-to-date', () => {
         beforeEach(async () => {
           for (let i = 0; (maturationDate - startDate) / premiumIntervalSeconds >= i; i += 1) {
-            const allPaymentsMade0 = (await policy.getTranchInfo(0)).allPremiumsPaid_
-            if (!allPaymentsMade0) {
+            const missed0 = (await policy.getTranchInfo(0)).premiumPaymentsMissed_.toNumber()
+            if (missed0) {
               await policy.payTranchPremium(0)
             }
 
-            const allPaymentsMade1 = (await policy.getTranchInfo(1)).allPremiumsPaid_
-            if (!allPaymentsMade1) {
+            const missed1 = (await policy.getTranchInfo(1)).premiumPaymentsMissed_.toNumber()
+            if (missed1) {
               await policy.payTranchPremium(1)
             }
           }
@@ -1009,13 +1009,13 @@ contract('Policy flow', accounts => {
       describe('once it tries to buy back all tokens', async () => {
         beforeEach(async () => {
           for (let i = 0; (maturationDate - startDate) / premiumIntervalSeconds >= i; i += 1) {
-            const allPaymentsMade0 = (await policy.getTranchInfo(0)).allPremiumsPaid_
-            if (!allPaymentsMade0) {
+            const missed0 = (await policy.getTranchInfo(0)).premiumPaymentsMissed_.toNumber()
+            if (missed0) {
               await policy.payTranchPremium(0)
             }
 
-            const allPaymentsMade1 = (await policy.getTranchInfo(1)).allPremiumsPaid_
-            if (!allPaymentsMade1) {
+            const missed1 = (await policy.getTranchInfo(1)).premiumPaymentsMissed_.toNumber()
+            if (missed1) {
               await policy.payTranchPremium(1)
             }
           }

@@ -69,7 +69,7 @@ contract IPolicyImpl is IPolicyClaims, IPolicyCommissions, IPolicyPremiums {
    * @return balance_ Current tranch balance (of the payment unit)
    * @return numPremiums_ No. of premium payments required in total.
    * @return nextPremiumAmount_ Payment due by the next premium interval.
-   * @return nextPremiumDueAt_ When the next premium payment is due by (timestamp - seconds since epoch).
+   * @return nextPremiumDueAt_ When the next premium payment is due by (timestamp = seconds since epoch).
    * @return premiumPaymentsMissed_ No. of premium payments that have been missed.
    * @return numPremiumsPaid_ No. of premium payments made.
    * @return sharesSold_ No. of shared sold (during the initial sale period).
@@ -92,13 +92,13 @@ contract IPolicyImpl is IPolicyClaims, IPolicyCommissions, IPolicyPremiums {
 
 
   /**
-   * @dev Get tranch info.
+   * @dev Get tranch premium info.
    *
    * @param _tranchIndex Tranch index.
    * @param _premiumIndex Premium index.
    * @return amount_ Amount due.
-   * @return dueAt_ When it is due by (timestamp - seconds since epoch).
-   * @return paidAt_ When it was paid.
+   * @return dueAt_ When it is due by (timestamp = seconds since epoch).
+   * @return paidAt_ When it was paid (timestamp = seconds since epoch).
    * @return paidBy_ Who paid it.
    */
   function getTranchPremiumInfo (uint256 _tranchIndex, uint256 _premiumIndex) public view returns (

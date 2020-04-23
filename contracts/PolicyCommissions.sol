@@ -11,6 +11,16 @@ import "./base/IERC20.sol";
  * @dev Business-logic for Policy commissions
  */
 contract PolicyCommissions is EternalStorage, Controller, IPolicyCommissions, IPolicyStates {
+  modifier assertIsAssetManager (address _addr) {
+    require(inRoleGroup(_addr, ROLEGROUP_ASSET_MANAGERS), 'must be asset manager');
+    _;
+  }
+
+  modifier assertIsBroker (address _addr) {
+    require(inRoleGroup(_addr, ROLEGROUP_BROKERS), 'must be broker');
+    _;
+  }
+
   /**
    * Constructor
    */
@@ -26,6 +36,8 @@ contract PolicyCommissions is EternalStorage, Controller, IPolicyCommissions, IP
     address _brokerEntity, address _broker
   )
     public
+    assertIsAssetManager(_assetManager)
+    assertIsBroker(_broker)
   {
     bytes32 assetManagerEntityContext = AccessControl(_assetManagerEntity).aclContext();
     require(acl().userSomeHasRoleInContext(assetManagerEntityContext, _assetManager), 'must have role in asset manager entity');

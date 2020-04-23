@@ -9,7 +9,7 @@ import {
 import { events } from '../'
 
 import { ensureEtherTokenIsDeployed } from '../migrations/modules/etherToken'
-import { ROLES } from '../utils/constants'
+import { ROLES, SETTINGS } from '../utils/constants'
 import { ensureAclIsDeployed } from '../migrations/modules/acl'
 import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
 import { ensureMarketIsDeployed } from '../migrations/modules/market'
@@ -391,7 +391,7 @@ contract('End-to-end integration tests', accounts => {
     await policy1.payCommissions(entity0Address, policy1AssetManager, entity0Address, policy1Broker)
 
     // sanity check nayms entity balance
-    const naymsEntityAddress = await settings.getNaymsEntity()
+    const naymsEntityAddress = await settings.getRootAddress(SETTINGS.NAYMS_ENTITY)
     await etherToken.balanceOf(naymsEntityAddress).should.eventually.eq(expectedCommissions.naymsCommission)
     const entity0ExpectedBalance = entity0Balance + expectedCommissions.assetManagerCommission + expectedCommissions.brokerCommission
     await etherToken.balanceOf(entity0Address).should.eventually.eq(entity0ExpectedBalance)
@@ -670,7 +670,7 @@ contract('End-to-end integration tests', accounts => {
     )
 
     // sanity check entity balances
-    const naymsEntityAddress = await settings.getNaymsEntity()
+    const naymsEntityAddress = await settings.getRootAddress(SETTINGS.NAYMS_ENTITY)
     await etherToken.balanceOf(naymsEntityAddress).should.eventually.eq(expectedCommissions.naymsCommission)
     const entity0ExpectedBalance = entity0Balance + expectedCommissions.assetManagerCommission + expectedCommissions.brokerCommission
     await etherToken.balanceOf(entity0Address).should.eventually.eq(entity0ExpectedBalance)

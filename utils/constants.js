@@ -17,7 +17,7 @@ exports.SETTINGS = {}
   'SYSTEM_ADMIN',
   'SYSTEM_MANAGER',
 ].forEach(r => {
-  exports.ROLES[r] = keccak256(`role_${r}`)
+  exports.ROLES[r] = keccak256(`ROLE_${r}`)
 })
 
 ;[
@@ -35,7 +35,7 @@ exports.SETTINGS = {}
   'SYSTEM_MANAGERS',
   'TRADERS',
 ].forEach(r => {
-  exports.ROLEGROUPS[r] = keccak256(`role_${r}`)
+  exports.ROLEGROUPS[r] = keccak256(`ROLEGROUP_${r}`)
 })
 
 
@@ -48,7 +48,7 @@ exports.SETTINGS = {}
   'ENTITY_DEPLOYER',
   'NAYMS_ENTITY',
 ].forEach(r => {
-  exports.SETTINGS[r] = keccak256(`setting_${r}`)
+  exports.SETTINGS[r] = keccak256(`SETTING_${r}`)
 })
 
 

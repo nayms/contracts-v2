@@ -24,6 +24,14 @@
           "value": "invalid"
         }
       ]
+    },
+    "settings": {
+      "default": [
+        {
+          "label": "invalid",
+          "value": "invalid"
+        }
+      ]
     }
   },
   "panels": [
@@ -42,53 +50,39 @@
               "contract": true
             }
           ]
+        },
+        {
+          "name": "key",
+          "title": "Setting",
+          "type": "bytes32",
+          "options": "@constant[settings]"
         }
       ],
       "execs": [
         {
           "type": "call",
-          "contract": "SettingsImpl",
-          "method": "getMatchingMarket",
+          "contract": "Settings",
+          "method": "getRootAddress",
           "address": "@input[contractAddress]",
-          "saveResultAsInput": "getMatchingMarket"
+          "args": {
+            "_key": "@input[key]"
+          },
+          "saveResultAsInput": "addr"
         },
         {
           "type": "call",
-          "contract": "SettingsImpl",
-          "method": "getEntityDeployer",
-          "address": "@input[contractAddress]",
-          "saveResultAsInput": "getEntityDeployer"
-        },
-        {
-          "type": "call",
-          "contract": "SettingsImpl",
-          "method": "getPolicyImplementation",
-          "address": "@input[contractAddress]",
-          "saveResultAsInput": "getPolicyImplementation"
-        },
-        {
-          "type": "call",
-          "contract": "SettingsImpl",
-          "method": "getPolicyMutations",
-          "address": "@input[contractAddress]",
-          "saveResultAsInput": "getPolicyMutations"
-        },
-        {
-          "type": "call",
-          "contract": "SettingsImpl",
-          "method": "getNaymsEntity",
-          "address": "@input[contractAddress]",
-          "saveResultAsInput": "getNaymsEntity"
-        },
-        {
-          "type": "call",
-          "contract": "SettingsImpl",
+          "contract": "Settings",
           "method": "getTime",
           "address": "@input[contractAddress]",
           "saveResultAsInput": "getTime"
         }
       ],
       "outputs": [
+        {
+          "title": "Value",
+          "type": "address",
+          "value": "@input[addr]"
+        },
         {
           "title": "Current time",
           "type": "address",
@@ -99,31 +93,6 @@
               "format": "MMM dd, yyyy - HH:mm:ss"
             }
           ]
-        },
-        {
-          "title": "Matching market",
-          "type": "address",
-          "value": "@input[getMatchingMarket]"
-        },
-        {
-          "title": "Entity deployer",
-          "type": "address",
-          "value": "@input[getEntityDeployer]"
-        },
-        {
-          "title": "Policy implementation",
-          "type": "address",
-          "value": "@input[getPolicyImplementation]"
-        },
-        {
-          "title": "Policy mutations",
-          "type": "address",
-          "value": "@input[getPolicyMutations]"
-        },
-        {
-          "title": "Nayms entity",
-          "type": "address",
-          "value": "@input[getNaymsEntity]"
         }
       ]
     },
@@ -735,7 +704,7 @@
         },
         {
           "title": "Initiation date",
-          "type": "int",
+          "type": "string",
           "value": "@input[policyInfo][initiationDate_]",
           "transform": [
             {
@@ -746,7 +715,7 @@
         },
         {
           "title": "Start date",
-          "type": "int",
+          "type": "string",
           "value": "@input[policyInfo][startDate_]",
           "transform": [
             {
@@ -757,7 +726,7 @@
         },
         {
           "title": "Maturation date",
-          "type": "int",
+          "type": "string",
           "value": "@input[policyInfo][maturationDate_]",
           "transform": [
             {
@@ -858,21 +827,37 @@
           "value": "@input[tranchInfo][balance_]"
         },
         {
-          "title": "No. of premium payments missed",
+          "title": "No. of premiums in total",
+          "type": "int",
+          "value": "@input[tranchInfo][numPremiums_]"
+        },
+        {
+          "title": "No. of premiums paid",
+          "type": "int",
+          "value": "@input[tranchInfo][numPremiumsPaid_]"
+        },
+        {
+          "title": "No. of premiums missed",
           "type": "int",
           "value": "@input[tranchInfo][premiumPaymentsMissed_]"
         },
         {
-          "title": "All premiums paid?",
-          "type": "bool",
-          "value": "@input[tranchInfo][allPremiumsPaid_]"
-        },
-        {
-          "title": "Next premium amount due",
+          "title": "Next premium due",
           "type": "int",
           "scale": "-18",
           "unit": "Tokens",
           "value": "@input[tranchInfo][nextPremiumAmount_]"
+        },
+        {
+          "title": "When next premium is due by",
+          "type": "string",
+          "value": "@input[tranchInfo][nextPremiumDueAt_]",
+          "transform": [
+            {
+              "type": "intToDateString",
+              "format": "MMM dd, yyyy - HH:mm:ss"
+            }
+          ]
         },
         {
           "title": "Shared sold",
@@ -888,6 +873,94 @@
           "title": "Market offer id for buyback",
           "type": "int",
           "value": "@input[tranchInfo][finalBuybackofferId_]"
+        }
+      ]
+    },
+    {
+      "id": "getTranchPremiumInfo",
+      "title": "Policy: Get premium info",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "Policy contract address",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "tranchIndex",
+          "title": "Tranche index (0-based)",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        },
+        {
+          "name": "premiumIndex",
+          "title": "Premium index (0-based)",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "PolicyImpl",
+          "method": "getTranchPremiumInfo",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_tranchIndex": "@input[tranchIndex]",
+            "_premiumIndex": "@input[premiumIndex]"
+          },
+          "saveResultAsInput": "premiumInfo"
+        }
+      ],
+      "outputs": [
+        {
+          "title": "Amount",
+          "type": "int",
+          "scale": "-18",
+          "unit": "Tokens",
+          "value": "@input[premiumInfo][amount_]"
+        },
+        {
+          "title": "Due by",
+          "type": "string",
+          "value": "@input[premiumInfo][dueAt_]",
+          "transform": [
+            {
+              "type": "intToDateString",
+              "format": "MMM dd, yyyy - HH:mm:ss"
+            }
+          ]
+        },
+        {
+          "title": "Paid by",
+          "type": "address",
+          "value": "@input[premiumInfo][paidBy_]"
+        },
+        {
+          "title": "Paid at",
+          "type": "string",
+          "value": "@input[premiumInfo][paidAt_]",
+          "transform": [
+            {
+              "type": "intToDateString",
+              "format": "MMM dd, yyyy - HH:mm:ss"
+            }
+          ]
         }
       ]
     },

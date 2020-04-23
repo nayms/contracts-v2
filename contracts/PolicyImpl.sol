@@ -509,12 +509,6 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     }
   }
 
-  function _tranchPaymentsAllMade (uint256 _index) private view returns (bool) {
-    uint256 numPremiums = dataUint256[__i(_index, "numPremiums")];
-    uint256 numPremiumsPaid = dataUint256[__i(_index, "numPremiumsPaid")];
-    return (numPremiumsPaid == numPremiums);
-  }
-
   function _setPolicyState (uint256 _newState) private {
     if (dataUint256["state"] != _newState) {
       dataUint256["state"] = _newState;

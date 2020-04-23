@@ -13,7 +13,7 @@ import "./base/ISettings.sol";
     if (_context == address(this)) {
       require(isAdmin(msg.sender), 'must be admin');
     } else {
-      require(msg.sender == _context, 'must be settings context owner');
+      require(msg.sender == _context, 'must be context owner');
     }
     _;
   }
@@ -29,7 +29,7 @@ import "./base/ISettings.sol";
     return dataAddress[__ab(_context, _key)];
   }
 
-  function getAddress(bytes32 _key) public view returns (address) {
+  function getRootAddress(bytes32 _key) public view returns (address) {
     return getAddress(address(this), _key);
   }
 
@@ -41,7 +41,7 @@ import "./base/ISettings.sol";
     return dataBool[__ab(_context, _key)];
   }
 
-  function getBool(bytes32 _key) public view returns (bool) {
+  function getRootBool(bytes32 _key) public view returns (bool) {
     return getBool(address(this), _key);
   }
 
@@ -53,7 +53,7 @@ import "./base/ISettings.sol";
     return dataUint256[__ab(_context, _key)];
   }
 
-  function getUint256(bytes32 _key) public view returns (uint256) {
+  function getRootUint256(bytes32 _key) public view returns (uint256) {
     return getUint256(address(this), _key);
   }
 
@@ -65,7 +65,7 @@ import "./base/ISettings.sol";
     return dataString[__ab(_context, _key)];
   }
 
-  function getString(bytes32 _key) public view returns (string memory) {
+  function getRootString(bytes32 _key) public view returns (string memory) {
     return getString(address(this), _key);
   }
 

@@ -71,7 +71,7 @@ import "./Policy.sol";
       address(acl()),
       address(settings()),
       aclContext(),
-      settings().getAddress(SETTING_POLICY_IMPL),
+      settings().getRootAddress(SETTING_POLICY_IMPL),
       msg.sender,
       _initiationDate,
       _startDate,
@@ -138,7 +138,7 @@ import "./Policy.sol";
     assertCanTradeTranchTokens
   {
     // get mkt
-    address mktAddress = settings().getAddress(SETTING_MARKET);
+    address mktAddress = settings().getRootAddress(SETTING_MARKET);
     IMarket mkt = IMarket(mktAddress);
     // approve mkt to use my tokens
     IERC20 tok = IERC20(_payUnit);
@@ -152,7 +152,7 @@ import "./Policy.sol";
     assertCanTradeTranchTokens
   {
     // get mkt
-    address mktAddress = settings().getAddress(SETTING_MARKET);
+    address mktAddress = settings().getRootAddress(SETTING_MARKET);
     IMarket mkt = IMarket(mktAddress);
     // approve mkt to use my tokens
     IERC20 tok = IERC20(_sellUnit);

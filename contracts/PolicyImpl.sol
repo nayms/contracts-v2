@@ -324,11 +324,11 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
   // TranchTokenImpl - ERC20 mutations //
 
   function tknApprove(uint256 /*_index*/, address _spender, address /*_from*/, uint256 /*_value*/) public {
-    require(_spender == settings().getAddress(SETTING_MARKET), 'only nayms market is allowed to transfer');
+    require(_spender == settings().getRootAddress(SETTING_MARKET), 'only nayms market is allowed to transfer');
   }
 
   function tknTransfer(uint256 _index, address _spender, address _from, address _to, uint256 _value) public {
-    require(_spender == settings().getAddress(SETTING_MARKET), 'only nayms market is allowed to transfer');
+    require(_spender == settings().getRootAddress(SETTING_MARKET), 'only nayms market is allowed to transfer');
     _transfer(_index, _from, _to, _value);
   }
 
@@ -336,7 +336,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
 
   function _transfer(uint _index, address _from, address _to, uint256 _value) private {
     // when token holder is sending to the market
-    address market = settings().getAddress(SETTING_MARKET);
+    address market = settings().getRootAddress(SETTING_MARKET);
     if (market == _to) {
       // and they're not the initial balance holder of the token (i.e. the policy/tranch)
       address initialHolder = dataAddress[__i(_index, "initialHolder")];
@@ -370,7 +370,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
   }
 
   function _cancelTranchMarketOffer(uint _index) private {
-    IMarket market = IMarket(settings().getAddress(SETTING_MARKET));
+    IMarket market = IMarket(settings().getRootAddress(SETTING_MARKET));
 
     uint256 initialSaleOfferId = dataUint256[__i(_index, "initialSaleOfferId")];
 
@@ -382,7 +382,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
 
   function _beginPolicySaleIfNotYetStarted() private {
     if (dataUint256["state"] == POLICY_STATE_CREATED) {
-      IMarket market = IMarket(settings().getAddress(SETTING_MARKET));
+      IMarket market = IMarket(settings().getRootAddress(SETTING_MARKET));
 
       bool allReady = true;
       // check every tranch
@@ -450,7 +450,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     if (0 == dataUint256["claimsPendingCount"] && !dataBool["buybackInitiated"]) {
       dataBool["buybackInitiated"] = true;
 
-      address marketAddress = settings().getAddress(SETTING_MARKET);
+      address marketAddress = settings().getRootAddress(SETTING_MARKET);
 
       IMarket market = IMarket(marketAddress);
 
@@ -532,14 +532,14 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
   // Sub-delegates
 
   function _claims () private view returns (address) {
-    return settings().getAddress(SETTING_POLICY_CLAIMS_IMPL);
+    return settings().getRootAddress(SETTING_POLICY_CLAIMS_IMPL);
   }
 
   function _commissions () private view returns (address) {
-    return settings().getAddress(SETTING_POLICY_COMMISSIONS_IMPL);
+    return settings().getRootAddress(SETTING_POLICY_COMMISSIONS_IMPL);
   }
 
   function _premiums () private view returns (address) {
-    return settings().getAddress(SETTING_POLICY_PREMIUMS_IMPL);
+    return settings().getRootAddress(SETTING_POLICY_PREMIUMS_IMPL);
   }
 }

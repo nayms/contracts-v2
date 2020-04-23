@@ -35,7 +35,7 @@ contract PolicyCommissions is EternalStorage, Controller, IPolicyCommissions, IP
     require(acl().userSomeHasRoleInContext(brokerEntityContext, _broker), 'must have role in broker entity');
 
     // get nayms entity
-    address naymsEntity = settings().getAddress(SETTING_NAYMS_ENTITY);
+    address naymsEntity = settings().getRootAddress(SETTING_NAYMS_ENTITY);
 
     // do payouts and update balances
     IERC20 tkn = IERC20(dataAddress["unit"]);

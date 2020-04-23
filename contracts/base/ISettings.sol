@@ -17,13 +17,13 @@ contract ISettings is ISettingsKeys {
   function getAddress(address _context, bytes32 _key) public view returns (address);
 
   /**
-   * @dev Get an address in the system context.
+   * @dev Get an address in the root context.
    *
    * @param _key The key.
    *
    * @return The value.
    */
-  function getAddress(bytes32 _key) public view returns (address);
+  function getRootAddress(bytes32 _key) public view returns (address);
 
   /**
    * @dev Set an address.
@@ -45,13 +45,13 @@ contract ISettings is ISettingsKeys {
   function getBool(address _context, bytes32 _key) public view returns (bool);
 
   /**
-   * @dev Get a boolean in the system context.
+   * @dev Get a boolean in the root context.
    *
    * @param _key The key.
    *
    * @return The value.
    */
-  function getBool(bytes32 _key) public view returns (bool);
+  function getRootBool(bytes32 _key) public view returns (bool);
 
   /**
    * @dev Set a boolean.
@@ -73,13 +73,13 @@ contract ISettings is ISettingsKeys {
   function getUint256(address _context, bytes32 _key) public view returns (uint256);
 
   /**
-   * @dev Get a number in the system context.
+   * @dev Get a number in the root context.
    *
    * @param _key The key.
    *
    * @return The value.
    */
-  function getUint256(bytes32 _key) public view returns (uint256);
+  function getRootUint256(bytes32 _key) public view returns (uint256);
 
   /**
    * @dev Set a number.
@@ -101,13 +101,13 @@ contract ISettings is ISettingsKeys {
   function getString(address _context, bytes32 _key) public view returns (string memory);
 
   /**
-   * @dev Get a string in the system context.
+   * @dev Get a string in the root context.
    *
    * @param _key The key.
    *
    * @return The value.
    */
-  function getString(bytes32 _key) public view returns (string memory);
+  function getRootString(bytes32 _key) public view returns (string memory);
 
   /**
    * @dev Set a string.

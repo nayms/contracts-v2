@@ -438,13 +438,13 @@ contract('Policy', accounts => {
         })
 
         it('approving an address to send on one\'s behalf is possible if it is the market', async () => {
-          await settings.setRootAddress(SETTINGS.MARKET, accounts[3]).should.be.fulfilled
+          await settings.setAddress(settings.address, SETTINGS.MARKET, accounts[3]).should.be.fulfilled
           await firstTkn.approve(accounts[3], 2).should.be.fulfilled
         })
 
         describe('such as market sending tokens on one\' behalf', () => {
           beforeEach(async () => {
-            await settings.setRootAddress(SETTINGS.MARKET, accounts[3]).should.be.fulfilled
+            await settings.setAddress(settings.address, SETTINGS.MARKET, accounts[3]).should.be.fulfilled
           })
 
           it('but not when owner does not have enough', async () => {

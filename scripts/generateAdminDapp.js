@@ -7,7 +7,7 @@ const fs = require('fs')
 const path = require('path')
 
 const projectDir = path.join(__dirname, '..')
-const { ROLES } = require(path.join(projectDir, 'utils', 'constants.js'))
+const { ROLES, SETTINGS } = require(path.join(projectDir, 'utils', 'constants.js'))
 const addresses = require(path.join(projectDir, 'deployedAddresses.json'))
 const dapp = require(path.join(projectDir, 'contracts', 'admin.json'))
 
@@ -27,6 +27,15 @@ dapp.constants.roles = {
     return {
       label: name,
       value: ROLES[name],
+    }
+  })
+}
+
+dapp.constants.settings = {
+  default: Object.keys(SETTINGS).map(name => {
+    return {
+      label: name,
+      value: SETTINGS[name],
     }
   })
 }

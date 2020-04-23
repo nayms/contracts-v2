@@ -1,11 +1,13 @@
 pragma solidity >=0.5.8;
 
-import "./IPolicyMutations.sol";
+import "./IPolicyClaims.sol";
+import "./IPolicyCommissions.sol";
+import "./IPolicyPremiums.sol";
 
 /**
  * @dev Policies.
  */
-contract IPolicyImpl is IPolicyMutations {
+contract IPolicyImpl is IPolicyClaims, IPolicyCommissions, IPolicyPremiums {
   /**
    * @dev Create tranch.
    *
@@ -65,9 +67,11 @@ contract IPolicyImpl is IPolicyMutations {
    * @return token_ Tranch ERC-20 token address.
    * @return state_ Current tranch state.
    * @return balance_ Current tranch balance (of the payment unit)
+   * @return numPremiums_ No. of premium payments required in total.
    * @return nextPremiumAmount_ Payment due by the next premium interval.
-   * @return premiumPaymentsMissed_ No. of previous premium payments that have been missed.
-   * @return allPremiumsPaid_ Whether all expected premiums have been paid so far.
+   * @return nextPremiumDueAt_ When the next premium payment is due by (timestamp = seconds since epoch).
+   * @return premiumPaymentsMissed_ No. of premium payments that have been missed.
+   * @return numPremiumsPaid_ No. of premium payments made.
    * @return sharesSold_ No. of shared sold (during the initial sale period).
    * @return initialSaleOfferId_ Market offer id of the initial sale.
    * @return finalBuybackofferId_ Market offer id of the post-maturation/cancellation token buyback.
@@ -76,13 +80,34 @@ contract IPolicyImpl is IPolicyMutations {
     address token_,
     uint256 state_,
     uint256 balance_,
+    uint256 numPremiums_,
     uint256 nextPremiumAmount_,
+    uint256 nextPremiumDueAt_,
     uint256 premiumPaymentsMissed_,
-    bool allPremiumsPaid_,
+    uint256 numPremiumsPaid_,
     uint256 sharesSold_,
     uint256 initialSaleOfferId_,
     uint256 finalBuybackofferId_
   );
+
+
+  /**
+   * @dev Get tranch premium info.
+   *
+   * @param _tranchIndex Tranch index.
+   * @param _premiumIndex Premium index.
+   * @return amount_ Amount due.
+   * @return dueAt_ When it is due by (timestamp = seconds since epoch).
+   * @return paidAt_ When it was paid (timestamp = seconds since epoch).
+   * @return paidBy_ Who paid it.
+   */
+  function getTranchPremiumInfo (uint256 _tranchIndex, uint256 _premiumIndex) public view returns (
+    uint256 amount_,
+    uint256 dueAt_,
+    uint256 paidAt_,
+    address paidBy_
+  );
+
 
   /**
    * @dev Get accumulated commission balances.
@@ -98,15 +123,6 @@ contract IPolicyImpl is IPolicyMutations {
     uint256 assetManagerCommissionBalance_,
     uint256 naymsCommissionBalance_
   );
-
-  /**
-   * @dev Pay the next expected premium for the given tranch.
-   *
-   * The caller should ensure they have approved the policy to transfer tokens on their behalf.
-   *
-   * @param _index Tranch index.
-   */
-  function payTranchPremium (uint256 _index) public;
 
   /**
    * @dev Get claim info.
@@ -168,12 +184,4 @@ contract IPolicyImpl is IPolicyMutations {
     address indexed initialBalanceHolder,
     uint256 index
   );
-
-  /**
-   * @dev Emitted when a premium payment has been made.
-   * @param tranchIndex The tranch token address.
-   * @param amount The amount paid.
-   * @param caller The payer.
-   */
-  event PremiumPayment (uint256 indexed tranchIndex, uint256 indexed amount, address indexed caller);
 }

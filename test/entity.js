@@ -312,7 +312,12 @@ contract('Entity', accounts => {
       beforeEach(async () => {
         policyOwner = accounts[2]
 
+        const blockTime = (await settings.getTime()).toNumber()
+
         const result = await createPolicy(entity, {
+          initiationDate: blockTime + 100,
+          startDate: blockTime + 200,
+          maturationDate: blockTime + 300,
           unit: etherToken.address
         }, { from: policyOwner }).should.be.fulfilled
 

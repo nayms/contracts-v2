@@ -63,7 +63,6 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
   {
     require(_numShares > 0, 'invalid num of shares');
     require(_pricePerShareAmount > 0, 'invalid price');
-    require(_premiums.length <= calculateMaxNumOfPremiums(), 'too many premiums');
 
     // instantiate tranches
     uint256 i = dataUint256["numTranches"];
@@ -72,7 +71,24 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     // setup initial data for tranch
     dataUint256[__i(i, "numShares")] = _numShares;
     dataUint256[__i(i, "pricePerShareAmount")] = _pricePerShareAmount;
-    dataManyUint256[__i(i, "premiums")] = _premiums;
+
+    // iterate through premiums and figure out what needs to paid and when
+    uint256 nextPayTime = dataUint256["initiationDate"];
+    uint256 numPremiums = 0;
+    for (uint256 p = 0; _premiums.length > p; p += 1) {
+      // we only care about premiums > 0
+      if (_premiums[p] > 0) {
+        dataUint256[__ii(i, numPremiums, "premiumAmount")] = _premiums[p];
+        dataUint256[__ii(i, numPremiums, "premiumDueAt")] = nextPayTime;
+        numPremiums += 1;
+      }
+
+      // the premium interval still counts
+      nextPayTime += dataUint256["premiumIntervalSeconds"];
+    }
+    // save total premiums
+    require(numPremiums <= calculateMaxNumOfPremiums(), 'too many premiums');
+    dataUint256[__i(i, "numPremiums")] = numPremiums;
 
     // deploy token contract
     TranchToken t = new TranchToken(address(this), i);
@@ -133,9 +149,11 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     address token_,
     uint256 state_,
     uint256 balance_,
+    uint256 numPremiums_,
     uint256 nextPremiumAmount_,
+    uint256 nextPremiumDueAt_,
     uint256 premiumPaymentsMissed_,
-    bool allPremiumsPaid_,
+    uint256 numPremiumsPaid_,
     uint256 sharesSold_,
     uint256 initialSaleOfferId_,
     uint256 finalBuybackofferId_
@@ -143,48 +161,29 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     token_ = dataAddress[__i(_index, "address")];
     state_ = dataUint256[__i(_index, "state")];
     balance_ = dataUint256[__i(_index, "balance")];
-    nextPremiumAmount_ = _getNextTranchPremiumAmount(_index);
+    numPremiums_ = dataUint256[__i(_index, "numPremiums")];
+    (nextPremiumAmount_, nextPremiumDueAt_) = _getNextTranchPremium(_index);
     premiumPaymentsMissed_ = _getNumberOfTranchPaymentsMissed(_index);
-    allPremiumsPaid_ = _tranchPaymentsAllMade(_index);
+    numPremiumsPaid_ = dataUint256[__i(_index, "numPremiumsPaid")];
     sharesSold_ = dataUint256[__i(_index, "sharesSold")];
     initialSaleOfferId_ = dataUint256[__i(_index, "initialSaleOfferId")];
     finalBuybackofferId_ = dataUint256[__i(_index, "finalBuybackOfferId")];
   }
 
 
-  function payTranchPremium (uint256 _index) public {
-    require(!_tranchPaymentsAllMade(_index), 'all payments already made');
-
-    uint256 expectedAmount = _getNextTranchPremiumAmount(_index);
-
-    if (expectedAmount > 0) {
-      // transfer
-      IERC20 tkn = IERC20(dataAddress["unit"]);
-      tkn.transferFrom(msg.sender, address(this), expectedAmount);
-    }
-
-    // record the payments
-    uint256 paymentIndex = dataUint256[__i(_index, "premiumsPaid")];
-    dataUint256[__ii(_index, paymentIndex, "premiumPayment")] = expectedAmount;
-    dataAddress[__ii(_index, paymentIndex, "premiumPayer")] = msg.sender;
-    dataUint256[__i(_index, "premiumsPaid")] = paymentIndex + 1;
-
-    // calculate commissions
-    uint256 brokerCommission = dataUint256["brokerCommissionBP"].mul(expectedAmount).div(1000);
-    uint256 assetManagerCommission = dataUint256["assetManagerCommissionBP"].mul(expectedAmount).div(1000);
-    uint256 naymsCommission = dataUint256["naymsCommissionBP"].mul(expectedAmount).div(1000);
-
-    // add to commission balances
-    dataUint256["brokerCommissionBalance"] = dataUint256["brokerCommissionBalance"].add(brokerCommission);
-    dataUint256["assetManagerCommissionBalance"] = dataUint256["assetManagerCommissionBalance"].add(assetManagerCommission);
-    dataUint256["naymsCommissionBalance"] = dataUint256["naymsCommissionBalance"].add(naymsCommission);
-
-    // add to tranch balance
-    uint256 tranchBalanceDelta = expectedAmount.sub(brokerCommission.add(assetManagerCommission).add(naymsCommission));
-    dataUint256[__i(_index, "balance")] = dataUint256[__i(_index, "balance")].add(tranchBalanceDelta);
-
-    emit PremiumPayment(_index, expectedAmount, msg.sender);
+  function getTranchPremiumInfo (uint256 _tranchIndex, uint256 _premiumIndex) public view returns (
+    uint256 amount_,
+    uint256 dueAt_,
+    uint256 paidAt_,
+    address paidBy_
+  ) {
+    amount_ = dataUint256[__ii(_tranchIndex, _premiumIndex, "premiumAmount")];
+    dueAt_ = dataUint256[__ii(_tranchIndex, _premiumIndex, "premiumDueAt")];
+    paidAt_ = dataUint256[__ii(_tranchIndex, _premiumIndex, "premiumPaidAt")];
+    paidBy_ = dataAddress[__ii(_tranchIndex, _premiumIndex, "premiumPaidBy")];
   }
+
+
 
   function getCommissionBalances() public view returns (
     uint256 brokerCommissionBalance_,
@@ -243,8 +242,16 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     }
   }
 
+  function payTranchPremium (uint256 _index) public {
+    _premiums().dcall(abi.encodeWithSelector(
+      "payTranchPremium(uint256)".dsig(),
+      _index
+    ));
+  }
+
+
   function makeClaim(uint256 _index, address _clientManagerEntity, uint256 _amount) public {
-    _mutations().dcall(abi.encodeWithSelector(
+    _claims().dcall(abi.encodeWithSelector(
       "makeClaim(uint256,address,uint256)".dsig(),
       _index, _clientManagerEntity, _amount
     ));
@@ -252,7 +259,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
 
 
   function approveClaim(uint256 _claimIndex) public {
-    _mutations().dcall(abi.encodeWithSelector(
+    _claims().dcall(abi.encodeWithSelector(
       "approveClaim(uint256)".dsig(),
       _claimIndex
     ));
@@ -260,7 +267,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
 
 
   function declineClaim(uint256 _claimIndex) public {
-    _mutations().dcall(abi.encodeWithSelector(
+    _claims().dcall(abi.encodeWithSelector(
       "declineClaim(uint256)".dsig(),
       _claimIndex
     ));
@@ -268,7 +275,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
 
 
   function payClaims() public {
-    _mutations().dcall(abi.encodeWithSelector(
+    _claims().dcall(abi.encodeWithSelector(
       "payClaims()".dsig()
     ));
   }
@@ -278,7 +285,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     address _assetManagerEntity, address _assetManager,
     address _brokerEntity, address _broker
   ) public {
-    _mutations().dcall(abi.encodeWithSelector(
+    _commissions().dcall(abi.encodeWithSelector(
       "payCommissions(address,address,address,address)".dsig(),
       _assetManagerEntity, _assetManager, _brokerEntity, _broker
     ));
@@ -317,11 +324,11 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
   // TranchTokenImpl - ERC20 mutations //
 
   function tknApprove(uint256 /*_index*/, address _spender, address /*_from*/, uint256 /*_value*/) public {
-    require(_spender == settings().getMatchingMarket(), 'only nayms market is allowed to transfer');
+    require(_spender == settings().getRootAddress(SETTING_MARKET), 'only nayms market is allowed to transfer');
   }
 
   function tknTransfer(uint256 _index, address _spender, address _from, address _to, uint256 _value) public {
-    require(_spender == settings().getMatchingMarket(), 'only nayms market is allowed to transfer');
+    require(_spender == settings().getRootAddress(SETTING_MARKET), 'only nayms market is allowed to transfer');
     _transfer(_index, _from, _to, _value);
   }
 
@@ -329,7 +336,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
 
   function _transfer(uint _index, address _from, address _to, uint256 _value) private {
     // when token holder is sending to the market
-    address market = settings().getMatchingMarket();
+    address market = settings().getRootAddress(SETTING_MARKET);
     if (market == _to) {
       // and they're not the initial balance holder of the token (i.e. the policy/tranch)
       address initialHolder = dataAddress[__i(_index, "initialHolder")];
@@ -363,7 +370,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
   }
 
   function _cancelTranchMarketOffer(uint _index) private {
-    IMarket market = IMarket(settings().getMatchingMarket());
+    IMarket market = IMarket(settings().getRootAddress(SETTING_MARKET));
 
     uint256 initialSaleOfferId = dataUint256[__i(_index, "initialSaleOfferId")];
 
@@ -375,7 +382,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
 
   function _beginPolicySaleIfNotYetStarted() private {
     if (dataUint256["state"] == POLICY_STATE_CREATED) {
-      IMarket market = IMarket(settings().getMatchingMarket());
+      IMarket market = IMarket(settings().getRootAddress(SETTING_MARKET));
 
       bool allReady = true;
       // check every tranch
@@ -443,7 +450,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     if (0 == dataUint256["claimsPendingCount"] && !dataBool["buybackInitiated"]) {
       dataBool["buybackInitiated"] = true;
 
-      address marketAddress = settings().getMatchingMarket();
+      address marketAddress = settings().getRootAddress(SETTING_MARKET);
 
       IMarket market = IMarket(marketAddress);
 
@@ -472,50 +479,34 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     }
   }
 
-  function _getNextTranchPremiumAmount (uint256 _index) private view returns (uint256) {
-    uint256[] storage premiums = dataManyUint256[__i(_index, "premiums")];
-    uint256 numPremiumsAlreadyPaid = dataUint256[__i(_index, "premiumsPaid")];
+  function _getNextTranchPremium (uint256 _index) private view returns (uint256, uint256) {
+    uint256 numPremiumsPaid = dataUint256[__i(_index, "numPremiumsPaid")];
 
-    if (numPremiumsAlreadyPaid >= premiums.length) {
-      return 0;
-    } else {
-      return premiums[numPremiumsAlreadyPaid];
-    }
+    return (
+      dataUint256[__ii(_index, numPremiumsPaid, "premiumAmount")],
+      dataUint256[__ii(_index, numPremiumsPaid, "premiumDueAt")]
+    );
   }
 
   function _getNumberOfTranchPaymentsMissed (uint256 _index) private view returns (uint256) {
-    uint256 expectedPaid = 0;
+    uint256 numPremiums = dataUint256[__i(_index, "numPremiums")];
+    uint256 numPremiumsPaid = dataUint256[__i(_index, "numPremiumsPaid")];
 
-    // if inititation date has passed
-    if (initiationDateHasPassed()) {
-      expectedPaid++;
+    uint256 expectedNumPremiumsPaid = 0;
 
-      // calculate the extra payments that should have been made by now
-      uint256 diff = now.sub(dataUint256["initiationDate"]).div(dataUint256["premiumIntervalSeconds"]);
-      expectedPaid = expectedPaid.add(diff);
+    for (uint256 i = 0; numPremiums > i; i += 1) {
+      uint256 dueAt = dataUint256[__ii(_index, i, "premiumDueAt")];
+
+      if (dueAt <= now) {
+        expectedNumPremiumsPaid += 1;
+      }
     }
 
-    // cap to no .of available premiums
-    uint256[] storage premiums = dataManyUint256[__i(_index, "premiums")];
-
-    if (expectedPaid > premiums.length) {
-      expectedPaid = premiums.length;
-    }
-
-    uint256 premiumsPaid = dataUint256[__i(_index, "premiumsPaid")];
-
-    if (expectedPaid >= premiumsPaid) {
-      return expectedPaid.sub(premiumsPaid);
+    if (expectedNumPremiumsPaid >= numPremiumsPaid) {
+      return expectedNumPremiumsPaid - numPremiumsPaid;
     } else {
       return 0;
     }
-  }
-
-  function _tranchPaymentsAllMade (uint256 _index) private view returns (bool) {
-    uint256[] storage premiums = dataManyUint256[__i(_index, "premiums")];
-    uint256 done = dataUint256[__i(_index, "premiumsPaid")];
-
-    return (done >= premiums.length);
   }
 
   function _setPolicyState (uint256 _newState) private {
@@ -534,7 +525,15 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
 
   // Sub-delegates
 
-  function _mutations () private view returns (address) {
-    return settings().getPolicyMutations();
+  function _claims () private view returns (address) {
+    return settings().getRootAddress(SETTING_POLICY_CLAIMS_IMPL);
+  }
+
+  function _commissions () private view returns (address) {
+    return settings().getRootAddress(SETTING_POLICY_COMMISSIONS_IMPL);
+  }
+
+  function _premiums () private view returns (address) {
+    return settings().getRootAddress(SETTING_POLICY_PREMIUMS_IMPL);
   }
 }

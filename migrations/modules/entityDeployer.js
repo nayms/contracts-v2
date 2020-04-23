@@ -1,5 +1,6 @@
 const { createLog } = require('../../utils/log')
 const { deploy } = require('../../utils/functions')
+const { SETTINGS } = require('../../utils/constants')
 
 export const ensureEntityDeployerIsDeployed = async ({ deployer, artifacts, logger }, aclAddress, settingsAddress, entityImplAddress) => {
   const log = createLog(logger)
@@ -26,10 +27,10 @@ export const ensureEntityDeployerIsDeployed = async ({ deployer, artifacts, logg
   log('Saving entity deployer and nayms entity addresses to settings ...')
 
   // save to settings
-  const Settings = artifacts.require('./ISettingsImpl')
+  const Settings = artifacts.require('./ISettings')
   const settings = await Settings.at(settingsAddress)
-  await settings.setEntityDeployer(entityDeployer.address)
-  await settings.setNaymsEntity(naymsEntityAddress)
+  await settings.setAddress(settings.address, SETTINGS.ENTITY_DEPLOYER, entityDeployer.address)
+  await settings.setAddress(settings.address, SETTINGS.NAYMS_ENTITY, naymsEntityAddress)
 
   log('... saved')
 

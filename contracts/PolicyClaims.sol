@@ -1,20 +1,18 @@
 pragma solidity >=0.5.8;
 
-import "./base/Address.sol";
 import "./base/SafeMath.sol";
 import "./base/EternalStorage.sol";
 import "./base/Controller.sol";
-import "./base/IPolicyMutations.sol";
+import "./base/IPolicyClaims.sol";
 import "./base/IPolicyStates.sol";
 import "./base/AccessControl.sol";
 import "./base/IERC20.sol";
 
 /**
- * @dev Business-logic for Policy
+ * @dev Business-logic for Policy claims
  */
-contract PolicyMutations is EternalStorage, Controller, IPolicyMutations, IPolicyStates {
+contract PolicyClaims is EternalStorage, Controller, IPolicyClaims, IPolicyStates {
   using SafeMath for uint;
-  using Address for address;
 
   modifier assertActiveState () {
     require(dataUint256["state"] == POLICY_STATE_ACTIVE, 'must be in active state');
@@ -28,11 +26,6 @@ contract PolicyMutations is EternalStorage, Controller, IPolicyMutations, IPolic
 
   modifier assertIsAssetManager (address _addr) {
     require(inRoleGroup(_addr, ROLEGROUP_ASSET_MANAGERS), 'must be asset manager');
-    _;
-  }
-
-  modifier assertIsBroker (address _addr) {
-    require(inRoleGroup(_addr, ROLEGROUP_BROKERS), 'must be broker');
     _;
   }
 
@@ -129,40 +122,6 @@ contract PolicyMutations is EternalStorage, Controller, IPolicyMutations, IPolic
     }
 
     emit PaidClaims(msg.sender);
-  }
-
-  function payCommissions (
-    address _assetManagerEntity, address _assetManager,
-    address _brokerEntity, address _broker
-  )
-    public
-    assertIsAssetManager(_assetManager)
-    assertIsBroker(_broker)
-  {
-    // check asset manager
-    bytes32 assetManagerEntityContext = AccessControl(_assetManagerEntity).aclContext();
-    require(acl().userSomeHasRoleInContext(assetManagerEntityContext, _assetManager), 'must have role in asset manager entity');
-
-    // check broker
-    bytes32 brokerEntityContext = AccessControl(_brokerEntity).aclContext();
-    require(acl().userSomeHasRoleInContext(brokerEntityContext, _broker), 'must have role in broker entity');
-
-    // get nayms entity
-    address naymsEntity = settings().getNaymsEntity();
-
-    // do payouts and update balances
-    IERC20 tkn = IERC20(dataAddress["unit"]);
-
-    tkn.transfer(_assetManagerEntity, dataUint256["assetManagerCommissionBalance"]);
-    dataUint256["assetManagerCommissionBalance"] = 0;
-
-    tkn.transfer(_brokerEntity, dataUint256["brokerCommissionBalance"]);
-    dataUint256["brokerCommissionBalance"] = 0;
-
-    tkn.transfer(naymsEntity, dataUint256["naymsCommissionBalance"]);
-    dataUint256["naymsCommissionBalance"] = 0;
-
-    emit PaidCommissions(_assetManagerEntity, _brokerEntity, msg.sender);
   }
 
   // Internal methods

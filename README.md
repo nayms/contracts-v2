@@ -32,7 +32,7 @@ The key contracts are:
 * `Market (IMarket.sol)` - Interface for interacting with [our MakerOTC matching market](https://github.com/nayms/maker-otc). We have a single global instance for our platform.
 * `Policy (IPolicyImpl.sol)` - Interface for interacting with policies.
 * `Proxy (Proxy.sol)` - Interface for interacting with all upgradeable contracts (policies, entities, etc).
-* `Settings (ISettingsImpl.sol)` - Interface for global settings. We have a single global settings instance for our platform.
+* `Settings (ISettings.sol)` - Interface for global settings. We have a single global settings instance for our platform.
 
 We automatically deploy the first `Entity` via the `EntityDeployer`. This is the _Nayms company entity_ and its address
 can be obtained via `Settings.getNaymsEntity()` as well as by calling `EntityDeployer.getEntity(0)`.

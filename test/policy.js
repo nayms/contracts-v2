@@ -11,7 +11,7 @@ import {
 } from './utils'
 import { events } from '../'
 
-import { ROLES, ROLEGROUPS } from '../utils/constants'
+import { ROLES, ROLEGROUPS, SETTINGS } from '../utils/constants'
 
 import { ensureAclIsDeployed } from '../migrations/modules/acl'
 
@@ -247,10 +247,31 @@ contract('Policy', accounts => {
         await createTranch(policy, { pricePerShareAmount: 0 }, { from: policyOwnerAddress }).should.be.rejectedWith('invalid price')
       })
 
-      it('and premium array is valid', async () => {
-        await setupPolicy({ initiationDateDiff: 0, startDateDiff: 0, maturationDateDiff: 30, premiumIntervalSeconds: 20 })
+      describe('a valid number of premiums must be provided', () => {
+        beforeEach(async () => {
+          // allow upto 4 premiums
+          await setupPolicy({ initiationDateDiff: 0, startDateDiff: 0, maturationDateDiff: 30, premiumIntervalSeconds: 10 })
+        })
 
-        await createTranch(policy, { premiums: [1, 2, 3, 4, 5] }, { from: policyOwnerAddress }).should.be.rejectedWith('too many premiums')
+        it('0', async () => {
+          await createTranch(policy, { premiums: [] }, { from: policyOwnerAddress }).should.be.fulfilled
+        })
+
+        it('less than max', async () => {
+          await createTranch(policy, { premiums: [1] }, { from: policyOwnerAddress }).should.be.fulfilled
+        })
+
+        it('max', async () => {
+          await createTranch(policy, { premiums: [1, 2, 3, 4] }, { from: policyOwnerAddress }).should.be.fulfilled
+        })
+
+        it('above max', async () => {
+          await createTranch(policy, { premiums: [1, 2, 3, 4, 5] }, { from: policyOwnerAddress }).should.be.rejectedWith('too many premiums')
+        })
+
+        it('above max but filtering out 0-values results in max', async () => {
+          await createTranch(policy, { premiums: [0, 0, 0, 1, 2, 0, 3, 4] }, { from: policyOwnerAddress }).should.be.fulfilled
+        })
       })
 
       it('can be created and have initial balance auto-allocated to policy impl', async () => {
@@ -417,13 +438,13 @@ contract('Policy', accounts => {
         })
 
         it('approving an address to send on one\'s behalf is possible if it is the market', async () => {
-          await settings.setMatchingMarket(accounts[3]).should.be.fulfilled
+          await settings.setAddress(settings.address, SETTINGS.MARKET, accounts[3]).should.be.fulfilled
           await firstTkn.approve(accounts[3], 2).should.be.fulfilled
         })
 
         describe('such as market sending tokens on one\' behalf', () => {
           beforeEach(async () => {
-            await settings.setMatchingMarket(accounts[3]).should.be.fulfilled
+            await settings.setAddress(settings.address, SETTINGS.MARKET, accounts[3]).should.be.fulfilled
           })
 
           it('but not when owner does not have enough', async () => {
@@ -448,19 +469,23 @@ contract('Policy', accounts => {
 
     describe('premiums', () => {
       describe('basic tests', () => {
+        let policyAttrs
+
         beforeEach(async () => {
-          await setupPolicy()
+          policyAttrs = await setupPolicy()
         })
 
-        it('initially no premium is expected', async () => {
+        it('initially the first premium is expected by the inititation date', async () => {
           await createTranch(policy, {
             premiums: [2, 3, 4]
           }, { from: policyOwnerAddress })
 
           await policy.getTranchInfo(0).should.eventually.matchObj({
+            numPremiums_: 3,
             nextPremiumAmount_: 2,
+            nextPremiumDueAt_: policyAttrs.initiationDate,
             premiumPaymentsMissed_: 0,
-            allPremiumsPaid_: false,
+            numPremiumsPaid_: 0,
           })
         })
 
@@ -483,7 +508,7 @@ contract('Policy', accounts => {
           await policy.payTranchPremium(0).should.be.rejectedWith('amount exceeds balance')
         })
 
-        it('emits an event', async () => {
+        it('emits an event upon payment', async () => {
           await createTranch(policy, {
             premiums: [2, 3, 4]
           }, { from: policyOwnerAddress })
@@ -510,8 +535,14 @@ contract('Policy', accounts => {
           await policy.getTranchInfo(0).should.eventually.matchObj({
             nextPremiumAmount_: 3,
             premiumPaymentsMissed_: 0,
-            allPremiumsPaid_: false,
+            numPremiumsPaid_: 1,
             balance_: 2,
+          })
+
+          await policy.getTranchPremiumInfo(0, 0).should.eventually.matchObj({
+            amount_: 2,
+            dueAt_: policyAttrs.initiationDate,
+            paidBy_: accounts[0]
           })
         })
 
@@ -528,164 +559,114 @@ contract('Policy', accounts => {
           await policy.getTranchInfo(0).should.eventually.matchObj({
             nextPremiumAmount_: 4,
             premiumPaymentsMissed_: 0,
-            allPremiumsPaid_: false,
+            numPremiumsPaid_: 2,
             balance_: 5,
           })
+
+          await policy.getTranchPremiumInfo(0, 1).should.eventually.matchObj({
+            amount_: 3,
+            dueAt_: policyAttrs.initiationDate + 30,
+            paidBy_: accounts[0]
+          })
         })
       })
 
-      describe('commissions', () => {
-        beforeEach(async () => {
-          await setupPolicy({
-            brokerCommissionBP: 2,
-            assetManagerCommissionBP: 1,
-            naymsCommissionBP: 3,
-          })
+      describe('0-values', () => {
+        let policyAttrs
 
+        beforeEach(async () => {
+          policyAttrs = await setupPolicy()
+        })
+
+        it('0-values are skipped over when it comes to the first payment', async () => {
           await createTranch(policy, {
-            premiums: [2000, 3000, 4000]
+            premiums: [0, 0, 0, 2, 3, 4]
           }, { from: policyOwnerAddress })
-        })
-
-        it('updates the balances correctly as premiums get paid in', async () => {
-          await etherToken.deposit({ value: 10000 })
-          await etherToken.approve(policy.address, 10000)
-
-          await policy.payTranchPremium(0)
-
-          await policy.getCommissionBalances().should.eventually.matchObj({
-            assetManagerCommissionBalance_: 2, /* 0.1% of 2000 */
-            brokerCommissionBalance_: 4, /* 0.2% of 2000 */
-            naymsCommissionBalance_: 6, /* 0.3% of 2000 */
-          })
 
           await policy.getTranchInfo(0).should.eventually.matchObj({
-            balance_: 1988, /* 2000 - (2 + 4 + 6) */
+            numPremiums_: 3,
+            nextPremiumAmount_: 2,
+            nextPremiumDueAt_: policyAttrs.initiationDate + (30 * 3),
+            premiumPaymentsMissed_: 0,
+            numPremiumsPaid_: 0,
           })
 
+          await etherToken.deposit({ value: 2 })
+          await etherToken.approve(policy.address, 2)
           await policy.payTranchPremium(0)
 
-          await policy.getCommissionBalances().should.eventually.matchObj({
-            assetManagerCommissionBalance_: 5, /* 2 + 3 (=0.1% of 3000) */
-            brokerCommissionBalance_: 10, /* 4 + 6 (=0.2% of 3000) */
-            naymsCommissionBalance_: 15, /* 6 + 9 (=0.3% of 3000) */
-          })
           await policy.getTranchInfo(0).should.eventually.matchObj({
-            balance_: 4970, /* 1988 + 3000 - (3 + 6 + 9) */
-          })
-
-          await policy.payTranchPremium(0)
-
-          await policy.getCommissionBalances().should.eventually.matchObj({
-            assetManagerCommissionBalance_: 9, /* 5 + 4 (=0.1% of 4000) */
-            brokerCommissionBalance_: 18, /* 10 + 8 (=0.2% of 4000) */
-            naymsCommissionBalance_: 27, /* 15 + 12 (=0.3% of 4000) */
-          })
-          await policy.getTranchInfo(0).should.eventually.matchObj({
-            balance_: 8946, /* 4970 + 4000 - (4 + 8 + 12) */
+            nextPremiumAmount_: 3,
+            premiumPaymentsMissed_: 0,
+            numPremiumsPaid_: 1,
+            balance_: 2,
           })
         })
 
-        describe('and the commissions can be paid out', async () => {
-          beforeEach(async () => {
-            await etherToken.deposit({ value: 10000 })
-            await etherToken.approve(policy.address, 10000)
+        it('0-values are skipped over for subsequent payments too', async () => {
+          await createTranch(policy, {
+            premiums: [2, 3, 0, 4, 0, 0, 5, 0]
+          }, { from: policyOwnerAddress })
 
-            await policy.payTranchPremium(0)
-            await policy.payTranchPremium(0)
-
-            // assign roles
-            await acl.assignRole(policyContext, accounts[5], ROLES.ASSET_MANAGER)
-            await acl.assignRole(policyContext, accounts[6], ROLES.BROKER)
-
-            // assign to entities
-            await acl.assignRole(entityContext, accounts[5], ROLES.ENTITY_REP)
-            await acl.assignRole(entityContext, accounts[6], ROLES.ENTITY_REP)
+          await policy.getTranchInfo(0).should.eventually.matchObj({
+            numPremiums_: 4,
+            nextPremiumAmount_: 2,
+            nextPremiumDueAt_: policyAttrs.initiationDate,
+            premiumPaymentsMissed_: 0,
+            numPremiumsPaid_: 0,
           })
 
-          it('but not if invalid asset manager entity gets passed in', async () => {
-            await policy.payCommissions(accounts[1], accounts[5], entity.address, accounts[6]).should.be.rejectedWith('revert')
+          await policy.getTranchPremiumInfo(0, 0).should.eventually.matchObj({
+            amont_: 2,
+            dueAt_: policyAttrs.initiationDate,
+            paidAt_: 0,
+            paidBy_: ADDRESS_ZERO,
           })
 
-          it('but not if invalid broker entity gets passed in', async () => {
-            await policy.payCommissions(entity.address, accounts[5], accounts[1], accounts[6]).should.be.rejectedWith('revert')
+          await policy.getTranchPremiumInfo(0, 1).should.eventually.matchObj({
+            amont_: 3,
+            dueAt_: policyAttrs.initiationDate + 30,
+            paidAt_: 0,
+            paidBy_: ADDRESS_ZERO,
           })
 
-          it('but not if invalid asset manager gets passed in', async () => {
-            await policy.payCommissions(entity.address, accounts[7], entity.address, accounts[6]).should.be.rejectedWith('must be asset manager')
+          await policy.getTranchPremiumInfo(0, 2).should.eventually.matchObj({
+            amont_: 4,
+            dueAt_: policyAttrs.initiationDate + (30 * 3),
+            paidAt_: 0,
+            paidBy_: ADDRESS_ZERO,
           })
 
-          it('but not if invalid broker gets passed in', async () => {
-            await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[7]).should.be.rejectedWith('must be broker')
+          await policy.getTranchPremiumInfo(0, 3).should.eventually.matchObj({
+            amont_: 5,
+            dueAt_: policyAttrs.initiationDate + (30 * 6),
+            paidAt_: 0,
+            paidBy_: ADDRESS_ZERO,
           })
 
-          it('but not if asset manager does not belong to entity', async () => {
-            await acl.unassignRole(entityContext, accounts[5], ROLES.ENTITY_REP)
-            await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6]).should.be.rejectedWith('must have role in asset manager entity')
-          })
+          // pay them all
+          await etherToken.deposit({ value: 40 })
+          await etherToken.approve(policy.address, 40)
+          await policy.payTranchPremium(0)
+          await policy.payTranchPremium(0)
+          await policy.payTranchPremium(0)
+          await policy.payTranchPremium(0)
 
-          it('but not if broker does not belong to entity', async () => {
-            await acl.unassignRole(entityContext, accounts[6], ROLES.ENTITY_REP)
-            await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6]).should.be.rejectedWith('must have role in broker entity')
-          })
-
-          it('and emits an event', async () => {
-            const ret = await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6])
-
-            expect(extractEventArgs(ret, events.PaidCommissions)).to.include({
-              assetManagerEntity: entity.address,
-              brokerEntity: entity.address
-            })
-          })
-
-          it('and gets transferred', async () => {
-            const preBalance = (await etherToken.balanceOf(entity.address)).toNumber()
-
-            await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6])
-
-            const postBalance = (await etherToken.balanceOf(entity.address)).toNumber()
-
-            expect(postBalance - preBalance).to.eq(5 + 10)
-
-            const naymsEntityAddress = await settings.getNaymsEntity()
-            const naymsEntityBalance = (await etherToken.balanceOf(naymsEntityAddress)).toNumber()
-
-            expect(naymsEntityBalance).to.eq(15)
-          })
-
-          it('and updates internal balance values', async () => {
-            await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6])
-            await policy.getCommissionBalances().should.eventually.matchObj({
-              assetManagerCommissionBalance_: 0,
-              brokerCommissionBalance_: 0,
-              naymsCommissionBalance_: 0,
-            })
-          })
-
-          it('and allows multiple calls', async () => {
-            await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6])
-            await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6])
-
-            await policy.payTranchPremium(0)
-
-            await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6])
-
-            const naymsEntityAddress = await settings.getNaymsEntity()
-            const naymsEntityBalance = (await etherToken.balanceOf(naymsEntityAddress)).toNumber()
-            expect(naymsEntityBalance).to.eq(27)
-
-            await policy.getCommissionBalances().should.eventually.matchObj({
-              assetManagerCommissionBalance_: 0,
-              brokerCommissionBalance_: 0,
-              naymsCommissionBalance_: 0,
-            })
+          await policy.getTranchInfo(0).should.eventually.matchObj({
+            numPremiums_: 4,
+            nextPremiumAmount_: 0,
+            nextPremiumDueAt_: 0,
+            premiumPaymentsMissed_: 0,
+            numPremiumsPaid_: 4,
           })
         })
       })
 
-      describe('once initiation date has passed', () => {
+      describe('before initiation date has passed', () => {
+        let policyAttrs
+
         beforeEach(async () => {
-          await setupPolicy({ initiationDateDiff: 0, startDateDiff: 2000, maturationDateDiff: 3000 })
+          policyAttrs = await setupPolicy({ initiationDateDiff: 0, startDateDiff: 2000, maturationDateDiff: 3000 })
 
           await createTranch(policy, {
             premiums: [2, 3, 4]
@@ -696,96 +677,199 @@ contract('Policy', accounts => {
           await policy.getTranchInfo(0).should.eventually.matchObj({
             premiumPaymentsMissed_: 1,
             nextPremiumAmount_: 2,
-            allPremiumsPaid_: false,
+            numPremiumsPaid_: 0,
           })
 
           await etherToken.deposit({ value: 5 })
           await etherToken.approve(policy.address, 5)
-          await policy.payTranchPremium(0).should.be.fulfilled
-
-          await policy.getTranchInfo(0).should.eventually.matchObj({
-            premiumPaymentsMissed_: 0,
-            nextPremiumAmount_: 3,
-            allPremiumsPaid_: false,
-          })
+          await policy.payTranchPremium(0).should.be.rejectedWith('payment too late')
         })
       })
 
-      describe('once policy has been active for a while', () => {
-        beforeEach(async () => {
-          await setupPolicy({ initiationDateDiff: -100, startDateDiff: 0, maturationDateDiff: 2000, premiumIntervalSeconds: 10 })
-
-          await createTranch(policy, {
-            premiums: [2, 3, 4, 5]
-          }, { from: policyOwnerAddress })
-        })
-
-        it('it will return 0 if no more payments are to be made', async () => {
-          await etherToken.deposit({ value: 100 })
-          await etherToken.approve(policy.address, 100)
-          await policy.payTranchPremium(0).should.be.fulfilled // 2
-          await policy.payTranchPremium(0).should.be.fulfilled // 3
-          await policy.payTranchPremium(0).should.be.fulfilled // 4
-          await policy.payTranchPremium(0).should.be.fulfilled // 5
-
-          await policy.getTranchInfo(0).should.eventually.matchObj({
-            premiumPaymentsMissed_: 0,
-            nextPremiumAmount_: 0,
-            allPremiumsPaid_: true,
-          })
-        })
-
-        it('it will not accept extra payments', async () => {
-          await etherToken.deposit({ value: 100 })
-          await etherToken.approve(policy.address, 100)
-          await policy.payTranchPremium(0).should.be.fulfilled // 2
-          await policy.payTranchPremium(0).should.be.fulfilled // 3
-          await policy.payTranchPremium(0).should.be.fulfilled // 4
-          await policy.payTranchPremium(0).should.be.fulfilled // 5
-
-          await policy.payTranchPremium(0).should.be.rejectedWith('all payments already made')
-        })
-      })
-
-      it('if one of the premiums is 0 it still counts', async () => {
-        await setupPolicy({ initiationDateDiff: -100, startDateDiff: 0, maturationDateDiff: 2000, premiumIntervalSeconds: 10 })
-
-        await createTranch(policy, {
-          premiums: [2, 3, 0, 5]
-        }, { from: policyOwnerAddress })
-
-        await etherToken.deposit({ value: 100 })
-        await etherToken.approve(policy.address, 100)
-        await policy.payTranchPremium(0).should.be.fulfilled // 2
-        await policy.payTranchPremium(0).should.be.fulfilled // 3
-        await policy.payTranchPremium(0).should.be.fulfilled // 0
-        await policy.payTranchPremium(0).should.be.fulfilled // 5
-
-        await policy.getTranchInfo(0).should.eventually.matchObj({
-          premiumPaymentsMissed_: 0,
-          nextPremiumAmount_: 0,
-          allPremiumsPaid_: true,
-        })
-      })
-
-      it('if all premiums are paid before inititiation that is ok', async () => {
+      it('if all premiums are paid before initiation that is ok', async () => {
         await setupPolicy({ initiationDateDiff: 200, startDateDiff: 400, maturationDateDiff: 6000, premiumIntervalSeconds: 10 })
 
         await createTranch(policy, {
-          premiums: [2, 3, 0, 5]
+          premiums: [2, 3, 5]
         }, { from: policyOwnerAddress })
 
         await etherToken.deposit({ value: 100 })
         await etherToken.approve(policy.address, 100)
         await policy.payTranchPremium(0).should.be.fulfilled // 2
         await policy.payTranchPremium(0).should.be.fulfilled // 3
-        await policy.payTranchPremium(0).should.be.fulfilled // 0
         await policy.payTranchPremium(0).should.be.fulfilled // 5
 
         await policy.getTranchInfo(0).should.eventually.matchObj({
           premiumPaymentsMissed_: 0,
           nextPremiumAmount_: 0,
-          allPremiumsPaid_: true,
+          nextPremiumDueAt_: 0,
+          numPremiumsPaid_: 3,
+        })
+      })
+
+      it('will not accept extra payments', async () => {
+        await setupPolicy({ initiationDateDiff: 100, startDateDiff: 200, maturationDateDiff: 2000, premiumIntervalSeconds: 10 })
+
+        await createTranch(policy, {
+          premiums: [2, 3, 4, 5]
+        }, { from: policyOwnerAddress })
+
+        await etherToken.deposit({ value: 100 })
+        await etherToken.approve(policy.address, 100)
+        await policy.payTranchPremium(0).should.be.fulfilled // 2
+        await policy.payTranchPremium(0).should.be.fulfilled // 3
+        await policy.payTranchPremium(0).should.be.fulfilled // 4
+        await policy.payTranchPremium(0).should.be.fulfilled // 5
+
+        await policy.payTranchPremium(0).should.be.rejectedWith('all payments already made')
+      })
+    })
+
+    describe('commissions', () => {
+      beforeEach(async () => {
+        await setupPolicy({
+          brokerCommissionBP: 2,
+          assetManagerCommissionBP: 1,
+          naymsCommissionBP: 3,
+        })
+
+        await createTranch(policy, {
+          premiums: [2000, 3000, 4000]
+        }, { from: policyOwnerAddress })
+      })
+
+      it('updates the balances correctly as premiums get paid in', async () => {
+        await etherToken.deposit({ value: 10000 })
+        await etherToken.approve(policy.address, 10000)
+
+        await policy.payTranchPremium(0)
+
+        await policy.getCommissionBalances().should.eventually.matchObj({
+          assetManagerCommissionBalance_: 2, /* 0.1% of 2000 */
+          brokerCommissionBalance_: 4, /* 0.2% of 2000 */
+          naymsCommissionBalance_: 6, /* 0.3% of 2000 */
+        })
+
+        await policy.getTranchInfo(0).should.eventually.matchObj({
+          balance_: 1988, /* 2000 - (2 + 4 + 6) */
+        })
+
+        await policy.payTranchPremium(0)
+
+        await policy.getCommissionBalances().should.eventually.matchObj({
+          assetManagerCommissionBalance_: 5, /* 2 + 3 (=0.1% of 3000) */
+          brokerCommissionBalance_: 10, /* 4 + 6 (=0.2% of 3000) */
+          naymsCommissionBalance_: 15, /* 6 + 9 (=0.3% of 3000) */
+        })
+        await policy.getTranchInfo(0).should.eventually.matchObj({
+          balance_: 4970, /* 1988 + 3000 - (3 + 6 + 9) */
+        })
+
+        await policy.payTranchPremium(0)
+
+        await policy.getCommissionBalances().should.eventually.matchObj({
+          assetManagerCommissionBalance_: 9, /* 5 + 4 (=0.1% of 4000) */
+          brokerCommissionBalance_: 18, /* 10 + 8 (=0.2% of 4000) */
+          naymsCommissionBalance_: 27, /* 15 + 12 (=0.3% of 4000) */
+        })
+        await policy.getTranchInfo(0).should.eventually.matchObj({
+          balance_: 8946, /* 4970 + 4000 - (4 + 8 + 12) */
+        })
+      })
+
+      describe('and the commissions can be paid out', async () => {
+        beforeEach(async () => {
+          await etherToken.deposit({ value: 10000 })
+          await etherToken.approve(policy.address, 10000)
+
+          await policy.payTranchPremium(0)
+          await policy.payTranchPremium(0)
+
+          // assign roles
+          await acl.assignRole(policyContext, accounts[5], ROLES.ASSET_MANAGER)
+          await acl.assignRole(policyContext, accounts[6], ROLES.BROKER)
+
+          // assign to entities
+          await acl.assignRole(entityContext, accounts[5], ROLES.ENTITY_REP)
+          await acl.assignRole(entityContext, accounts[6], ROLES.ENTITY_REP)
+        })
+
+        it('but not if invalid asset manager entity gets passed in', async () => {
+          await policy.payCommissions(accounts[1], accounts[5], entity.address, accounts[6]).should.be.rejectedWith('revert')
+        })
+
+        it('but not if invalid broker entity gets passed in', async () => {
+          await policy.payCommissions(entity.address, accounts[5], accounts[1], accounts[6]).should.be.rejectedWith('revert')
+        })
+
+        it('but not if invalid asset manager gets passed in', async () => {
+          await policy.payCommissions(entity.address, accounts[7], entity.address, accounts[6]).should.be.rejectedWith('must be asset manager')
+        })
+
+        it('but not if invalid broker gets passed in', async () => {
+          await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[7]).should.be.rejectedWith('must be broker')
+        })
+
+        it('but not if asset manager does not belong to entity', async () => {
+          await acl.unassignRole(entityContext, accounts[5], ROLES.ENTITY_REP)
+          await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6]).should.be.rejectedWith('must have role in asset manager entity')
+        })
+
+        it('but not if broker does not belong to entity', async () => {
+          await acl.unassignRole(entityContext, accounts[6], ROLES.ENTITY_REP)
+          await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6]).should.be.rejectedWith('must have role in broker entity')
+        })
+
+        it('and emits an event', async () => {
+          const ret = await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6])
+
+          expect(extractEventArgs(ret, events.PaidCommissions)).to.include({
+            assetManagerEntity: entity.address,
+            brokerEntity: entity.address
+          })
+        })
+
+        it('and gets transferred', async () => {
+          const preBalance = (await etherToken.balanceOf(entity.address)).toNumber()
+
+          await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6])
+
+          const postBalance = (await etherToken.balanceOf(entity.address)).toNumber()
+
+          expect(postBalance - preBalance).to.eq(5 + 10)
+
+          const naymsEntityAddress = await settings.getRootAddress(SETTINGS.NAYMS_ENTITY)
+          const naymsEntityBalance = (await etherToken.balanceOf(naymsEntityAddress)).toNumber()
+
+          expect(naymsEntityBalance).to.eq(15)
+        })
+
+        it('and updates internal balance values', async () => {
+          await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6])
+          await policy.getCommissionBalances().should.eventually.matchObj({
+            assetManagerCommissionBalance_: 0,
+            brokerCommissionBalance_: 0,
+            naymsCommissionBalance_: 0,
+          })
+        })
+
+        it('and allows multiple calls', async () => {
+          await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6])
+          await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6])
+
+          await policy.payTranchPremium(0)
+
+          await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6])
+
+          const naymsEntityAddress = await settings.getRootAddress(SETTINGS.NAYMS_ENTITY)
+          const naymsEntityBalance = (await etherToken.balanceOf(naymsEntityAddress)).toNumber()
+          expect(naymsEntityBalance).to.eq(27)
+
+          await policy.getCommissionBalances().should.eventually.matchObj({
+            assetManagerCommissionBalance_: 0,
+            brokerCommissionBalance_: 0,
+            naymsCommissionBalance_: 0,
+          })
         })
       })
     })
@@ -850,15 +934,17 @@ contract('Policy', accounts => {
       })
 
       it('cannot be made in selling state', async () => {
-        await setupPolicyForClaims({ initiationDateDiff: 0, startDateDiff: 100 })
+        await setupPolicyForClaims({ initiationDateDiff: 10, startDateDiff: 100 })
+        await evmClock.setTime(10)
         await policy.checkAndUpdateState()
         await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_SELLING })
         await policy.makeClaim(0, entity.address, 1).should.be.rejectedWith('must be in active state')
       })
 
       it('can be made in active state', async () => {
-        await setupPolicyForClaims({ initiationDateDiff: 0, startDateDiff: 100 })
+        await setupPolicyForClaims({ initiationDateDiff: 10, startDateDiff: 100 })
 
+        await evmClock.setTime(10)
         await policy.checkAndUpdateState()
         await evmClock.setTime(100)
         await buyAllTranchTokens()
@@ -877,8 +963,9 @@ contract('Policy', accounts => {
       })
 
       it('cannot be made in matured state', async () => {
-        await setupPolicyForClaims({ initiationDateDiff: 0, startDateDiff: 100, maturationDateDiff: 200 })
+        await setupPolicyForClaims({ initiationDateDiff: 10, startDateDiff: 100, maturationDateDiff: 200 })
 
+        await evmClock.setTime(10)
         await policy.checkAndUpdateState()
         await buyAllTranchTokens()
         await evmClock.setTime(200)
@@ -900,7 +987,8 @@ contract('Policy', accounts => {
         let clientManagerAddress
 
         beforeEach(async () => {
-          await setupPolicyForClaims({ initiationDateDiff: 0, startDateDiff: 100 })
+          await setupPolicyForClaims({ initiationDateDiff: 10, startDateDiff: 100 })
+          await evmClock.setTime(10)
           await policy.checkAndUpdateState()
           await evmClock.setTime(100)
           await buyAllTranchTokens()

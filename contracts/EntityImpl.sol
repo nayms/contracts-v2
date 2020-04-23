@@ -71,7 +71,7 @@ import "./Policy.sol";
       address(acl()),
       address(settings()),
       aclContext(),
-      settings().getPolicyImplementation(),
+      settings().getRootAddress(SETTING_POLICY_IMPL),
       msg.sender,
       _initiationDate,
       _startDate,
@@ -118,13 +118,14 @@ import "./Policy.sol";
     uint256 i1;
     uint256 i2;
     uint256 i3;
+    uint256 i4;
     address a1;
 
     IPolicyImpl p = IPolicyImpl(_policyAddress);
     // policy's unit
     (i1, i2, i3, policyUnitAddress, , , , , ,) = p.getInfo();
     // next premium amount
-    (a1, i1, i2, nextPremiumAmount, , , , ,) = p.getTranchInfo(_tranchIndex);
+    (a1, i1, i2, i3, i4, nextPremiumAmount, , , , ,) = p.getTranchInfo(_tranchIndex);
     // approve transfer
     IERC20 tok = IERC20(policyUnitAddress);
     tok.approve(_policyAddress, nextPremiumAmount);
@@ -137,7 +138,7 @@ import "./Policy.sol";
     assertCanTradeTranchTokens
   {
     // get mkt
-    address mktAddress = settings().getMatchingMarket();
+    address mktAddress = settings().getRootAddress(SETTING_MARKET);
     IMarket mkt = IMarket(mktAddress);
     // approve mkt to use my tokens
     IERC20 tok = IERC20(_payUnit);
@@ -151,7 +152,7 @@ import "./Policy.sol";
     assertCanTradeTranchTokens
   {
     // get mkt
-    address mktAddress = settings().getMatchingMarket();
+    address mktAddress = settings().getRootAddress(SETTING_MARKET);
     IMarket mkt = IMarket(mktAddress);
     // approve mkt to use my tokens
     IERC20 tok = IERC20(_sellUnit);

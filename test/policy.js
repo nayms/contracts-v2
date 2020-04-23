@@ -438,13 +438,13 @@ contract('Policy', accounts => {
         })
 
         it('approving an address to send on one\'s behalf is possible if it is the market', async () => {
-          await settings.setMatchingMarket(accounts[3]).should.be.fulfilled
+          await settings.setRootAddress(SETTINGS.MARKET, accounts[3]).should.be.fulfilled
           await firstTkn.approve(accounts[3], 2).should.be.fulfilled
         })
 
         describe('such as market sending tokens on one\' behalf', () => {
           beforeEach(async () => {
-            await settings.setMatchingMarket(accounts[3]).should.be.fulfilled
+            await settings.setRootAddress(SETTINGS.MARKET, accounts[3]).should.be.fulfilled
           })
 
           it('but not when owner does not have enough', async () => {
@@ -934,15 +934,17 @@ contract('Policy', accounts => {
       })
 
       it('cannot be made in selling state', async () => {
-        await setupPolicyForClaims({ initiationDateDiff: 0, startDateDiff: 100 })
+        await setupPolicyForClaims({ initiationDateDiff: 10, startDateDiff: 100 })
+        await evmClock.setTime(10)
         await policy.checkAndUpdateState()
         await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_SELLING })
         await policy.makeClaim(0, entity.address, 1).should.be.rejectedWith('must be in active state')
       })
 
       it('can be made in active state', async () => {
-        await setupPolicyForClaims({ initiationDateDiff: 0, startDateDiff: 100 })
+        await setupPolicyForClaims({ initiationDateDiff: 10, startDateDiff: 100 })
 
+        await evmClock.setTime(10)
         await policy.checkAndUpdateState()
         await evmClock.setTime(100)
         await buyAllTranchTokens()
@@ -961,8 +963,9 @@ contract('Policy', accounts => {
       })
 
       it('cannot be made in matured state', async () => {
-        await setupPolicyForClaims({ initiationDateDiff: 0, startDateDiff: 100, maturationDateDiff: 200 })
+        await setupPolicyForClaims({ initiationDateDiff: 10, startDateDiff: 100, maturationDateDiff: 200 })
 
+        await evmClock.setTime(10)
         await policy.checkAndUpdateState()
         await buyAllTranchTokens()
         await evmClock.setTime(200)
@@ -984,7 +987,8 @@ contract('Policy', accounts => {
         let clientManagerAddress
 
         beforeEach(async () => {
-          await setupPolicyForClaims({ initiationDateDiff: 0, startDateDiff: 100 })
+          await setupPolicyForClaims({ initiationDateDiff: 10, startDateDiff: 100 })
+          await evmClock.setTime(10)
           await policy.checkAndUpdateState()
           await evmClock.setTime(100)
           await buyAllTranchTokens()

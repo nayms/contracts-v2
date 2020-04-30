@@ -251,6 +251,9 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
 
 
   function makeClaim(uint256 _index, address _clientManagerEntity, uint256 _amount) public {
+    // heartbeat first!
+    checkAndUpdateState();
+
     _claims().dcall(abi.encodeWithSelector(
       "makeClaim(uint256,address,uint256)".dsig(),
       _index, _clientManagerEntity, _amount

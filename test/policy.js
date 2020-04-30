@@ -475,6 +475,20 @@ contract('Policy', accounts => {
           policyAttrs = await setupPolicy()
         })
 
+        it('empty premiums array is allowed', async () => {
+          await createTranch(policy, {
+            premiums: []
+          }, { from: policyOwnerAddress })
+
+          await policy.getTranchInfo(0).should.eventually.matchObj({
+            numPremiums_: 0,
+            nextPremiumAmount_: 0,
+            nextPremiumDueAt_: 0,
+            premiumPaymentsMissed_: 0,
+            numPremiumsPaid_: 0,
+          })
+        })
+
         it('initially the first premium is expected by the inititation date', async () => {
           await createTranch(policy, {
             premiums: [2, 3, 4]
@@ -897,32 +911,45 @@ contract('Policy', accounts => {
             premiums: [7000, 1000, 5000]
           }, { from: policyOwnerAddress })
 
+          await createTranch(policy, {  // this tranch will be cancelled because we won't pay all the premiums
+            premiums: [7000, 1000, 5000]
+          }, { from: policyOwnerAddress })
+
           const { token_: tranch0Address } = await policy.getTranchInfo(0)
           const { token_: tranch1Address } = await policy.getTranchInfo(1)
           const { token_: tranch2Address } = await policy.getTranchInfo(2)
+          const { token_: tranch3Address } = await policy.getTranchInfo(3)
 
           // now pay premiums
-          await etherToken.deposit({ value: 29000 })
-          await etherToken.approve(policy.address, 29000)
+          await etherToken.deposit({ value: 50000 })
+          await etherToken.approve(policy.address, 50000)
 
+          // pay all
           await policy.payTranchPremium(0)
           await policy.payTranchPremium(0)
           await policy.payTranchPremium(0)
 
+          // pay all
           await policy.payTranchPremium(1)
           await policy.payTranchPremium(1)
           await policy.payTranchPremium(1)
 
+          // pay 1 (so it's cancelled by the start date time)
           await policy.payTranchPremium(2)
+
+          // pay 2 (so it's active by the start date time but should be cancelled after that)
+          await policy.payTranchPremium(3)
+          await policy.payTranchPremium(3)
 
           evmClock = new EvmClock()
 
           buyAllTranchTokens = async () => {
-            await etherToken.deposit({ value: 30 })
-            await etherToken.approve(market.address, 30)
+            await etherToken.deposit({ value: 40 })
+            await etherToken.approve(market.address, 40)
             await market.offer(10, etherToken.address, 10, tranch0Address, 0, false)
             await market.offer(10, etherToken.address, 10, tranch1Address, 0, false)
             await market.offer(10, etherToken.address, 10, tranch2Address, 0, false)
+            await market.offer(10, etherToken.address, 10, tranch3Address, 0, false)
           }
         }
       })
@@ -963,7 +990,7 @@ contract('Policy', accounts => {
       })
 
       it('cannot be made in matured state', async () => {
-        await setupPolicyForClaims({ initiationDateDiff: 10, startDateDiff: 100, maturationDateDiff: 200 })
+        await setupPolicyForClaims({ initiationDateDiff: 10, startDateDiff: 200, maturationDateDiff: 200 })
 
         await evmClock.setTime(10)
         await policy.checkAndUpdateState()
@@ -987,10 +1014,10 @@ contract('Policy', accounts => {
         let clientManagerAddress
 
         beforeEach(async () => {
-          await setupPolicyForClaims({ initiationDateDiff: 10, startDateDiff: 100 })
+          await setupPolicyForClaims({ initiationDateDiff: 10, startDateDiff: 20 })
           await evmClock.setTime(10)
           await policy.checkAndUpdateState()
-          await evmClock.setTime(100)
+          await evmClock.setTime(20) // expect 2 premium payments to have been paid for every tranch by this point
           await buyAllTranchTokens()
           await policy.checkAndUpdateState()
           await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_ACTIVE })
@@ -1010,6 +1037,17 @@ contract('Policy', accounts => {
         describe('if valid client manager and entity provided', () => {
           beforeEach(async () => {
             await acl.assignRole(entityContext, clientManagerAddress, ROLES.ENTITY_REP)
+          })
+
+          it('claim must be against an active tranch (and it will call the heartbeat first to check)', async () => {
+            await policy.getTranchInfo(3).should.eventually.matchObj({
+              state_: TRANCH_STATE_ACTIVE
+            })
+
+            // past next premium payment interval
+            await evmClock.setTime(40)
+
+            await policy.makeClaim(3, entity.address, 1, { from: clientManagerAddress }).should.be.rejectedWith('tranch must be active');
           })
 
           it('claim must be against an active tranch', async () => {

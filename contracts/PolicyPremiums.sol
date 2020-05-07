@@ -14,6 +14,12 @@ import "./base/IERC20.sol";
 contract PolicyPremiums is EternalStorage, Controller, IPolicyPremiums, IPolicyStates {
   using SafeMath for uint;
 
+  modifier assertTranchPaymentAllowed (uint256 _index) {
+    uint256 _tranchState = dataUint256[__i(_index, "state")];
+    require(_tranchState != TRANCH_STATE_CANCELLED && _tranchState != TRANCH_STATE_MATURED, 'payment not allowed');
+    _;
+  }
+
   /**
    * Constructor
    */
@@ -24,7 +30,7 @@ contract PolicyPremiums is EternalStorage, Controller, IPolicyPremiums, IPolicyS
     // empty
   }
 
-  function payTranchPremium (uint256 _index) public {
+  function payTranchPremium (uint256 _index) public assertTranchPaymentAllowed(_index) {
     require(!_tranchPaymentsAllMade(_index), 'all payments already made');
 
     uint256 expectedAmount;

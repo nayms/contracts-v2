@@ -739,6 +739,61 @@ contract('Policy', accounts => {
       })
     })
 
+    describe('disallowed', () => {
+      let evmClock
+
+      beforeEach(async () => {
+        evmClock = new EvmClock()
+
+        await setupPolicy({
+          initiationDateDiff: 10,
+          startDateDiff: 30,
+          maturationDateDiff: 60,
+          premiumIntervalSeconds: 50
+        })
+
+        await createTranch(policy, {
+          premiums: [2, 3]
+        }, { from: policyOwnerAddress })
+
+        await etherToken.deposit({ value: 100 })
+        await etherToken.approve(policy.address, 100)
+
+        // pay first premium
+        await policy.payTranchPremium(0).should.be.fulfilled
+
+        // kick-off sale
+        await evmClock.setTime(10)
+        await policy.checkAndUpdateState()
+      })
+
+      it('if tranch is already cancelled', async () => {
+        // shift to start date
+        await evmClock.setTime(30)
+        // should auto-call heartbeat in here
+        await policy.payTranchPremium(0).should.be.rejectedWith('payment not allowed')
+
+        await policy.getTranchInfo(0).should.eventually.matchObj({
+          _state: TRANCH_STATE_CANCELLED,
+        })
+      })
+
+      it('if tranch has already matured', async () => {
+        // pay second premium
+        await policy.payTranchPremium(0).should.be.fulfilled
+
+        // shift to maturation date
+        await evmClock.setTime(60)
+
+        // should auto-call heartbeat in here
+        await policy.payTranchPremium(0).should.be.rejectedWith('payment not allowed')
+
+        await policy.getTranchInfo(0).should.eventually.matchObj({
+          _state: TRANCH_STATE_MATURED,
+        })
+      })
+    })
+
     describe('commissions', () => {
       beforeEach(async () => {
         await setupPolicy({

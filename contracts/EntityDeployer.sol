@@ -1,4 +1,4 @@
-pragma solidity ^0.5.4;
+pragma solidity >=0.6.7;
 
 import './base/EternalStorage.sol';
 import './base/Destructible.sol';
@@ -24,7 +24,7 @@ contract EntityDeployer is EternalStorage, Destructible, IEntityDeployer {
   /**
    * @dev Deploy a new Entity.
    */
-  function deploy() public assertCanCreateEntity {
+  function deploy() public override assertCanCreateEntity {
     Entity f = new Entity(
       address(acl()),
       address(settings()),
@@ -39,12 +39,12 @@ contract EntityDeployer is EternalStorage, Destructible, IEntityDeployer {
   }
 
 
-  function getNumEntities() public view returns (uint256) {
+  function getNumEntities() public view override returns (uint256) {
     return dataUint256["numEntities"];
   }
 
 
-  function getEntity(uint256 _index) public view returns (address) {
+  function getEntity(uint256 _index) public view override returns (address) {
     return dataAddress[__i(_index, "entity")];
   }
 }

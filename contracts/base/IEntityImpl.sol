@@ -1,4 +1,4 @@
-pragma solidity >=0.5.8;
+pragma solidity >=0.6.7;
 
 /**
  * @dev Entities.
@@ -44,7 +44,6 @@ interface IEntityImpl {
    *
    * @param _unit Asset to deposit.
    * @param _amount Amount to deposit.
-   * @return Policy at given index.
    */
   function deposit(address _unit, uint256 _amount) external;
   /**

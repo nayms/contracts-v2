@@ -1,4 +1,4 @@
-pragma solidity >=0.5.8;
+pragma solidity >=0.6.7;
 
 import "./base/SafeMath.sol";
 import "./base/EternalStorage.sol";
@@ -39,7 +39,7 @@ contract PolicyClaims is EternalStorage, Controller, IPolicyClaims, IPolicyState
     // empty
   }
 
-  function makeClaim(uint256 _index, address _clientManagerEntity, uint256 _amount) public
+  function makeClaim(uint256 _index, address _clientManagerEntity, uint256 _amount) public override
     assertActiveState
     assertIsClientManager(msg.sender)
   {
@@ -69,6 +69,7 @@ contract PolicyClaims is EternalStorage, Controller, IPolicyClaims, IPolicyState
 
   function approveClaim(uint256 _claimIndex)
     public
+    override
     assertIsAssetManager(msg.sender)
   {
     // check claim
@@ -92,6 +93,7 @@ contract PolicyClaims is EternalStorage, Controller, IPolicyClaims, IPolicyState
 
   function declineClaim(uint256 _claimIndex)
     public
+    override
     assertIsAssetManager(msg.sender)
   {
     // check claim
@@ -108,7 +110,7 @@ contract PolicyClaims is EternalStorage, Controller, IPolicyClaims, IPolicyState
 
 
 
-  function payClaims() public {
+  function payClaims() public override {
     IERC20 tkn = IERC20(dataAddress["unit"]);
 
     for (uint256 i = 0; i < dataUint256["claimsCount"]; i += 1) {

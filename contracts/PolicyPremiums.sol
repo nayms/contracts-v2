@@ -1,4 +1,4 @@
-pragma solidity >=0.5.8;
+pragma solidity >=0.6.7;
 
 import "./base/SafeMath.sol";
 import "./base/EternalStorage.sol";
@@ -30,7 +30,7 @@ contract PolicyPremiums is EternalStorage, Controller, IPolicyPremiums, IPolicyS
     // empty
   }
 
-  function payTranchPremium (uint256 _index) public assertTranchPaymentAllowed(_index) {
+  function payTranchPremium (uint256 _index) public override assertTranchPaymentAllowed(_index) {
     require(!_tranchPaymentsAllMade(_index), 'all payments already made');
 
     uint256 expectedAmount;

@@ -2,14 +2,14 @@ const { createLog } = require('../../utils/log')
 const { deploy } = require('../../utils/functions')
 const { SETTINGS } = require('../../utils/constants')
 
-export const ensureEntityDeployerIsDeployed = async ({ deployer, artifacts, logger }, aclAddress, settingsAddress, entityImplAddress) => {
+export const ensureEntityDeployerIsDeployed = async ({ deployer, artifacts, logger }, aclAddress, settingsAddress) => {
   const log = createLog(logger)
 
   log('Deploying EntityDeployer ...')
 
   // deploy
   const EntityDeployer = artifacts.require('./EntityDeployer')
-  const entityDeployer = await deploy(deployer, EntityDeployer, aclAddress, settingsAddress, entityImplAddress)
+  const entityDeployer = await deploy(deployer, EntityDeployer, aclAddress, settingsAddress)
 
   log(`... deployed at ${entityDeployer.address}`)
 

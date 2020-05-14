@@ -5,10 +5,10 @@ pragma experimental ABIEncoderV2;
 Forked from https://github.com/mudgen/Diamond/blob/master/contracts/DiamondFacet.sol
 /******************************************************************************/
 
-import "./Storage.sol";
-import "./DiamondHeaders.sol";
+import "./DiamondStorageBase.sol";
+import "./IDiamondUpgradeFacet.sol";
 
-contract DiamondFacet is Diamond, Storage {
+contract DiamondUpgradeFacet is IDiamondUpgradeFacet, DiamondStorageBase {
     bytes32 constant CLEAR_ADDRESS_MASK = 0x0000000000000000000000000000000000000000ffffffffffffffffffffffff;
     bytes32 constant CLEAR_SELECTOR_MASK = 0xffffffff00000000000000000000000000000000000000000000000000000000;
 
@@ -21,9 +21,8 @@ contract DiamondFacet is Diamond, Storage {
         bool newSlot;
     }
 
-    function diamondCut(bytes[] memory _diamondCut) public override {
+    function diamondCut (bytes[] memory _diamondCut) public override {
         DiamondStorage storage ds = diamondStorage();
-        require(msg.sender == ds.contractOwner, "Must own the contract.");
         SlotInfo memory slot;
         slot.originalSelectorSlotsLength = ds.selectorSlotsLength;
         uint selectorSlotsLength = uint128(slot.originalSelectorSlotsLength);

@@ -2,7 +2,7 @@ const { createLog } = require('../../utils/log')
 const { deploy } = require('../../utils/functions')
 const { SETTINGS } = require('../../utils/constants')
 
-export const ensureEntityImplementationIsDeployed = async ({ deployer, artifacts, logger }, aclAddress, settingsAddress) => {
+export const ensureEntityImplementationsAreDeployed = async ({ deployer, artifacts, logger }, aclAddress, settingsAddress) => {
   const log = createLog(logger)
 
   log('Deploying Entity implementation ...')

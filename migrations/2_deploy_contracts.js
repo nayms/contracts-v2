@@ -3,7 +3,7 @@ const { ensureMarketIsDeployed } = require('./modules/market')
 const { ensureSettingsIsDeployed } = require('./modules/settings')
 const { ensureEtherTokenIsDeployed } = require('./modules/etherToken')
 const { ensureEntityDeployerIsDeployed } = require('./modules/entityDeployer')
-const { ensureEntityImplementationIsDeployed } = require('./modules/entityImplementation')
+const { ensureEntityImplementationsAreDeployed } = require('./modules/entityImplementation')
 const { ensurePolicyImplementationsAreDeployed } = require('./modules/policyImplementations')
 
 module.exports = async deployer => {
@@ -12,7 +12,7 @@ module.exports = async deployer => {
 
   await ensureMarketIsDeployed({ deployer, artifacts, logger: true }, settings.address)
   await ensureEtherTokenIsDeployed({ deployer, artifacts, logger: true }, acl.address, settings.address)
-  await ensureEntityImplementationIsDeployed({ deployer, artifacts, logger: true }, acl.address, settings.address)
+  await ensureEntityImplementationsAreDeployed({ deployer, artifacts, logger: true }, acl.address, settings.address)
   await ensureEntityDeployerIsDeployed({ deployer, artifacts, logger: true }, acl.address, settings.address)
   await ensurePolicyImplementationsAreDeployed({ deployer, artifacts, logger: true }, acl.address, settings.address)
 }

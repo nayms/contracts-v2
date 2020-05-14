@@ -1,8 +1,10 @@
 pragma solidity >=0.6.7;
+pragma experimental ABIEncoderV2;
 
 import "./base/Controller.sol";
 import "./base/EternalStorage.sol";
 import "./base/IEntityImpl.sol";
+import "./base/IDiamondFacet.sol";
 import "./base/IERC20.sol";
 import "./base/IMarket.sol";
 import "./base/IPolicyImpl.sol";
@@ -11,7 +13,7 @@ import "./Policy.sol";
 /**
  * @dev Business-logic for Entity
  */
- contract EntityImpl is EternalStorage, Controller, IEntityImpl, IProxyImpl {
+ contract EntityImpl is EternalStorage, Controller, IEntityImpl, IDiamondFacet {
   modifier assertCanWithdraw () {
     require(inRoleGroup(msg.sender, ROLEGROUP_ENTITY_ADMINS), 'must be entity admin');
     _;
@@ -45,10 +47,19 @@ import "./Policy.sol";
     // empty
   }
 
-  // IProxyImpl
+  // IDiamondFacet
 
-  function getImplementationVersion () public pure override returns (string memory) {
-    return "v1";
+  function getSelectors () public pure override returns (bytes memory) {
+    return abi.encodePacked(
+      IEntityImpl.createPolicy.selector,
+      IEntityImpl.getNumPolicies.selector,
+      IEntityImpl.getPolicy.selector,
+      IEntityImpl.deposit.selector,
+      IEntityImpl.withdraw.selector,
+      IEntityImpl.payTranchPremium.selector,
+      IEntityImpl.trade.selector,
+      IEntityImpl.sellAtBestPrice.selector
+    );
   }
 
 

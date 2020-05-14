@@ -6,10 +6,10 @@ Forked from https://github.com/mudgen/Diamond/blob/master/contracts/DiamondLoupe
 /******************************************************************************/
 
 import "./DiamondStorageBase.sol";
-import "./DiamondHeaders.sol";
+import "./IDiamondLoupeFacet.sol";
 
 
-contract DiamondLoupeFacet is DiamondLoupe, DiamondStorageBase {
+contract DiamondLoupeFacet is IDiamondLoupeFacet, DiamondStorageBase {
     /// These functions are expected to be called frequently
     /// by tools. Therefore the return values are tightly
     /// packed for efficiency. That means no padding with zeros.

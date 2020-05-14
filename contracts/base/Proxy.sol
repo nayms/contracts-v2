@@ -1,4 +1,4 @@
-pragma solidity >=0.5.8;
+pragma solidity >=0.6.7;
 
 import "./EternalStorage.sol";
 import "./IProxyImpl.sol";
@@ -80,16 +80,16 @@ contract Proxy is EternalStorage {
   * @dev Fallback function allowing to perform a delegatecall to the given implementation.
   * This function will return whatever the implementation call returns
   */
-  function () external payable {
+  fallback () external payable {
     address _impl = getImplementation();
     require(_impl != address(0), 'implementation not set');
 
     // solhint-disable-next-line security/no-inline-assembly
     assembly {
       let ptr := mload(0x40)
-      calldatacopy(ptr, 0, calldatasize)
-      let result := delegatecall(gas, _impl, ptr, calldatasize, 0, 0)
-      let size := returndatasize
+      calldatacopy(ptr, 0, calldatasize())
+      let result := delegatecall(gas(), _impl, ptr, calldatasize(), 0, 0)
+      let size := returndatasize()
       returndatacopy(ptr, 0, size)
       switch result
       case 0 { revert(ptr, size) }

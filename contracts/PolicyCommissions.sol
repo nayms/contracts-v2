@@ -1,4 +1,4 @@
-pragma solidity >=0.5.8;
+pragma solidity >=0.6.7;
 
 import "./base/EternalStorage.sol";
 import "./base/Controller.sol";
@@ -36,6 +36,7 @@ contract PolicyCommissions is EternalStorage, Controller, IPolicyCommissions, IP
     address _brokerEntity, address _broker
   )
     public
+    override
     assertIsAssetManager(_assetManager)
     assertIsBroker(_broker)
   {

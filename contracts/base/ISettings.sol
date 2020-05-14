@@ -1,11 +1,11 @@
-pragma solidity >=0.5.8;
+pragma solidity >=0.6.7;
 
 import "./ISettingsKeys.sol";
 
 /**
  * @dev Settings.
  */
-contract ISettings is ISettingsKeys {
+abstract contract ISettings is ISettingsKeys {
   /**
    * @dev Get an address.
    *
@@ -14,7 +14,7 @@ contract ISettings is ISettingsKeys {
    *
    * @return The value.
    */
-  function getAddress(address _context, bytes32 _key) public view returns (address);
+  function getAddress(address _context, bytes32 _key) public view virtual returns (address);
 
   /**
    * @dev Get an address in the root context.
@@ -23,7 +23,7 @@ contract ISettings is ISettingsKeys {
    *
    * @return The value.
    */
-  function getRootAddress(bytes32 _key) public view returns (address);
+  function getRootAddress(bytes32 _key) public view virtual returns (address);
 
   /**
    * @dev Set an address.
@@ -32,7 +32,7 @@ contract ISettings is ISettingsKeys {
    * @param _key The key.
    * @param _value The value.
    */
-  function setAddress(address _context, bytes32 _key, address _value) public;
+  function setAddress(address _context, bytes32 _key, address _value) public virtual;
 
   /**
    * @dev Get a boolean.
@@ -42,7 +42,7 @@ contract ISettings is ISettingsKeys {
    *
    * @return The value.
    */
-  function getBool(address _context, bytes32 _key) public view returns (bool);
+  function getBool(address _context, bytes32 _key) public view virtual returns (bool);
 
   /**
    * @dev Get a boolean in the root context.
@@ -51,7 +51,7 @@ contract ISettings is ISettingsKeys {
    *
    * @return The value.
    */
-  function getRootBool(bytes32 _key) public view returns (bool);
+  function getRootBool(bytes32 _key) public view virtual returns (bool);
 
   /**
    * @dev Set a boolean.
@@ -60,7 +60,7 @@ contract ISettings is ISettingsKeys {
    * @param _key The key.
    * @param _value The value.
    */
-  function setBool(address _context, bytes32 _key, bool _value) public;
+  function setBool(address _context, bytes32 _key, bool _value) public virtual;
 
   /**
    * @dev Get a number.
@@ -70,7 +70,7 @@ contract ISettings is ISettingsKeys {
    *
    * @return The value.
    */
-  function getUint256(address _context, bytes32 _key) public view returns (uint256);
+  function getUint256(address _context, bytes32 _key) public view virtual returns (uint256);
 
   /**
    * @dev Get a number in the root context.
@@ -79,7 +79,7 @@ contract ISettings is ISettingsKeys {
    *
    * @return The value.
    */
-  function getRootUint256(bytes32 _key) public view returns (uint256);
+  function getRootUint256(bytes32 _key) public view virtual returns (uint256);
 
   /**
    * @dev Set a number.
@@ -88,7 +88,7 @@ contract ISettings is ISettingsKeys {
    * @param _key The key.
    * @param _value The value.
    */
-  function setUint256(address _context, bytes32 _key, uint256 _value) public;
+  function setUint256(address _context, bytes32 _key, uint256 _value) public virtual;
 
   /**
    * @dev Get a string.
@@ -98,7 +98,7 @@ contract ISettings is ISettingsKeys {
    *
    * @return The value.
    */
-  function getString(address _context, bytes32 _key) public view returns (string memory);
+  function getString(address _context, bytes32 _key) public view virtual returns (string memory);
 
   /**
    * @dev Get a string in the root context.
@@ -107,7 +107,7 @@ contract ISettings is ISettingsKeys {
    *
    * @return The value.
    */
-  function getRootString(bytes32 _key) public view returns (string memory);
+  function getRootString(bytes32 _key) public view virtual returns (string memory);
 
   /**
    * @dev Set a string.
@@ -116,7 +116,7 @@ contract ISettings is ISettingsKeys {
    * @param _key The key.
    * @param _value The value.
    */
-  function setString(address _context, bytes32 _key, string memory _value) public;
+  function setString(address _context, bytes32 _key, string memory _value) public virtual;
 
 
   /**
@@ -124,7 +124,7 @@ contract ISettings is ISettingsKeys {
    *
    * @return Block time.
    */
-  function getTime() external view returns (uint256);
+  function getTime() external view virtual returns (uint256);
 
 
   // events

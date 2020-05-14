@@ -1,11 +1,11 @@
-pragma solidity >=0.5.8;
+pragma solidity >=0.6.7;
 
 import '../base/IProxyImpl.sol';
 
 contract TestEntityImpl is IProxyImpl {
   // IProxyImpl //
 
-  function getImplementationVersion () public pure returns (string memory) {
+  function getImplementationVersion () public pure override returns (string memory) {
     return "vTest";
   }
 }

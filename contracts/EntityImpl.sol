@@ -1,4 +1,4 @@
-pragma solidity >=0.5.8;
+pragma solidity >=0.6.7;
 
 import "./base/Controller.sol";
 import "./base/EternalStorage.sol";
@@ -47,7 +47,7 @@ import "./Policy.sol";
 
   // IProxyImpl
 
-  function getImplementationVersion () public pure returns (string memory) {
+  function getImplementationVersion () public pure override returns (string memory) {
     return "v1";
   }
 
@@ -65,6 +65,7 @@ import "./Policy.sol";
     uint256 _naymsCommissionBP
   )
     public
+    override
     assertCanCreatePolicy
   {
     Policy f = new Policy(
@@ -91,26 +92,27 @@ import "./Policy.sol";
   }
 
 
-  function getNumPolicies() public view returns (uint256) {
+  function getNumPolicies() public view override returns (uint256) {
     return dataUint256["numPolicies"];
   }
 
-  function getPolicy(uint256 _index) public view returns (address) {
+  function getPolicy(uint256 _index) public view override returns (address) {
     return dataAddress[__i(_index, "policy")];
   }
 
-  function deposit(address _unit, uint256 _amount) public {
+  function deposit(address _unit, uint256 _amount) public override {
     IERC20 tok = IERC20(_unit);
     tok.transferFrom(msg.sender, address(this), _amount);
   }
 
-  function withdraw(address _unit, uint256 _amount) public assertCanWithdraw {
+  function withdraw(address _unit, uint256 _amount) public override assertCanWithdraw {
     IERC20 tok = IERC20(_unit);
     tok.transfer(msg.sender, _amount);
   }
 
   function payTranchPremium(address _policyAddress, uint256 _tranchIndex)
     public
+    override
     assertCanPayTranchPremiums(_policyAddress)
   {
     address policyUnitAddress;
@@ -135,6 +137,7 @@ import "./Policy.sol";
 
   function trade(address _payUnit, uint256 _payAmount, address _buyUnit, uint256 _buyAmount)
     public
+    override
     assertCanTradeTranchTokens
   {
     // get mkt
@@ -149,6 +152,7 @@ import "./Policy.sol";
 
   function sellAtBestPrice(address _sellUnit, uint256 _sellAmount, address _buyUnit)
     public
+    override
     assertCanTradeTranchTokens
   {
     // get mkt

@@ -1,4 +1,4 @@
-pragma solidity >=0.5.8;
+pragma solidity >=0.6.7;
 
 /**
  * See https://github.com/OpenZeppelin/openzeppelin-contracts/tree/master/contracts/token/ERC20

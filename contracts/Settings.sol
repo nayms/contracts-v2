@@ -1,4 +1,4 @@
-pragma solidity >=0.5.8;
+pragma solidity >=0.6.7;
 
 import "./base/AccessControl.sol";
 import "./base/EternalStorage.sol";
@@ -25,59 +25,59 @@ import "./base/ISettings.sol";
 
   // ISettings
 
-  function getAddress(address _context, bytes32 _key) public view returns (address) {
+  function getAddress(address _context, bytes32 _key) public view override returns (address) {
     return dataAddress[__ab(_context, _key)];
   }
 
-  function getRootAddress(bytes32 _key) public view returns (address) {
+  function getRootAddress(bytes32 _key) public view override returns (address) {
     return getAddress(address(this), _key);
   }
 
-  function setAddress(address _context, bytes32 _key, address _value) public assertIsAuthorized(_context) {
+  function setAddress(address _context, bytes32 _key, address _value) public override assertIsAuthorized(_context) {
     dataAddress[__ab(_context, _key)] = _value;
     emit SettingChanged(_context, _key, msg.sender, 'address');
   }
 
-  function getBool(address _context, bytes32 _key) public view returns (bool) {
+  function getBool(address _context, bytes32 _key) public view override returns (bool) {
     return dataBool[__ab(_context, _key)];
   }
 
-  function getRootBool(bytes32 _key) public view returns (bool) {
+  function getRootBool(bytes32 _key) public view override returns (bool) {
     return getBool(address(this), _key);
   }
 
-  function setBool(address _context, bytes32 _key, bool _value) public assertIsAuthorized(_context) {
+  function setBool(address _context, bytes32 _key, bool _value) public override assertIsAuthorized(_context) {
     dataBool[__ab(_context, _key)] = _value;
     emit SettingChanged(_context, _key, msg.sender, 'bool');
   }
 
-  function getUint256(address _context, bytes32 _key) public view returns (uint256) {
+  function getUint256(address _context, bytes32 _key) public view override returns (uint256) {
     return dataUint256[__ab(_context, _key)];
   }
 
-  function getRootUint256(bytes32 _key) public view returns (uint256) {
+  function getRootUint256(bytes32 _key) public view override returns (uint256) {
     return getUint256(address(this), _key);
   }
 
-  function setUint256(address _context, bytes32 _key, uint256 _value) public assertIsAuthorized(_context) {
+  function setUint256(address _context, bytes32 _key, uint256 _value) public override assertIsAuthorized(_context) {
     dataUint256[__ab(_context, _key)] = _value;
     emit SettingChanged(_context, _key, msg.sender, 'uint256');
   }
 
-  function getString(address _context, bytes32 _key) public view returns (string memory) {
+  function getString(address _context, bytes32 _key) public view override returns (string memory) {
     return dataString[__ab(_context, _key)];
   }
 
-  function getRootString(bytes32 _key) public view returns (string memory) {
+  function getRootString(bytes32 _key) public view override returns (string memory) {
     return getString(address(this), _key);
   }
 
-  function setString(address _context, bytes32 _key, string memory _value) public assertIsAuthorized(_context) {
+  function setString(address _context, bytes32 _key, string memory _value) public override assertIsAuthorized(_context) {
     dataString[__ab(_context, _key)] = _value;
     emit SettingChanged(_context, _key, msg.sender, 'string');
   }
 
-  function getTime() public view returns (uint256) {
+  function getTime() public view override returns (uint256) {
     return now;
   }
 }

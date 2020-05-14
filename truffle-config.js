@@ -11,7 +11,7 @@ const { ProfilerSubprovider } = require("@0x/sol-profiler")
 const mode = process.env.MODE
 
 const projectRoot = ""
-const solcVersion = "0.5.10"
+const solcVersion = "0.6.7"
 const defaultFromAddress = "0x5409ed021d9299bf6814279a6a1411a7e866a631"
 const isVerbose = true
 const artifactAdapter = new TruffleArtifactAdapter(projectRoot, solcVersion)

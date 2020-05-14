@@ -1,4 +1,4 @@
-pragma solidity >=0.5.8;
+pragma solidity >=0.6.7;
 
 import "./base/Address.sol";
 import "./base/Delegate.sol";
@@ -44,7 +44,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
 
   // IProxyImpl //
 
-  function getImplementationVersion () public pure returns (string memory) {
+  function getImplementationVersion () public pure override returns (string memory) {
     return "v1";
   }
 
@@ -58,6 +58,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     address _initialBalanceHolder
   )
     public
+    override
     assertCanCreateTranch
     assertCreatedState
   {
@@ -113,7 +114,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     emit CreateTranch(address(t), dataAddress[initialHolderKey], i);
   }
 
-  function getInfo () public view returns (
+  function getInfo () public view override returns (
     address creatorEntity_,
     uint256 initiationDate_,
     uint256 startDate_,
@@ -139,7 +140,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     state_ = dataUint256["state"];
   }
 
-  function getClaimStats() public view returns (
+  function getClaimStats() public view override returns (
     uint256 numClaims_,
     uint256 numPendingClaims_
   ) {
@@ -147,7 +148,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     numPendingClaims_ = dataUint256["claimsPendingCount"];
   }
 
-  function getTranchInfo (uint256 _index) public view returns (
+  function getTranchInfo (uint256 _index) public view override returns (
     address token_,
     uint256 state_,
     uint256 balance_,
@@ -173,7 +174,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
   }
 
 
-  function getTranchPremiumInfo (uint256 _tranchIndex, uint256 _premiumIndex) public view returns (
+  function getTranchPremiumInfo (uint256 _tranchIndex, uint256 _premiumIndex) public view override returns (
     uint256 amount_,
     uint256 dueAt_,
     uint256 paidAt_,
@@ -187,7 +188,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
 
 
 
-  function getCommissionBalances() public view returns (
+  function getCommissionBalances() public view override returns (
     uint256 brokerCommissionBalance_,
     uint256 assetManagerCommissionBalance_,
     uint256 naymsCommissionBalance_
@@ -197,7 +198,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     naymsCommissionBalance_ = dataUint256["naymsCommissionBalance"];
   }
 
-  function getClaimInfo (uint256 _claimIndex) public view returns (
+  function getClaimInfo (uint256 _claimIndex) public view override returns (
     uint256 amount_,
     uint256 tranchIndex_,
     bool approved_,
@@ -211,20 +212,20 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     paid_ = dataBool[__i(_claimIndex, "claimPaid")];
   }
 
-  function initiationDateHasPassed () public view returns (bool) {
+  function initiationDateHasPassed () public view override returns (bool) {
     return now >= dataUint256["initiationDate"];
   }
 
-  function startDateHasPassed () public view returns (bool) {
+  function startDateHasPassed () public view override returns (bool) {
     return now >= dataUint256["startDate"];
   }
 
-  function maturationDateHasPassed () public view returns (bool) {
+  function maturationDateHasPassed () public view override returns (bool) {
     return now >= dataUint256["maturationDate"];
   }
 
   // heartbeat function!
-  function checkAndUpdateState() public {
+  function checkAndUpdateState() public override {
     // past the initiation date
     if (initiationDateHasPassed()) {
       // past the start date
@@ -244,7 +245,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     }
   }
 
-  function payTranchPremium (uint256 _index) public {
+  function payTranchPremium (uint256 _index) public override {
     // heartbeat first
     checkAndUpdateState();
 
@@ -255,7 +256,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
   }
 
 
-  function makeClaim(uint256 _index, address _clientManagerEntity, uint256 _amount) public {
+  function makeClaim(uint256 _index, address _clientManagerEntity, uint256 _amount) public override {
     // heartbeat first
     checkAndUpdateState();
 
@@ -266,7 +267,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
   }
 
 
-  function approveClaim(uint256 _claimIndex) public {
+  function approveClaim(uint256 _claimIndex) public override {
     _claims().dcall(abi.encodeWithSelector(
       "approveClaim(uint256)".dsig(),
       _claimIndex
@@ -274,7 +275,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
   }
 
 
-  function declineClaim(uint256 _claimIndex) public {
+  function declineClaim(uint256 _claimIndex) public override {
     _claims().dcall(abi.encodeWithSelector(
       "declineClaim(uint256)".dsig(),
       _claimIndex
@@ -282,7 +283,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
   }
 
 
-  function payClaims() public {
+  function payClaims() public override {
     _claims().dcall(abi.encodeWithSelector(
       "payClaims()".dsig()
     ));
@@ -292,7 +293,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
   function payCommissions (
     address _assetManagerEntity, address _assetManager,
     address _brokerEntity, address _broker
-  ) public {
+  ) public override {
     _commissions().dcall(abi.encodeWithSelector(
       "payCommissions(address,address,address,address)".dsig(),
       _assetManagerEntity, _assetManager, _brokerEntity, _broker
@@ -300,42 +301,42 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
   }
 
 
-  function calculateMaxNumOfPremiums() public view returns (uint256) {
+  function calculateMaxNumOfPremiums() public view override returns (uint256) {
     return (dataUint256["maturationDate"] - dataUint256["initiationDate"]) / dataUint256["premiumIntervalSeconds"] + 1;
   }
 
   // TranchTokenImpl - queries //
 
-  function tknName(uint256 _index) public view returns (string memory) {
+  function tknName(uint256 _index) public view override returns (string memory) {
     return string(abi.encodePacked(address(this).toString(), "_tranch_", _index));
   }
 
-  function tknSymbol(uint256 _index) public view returns (string memory) {
+  function tknSymbol(uint256 _index) public view override returns (string memory) {
     return tknName(_index);
   }
 
-  function tknTotalSupply(uint256 _index) public view returns (uint256) {
+  function tknTotalSupply(uint256 _index) public view override returns (uint256) {
     string memory numSharesKey = __i(_index, "numShares");
     return dataUint256[numSharesKey];
   }
 
-  function tknBalanceOf(uint256 _index, address _owner) public view returns (uint256) {
+  function tknBalanceOf(uint256 _index, address _owner) public view override returns (uint256) {
     string memory k = __ia(_index, _owner, "balance");
     return dataUint256[k];
   }
 
-  function tknAllowance(uint256 _index, address _spender, address _owner) public view returns (uint256) {
+  function tknAllowance(uint256 _index, address _spender, address _owner) public view override returns (uint256) {
     string memory k = __iaa(_index, _owner, _spender, "allowance");
     return dataUint256[k];
   }
 
   // TranchTokenImpl - ERC20 mutations //
 
-  function tknApprove(uint256 /*_index*/, address _spender, address /*_from*/, uint256 /*_value*/) public {
+  function tknApprove(uint256 /*_index*/, address _spender, address /*_from*/, uint256 /*_value*/) public override {
     require(_spender == settings().getRootAddress(SETTING_MARKET), 'only nayms market is allowed to transfer');
   }
 
-  function tknTransfer(uint256 _index, address _spender, address _from, address _to, uint256 _value) public {
+  function tknTransfer(uint256 _index, address _spender, address _from, address _to, uint256 _value) public override {
     require(_spender == settings().getRootAddress(SETTING_MARKET), 'only nayms market is allowed to transfer');
     _transfer(_index, _from, _to, _value);
   }

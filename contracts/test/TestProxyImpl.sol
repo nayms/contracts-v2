@@ -1,4 +1,4 @@
-pragma solidity >=0.5.8;
+pragma solidity >=0.6.7;
 
 import '../base/EternalStorage.sol';
 import '../base/IProxyImpl.sol';
@@ -11,17 +11,17 @@ contract TestProxyImpl is EternalStorage, IProxyImpl, ITestProxyImpl {
 
   // IProxyImpl //
 
-  function getImplementationVersion () public pure returns (string memory) {
+  function getImplementationVersion () public pure override returns (string memory) {
     return "test";
   }
 
   // ITestProxyImpl //
 
-  function incCounter() public {
+  function incCounter() public override{
     dataUint256["data"] = dataUint256["data"] + 1;
   }
 
-  function getCounter() public view returns (uint256) {
+  function getCounter() public view override returns (uint256) {
     return dataUint256["data"];
   }
 }

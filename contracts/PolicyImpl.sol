@@ -114,6 +114,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
   }
 
   function getInfo () public view returns (
+    address creatorEntity_,
     uint256 initiationDate_,
     uint256 startDate_,
     uint256 maturationDate_,
@@ -125,6 +126,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     uint256 numTranches_,
     uint256 state_
   ) {
+    creatorEntity_ = dataAddress["creatorEntity"];
     initiationDate_ = dataUint256["initiationDate"];
     startDate_ = dataUint256["startDate"];
     maturationDate_ = dataUint256["maturationDate"];

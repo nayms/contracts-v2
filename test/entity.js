@@ -284,15 +284,16 @@ contract('Entity', accounts => {
       const eventArgs = extractEventArgs(result, events.NewPolicy)
 
       const policy = await PolicyImpl.at(eventArgs.policy)
+
       await policy.getInfo().should.eventually.matchObj({
-        startDate: startDate
+        startDate_: startDate
       })
 
       const proxy = await Proxy.at(eventArgs.policy)
       await proxy.getImplementation().should.eventually.eq(policyImpl.address)
     })
 
-    it('and have the original caller set as property owner', async () => {
+    it('and have the original caller set as policy owner', async () => {
       const result = await createPolicy(entity, {}, { from: accounts[2] })
 
       const eventArgs = extractEventArgs(result, events.NewPolicy)
@@ -302,6 +303,18 @@ contract('Entity', accounts => {
       const policyContext = await policy.aclContext()
 
       await acl.hasRole(policyContext, accounts[2], ROLES.POLICY_OWNER).should.eventually.eq(true)
+    })
+
+    it('and have the creating entity set', async () => {
+      const result = await createPolicy(entity, {}, { from: accounts[2] })
+
+      const eventArgs = extractEventArgs(result, events.NewPolicy)
+
+      const policy = await PolicyImpl.at(eventArgs.policy)
+
+      await policy.getInfo().should.eventually.matchObj({
+        creatorEntity_: entity.address,
+      })
     })
 
     describe('and policy tranch premiums can be paid', () => {

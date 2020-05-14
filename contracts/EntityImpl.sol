@@ -71,7 +71,7 @@ import "./Policy.sol";
     Policy f = new Policy(
       address(acl()),
       address(settings()),
-      aclContext(),
+      address(this),
       settings().getRootAddress(SETTING_POLICY_IMPL),
       msg.sender,
       _initiationDate,
@@ -125,7 +125,7 @@ import "./Policy.sol";
 
     IPolicyImpl p = IPolicyImpl(_policyAddress);
     // policy's unit
-    (i1, i2, i3, policyUnitAddress, , , , , ,) = p.getInfo();
+    (a1, i1, i2, i3, policyUnitAddress, , , , , ,) = p.getInfo();
     // next premium amount
     (a1, i1, i2, i3, i4, nextPremiumAmount, , , , ,) = p.getTranchInfo(_tranchIndex);
     // approve transfer

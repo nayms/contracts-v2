@@ -7,7 +7,7 @@ contract Policy is Controller, Proxy {
   constructor (
     address _acl,
     address _settings,
-    bytes32 _entityContext,
+    address _creatorEntity,
     address _policyImpl,
     address _policyOwner,
     uint256 _initiationDate,
@@ -22,7 +22,7 @@ contract Policy is Controller, Proxy {
     // set policy owner
     acl().assignRole(aclContext(), _policyOwner, ROLE_POLICY_OWNER);
     // set properties
-    dataBytes32["entityContext"] = _entityContext;
+    dataAddress["creatorEntity"] = _creatorEntity;
     dataUint256["initiationDate"] = _initiationDate;
     dataUint256["startDate"] = _startDate;
     dataUint256["maturationDate"] = _maturationDate;

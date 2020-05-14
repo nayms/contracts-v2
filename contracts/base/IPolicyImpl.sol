@@ -26,6 +26,7 @@ abstract contract IPolicyImpl is IPolicyClaims, IPolicyCommissions, IPolicyPremi
   /**
    * @dev Get policy info.
    *
+   * @return creatorEntity_ The Entity which created this policy.
    * @return initiationDate_ Initiation date  (seconds since epoch).
    * @return startDate_ Start date  (seconds since epoch).
    * @return maturationDate_ Maturation date (seconds since epoch).
@@ -38,6 +39,7 @@ abstract contract IPolicyImpl is IPolicyClaims, IPolicyCommissions, IPolicyPremi
    * @return state_ Current policy state.
    */
   function getInfo () public view virtual returns (
+    address creatorEntity_,
     uint256 initiationDate_,
     uint256 startDate_,
     uint256 maturationDate_,

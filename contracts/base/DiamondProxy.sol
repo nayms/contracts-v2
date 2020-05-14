@@ -50,11 +50,15 @@ contract DiamondProxy is DiamondStorageBase {
   }
 
 
-  function _registerFacet (address _facet) internal {
-    IDiamondFacet f = IDiamondFacet(_facet);
-    bytes memory selectors = f.getSelectors();
-    bytes[] memory changes = new bytes[](1);
-    changes[0] = abi.encodePacked(_facet, selectors);
+  function _registerFacets (address[] memory _facets) internal {
+    bytes[] memory changes = new bytes[](_facets.length);
+
+    for (uint i = 0; i < _facets.length; i += 1) {
+      IDiamondFacet f = IDiamondFacet(_facets[i]);
+      bytes memory selectors = f.getSelectors();
+      changes[i] = abi.encodePacked(_facets[i], selectors);
+    }
+
     _upgradeDiamond(changes);
   }
 

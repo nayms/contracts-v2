@@ -8,7 +8,7 @@ import {
 } from './utils'
 
 import { events } from '../'
-import { ROLES } from '../utils/constants'
+import { ROLES, SETTINGS } from '../utils/constants'
 import { ensureEtherTokenIsDeployed, deployNewEtherToken } from '../migrations/modules/etherToken'
 import { ensureAclIsDeployed } from '../migrations/modules/acl'
 import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
@@ -32,6 +32,7 @@ contract('Entity', accounts => {
   let market
   let entityProxy
   let entity
+  let entityImplAddress
   let entityContext
 
   beforeEach(async () => {
@@ -47,6 +48,8 @@ contract('Entity', accounts => {
     entity = await IEntityImpl.at(entityProxy.address)
     entityContext = await entityProxy.aclContext()
 
+    entityImplAddress = await settings.getRootAddress(SETTINGS.ENTITY_IMPL)
+
     etherToken2 = await deployNewEtherToken({ artifacts }, acl.address, settings.address)
   })
 
@@ -54,60 +57,27 @@ contract('Entity', accounts => {
     expect(entityProxy.address).to.exist
   })
 
-  // describe('it can be upgraded', () => {
-  //   let entityImpl2
-  //   let entityAdminSig
-  //   let entityManagerSig
-  //   let entityRepresentativeSig
+  describe('it can be upgraded', () => {
+    let testEntityImpl
 
-  //   beforeEach(async () => {
-  //     // deploy new implementation
-  //     entityImpl2 = await TestEntityImpl.new()
+    beforeEach(async () => {
+      // deploy new implementation
+      testEntityImpl = await TestEntityImpl.new()
+    })
 
-  //     // generate upgrade approval signatures
-  //     const implVersion = await entityImpl2.getImplementationVersion()
+    it('but not just by anyone', async () => {
+      await entityProxy.upgrade([ testEntityImpl.address ], { from: accounts[1] }).should.be.rejectedWith('must be admin')
+    })
 
-  //     await acl.assignRole(entityContext, accounts[1], ROLES.ENTITY_ADMIN)
-  //     entityAdminSig = hdWallet.sign({ address: accounts[1], data: keccak256(implVersion) })
+    it('but not to the existing implementation', async () => {
+      await entityProxy.upgrade([ entityImplAddress ]).should.be.rejectedWith('Adding functions failed')
+    })
 
-  //     await acl.assignRole(entityContext, accounts[2], ROLES.ENTITY_MANAGER)
-  //     entityManagerSig = hdWallet.sign({ address: accounts[2], data: keccak256(implVersion) })
-
-  //     await acl.assignRole(entityContext, accounts[3], ROLES.ENTITY_REP)
-  //     entityRepresentativeSig = hdWallet.sign({ address: accounts[3], data: keccak256(implVersion) })
-  //   })
-
-  //   it('but not just by anyone', async () => {
-  //     await entityProxy.upgrade(entityImpl2.address, entityAdminSig, { from: accounts[1] }).should.be.rejectedWith('must be admin')
-  //   })
-
-  //   it('but not with entity manager\'s signature', async () => {
-  //     await entityProxy.upgrade(entityImpl2.address, entityManagerSig).should.be.rejectedWith('must be approved by entity admin')
-  //   })
-
-  //   it('but not with entity rep\'s signature', async () => {
-  //     await entityProxy.upgrade(entityImpl2.address, entityRepresentativeSig).should.be.rejectedWith('must be approved by entity admin')
-  //   })
-
-  //   it('but not to an empty address', async () => {
-  //     await entityProxy.upgrade(ADDRESS_ZERO, entityAdminSig).should.be.rejectedWith('implementation must be valid')
-  //   })
-
-  //   it.skip('but not to the existing implementation', async () => {
-  //     const oldVersion = await entityImpl.getImplementationVersion()
-  //     entityManagerSig = hdWallet.sign({ address: accounts[1], data: keccak256(oldVersion) })
-  //     await entityProxy.upgrade(entityImpl.address, entityAdminSig).should.be.rejectedWith('already this implementation')
-  //   })
-
-  //   it('and points to the new implementation', async () => {
-  //     const result = await entityProxy.upgrade(entityImpl2.address, entityAdminSig).should.be.fulfilled
-
-  //     expect(extractEventArgs(result, events.Upgraded)).to.include({
-  //       implementation: entityImpl2.address,
-  //       version: 'vTest',
-  //     })
-  //   })
-  // })
+    it('and adds the new implementation as a facet', async () => {
+      await entityProxy.upgrade([ testEntityImpl.address ]).should.be.fulfilled
+      await entity.getNumPolicies().should.eventually.eq(666);
+    })
+  })
 
   describe('it can take deposits', () => {
     it('but sender must have enough', async () => {

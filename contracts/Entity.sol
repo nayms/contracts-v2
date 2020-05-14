@@ -7,9 +7,12 @@ import "./base/ISettingsKeys.sol";
 
 contract Entity is Controller, DiamondProxy {
   constructor (address _acl, address _settings) Controller(_acl, _settings) DiamondProxy() public {
-    _registerFacet(settings().getRootAddress(SETTING_ENTITY_IMPL));
+    address[] memory f = new address[](1);
+    f[0] = settings().getRootAddress(SETTING_ENTITY_IMPL);
+    _registerFacets(f);
   }
 
-  // function upgrade (address _implementation) public assertIsAdmin {
-  // }
+  function upgrade (address[] memory _facets) public assertIsAdmin {
+    _registerFacets(_facets);
+  }
 }

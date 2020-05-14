@@ -1,5 +1,4 @@
 pragma solidity >=0.6.7;
-pragma experimental ABIEncoderV2;
 
 import "./base/Controller.sol";
 import "./base/EternalStorage.sol";

@@ -96,4 +96,6 @@ contract Proxy is EternalStorage {
       default { return(ptr, size) }
     }
   }
+
+  receive () external payable {}
 }

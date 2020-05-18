@@ -180,11 +180,7 @@ contract('Entity', accounts => {
   })
 
   describe('policies can be created', () => {
-    let policyImpl
-
     beforeEach(async () => {
-      ; ({ policyImpl } = await ensurePolicyImplementationsAreDeployed({ artifacts }, acl.address, settings.address))
-
       await acl.assignRole(entityContext, accounts[1], ROLES.ENTITY_ADMIN)
       await acl.assignRole(entityContext, accounts[2], ROLES.ENTITY_MANAGER)
       await acl.assignRole(entityContext, accounts[3], ROLES.ENTITY_REP)

@@ -3,6 +3,7 @@ pragma solidity >=0.6.7;
 import "./base/SafeMath.sol";
 import "./base/EternalStorage.sol";
 import "./base/Controller.sol";
+import "./base/IDiamondFacet.sol";
 import "./base/IPolicyCore.sol";
 import "./base/IPolicyPremiums.sol";
 import "./base/PolicyFacetBase.sol";
@@ -12,7 +13,7 @@ import "./base/IERC20.sol";
 /**
  * @dev Business-logic for Policy premiums
  */
-contract PolicyPremiums is EternalStorage, Controller, IPolicyPremiums, PolicyFacetBase {
+contract PolicyPremiums is EternalStorage, Controller, IDiamondFacet, IPolicyPremiums, PolicyFacetBase {
   using SafeMath for uint;
 
   modifier assertTranchPaymentAllowed (uint256 _index) {
@@ -30,6 +31,17 @@ contract PolicyPremiums is EternalStorage, Controller, IPolicyPremiums, PolicyFa
   {
     // empty
   }
+
+  // IDiamondFacet
+
+  function getSelectors () public pure override returns (bytes memory) {
+    return abi.encodePacked(
+      IPolicyPremiums.getTranchPremiumInfo.selector,
+      IPolicyPremiums.payTranchPremium.selector
+    );
+  }
+
+  // IPolicyPremiums
 
   function getTranchPremiumInfo (uint256 _tranchIndex, uint256 _premiumIndex) public view override returns (
     uint256 amount_,

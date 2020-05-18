@@ -2,7 +2,6 @@ const { keccak256: sha3 } = require('js-sha3')
 const path = require('path')
 
 const { createLog } = require('./log')
-const { networks } = require('../truffle-config.js')
 
 exports.keccak256 = a => `0x${sha3(a)}`
 
@@ -15,17 +14,18 @@ exports.deploy = async (deployer, Contract, ...constructorArgs) => {
   }
 }
 
-exports.getCurrentInstance = async ({ artifacts, lookupType, type, network, logger }) => {
-  const log = createLog(logger)
+exports.getCurrentInstance = async ({ artifacts, lookupType, type, networkId, log }) => {
+  log = createLog(log)
 
   const Type = artifacts.require(`./${type}`)
 
-  log(`Loading ${lookupType} address from deployed address list ...`)
+  let inst
 
-  const addresses = require(path.join(__dirname, '..', 'deployedAddresses.json'))
-  const inst = Type.at(_.get(addresses, `${lookupType}.${network}.address`))
-
-  log(`... done: ${inst.address}`)
+  await log.task(`Loading ${lookupType} address from deployed address list for network ${networkId}`, async task => {
+    const addresses = require(path.join(__dirname, '..', 'deployedAddresses.json'))
+    inst = await Type.at(_.get(addresses, `${lookupType}.${networkId}.address`))
+    task.log(`Instance: ${inst.address}`)
+  })
 
   return inst
 }
@@ -34,19 +34,21 @@ exports.getCurrentInstance = async ({ artifacts, lookupType, type, network, logg
 exports.getMatchingNetwork = ({ network_id, name }) => {
   let match
 
+  const { networks } = require('../truffle-config.js')
+
   if (name) {
     match = Object.keys(networks).find(k => k === name)
   } else if (network_id) {
-    match = Object.keys(networks).find(k => networks[k].network_id === network_id)
+    match = Object.keys(networks).find(k => networks[k].network_id == network_id)
   }
 
   if (!match) {
-    return null
+    throw new Error(`Could not find matching network for either ${network_id} OR ${name}`)
   }
 
   return Object.assign({
-    name,
-    network_id,
+    name: match,
+    id: networks[match].network_id,
   }, networks[match], {
     isLocal: (networks[match].network_id == '*' || networks[match].network_id > 50)
   })

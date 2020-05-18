@@ -47,12 +47,12 @@ const raw = [
 const final = currentAddresses
 
 Object.keys(raw).forEach(name => {
-  m[name] = final[name] || {}
+  final[name] = final[name] || {}
 
   Object.keys(raw[name]).forEach(networkId => {
     const theNetwork = getMatchingNetwork({ network_id: networkId })
 
-    m[name][theNetwork.name] = {
+    final[name][theNetwork.id] = {
       ...final[name][networkId],
       address: raw[name][networkId].address,
       transactionHash: raw[name][networkId].transactionHash,

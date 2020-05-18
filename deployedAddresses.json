@@ -1,32 +1,32 @@
 {
   "ACL": {
     "4": {
-      "address": "0x8A75431164985175C44a9DA791416eaf44E117B9",
-      "transactionHash": "0xf0243df952795c3be457697f42485ccabdd432b49c617cf87071dfdb3e7dcba8"
+      "address": "0x202EA5dc475ECabAC0C8e7791a874c3A2Aebb3Bc",
+      "transactionHash": "0x7c470bdae496433f7704cb759227a4fbb30cb4f2ca2f6ca502b59c97a3e75846"
     }
   },
   "EntityDeployer": {
     "4": {
-      "address": "0x5AE727B3dEbEe5120e7FA849A06b42811cF783D8",
-      "transactionHash": "0x9b1be186ba640284d320bcd2702fef98e8a209b368f64d5d711006a944034436"
+      "address": "0xB83215749C323146ce8590a3531d0761Bf9eC7f1",
+      "transactionHash": "0xfd7e30a12fa2c66e9c90e31bea395246e1efdb09d13415ff68e806568c473369"
     }
   },
   "MatchingMarket": {
     "4": {
-      "address": "0xb687fD1E4eCB3B3dcD57b007086fA4cf21eF8482",
-      "transactionHash": "0x6a50d94d648ea0ebff0b07ca58797ad0201817149d011d68f0a66665790179ff"
+      "address": "0xf2DE6971a13Cfe26cff6AbC9b95eEad54B718B7F",
+      "transactionHash": "0x458e79d5d2df92862b7093088aab05f9a607ac20ad25cf9712593d42483f8fce"
     }
   },
   "Settings": {
     "4": {
-      "address": "0xe96E5B42436614ef13f7FfBA741A9c95840927D4",
-      "transactionHash": "0x31d46b09b1b4f4a9c8fc0a6a60862d9cd232e6861b241ec09510581a5fd82991"
+      "address": "0x15Fe076B4FA6e33f0682De454A1C4E15F932b34a",
+      "transactionHash": "0x67c0f742b56ffa11b797d73d74460abcd2f2c023d4d25dd1e4c5696ea2511eef"
     }
   },
   "EtherToken": {
     "4": {
-      "address": "0x49D595362580e14c631c258319FbB9DEFdA24E50",
-      "transactionHash": "0xebab2e8242a280f4dbbde40cebb6b5efc610d831c969682f814fc681930626f8"
+      "address": "0xFA1D8509e5bfA6D75D7827137f65c94059F72349",
+      "transactionHash": "0x6b444efbd373eac0dd4725c182227c5e5695d160340dc34d4e34f48858052bf4"
     }
   }
 }

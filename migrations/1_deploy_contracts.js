@@ -13,13 +13,13 @@ const { ensureEntityImplementationsAreDeployed } = require('./modules/entityImpl
 const { ensurePolicyImplementationsAreDeployed } = require('./modules/policyImplementations')
 
 const getDeployerWithLiveGasPrice = async ({ deployer, log }) => {
-  log(`Fetching live fast gas price ...`)
+  let gwei
 
-  const { body: { fast } } = await got('https://ethgasstation.info/api/ethgasAPI.json', { responseType: 'json' })
-
-  const gwei = parseInt(fast, 10) / 10
-
-  log(`... done: ${gwei} GWEI`)
+  await log.task('Fetching live fast gas price', async task => {
+    const { body: { fast } } = await got('https://ethgasstation.info/api/ethgasAPI.json', { responseType: 'json' })
+    gwei = parseInt(fast, 10) / 10
+    task.log(`${gwei} GWEI`)
+  })
 
   return {
     deploy: async (...args) => {
@@ -31,7 +31,7 @@ const getDeployerWithLiveGasPrice = async ({ deployer, log }) => {
 }
 
 module.exports = async (deployer, network) => {
-  const log = createLog(true)
+  const log = createLog(console.log.bind(console))
 
   const doReset = !!process.env.RESET
 
@@ -39,37 +39,42 @@ module.exports = async (deployer, network) => {
   let settings
 
   const networkInfo = getMatchingNetwork({ name: network })
+  const networkId = networkInfo.id
 
-  if (true || !networkInfo.isLocal) {
-    log('Configuring deployer to use live gas price for public network ...')
-
-    deployer = await getDeployerWithLiveGasPrice({ deployer, log })
-
-    log('... done')
+  if (!networkInfo.isLocal) {
+    await log.task('Configure deployer to use live gas price', async () => {
+      deployer = await getDeployerWithLiveGasPrice({ deployer, log })
+    })
   }
 
   if (doReset || networkInfo.isLocal) {
-    log('Re-deploying all contracts a-new ...')
+    await log.task('Re-deploying all contracts', async () => {
+      await deployer.deploy(artifacts.require("./Migrations"))
 
-    await deployer.deploy(artifacts.require("./Migrations"))
+      acl = await ensureAclIsDeployed({ deployer, artifacts, log })
+      settings = await ensureSettingsIsDeployed({ deployer, artifacts, log }, acl.address)
 
-    acl = await ensureAclIsDeployed({ deployer, artifacts, logger: true })
-    settings = await ensureSettingsIsDeployed({ deployer, artifacts, logger: true }, acl.address)
-
-    await ensureMarketIsDeployed({ deployer, artifacts, logger: true }, settings.address)
-    await ensureEtherTokenIsDeployed({ deployer, artifacts, logger: true }, acl.address, settings.address)
-    await ensureEntityDeployerIsDeployed({ deployer, artifacts, logger: true }, acl.address, settings.address)
+      await Promise.all([
+        ensureMarketIsDeployed({ deployer, artifacts, log }, settings.address),
+        ensureEtherTokenIsDeployed({ deployer, artifacts, log }, acl.address, settings.address),
+        ensureEntityDeployerIsDeployed({ deployer, artifacts, log }, acl.address, settings.address),
+      ])
+    })
   } else {
-    log('Deploying upgrades only ...')
-
-    acl = await getCurrentAcl({ artifacts, network, logger: true })
-    settings = await getCurrentSettings({ artifacts, network, logger: true })
-    // check the others too
-    await getCurrentMarket({ artifacts, network, logger: true })
-    await getCurrentEtherToken({ artifacts, network, logger: true })
-    await getCurrentEntityDeployer({ artifacts, network, logger: true })
+    await log.task('Deploying upgrades only', async () => {
+      acl = await getCurrentAcl({ artifacts, networkId, log })
+      settings = await getCurrentSettings({ artifacts, networkId, log })
+      // check the others too
+      await Promise.all([
+        getCurrentMarket({ artifacts, networkId, log }),
+        getCurrentEtherToken({ artifacts, networkId, log }),
+        getCurrentEntityDeployer({ artifacts, networkId, log }),
+      ])
+    })
   }
 
-  await ensureEntityImplementationsAreDeployed({ deployer, artifacts, logger: true }, acl.address, settings.address)
-  await ensurePolicyImplementationsAreDeployed({ deployer, artifacts, logger: true }, acl.address, settings.address)
+  await Promise.all([
+    ensureEntityImplementationsAreDeployed({ deployer, artifacts, log }, acl.address, settings.address),
+    ensurePolicyImplementationsAreDeployed({ deployer, artifacts, log }, acl.address, settings.address),
+  ])
 }

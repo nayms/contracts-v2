@@ -2,29 +2,28 @@ const { createLog } = require('../../utils/log')
 const { deploy } = require('../../utils/functions')
 const { SETTINGS } = require('../../utils/constants')
 
-export const ensureEntityImplementationsAreDeployed = async ({ deployer, artifacts, logger }, aclAddress, settingsAddress) => {
-  const log = createLog(logger)
+export const ensureEntityImplementationsAreDeployed = async ({ deployer, artifacts, log }, aclAddress, settingsAddress) => {
+  log = createLog(log)
 
-  log('Deploying Entity implementations ...')
+  let addresses
 
-  const EntityUpgradeFacet = artifacts.require('./EntityUpgradeFacet')
-  const EntityCoreFacet = artifacts.require('./EntityCoreFacet')
+  await log.task(`Deploy Entity implementations`, async task => {
+    const EntityUpgradeFacet = artifacts.require('./EntityUpgradeFacet')
+    const EntityCoreFacet = artifacts.require('./EntityCoreFacet')
 
-  const ret = (await Promise.all([
-    deploy(deployer, EntityCoreFacet, aclAddress, settingsAddress),
-    deploy(deployer, EntityUpgradeFacet, aclAddress, settingsAddress),
-  ])).map(c => c.address)
+    addresses = (await Promise.all([
+      deploy(deployer, EntityCoreFacet, aclAddress, settingsAddress),
+      deploy(deployer, EntityUpgradeFacet, aclAddress, settingsAddress),
+    ])).map(c => c.address)
 
-  log(`... deployed at ${ret.join(', ')}`)
+    task.log(`Deployed at ${addresses.join(', ')}`)
+  })
 
-  log('Saving entity implementation addresses to settings ...')
+  await log.task(`Saving entity implementation addresses to settings`, async task => {
+    const Settings = artifacts.require('./ISettings')
+    const settings = await Settings.at(settingsAddress)
+    await settings.setAddresses(settings.address, SETTINGS.ENTITY_IMPL, addresses)
+  })
 
-  // save to settings
-  const Settings = artifacts.require('./ISettings')
-  const settings = await Settings.at(settingsAddress)
-  await settings.setAddresses(settings.address, SETTINGS.ENTITY_IMPL, ret)
-
-  log('... saved')
-
-  return ret
+  return addresses
 }

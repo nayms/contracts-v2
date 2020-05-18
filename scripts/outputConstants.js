@@ -2,8 +2,6 @@
 
 /* This script generates code to insert into AccessControl.sol and ISettingsKeys.sol to setup constants */
 
-const fs = require('fs')
-const glob = require('glob')
 const path = require('path')
 
 const projectDir = path.join(__dirname, '..')

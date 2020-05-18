@@ -2,41 +2,40 @@ const { createLog } = require('../../utils/log')
 const { deploy, getCurrentInstance } = require('../../utils/functions')
 const { SETTINGS } = require('../../utils/constants')
 
-export const getCurrentEntityDeployer = async ({ network, logger }) => {
-  return getCurrentInstance({ network, logger, artifacts, type: 'IEntityDeployer', lookupType: 'EntityDeployer' })
+export const getCurrentEntityDeployer = async ({ artifacts, networkId, log }) => {
+  return getCurrentInstance({ networkId, log, artifacts, type: 'IEntityDeployer', lookupType: 'EntityDeployer' })
 }
 
-export const ensureEntityDeployerIsDeployed = async ({ deployer, artifacts, logger }, aclAddress, settingsAddress) => {
-  const log = createLog(logger)
+export const ensureEntityDeployerIsDeployed = async ({ deployer, artifacts, log }, aclAddress, settingsAddress) => {
+  log = createLog(log)
 
-  log('Deploying EntityDeployer ...')
+  let entityDeployer
 
-  // deploy
-  const EntityDeployer = artifacts.require('./EntityDeployer')
-  const entityDeployer = await deploy(deployer, EntityDeployer, aclAddress, settingsAddress)
+  await log.task(`Deploy EntityDeployer`, async task => {
+    const EntityDeployer = artifacts.require('./EntityDeployer')
+    entityDeployer = await deploy(deployer, EntityDeployer, aclAddress, settingsAddress)
+    task.log(`Deployed at ${entityDeployer.address}`)
+  })
 
-  log(`... deployed at ${entityDeployer.address}`)
+  let naymsEntityAddress
 
-  log('Deploying Nayms entity ...')
+  await log.task(`Deploy Nayms entity`, async task => {
+    const numEntities = await entityDeployer.getNumEntities()
+    if (0 == numEntities) {
+      await entityDeployer.deploy()
+    }
 
-  const numEntities = await entityDeployer.getNumEntities()
-  if (0 == numEntities) {
-    await entityDeployer.deploy()
-  }
+    naymsEntityAddress = await entityDeployer.getEntity(0)
 
-  const naymsEntityAddress = await entityDeployer.getEntity(0)
+    task.log(`Deployed at ${naymsEntityAddress}`)
+  })
 
-  log(`... deployed at ${naymsEntityAddress}`)
-
-  log('Saving entity deployer and nayms entity addresses to settings ...')
-
-  // save to settings
-  const Settings = artifacts.require('./ISettings')
-  const settings = await Settings.at(settingsAddress)
-  await settings.setAddress(settings.address, SETTINGS.ENTITY_DEPLOYER, entityDeployer.address)
-  await settings.setAddress(settings.address, SETTINGS.NAYMS_ENTITY, naymsEntityAddress)
-
-  log('... saved')
+  await log.task(`Saving entity deployer and nayms entity addresses to settings`, async task => {
+    const Settings = artifacts.require('./ISettings')
+    const settings = await Settings.at(settingsAddress)
+    await settings.setAddress(settings.address, SETTINGS.ENTITY_DEPLOYER, entityDeployer.address)
+    await settings.setAddress(settings.address, SETTINGS.NAYMS_ENTITY, naymsEntityAddress)
+  })
 
   return entityDeployer
 }

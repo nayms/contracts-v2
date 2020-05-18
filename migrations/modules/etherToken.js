@@ -1,17 +1,27 @@
 const { createLog } = require('../../utils/log')
 const { deploy, getCurrentInstance } = require('../../utils/functions')
+const { SETTINGS } = require('../../utils/constants')
 
-export const getCurrentEtherToken = async ({ network, logger }) => {
-  return getCurrentInstance({ network, logger, artifacts, type: 'IEtherToken', lookupType: 'EtherToken' })
+export const getCurrentEtherToken = async ({ artifacts, networkId, log }) => {
+  return getCurrentInstance({ networkId, log, artifacts, type: 'IEtherToken', lookupType: 'EtherToken' })
 }
 
-export const ensureEtherTokenIsDeployed = async ({ deployer, artifacts, logger }, aclAddress, settingsAddress) => {
-  const log = createLog(logger)
+export const ensureEtherTokenIsDeployed = async ({ deployer, artifacts, log }, aclAddress, settingsAddress) => {
+  log = createLog(log)
 
-  log('Deploying EtherToken ...')
-  const EtherToken = artifacts.require('./EtherToken')
-  const etherToken = await deploy(deployer, EtherToken, aclAddress, settingsAddress)
-  log(`... deployed at ${etherToken.address}`)
+  let etherToken
+
+  await log.task(`Deploy EtherToken`, async task => {
+    const EtherToken = artifacts.require('./EtherToken')
+    etherToken = await deploy(deployer, EtherToken, aclAddress, settingsAddress)
+    task.log(`Deployed at ${etherToken.address}`)
+  })
+
+  await log.task(`Saving EtherToken address to settings`, async task => {
+    const Settings = artifacts.require('./ISettings')
+    const settings = await Settings.at(settingsAddress)
+    await settings.setAddress(settings.address, SETTINGS.ETHER_TOKEN, etherToken.address)
+  })
 
   return etherToken
 }

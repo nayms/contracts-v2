@@ -41,6 +41,7 @@ exports.SETTINGS = {}
 
 ;[
   'MARKET',
+  'ETHER_TOKEN',
   'ENTITY_IMPL',
   'POLICY_IMPL',
   'ENTITY_DEPLOYER',

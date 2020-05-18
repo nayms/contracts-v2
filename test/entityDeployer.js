@@ -2,7 +2,7 @@ import { extractEventArgs } from './utils'
 import { events } from '../'
 import { ensureAclIsDeployed } from '../migrations/modules/acl'
 import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
-import { ensureEntityImplementationIsDeployed } from '../migrations/modules/entityImplementation'
+import { ensureEntityImplementationIsDeployed } from '../migrations/modules/entityImplementations'
 import { ROLES } from '../utils/constants'
 
 const Entity = artifacts.require("./Entity")

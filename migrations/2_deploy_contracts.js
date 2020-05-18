@@ -3,7 +3,7 @@ const { ensureMarketIsDeployed } = require('./modules/market')
 const { ensureSettingsIsDeployed } = require('./modules/settings')
 const { ensureEtherTokenIsDeployed } = require('./modules/etherToken')
 const { ensureEntityDeployerIsDeployed } = require('./modules/entityDeployer')
-const { ensureEntityImplementationsAreDeployed } = require('./modules/entityImplementation')
+const { ensureEntityImplementationsAreDeployed } = require('./modules/entityImplementations')
 const { ensurePolicyImplementationsAreDeployed } = require('./modules/policyImplementations')
 
 module.exports = async deployer => {

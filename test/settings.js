@@ -45,6 +45,10 @@ contract('Settings', accounts => {
         await settings.getAddress(settings.address, key).should.eventually.eq(accounts[3])
         await settings.getRootAddress(key).should.eventually.eq(accounts[3])
 
+        await settings.setAddresses(settings.address, key, [ accounts[3] ]).should.be.fulfilled
+        await settings.getAddresses(settings.address, key).should.eventually.eq([ accounts[3] ])
+        await settings.getRootAddresses(key).should.eventually.eq([ accounts[3] ])
+
         await settings.setBool(settings.address, key, true).should.be.fulfilled
         await settings.getBool(settings.address, key).should.eventually.eq(true)
         await settings.getRootBool(key).should.eventually.eq(true)
@@ -62,6 +66,7 @@ contract('Settings', accounts => {
     describe(`in a non-root context`, () => {
       it('but not if not the context owner', async () => {
         await settings.setAddress(accounts[3], key, accounts[3], { from: accounts[2] }).should.be.rejectedWith('must be context owner');
+        await settings.setAddresses(accounts[3], key, [ accounts[3] ], { from: accounts[2] }).should.be.rejectedWith('must be context owner');
         await settings.setBool(accounts[3], key, true, { from: accounts[2] }).should.be.rejectedWith('must be context owner');
         await settings.setUint256(accounts[3], key, 1, { from: accounts[2] }).should.be.rejectedWith('must be context owner');
         await settings.setString(accounts[3], key, 'test', { from: accounts[2] }).should.be.rejectedWith('must be context owner');
@@ -70,6 +75,9 @@ contract('Settings', accounts => {
       it('by context owner', async () => {
         await settings.setAddress(accounts[0], key, accounts[3]).should.be.fulfilled
         await settings.getAddress(accounts[0], key).should.eventually.eq(accounts[3])
+
+        await settings.setAddresses(accounts[0], key, [ accounts[3] ]).should.be.fulfilled
+        await settings.getAddresses(accounts[0], key).should.eventually.eq([ accounts[3] ])
 
         await settings.setBool(accounts[0], key, true).should.be.fulfilled
         await settings.getBool(accounts[0], key).should.eventually.eq(true)
@@ -91,6 +99,17 @@ contract('Settings', accounts => {
           key,
           caller: accounts[0],
           keyType: 'address',
+        })
+      })
+
+      it('setAddresses', async () => {
+        const ret = await settings.setAddresses(accounts[0], key, [ accounts[3] ])
+
+        expect(extractEventArgs(ret, events.SettingChanged)).to.include({
+          context: accounts[0],
+          key,
+          caller: accounts[0],
+          keyType: 'addresses',
         })
       })
 

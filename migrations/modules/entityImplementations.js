@@ -5,22 +5,24 @@ const { SETTINGS } = require('../../utils/constants')
 export const ensureEntityImplementationsAreDeployed = async ({ deployer, artifacts, logger }, aclAddress, settingsAddress) => {
   const log = createLog(logger)
 
-  log('Deploying Entity implementation ...')
+  log('Deploying Entity implementations ...')
 
-  const EntityImpl = artifacts.require('./EntityImpl')
+  const EntityCore = artifacts.require('./EntityCore')
 
-  const entityImpl = await deploy(deployer, EntityImpl, aclAddress, settingsAddress)
+  const ret = (await Promise.all([
+    deploy(deployer, EntityCore, aclAddress, settingsAddress)
+  ])).map(c => c.address)
 
-  log(`... deployed at ${entityImpl.address}`)
+  log(`... deployed at ${ret.join(', ')}`)
 
-  log('Saving entity implementation address to settings ...')
+  log('Saving entity implementation addresses to settings ...')
 
   // save to settings
   const Settings = artifacts.require('./ISettings')
   const settings = await Settings.at(settingsAddress)
-  await settings.setAddress(settings.address, SETTINGS.ENTITY_IMPL, entityImpl.address)
+  await settings.setAddresses(settings.address, SETTINGS.ENTITY_IMPL, ret)
 
   log('... saved')
 
-  return entityImpl
+  return ret
 }

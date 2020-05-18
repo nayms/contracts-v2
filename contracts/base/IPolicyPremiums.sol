@@ -13,6 +13,23 @@ interface IPolicyPremiums {
    */
   function payTranchPremium (uint256 _index) external;
 
+  /**
+   * @dev Get tranch premium info.
+   *
+   * @param _tranchIndex Tranch index.
+   * @param _premiumIndex Premium index.
+   * @return amount_ Amount due.
+   * @return dueAt_ When it is due by (timestamp = seconds since epoch).
+   * @return paidAt_ When it was paid (timestamp = seconds since epoch).
+   * @return paidBy_ Who paid it.
+   */
+  function getTranchPremiumInfo (uint256 _tranchIndex, uint256 _premiumIndex) external view returns (
+    uint256 amount_,
+    uint256 dueAt_,
+    uint256 paidAt_,
+    address paidBy_
+  );
+
   // events
 
   /**

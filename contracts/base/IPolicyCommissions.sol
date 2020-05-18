@@ -17,6 +17,21 @@ interface IPolicyCommissions {
     address _brokerEntity, address _broker
   ) external;
 
+  /**
+   * @dev Get accumulated commission balances.
+   *
+   * Note that these balances do not include amounts that have already been paid out (see `payCommissions()`).
+   *
+   * @return brokerCommissionBalance_ Currently accumulated broker commission.
+   * @return assetManagerCommissionBalance_ Currently accumulated asset manager commission.
+   * @return naymsCommissionBalance_ Currently accumulated Nayms commission.
+   */
+  function getCommissionBalances() external view returns (
+    uint256 brokerCommissionBalance_,
+    uint256 assetManagerCommissionBalance_,
+    uint256 naymsCommissionBalance_
+  );
+
   // events
 
   /**

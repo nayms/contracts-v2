@@ -35,6 +35,34 @@ abstract contract ISettings is ISettingsKeys {
   function setAddress(address _context, bytes32 _key, address _value) public virtual;
 
   /**
+   * @dev Get an address.
+   *
+   * @param _context The context.
+   * @param _key The key.
+   *
+   * @return The value.
+   */
+  function getAddresses(address _context, bytes32 _key) public view virtual returns (address[] memory);
+
+  /**
+   * @dev Get an address in the root context.
+   *
+   * @param _key The key.
+   *
+   * @return The value.
+   */
+  function getRootAddresses(bytes32 _key) public view virtual returns (address[] memory);
+
+  /**
+   * @dev Set an address.
+   *
+   * @param _context The context.
+   * @param _key The key.
+   * @param _value The value.
+   */
+  function setAddresses(address _context, bytes32 _key, address[] memory _value) public virtual;
+
+  /**
    * @dev Get a boolean.
    *
    * @param _context The context.

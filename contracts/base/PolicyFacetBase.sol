@@ -1,9 +1,11 @@
 pragma solidity >=0.6.7;
 
+import "./EternalStorage.sol";
+
 /**
- * @dev Policy and tranch states.
+ * @dev Policy facet base class
  */
-abstract contract IPolicyStates {
+abstract contract PolicyFacetBase is EternalStorage {
   /**
    * @dev State: The policy has just been created.
    */
@@ -41,6 +43,24 @@ abstract contract IPolicyStates {
    * @dev State: The tranch has been cancelled.
    */
   uint256 constant public TRANCH_STATE_CANCELLED = 4;
+
+  // methods
+
+  function _setPolicyState (uint256 _newState) internal {
+    if (dataUint256["state"] != _newState) {
+      dataUint256["state"] = _newState;
+      emit PolicyStateUpdated(_newState, msg.sender);
+    }
+  }
+
+  function _setTranchState (uint256 _tranchIndex, uint256 _newState) internal {
+    if (dataUint256[__i(_tranchIndex, "state")] != _newState) {
+      dataUint256[__i(_tranchIndex, "state")] = _newState;
+      emit TranchStateUpdated(_tranchIndex, _newState, msg.sender);
+    }
+  }
+
+  // events
 
   event PolicyStateUpdated (uint256 indexed state, address indexed caller);
   event TranchStateUpdated (uint256 indexed tranchIndex, uint256 indexed state, address indexed caller);

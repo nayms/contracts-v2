@@ -3,7 +3,7 @@ pragma solidity >=0.6.7;
 /**
  * @dev Tranch token helpers
  */
-interface ITranchTokenHelper {
+interface IPolicyTranchTokens {
   // ERC-20 queries
   function tknName(uint256 _index) external view returns (string memory);
   function tknSymbol(uint256 _index) external view returns (string memory);

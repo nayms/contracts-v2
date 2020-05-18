@@ -10,26 +10,25 @@ export const ensurePolicyImplementationsAreDeployed = async ({ deployer, artifac
   const PolicyClaims = artifacts.require('./PolicyClaims')
   const PolicyCommissions = artifacts.require('./PolicyCommissions')
   const PolicyPremiums = artifacts.require('./PolicyPremiums')
-  const PolicyImpl = artifacts.require('./PolicyImpl')
+  const PolicyCore = artifacts.require('./PolicyCore')
+  const PolicyTranchTokens = artifacts.require('./PolicyTranchTokens')
 
-  const ret = {
-    policyClaims: await deploy(deployer, PolicyClaims, aclAddress, settingsAddress),
-    policyCommissions: await deploy(deployer, PolicyCommissions, aclAddress, settingsAddress),
-    policyPremiums: await deploy(deployer, PolicyPremiums, aclAddress, settingsAddress),
-    policyImpl: await deploy(deployer, PolicyImpl, aclAddress, settingsAddress),
-  }
+  const ret = (await Promise.all([
+    deploy(deployer, PolicyCore, aclAddress, settingsAddress),
+    deploy(deployer, PolicyClaims, aclAddress, settingsAddress),
+    deploy(deployer, PolicyCommissions, aclAddress, settingsAddress),
+    deploy(deployer, PolicyPremiums, aclAddress, settingsAddress),
+    deploy(deployer, PolicyTranchTokens, aclAddress, settingsAddress),
+  ])).map(c => c.address)
 
-  log(`... deployed`)
+  log(`... deployed at ${ret.join(', ')}`)
 
   log('Saving policy implementations addresses to settings ...')
 
   // save to settings
   const Settings = artifacts.require('./ISettings')
   const settings = await Settings.at(settingsAddress)
-  await settings.setAddress(settings.address, SETTINGS.POLICY_IMPL, ret.policyImpl.address)
-  await settings.setAddress(settings.address, SETTINGS.POLICY_CLAIMS_IMPL, ret.policyClaims.address)
-  await settings.setAddress(settings.address, SETTINGS.POLICY_COMMISSIONS_IMPL, ret.policyCommissions.address)
-  await settings.setAddress(settings.address, SETTINGS.POLICY_PREMIUMS_IMPL, ret.policyPremiums.address)
+  await settings.setAddresses(settings.address, SETTINGS.POLICY_IMPL, ret)
 
   log('... saved')
 

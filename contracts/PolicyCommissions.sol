@@ -2,15 +2,16 @@ pragma solidity >=0.6.7;
 
 import "./base/EternalStorage.sol";
 import "./base/Controller.sol";
+import "./base/IDiamondFacet.sol";
 import "./base/IPolicyCommissions.sol";
-import "./base/IPolicyStates.sol";
+import "./base/PolicyFacetBase.sol";
 import "./base/AccessControl.sol";
 import "./base/IERC20.sol";
 
 /**
  * @dev Business-logic for Policy commissions
  */
-contract PolicyCommissions is EternalStorage, Controller, IPolicyCommissions, IPolicyStates {
+contract PolicyCommissions is EternalStorage, Controller, IDiamondFacet, IPolicyCommissions, PolicyFacetBase {
   modifier assertIsAssetManager (address _addr) {
     require(inRoleGroup(_addr, ROLEGROUP_ASSET_MANAGERS), 'must be asset manager');
     _;
@@ -30,6 +31,28 @@ contract PolicyCommissions is EternalStorage, Controller, IPolicyCommissions, IP
   {
     // empty
   }
+
+  // IDiamondFacet
+
+  function getSelectors () public pure override returns (bytes memory) {
+    return abi.encodePacked(
+      IPolicyCommissions.payCommissions.selector,
+      IPolicyCommissions.getCommissionBalances.selector
+    );
+  }
+
+  // IPolicyCommissions
+
+  function getCommissionBalances() public view override returns (
+    uint256 brokerCommissionBalance_,
+    uint256 assetManagerCommissionBalance_,
+    uint256 naymsCommissionBalance_
+  ) {
+    brokerCommissionBalance_ = dataUint256["brokerCommissionBalance"];
+    assetManagerCommissionBalance_ = dataUint256["assetManagerCommissionBalance"];
+    naymsCommissionBalance_ = dataUint256["naymsCommissionBalance"];
+  }
+
 
   function payCommissions (
     address _assetManagerEntity, address _assetManager,

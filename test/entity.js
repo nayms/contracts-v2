@@ -13,11 +13,10 @@ import { ensureEtherTokenIsDeployed, deployNewEtherToken } from '../migrations/m
 import { ensureAclIsDeployed } from '../migrations/modules/acl'
 import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
 import { ensureMarketIsDeployed } from '../migrations/modules/market'
-import { ensureEntityImplementationsAreDeployed } from '../migrations/modules/entityImplementation'
+import { ensureEntityImplementationsAreDeployed } from '../migrations/modules/entityImplementations'
 import { ensurePolicyImplementationsAreDeployed } from '../migrations/modules/policyImplementations'
 
 const IEntityImpl = artifacts.require("./base/IEntityImpl")
-const Proxy = artifacts.require('./base/Proxy')
 const AccessControl = artifacts.require('./base/AccessControl')
 const TestEntityImpl = artifacts.require("./test/TestEntityImpl")
 const Entity = artifacts.require("./Entity")
@@ -241,9 +240,6 @@ contract('Entity', accounts => {
       await policy.getInfo().should.eventually.matchObj({
         startDate: startDate
       })
-
-      const proxy = await Proxy.at(eventArgs.policy)
-      await proxy.getImplementation().should.eventually.eq(policyImpl.address)
     })
 
     it('and have the original caller set as property owner', async () => {

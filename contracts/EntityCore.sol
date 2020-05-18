@@ -2,17 +2,17 @@ pragma solidity >=0.6.7;
 
 import "./base/Controller.sol";
 import "./base/EternalStorage.sol";
-import "./base/IEntityImpl.sol";
+import "./base/IEntityCore.sol";
 import "./base/IDiamondFacet.sol";
 import "./base/IERC20.sol";
 import "./base/IMarket.sol";
-import "./base/IPolicyImpl.sol";
+import "./base/IPolicy.sol";
 import "./Policy.sol";
 
 /**
  * @dev Business-logic for Entity
  */
- contract EntityImpl is EternalStorage, Controller, IEntityImpl, IDiamondFacet {
+ contract EntityCore is EternalStorage, Controller, IEntityCore, IDiamondFacet {
   modifier assertCanWithdraw () {
     require(inRoleGroup(msg.sender, ROLEGROUP_ENTITY_ADMINS), 'must be entity admin');
     _;
@@ -50,19 +50,19 @@ import "./Policy.sol";
 
   function getSelectors () public pure override returns (bytes memory) {
     return abi.encodePacked(
-      IEntityImpl.createPolicy.selector,
-      IEntityImpl.getNumPolicies.selector,
-      IEntityImpl.getPolicy.selector,
-      IEntityImpl.deposit.selector,
-      IEntityImpl.withdraw.selector,
-      IEntityImpl.payTranchPremium.selector,
-      IEntityImpl.trade.selector,
-      IEntityImpl.sellAtBestPrice.selector
+      IEntityCore.createPolicy.selector,
+      IEntityCore.getNumPolicies.selector,
+      IEntityCore.getPolicy.selector,
+      IEntityCore.deposit.selector,
+      IEntityCore.withdraw.selector,
+      IEntityCore.payTranchPremium.selector,
+      IEntityCore.trade.selector,
+      IEntityCore.sellAtBestPrice.selector
     );
   }
 
 
-  // IEntityImpl
+  // IEntityCore
 
   function createPolicy(
     uint256 _initiationDate,
@@ -82,7 +82,6 @@ import "./Policy.sol";
       address(acl()),
       address(settings()),
       address(this),
-      settings().getRootAddress(SETTING_POLICY_IMPL),
       msg.sender,
       _initiationDate,
       _startDate,
@@ -133,7 +132,7 @@ import "./Policy.sol";
     uint256 i4;
     address a1;
 
-    IPolicyImpl p = IPolicyImpl(_policyAddress);
+    IPolicy p = IPolicy(_policyAddress);
     // policy's unit
     (a1, i1, i2, i3, policyUnitAddress, , , , , ,) = p.getInfo();
     // next premium amount

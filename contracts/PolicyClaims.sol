@@ -3,15 +3,17 @@ pragma solidity >=0.6.7;
 import "./base/SafeMath.sol";
 import "./base/EternalStorage.sol";
 import "./base/Controller.sol";
+import "./base/IDiamondFacet.sol";
 import "./base/IPolicyClaims.sol";
-import "./base/IPolicyStates.sol";
+import "./base/IPolicyCore.sol";
+import "./base/PolicyFacetBase.sol";
 import "./base/AccessControl.sol";
 import "./base/IERC20.sol";
 
 /**
  * @dev Business-logic for Policy claims
  */
-contract PolicyClaims is EternalStorage, Controller, IPolicyClaims, IPolicyStates {
+contract PolicyClaims is EternalStorage, Controller, IDiamondFacet, IPolicyClaims, PolicyFacetBase {
   using SafeMath for uint;
 
   modifier assertActiveState () {
@@ -39,32 +41,49 @@ contract PolicyClaims is EternalStorage, Controller, IPolicyClaims, IPolicyState
     // empty
   }
 
+  // IDiamondFacet
+
+  function getSelectors () public pure override returns (bytes memory) {
+    return abi.encodePacked(
+      IPolicyClaims.makeClaim.selector,
+      IPolicyClaims.approveClaim.selector,
+      IPolicyClaims.declineClaim.selector,
+      IPolicyClaims.payClaims.selector,
+      IPolicyClaims.getClaimStats.selector,
+      IPolicyClaims.getClaimInfo.selector
+    );
+  }
+
+  // IPolicyClaims
+
+  function getClaimStats() public view override returns (
+    uint256 numClaims_,
+    uint256 numPendingClaims_
+  ) {
+    numClaims_ = dataUint256["claimsCount"];
+    numPendingClaims_ = dataUint256["claimsPendingCount"];
+  }
+
+  function getClaimInfo (uint256 _claimIndex) public view override returns (
+    uint256 amount_,
+    uint256 tranchIndex_,
+    bool approved_,
+    bool declined_,
+    bool paid_
+  ) {
+    amount_ = dataUint256[__i(_claimIndex, "claimAmount")];
+    tranchIndex_ = dataUint256[__i(_claimIndex, "claimTranch")];
+    approved_ = dataBool[__i(_claimIndex, "claimApproved")];
+    declined_ = dataBool[__i(_claimIndex, "claimDeclined")];
+    paid_ = dataBool[__i(_claimIndex, "claimPaid")];
+  }
+
   function makeClaim(uint256 _index, address _clientManagerEntity, uint256 _amount) public override
     assertActiveState
     assertIsClientManager(msg.sender)
   {
-    // check client manager entity
-    bytes32 clientManagerEntityContext = AccessControl(_clientManagerEntity).aclContext();
-    require(acl().userSomeHasRoleInContext(clientManagerEntityContext, msg.sender), 'must have role in client manager entity');
-
-    // check that tranch is active
-    require(dataUint256[__i(_index, "state")] == TRANCH_STATE_ACTIVE, 'tranch must be active');
-
-    // check amount
-    require(
-      _getTranchPendingClaimsAmount(_index).add(_amount) <= dataUint256[string(abi.encodePacked(_index, "balance"))],
-      'claim too high'
-    );
-
-    uint256 claimIndex = dataUint256["claimsCount"];
-    dataUint256[__i(claimIndex, "claimAmount")] = _amount;
-    dataUint256[__i(claimIndex, "claimTranch")] = _index;
-    dataAddress[__i(claimIndex, "claimEntity")] = _clientManagerEntity;
-
-    dataUint256["claimsCount"] = claimIndex + 1;
-    dataUint256["claimsPendingCount"] += 1;
-
-    emit NewClaim(_index, claimIndex, msg.sender);
+    IPolicyCore(address(this)).checkAndUpdateState();
+    _makeClaim(_index, _clientManagerEntity, _amount);
   }
 
   function approveClaim(uint256 _claimIndex)
@@ -127,6 +146,34 @@ contract PolicyClaims is EternalStorage, Controller, IPolicyClaims, IPolicyState
   }
 
   // Internal methods
+
+  function _makeClaim(uint256 _index, address _clientManagerEntity, uint256 _amount) private
+    assertActiveState
+    assertIsClientManager(msg.sender)
+  {
+    // check client manager entity
+    bytes32 clientManagerEntityContext = AccessControl(_clientManagerEntity).aclContext();
+    require(acl().userSomeHasRoleInContext(clientManagerEntityContext, msg.sender), 'must have role in client manager entity');
+
+    // check that tranch is active
+    require(dataUint256[__i(_index, "state")] == TRANCH_STATE_ACTIVE, 'tranch must be active');
+
+    // check amount
+    require(
+      _getTranchPendingClaimsAmount(_index).add(_amount) <= dataUint256[string(abi.encodePacked(_index, "balance"))],
+      'claim too high'
+    );
+
+    uint256 claimIndex = dataUint256["claimsCount"];
+    dataUint256[__i(claimIndex, "claimAmount")] = _amount;
+    dataUint256[__i(claimIndex, "claimTranch")] = _index;
+    dataAddress[__i(claimIndex, "claimEntity")] = _clientManagerEntity;
+
+    dataUint256["claimsCount"] = claimIndex + 1;
+    dataUint256["claimsPendingCount"] += 1;
+
+    emit NewClaim(_index, claimIndex, msg.sender);
+  }
 
   function _getTranchPendingClaimsAmount (uint256 _index) private view returns (uint256) {
     uint256 amount;

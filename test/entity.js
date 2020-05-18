@@ -17,6 +17,7 @@ import { ensureEntityImplementationsAreDeployed } from '../migrations/modules/en
 import { ensurePolicyImplementationsAreDeployed } from '../migrations/modules/policyImplementations'
 
 const IEntity = artifacts.require("./base/IEntity")
+const IDiamondProxy = artifacts.require('./base/IDiamondProxy')
 const AccessControl = artifacts.require('./base/AccessControl')
 const TestEntityFacet = artifacts.require("./test/TestEntityFacet")
 const FreezeUpgradesFacet = artifacts.require("./test/FreezeUpgradesFacet")
@@ -81,6 +82,11 @@ contract('Entity', accounts => {
     it('and can be frozen', async () => {
       await entity.upgrade([freezeUpgradesFacet.address]).should.be.fulfilled
       await entity.upgrade([testEntityFacet.address]).should.be.rejectedWith('frozen')
+    })
+
+    it('and the internal upgrade function cannot be called directly', async () => {
+      const proxy = await IDiamondProxy.at(entity.address)
+      await proxy.registerFacets([]).should.be.rejectedWith('external caller not allowed')
     })
   })
 

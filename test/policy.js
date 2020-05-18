@@ -25,6 +25,7 @@ import { ensurePolicyImplementationsAreDeployed } from '../migrations/modules/po
 const IERC20 = artifacts.require("./base/IERC20")
 const IEntity = artifacts.require('./base/IEntity')
 const Entity = artifacts.require('./Entity')
+const IDiamondProxy = artifacts.require('./base/IDiamondProxy')
 const IPolicyStates = artifacts.require("./base/IPolicyStates")
 const Policy = artifacts.require("./Policy")
 const IPolicy = artifacts.require("./base/IPolicy")
@@ -201,6 +202,11 @@ contract('Policy', accounts => {
     it('and can be frozen', async () => {
       await policy.upgrade([freezeUpgradesFacet.address]).should.be.fulfilled
       await policy.upgrade([testPolicyFacet.address]).should.be.rejectedWith('frozen')
+    })
+
+    it('and the internal upgrade function cannot be called directly', async () => {
+      const proxy = await IDiamondProxy.at(policy.address)
+      await proxy.registerFacets([]).should.be.rejectedWith('external caller not allowed')
     })
   })
 

@@ -48,7 +48,7 @@ contract TestPolicyImpl is IDiamondFacet, IPolicyCore {
   function checkAndUpdateState () external override {}
 
   function calculateMaxNumOfPremiums() external view override returns (uint256) {
-    return 0;
+    return 666;
   }
 
   function initiationDateHasPassed () external view override returns (bool) {

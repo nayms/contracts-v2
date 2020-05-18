@@ -15,12 +15,12 @@ import { ensureAclIsDeployed } from '../migrations/modules/acl'
 import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
 import { ensureMarketIsDeployed } from '../migrations/modules/market'
 import { ensureEntityDeployerIsDeployed } from '../migrations/modules/entityDeployer'
+import { ensureEntityImplementationsAreDeployed } from '../migrations/modules/entityImplementations'
 import { ensurePolicyImplementationsAreDeployed } from '../migrations/modules/policyImplementations'
 
-const IEntityImpl = artifacts.require('./base/IEntityImpl')
-const EntityImpl = artifacts.require('./EntityImpl')
+const IEntity = artifacts.require('./base/IEntity')
 const Entity = artifacts.require('./Entity')
-const IPolicyImpl = artifacts.require("./base/IPolicyImpl")
+const IPolicyStates = artifacts.require("./base/IPolicyStates")
 const Policy = artifacts.require("./Policy")
 const IERC20 = artifacts.require("./base/IERC20")
 
@@ -32,7 +32,6 @@ contract('Policy flow', accounts => {
   let acl
   let systemContext
   let settings
-  let policyImpl
   let policyProxy
   let policy
   let entity
@@ -75,22 +74,22 @@ contract('Policy flow', accounts => {
     etherToken = await ensureEtherTokenIsDeployed({ artifacts }, acl.address, settings.address)
 
     // entity
-    const entityImpl = await EntityImpl.new(acl.address, settings.address)
-    const entityDeployer = await ensureEntityDeployerIsDeployed({ artifacts }, acl.address, settings.address, entityImpl.address)
+    await ensureEntityImplementationsAreDeployed({ artifacts }, acl.address, settings.address)
+    const entityDeployer = await ensureEntityDeployerIsDeployed({ artifacts }, acl.address, settings.address)
 
     await acl.assignRole(systemContext, accounts[0], ROLES.SYSTEM_MANAGER)
     const deployEntityTx = await entityDeployer.deploy()
     const entityAddress = extractEventArgs(deployEntityTx, events.NewEntity).entity
 
     const entityProxy = await Entity.at(entityAddress)
-    entity = await IEntityImpl.at(entityAddress)
+    entity = await IEntity.at(entityAddress)
     const entityContext = await entityProxy.aclContext()
 
     // entity manager
     await acl.assignRole(entityContext, accounts[1], ROLES.ENTITY_MANAGER)
     entityManagerAddress = accounts[1]
 
-    ;({ policyImpl } = await ensurePolicyImplementationsAreDeployed({ artifacts }, acl.address, settings.address))
+    const [ policyCoreAddress ] = await ensurePolicyImplementationsAreDeployed({ artifacts }, acl.address, settings.address)
 
     // get current evm time
     baseDate = parseInt((await settings.getTime()).toString(10))
@@ -139,16 +138,16 @@ contract('Policy flow', accounts => {
       return await IERC20.at(tt)
     }
 
-    POLICY_STATE_CREATED = await policyImpl.POLICY_STATE_CREATED()
-    POLICY_STATE_SELLING = await policyImpl.POLICY_STATE_SELLING()
-    POLICY_STATE_ACTIVE = await policyImpl.POLICY_STATE_ACTIVE()
-    POLICY_STATE_MATURED = await policyImpl.POLICY_STATE_MATURED()
-
-    TRANCH_STATE_CREATED = await policyImpl.TRANCH_STATE_CREATED()
-    TRANCH_STATE_SELLING = await policyImpl.TRANCH_STATE_SELLING()
-    TRANCH_STATE_ACTIVE = await policyImpl.TRANCH_STATE_ACTIVE()
-    TRANCH_STATE_MATURED = await policyImpl.TRANCH_STATE_MATURED()
-    TRANCH_STATE_CANCELLED = await policyImpl.TRANCH_STATE_CANCELLED()
+    const policyStates = await IPolicyStates.at(policyCoreAddress)
+    POLICY_STATE_CREATED = await policyStates.POLICY_STATE_CREATED()
+    POLICY_STATE_SELLING = await policyStates.POLICY_STATE_SELLING()
+    POLICY_STATE_ACTIVE = await policyStates.POLICY_STATE_ACTIVE()
+    POLICY_STATE_MATURED = await policyStates.POLICY_STATE_MATURED()
+    TRANCH_STATE_CREATED = await policyStates.TRANCH_STATE_CREATED()
+    TRANCH_STATE_SELLING = await policyStates.TRANCH_STATE_SELLING()
+    TRANCH_STATE_ACTIVE = await policyStates.TRANCH_STATE_ACTIVE()
+    TRANCH_STATE_MATURED = await policyStates.TRANCH_STATE_MATURED()
+    TRANCH_STATE_CANCELLED = await policyStates.TRANCH_STATE_CANCELLED()
 
     evmClock = new EvmClock(baseDate)
 

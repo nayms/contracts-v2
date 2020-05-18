@@ -19,13 +19,13 @@ import { ensureEtherTokenIsDeployed } from '../migrations/modules/etherToken'
 import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
 import { ensureEntityDeployerIsDeployed } from '../migrations/modules/entityDeployer'
 import { ensureMarketIsDeployed } from '../migrations/modules/market'
+import { ensureEntityImplementationsAreDeployed } from '../migrations/modules/entityImplementations'
 import { ensurePolicyImplementationsAreDeployed } from '../migrations/modules/policyImplementations'
 
 const IERC20 = artifacts.require("./base/IERC20")
-const IEntityImpl = artifacts.require('./base/IEntityImpl')
-const EntityImpl = artifacts.require('./EntityImpl')
+const IEntity = artifacts.require('./base/IEntity')
 const Entity = artifacts.require('./Entity')
-const PolicyFacetBase = artifacts.require("./base/PolicyFacetBase")
+const IPolicyStates = artifacts.require("./base/IPolicyStates")
 const Policy = artifacts.require("./Policy")
 const IPolicy = artifacts.require("./base/IPolicy")
 const TestPolicyImpl = artifacts.require("./test/TestPolicyImpl")
@@ -35,13 +35,12 @@ contract('Policy', accounts => {
   let systemContext
   let settings
   let entityDeployer
-  let entityImpl
   let entityProxy
   let entity
   let entityContext
-  let policyCore
   let policyProxy
   let policy
+  let policyCoreAddress
   let policyContext
   let entityManagerAddress
   let policyOwnerAddress
@@ -74,15 +73,15 @@ contract('Policy', accounts => {
     etherToken = await ensureEtherTokenIsDeployed({ artifacts }, acl.address, settings.address)
 
     // entity
-    entityImpl = await EntityImpl.new(acl.address, settings.address)
-    entityDeployer = await ensureEntityDeployerIsDeployed({ artifacts }, acl.address, settings.address, entityImpl.address)
+    await ensureEntityImplementationsAreDeployed({ artifacts }, acl.address, settings.address)
+    entityDeployer = await ensureEntityDeployerIsDeployed({ artifacts }, acl.address, settings.address)
 
     await acl.assignRole(systemContext, accounts[0], ROLES.SYSTEM_MANAGER)
     const deployEntityTx = await entityDeployer.deploy()
     const entityAddress = extractEventArgs(deployEntityTx, events.NewEntity).entity
 
     entityProxy = await Entity.at(entityAddress)
-    entity = await IEntityImpl.at(entityAddress)
+    entity = await IEntity.at(entityAddress)
     entityContext = await entityProxy.aclContext()
 
     // policy
@@ -90,17 +89,16 @@ contract('Policy', accounts => {
     await acl.assignRole(entityContext, accounts[2], ROLES.ENTITY_MANAGER)
     entityManagerAddress = accounts[2]
 
-    const [ policyCoreAddress ] = await ensurePolicyImplementationsAreDeployed({ artifacts }, acl.address, settings.address)
+    ;([ policyCoreAddress ] = await ensurePolicyImplementationsAreDeployed({ artifacts }, acl.address, settings.address))
 
-    const policyFacetBase = await PolicyFacetBase.at(policyCoreAddress)
-
-    POLICY_STATE_CREATED = await policyFacetBase.POLICY_STATE_CREATED()
-    POLICY_STATE_SELLING = await policyFacetBase.POLICY_STATE_SELLING()
-    POLICY_STATE_ACTIVE = await policyFacetBase.POLICY_STATE_ACTIVE()
-    POLICY_STATE_MATURED = await policyFacetBase.POLICY_STATE_MATURED()
-    TRANCH_STATE_CANCELLED = await policyFacetBase.TRANCH_STATE_CANCELLED()
-    TRANCH_STATE_ACTIVE = await policyFacetBase.TRANCH_STATE_ACTIVE()
-    TRANCH_STATE_MATURED = await policyFacetBase.TRANCH_STATE_MATURED()
+    const policyStates = await IPolicyStates.at(policyCoreAddress)
+    POLICY_STATE_CREATED = await policyStates.POLICY_STATE_CREATED()
+    POLICY_STATE_SELLING = await policyStates.POLICY_STATE_SELLING()
+    POLICY_STATE_ACTIVE = await policyStates.POLICY_STATE_ACTIVE()
+    POLICY_STATE_MATURED = await policyStates.POLICY_STATE_MATURED()
+    TRANCH_STATE_CANCELLED = await policyStates.TRANCH_STATE_CANCELLED()
+    TRANCH_STATE_ACTIVE = await policyStates.TRANCH_STATE_ACTIVE()
+    TRANCH_STATE_MATURED = await policyStates.TRANCH_STATE_MATURED()
 
     setupPolicy = async ({
       initiationDateDiff = 1000,
@@ -143,12 +141,8 @@ contract('Policy', accounts => {
       await setupPolicy()
     })
 
-    it.only('can be deployed', async () => {
+    it('can be deployed', async () => {
       expect(policyProxy.address).to.exist
-    })
-
-    it('can return its implementation version', async () => {
-      await policyCore.getImplementationVersion().should.eventually.eq('v1')
     })
 
     it('can return its basic info', async () => {
@@ -175,10 +169,7 @@ contract('Policy', accounts => {
   })
 
   describe('it can be upgraded', async () => {
-    let policyCore2
-    let randomSig
-    let assetMgrSig
-    let clientMgrSig
+    let testPolicyImpl
 
     beforeEach(async () => {
       await setupPolicy()
@@ -188,49 +179,20 @@ contract('Policy', accounts => {
       await acl.assignRole(policyContext, accounts[4], ROLES.CLIENT_MANAGER)
 
       // deploy new implementation
-      policyCore2 = await TestPolicyImpl.new()
-
-      // generate upgrade approval signatures
-      const implVersion = await policyCore2.getImplementationVersion()
-      randomSig = hdWallet.sign({ address: accounts[5], data: keccak256(implVersion) })
-      assetMgrSig = hdWallet.sign({ address: accounts[3], data: keccak256(implVersion) })
-      clientMgrSig = hdWallet.sign({ address: accounts[4], data: keccak256(implVersion) })
+      testPolicyImpl = await TestPolicyImpl.new()
     })
 
     it('but not just by anyone', async () => {
-      await policyProxy.upgrade(policyCore2.address, assetMgrSig, clientMgrSig, { from: accounts[1] }).should.be.rejectedWith('must be admin')
-    })
-
-    it('but must have asset manager\'s approval', async () => {
-      await policyProxy.upgrade(policyCore2.address, randomSig, clientMgrSig).should.be.rejectedWith('must be approved by asset manager')
-    })
-
-    it('but must have client manager\'s approval', async () => {
-      await policyProxy.upgrade(policyCore2.address, assetMgrSig, randomSig).should.be.rejectedWith('must be approved by client manager')
-    })
-
-    it('but not to an empty address', async () => {
-      await policyProxy.upgrade(ADDRESS_ZERO, assetMgrSig, clientMgrSig).should.be.rejectedWith('implementation must be valid')
-    })
-
-    it('but not if signatures are empty', async () => {
-      await policyProxy.upgrade(policyCore2.address, "0x0", "0x0").should.be.rejectedWith('valid signer not found')
+      await policyProxy.upgrade([ testPolicyImpl.address ], { from: accounts[1] }).should.be.rejectedWith('must be admin')
     })
 
     it('but not to the existing implementation', async () => {
-      const vExisting = await policyCore.getImplementationVersion()
-      assetMgrSig = hdWallet.sign({ address: accounts[3], data: keccak256(vExisting) })
-      clientMgrSig = hdWallet.sign({ address: accounts[4], data: keccak256(vExisting) })
-      await policyProxy.upgrade(policyCore.address, assetMgrSig, clientMgrSig).should.be.rejectedWith('already this implementation')
+      await policyProxy.upgrade([ policyCoreAddress ]).should.be.rejectedWith('Adding functions failed')
     })
 
     it('and points to the new implementation', async () => {
-      const result = await policyProxy.upgrade(policyCore2.address, assetMgrSig, clientMgrSig).should.be.fulfilled
-
-      expect(extractEventArgs(result, events.Upgraded)).to.include({
-        implementation: policyCore2.address,
-        version: 'vTest',
-      })
+      const result = await policyProxy.upgrade([testPolicyImpl.address]).should.be.fulfilled
+      await policy.calculateMaxNumOfPremiums().should.eventually.eq(666);
     })
   })
 

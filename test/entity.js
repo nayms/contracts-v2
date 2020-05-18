@@ -47,7 +47,7 @@ contract('Entity', accounts => {
     entity = await IEntityImpl.at(entityProxy.address)
     entityContext = await entityProxy.aclContext()
 
-    entityImplAddress = await settings.getRootAddress(SETTINGS.ENTITY_IMPL)
+    ;([ entityImplAddress ] = await settings.getRootAddresses(SETTINGS.ENTITY_IMPL))
 
     etherToken2 = await deployNewEtherToken({ artifacts }, acl.address, settings.address)
   })
@@ -242,7 +242,7 @@ contract('Entity', accounts => {
       })
     })
 
-    it('and have the original caller set as property owner', async () => {
+    it('and have the original caller set as policy owner', async () => {
       const result = await createPolicy(entity, {}, { from: accounts[2] })
 
       const eventArgs = extractEventArgs(result, events.NewPolicy)

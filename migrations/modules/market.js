@@ -1,6 +1,10 @@
 const { createLog } = require('../../utils/log')
-const { deploy } = require('../../utils/functions')
+const { deploy, getCurrentInstance } = require('../../utils/functions')
 const { SETTINGS } = require('../../utils/constants')
+
+export const getCurrentMarket = async ({ network, logger }) => {
+  return getCurrentInstance({ network, logger, artifacts, type: 'IMarket', lookupType: 'MatchingMarket' })
+}
 
 export const ensureMarketIsDeployed = async ({ deployer, artifacts, logger }, settingsAddress) => {
   const log = createLog(logger)

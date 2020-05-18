@@ -1,5 +1,9 @@
 const { createLog } = require('../../utils/log')
-const { deploy } = require('../../utils/functions')
+const { deploy, getCurrentInstance } = require('../../utils/functions')
+
+export const getCurrentEtherToken = async ({ network, logger }) => {
+  return getCurrentInstance({ network, logger, artifacts, type: 'IEtherToken', lookupType: 'EtherToken' })
+}
 
 export const ensureEtherTokenIsDeployed = async ({ deployer, artifacts, logger }, aclAddress, settingsAddress) => {
   const log = createLog(logger)

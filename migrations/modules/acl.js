@@ -1,7 +1,12 @@
-const { deploy } = require('../../utils/functions')
+const _ = require('lodash')
+const { deploy, getCurrentInstance } = require('../../utils/functions')
 const { createLog } = require('../../utils/log')
 
 const { ROLES, ROLEGROUPS } = require('../../utils/constants')
+
+export const getCurrentAcl = async ({ artifacts, network, logger }) => {
+  return getCurrentInstance({ network, logger, artifacts, type: 'IACL', lookupType: 'ACL' })
+}
 
 export const ensureAclIsDeployed = async ({ deployer, artifacts, logger }) => {
   const log = createLog(logger)

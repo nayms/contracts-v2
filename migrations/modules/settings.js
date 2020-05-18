@@ -1,5 +1,9 @@
 const { createLog } = require('../../utils/log')
-const { deploy } = require('../../utils/functions')
+const { deploy, getCurrentInstance } = require('../../utils/functions')
+
+export const getCurrentSettings = async ({ network, logger }) => {
+  return getCurrentInstance({ network, logger, artifacts, type: 'ISettings', lookupType: 'Settings' })
+}
 
 export const ensureSettingsIsDeployed = async ({ deployer, artifacts, logger }, aclAddress) => {
   const log = createLog(logger)

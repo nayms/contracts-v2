@@ -18,10 +18,10 @@ import { ensurePolicyImplementationsAreDeployed } from '../migrations/modules/po
 
 const IEntity = artifacts.require("./base/IEntity")
 const AccessControl = artifacts.require('./base/AccessControl')
-const TestEntityImpl = artifacts.require("./test/TestEntityImpl")
+const TestEntityFacet = artifacts.require("./test/TestEntityFacet")
+const FreezeUpgradesFacet = artifacts.require("./test/FreezeUpgradesFacet")
 const Entity = artifacts.require("./Entity")
-const EntityImpl = artifacts.require("./EntityImpl")
-const PolicyImpl = artifacts.require("./PolicyImpl")
+const Policy = artifacts.require("./Policy")
 
 contract('Entity', accounts => {
   let acl
@@ -31,7 +31,7 @@ contract('Entity', accounts => {
   let market
   let entityProxy
   let entity
-  let entityImplAddress
+  let entityCoreAddress
   let entityContext
 
   beforeEach(async () => {
@@ -47,7 +47,7 @@ contract('Entity', accounts => {
     entity = await IEntity.at(entityProxy.address)
     entityContext = await entityProxy.aclContext()
 
-    ;([ entityImplAddress ] = await settings.getRootAddresses(SETTINGS.ENTITY_IMPL))
+    ;([ entityCoreAddress ] = await settings.getRootAddresses(SETTINGS.ENTITY_IMPL))
 
     etherToken2 = await deployNewEtherToken({ artifacts }, acl.address, settings.address)
   })
@@ -57,24 +57,30 @@ contract('Entity', accounts => {
   })
 
   describe('it can be upgraded', () => {
-    let testEntityImpl
+    let testEntityFacet
+    let freezeUpgradesFacet
 
     beforeEach(async () => {
-      // deploy new implementation
-      testEntityImpl = await TestEntityImpl.new()
+      testEntityFacet = await TestEntityFacet.new()
+      freezeUpgradesFacet = await FreezeUpgradesFacet.new()
     })
 
     it('but not just by anyone', async () => {
-      await entityProxy.upgrade([ testEntityImpl.address ], { from: accounts[1] }).should.be.rejectedWith('must be admin')
+      await entity.upgrade([ testEntityFacet.address ], { from: accounts[1] }).should.be.rejectedWith('must be admin')
     })
 
     it('but not to the existing implementation', async () => {
-      await entityProxy.upgrade([ entityImplAddress ]).should.be.rejectedWith('Adding functions failed')
+      await entity.upgrade([ entityCoreAddress ]).should.be.rejectedWith('Adding functions failed')
     })
 
     it('and adds the new implementation as a facet', async () => {
-      await entityProxy.upgrade([ testEntityImpl.address ]).should.be.fulfilled
+      await entity.upgrade([ testEntityFacet.address ]).should.be.fulfilled
       await entity.getNumPolicies().should.eventually.eq(666);
+    })
+
+    it('and can be frozen', async () => {
+      await entity.upgrade([freezeUpgradesFacet.address]).should.be.fulfilled
+      await entity.upgrade([testEntityFacet.address]).should.be.rejectedWith('frozen')
     })
   })
 
@@ -204,7 +210,7 @@ contract('Entity', accounts => {
         entity: entityProxy.address,
       })
 
-      await PolicyImpl.at(eventArgs.policy).should.be.fulfilled;
+      await Policy.at(eventArgs.policy).should.be.fulfilled;
     })
 
     it('and the entity records get updated accordingly', async () => {

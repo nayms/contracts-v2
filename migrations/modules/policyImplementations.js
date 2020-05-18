@@ -7,14 +7,16 @@ export const ensurePolicyImplementationsAreDeployed = async ({ deployer, artifac
 
   log('Deploying Policy implementations ...')
 
+  const PolicyUpgradeFacet = artifacts.require('./PolicyUpgradeFacet')
+  const PolicyCoreFacet = artifacts.require('./PolicyCoreFacet')
   const PolicyClaimsFacet = artifacts.require('./PolicyClaimsFacet')
   const PolicyCommissionsFacet = artifacts.require('./PolicyCommissionsFacet')
   const PolicyPremiumsFacet = artifacts.require('./PolicyPremiumsFacet')
-  const PolicyCoreFacet = artifacts.require('./PolicyCoreFacet')
   const PolicyTranchTokensFacet = artifacts.require('./PolicyTranchTokensFacet')
 
   const ret = (await Promise.all([
     deploy(deployer, PolicyCoreFacet, aclAddress, settingsAddress),
+    deploy(deployer, PolicyUpgradeFacet, aclAddress, settingsAddress),
     deploy(deployer, PolicyClaimsFacet, aclAddress, settingsAddress),
     deploy(deployer, PolicyCommissionsFacet, aclAddress, settingsAddress),
     deploy(deployer, PolicyPremiumsFacet, aclAddress, settingsAddress),

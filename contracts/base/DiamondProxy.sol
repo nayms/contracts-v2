@@ -6,49 +6,32 @@ Forked from https://github.com/mudgen/Diamond/blob/master/contracts/DiamondExamp
 /******************************************************************************/
 
 import "./DiamondStorageBase.sol";
-
-import "./IDiamondCutFacet.sol";
-import "./DiamondCutFacet.sol";
-
-import "./IDiamondLoupeFacet.sol";
+import "./DiamondCutter.sol";
 import "./DiamondLoupeFacet.sol";
-
 import "./IDiamondFacet.sol";
+import "./IDiamondProxy.sol";
 
-abstract contract DiamondProxy is DiamondStorageBase {
+abstract contract DiamondProxy is DiamondStorageBase, IDiamondProxy {
   constructor () public {
-    // Create a DiamondCutFacet contract
-    DiamondCutFacet diamondFacet = new DiamondCutFacet();
-    dataAddress["diamondCutFacet"] = address(diamondFacet);
+    DiamondCutter diamondCutter = new DiamondCutter();
+    dataAddress["diamondCutter"] = address(diamondCutter);
 
-    // Create a DiamondLoupeFacet contract which implements the Diamond Loupe interface
     DiamondLoupeFacet diamondLoupeFacet = new DiamondLoupeFacet();
 
-    bytes[] memory changes = new bytes[](2);
+    address[] memory facets = new address[](1);
+    facets[0] = address(diamondLoupeFacet);
 
-    // Adding cut function
-    changes[0] = abi.encodePacked(diamondFacet, IDiamondCutFacet.diamondCut.selector);
-
-    // Adding diamond loupe functions
-    changes[1] = abi.encodePacked(
-      diamondLoupeFacet,
-      IDiamondLoupeFacet.facetFunctionSelectors.selector,
-      IDiamondLoupeFacet.facets.selector,
-      IDiamondLoupeFacet.facetAddress.selector,
-      IDiamondLoupeFacet.facetAddresses.selector
-    );
-
-    // execute cut function
-    _upgradeDiamond(changes);
+    _registerFacets(facets);
   }
 
+  // IDiamondProxy
 
-  function _upgradeDiamond (bytes[] memory _changes) internal {
-    bytes memory cutFunction = abi.encodeWithSelector(IDiamondCutFacet.diamondCut.selector, _changes);
-    (bool success,) = dataAddress["diamondCutFacet"].delegatecall(cutFunction);
-    require(success, "Adding functions failed.");
+  function registerFacets (address[] memory _facets) public override {
+    require(msg.sender == address(this), 'external caller not allowed');
+    _registerFacets(_facets);
   }
 
+  // Internal methods
 
   function _registerFacets (address[] memory _facets) internal {
     bytes[] memory changes = new bytes[](_facets.length);
@@ -59,15 +42,21 @@ abstract contract DiamondProxy is DiamondStorageBase {
       changes[i] = abi.encodePacked(_facets[i], selectors);
     }
 
-    _upgradeDiamond(changes);
+    _cut(changes);
   }
+
+
+  function _cut (bytes[] memory _changes) internal {
+    bytes memory cutFunction = abi.encodeWithSelector(DiamondCutter.diamondCut.selector, _changes);
+    (bool success,) = dataAddress["diamondCutter"].delegatecall(cutFunction);
+    require(success, "Adding functions failed.");
+  }
+
 
 
   // Finds facet for function that is called and executes the
   // function if it is found and returns any value.
   fallback() external payable {
-    require(msg.sig != IDiamondCutFacet.diamondCut.selector, "Direct diamondCut disallowed");
-
     DiamondStorage storage ds = diamondStorage();
     address facet = address(bytes20(ds.facets[msg.sig]));
     require(facet != address(0), "Function does not exist.");

@@ -3,7 +3,7 @@ pragma solidity >=0.6.7;
 import '../base/IDiamondFacet.sol';
 import '../base/IEntityCoreFacet.sol';
 
-contract TestEntityImpl is IDiamondFacet, IEntityCoreFacet {
+contract TestEntityFacet is IDiamondFacet, IEntityCoreFacet {
   function getSelectors () public pure override returns (bytes memory) {
     return abi.encodePacked(
       IEntityCoreFacet.getNumPolicies.selector

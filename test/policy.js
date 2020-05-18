@@ -28,7 +28,8 @@ const Entity = artifacts.require('./Entity')
 const IPolicyStates = artifacts.require("./base/IPolicyStates")
 const Policy = artifacts.require("./Policy")
 const IPolicy = artifacts.require("./base/IPolicy")
-const TestPolicyImpl = artifacts.require("./test/TestPolicyImpl")
+const TestPolicyFacet = artifacts.require("./test/TestPolicyFacet")
+const FreezeUpgradesFacet = artifacts.require("./test/FreezeUpgradesFacet")
 
 contract('Policy', accounts => {
   let acl
@@ -169,7 +170,8 @@ contract('Policy', accounts => {
   })
 
   describe('it can be upgraded', async () => {
-    let testPolicyImpl
+    let testPolicyFacet
+    let freezeUpgradesFacet
 
     beforeEach(async () => {
       await setupPolicy()
@@ -179,20 +181,26 @@ contract('Policy', accounts => {
       await acl.assignRole(policyContext, accounts[4], ROLES.CLIENT_MANAGER)
 
       // deploy new implementation
-      testPolicyImpl = await TestPolicyImpl.new()
+      testPolicyFacet = await TestPolicyFacet.new()
+      freezeUpgradesFacet = await FreezeUpgradesFacet.new()
     })
 
     it('but not just by anyone', async () => {
-      await policyProxy.upgrade([ testPolicyImpl.address ], { from: accounts[1] }).should.be.rejectedWith('must be admin')
+      await policy.upgrade([ testPolicyFacet.address ], { from: accounts[1] }).should.be.rejectedWith('must be admin')
     })
 
     it('but not to the existing implementation', async () => {
-      await policyProxy.upgrade([ policyCoreAddress ]).should.be.rejectedWith('Adding functions failed')
+      await policy.upgrade([ policyCoreAddress ]).should.be.rejectedWith('Adding functions failed')
     })
 
     it('and points to the new implementation', async () => {
-      const result = await policyProxy.upgrade([testPolicyImpl.address]).should.be.fulfilled
+      await policy.upgrade([testPolicyFacet.address]).should.be.fulfilled
       await policy.calculateMaxNumOfPremiums().should.eventually.eq(666);
+    })
+
+    it('and can be frozen', async () => {
+      await policy.upgrade([freezeUpgradesFacet.address]).should.be.fulfilled
+      await policy.upgrade([testPolicyFacet.address]).should.be.rejectedWith('frozen')
     })
   })
 

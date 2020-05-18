@@ -34,8 +34,4 @@ contract Policy is Controller, DiamondProxy {
     dataUint256["assetManagerCommissionBP"] = _assetManagerCommissionBP;
     dataUint256["naymsCommissionBP"] = _naymsCommissionBP;
   }
-
-  function upgrade (address[] memory _facets) public assertIsAdmin {
-    _registerFacets(_facets);
-  }
 }

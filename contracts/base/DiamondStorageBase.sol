@@ -23,6 +23,11 @@ contract DiamondStorageBase is EternalStorage {
         // selectorSlotLength is the number of selectors in the last slot of
         // selectorSlots.
         uint selectorSlotsLength;
+
+        // tracking initialization state
+        // we use this to know whether a call to diamondCut() is part of the initial
+        // construction or a later "upgrade" call
+        bool initialized;
     }
 
     function diamondStorage() internal pure returns(DiamondStorage storage ds) {

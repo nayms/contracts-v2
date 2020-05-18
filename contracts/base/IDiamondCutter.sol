@@ -6,7 +6,7 @@ Forked from https://github.com/mudgen/Diamond/blob/master/contracts/DiamondHeade
 /******************************************************************************/
 
 
-interface IDiamondCutFacet {
+interface IDiamondCutter {
     /// @notice _diamondCut is an array of bytes arrays.
     /// This argument is tightly packed for gas efficiency.
     /// That means no padding with zeros.

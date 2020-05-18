@@ -5,7 +5,7 @@ import "./base/EternalStorage.sol";
 import "./base/IDiamondUpgradeFacet.sol";
 import "./base/IDiamondProxy.sol";
 
- contract EntityUpgradeFacet is EternalStorage, Controller, IDiamondUpgradeFacet {
+ contract PolicyUpgradeFacet is EternalStorage, Controller, IDiamondUpgradeFacet {
   /**
    * Constructor
    */

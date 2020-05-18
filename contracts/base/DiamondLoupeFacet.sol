@@ -7,9 +7,10 @@ Forked from https://github.com/mudgen/Diamond/blob/master/contracts/DiamondLoupe
 
 import "./DiamondStorageBase.sol";
 import "./IDiamondLoupeFacet.sol";
+import "./IDiamondFacet.sol";
 
 
-contract DiamondLoupeFacet is IDiamondLoupeFacet, DiamondStorageBase {
+contract DiamondLoupeFacet is IDiamondLoupeFacet, IDiamondFacet, DiamondStorageBase {
     /// These functions are expected to be called frequently
     /// by tools. Therefore the return values are tightly
     /// packed for efficiency. That means no padding with zeros.
@@ -228,4 +229,14 @@ contract DiamondLoupeFacet is IDiamondLoupeFacet, DiamondStorageBase {
         DiamondStorage storage ds = diamondStorage();
         return address(bytes20(ds.facets[_functionSelector]));
     }
+
+
+  function getSelectors () public pure override returns (bytes memory) {
+    return abi.encodePacked(
+      IDiamondLoupeFacet.facets.selector,
+      IDiamondLoupeFacet.facetFunctionSelectors.selector,
+      IDiamondLoupeFacet.facetAddresses.selector,
+      IDiamondLoupeFacet.facetAddress.selector
+    );
+  }
 }

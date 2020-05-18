@@ -1,20 +1,11 @@
 pragma solidity >=0.6.7;
+pragma experimental ABIEncoderV2;
 
 import "./base/Controller.sol";
-import "./base/Proxy.sol";
+import "./base/DiamondProxy.sol";
 
-contract Entity is Controller, Proxy {
-  constructor (
-    address _acl,
-    address _settings,
-    address _entityImpl
-  ) Controller(_acl, _settings) Proxy(_entityImpl) public {}
-
-  function upgrade (address _implementation, bytes memory _sig) public assertIsAdmin {
-    address signer = getUpgradeSigner(_implementation, _sig);
-
-    require(hasRole(signer, ROLE_ENTITY_ADMIN), 'must be approved by entity admin');
-
-    setImplementation(_implementation);
+contract Entity is Controller, DiamondProxy {
+  constructor (address _acl, address _settings) Controller(_acl, _settings) DiamondProxy() public {
+    _registerFacets(settings().getRootAddresses(SETTING_ENTITY_IMPL));
   }
 }

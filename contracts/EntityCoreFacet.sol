@@ -2,16 +2,17 @@ pragma solidity >=0.6.7;
 
 import "./base/Controller.sol";
 import "./base/EternalStorage.sol";
-import "./base/IEntityImpl.sol";
+import "./base/IEntityCoreFacet.sol";
+import "./base/IDiamondFacet.sol";
 import "./base/IERC20.sol";
 import "./base/IMarket.sol";
-import "./base/IPolicyImpl.sol";
+import "./base/IPolicy.sol";
 import "./Policy.sol";
 
 /**
  * @dev Business-logic for Entity
  */
- contract EntityImpl is EternalStorage, Controller, IEntityImpl, IProxyImpl {
+ contract EntityCoreFacet is EternalStorage, Controller, IEntityCoreFacet, IDiamondFacet {
   modifier assertCanWithdraw () {
     require(inRoleGroup(msg.sender, ROLEGROUP_ENTITY_ADMINS), 'must be entity admin');
     _;
@@ -45,14 +46,23 @@ import "./Policy.sol";
     // empty
   }
 
-  // IProxyImpl
+  // IDiamondFacet
 
-  function getImplementationVersion () public pure override returns (string memory) {
-    return "v1";
+  function getSelectors () public pure override returns (bytes memory) {
+    return abi.encodePacked(
+      IEntityCoreFacet.createPolicy.selector,
+      IEntityCoreFacet.getNumPolicies.selector,
+      IEntityCoreFacet.getPolicy.selector,
+      IEntityCoreFacet.deposit.selector,
+      IEntityCoreFacet.withdraw.selector,
+      IEntityCoreFacet.payTranchPremium.selector,
+      IEntityCoreFacet.trade.selector,
+      IEntityCoreFacet.sellAtBestPrice.selector
+    );
   }
 
 
-  // IEntityImpl
+  // IEntityCoreFacet
 
   function createPolicy(
     uint256 _initiationDate,
@@ -72,7 +82,6 @@ import "./Policy.sol";
       address(acl()),
       address(settings()),
       address(this),
-      settings().getRootAddress(SETTING_POLICY_IMPL),
       msg.sender,
       _initiationDate,
       _startDate,
@@ -123,7 +132,7 @@ import "./Policy.sol";
     uint256 i4;
     address a1;
 
-    IPolicyImpl p = IPolicyImpl(_policyAddress);
+    IPolicy p = IPolicy(_policyAddress);
     // policy's unit
     (a1, i1, i2, i3, policyUnitAddress, , , , , ,) = p.getInfo();
     // next premium amount

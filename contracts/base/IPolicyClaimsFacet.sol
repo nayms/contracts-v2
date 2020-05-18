@@ -3,7 +3,7 @@ pragma solidity >=0.6.7;
 /**
  * @dev Policy claims code.
  */
-interface IPolicyClaims {
+interface IPolicyClaimsFacet {
   /**
    * @dev Make a claim.
    *
@@ -28,6 +28,32 @@ interface IPolicyClaims {
    * @dev Payout all approved claims.
    */
   function payClaims() external;
+  /**
+   * @dev Get claim stats.
+   * @return numClaims_ No. of claims raised in total.
+   * @return numPendingClaims_ No. of claims yet to be approved/declined.
+   */
+  function getClaimStats() external view returns (
+    uint256 numClaims_,
+    uint256 numPendingClaims_
+  );
+  /**
+   * @dev Get claim info.
+   *
+   * @return amount_ Amount the claim is for.
+   * @return tranchIndex_ Tranch the claim is against.
+   * @return approved_ Whether the claim has been approved.
+   * @return declined_ Whether the claim has been declined.
+   * @return paid_ Whether the claim has been paid out.
+   */
+  function getClaimInfo (uint256 _claimIndex) external view returns (
+    uint256 amount_,
+    uint256 tranchIndex_,
+    bool approved_,
+    bool declined_,
+    bool paid_
+  );
+
 
   // events
 

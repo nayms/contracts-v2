@@ -17,6 +17,8 @@ module.exports = {
   istanbulFolder: './coverage',
   istanbulReporter: [ 'lcov', 'html' ],
   skipFiles: [
+    "base/DiamondCutter.sol",
+    "base/DiamondLoupeFacet.sol",
     "base/Address.sol",
     "base/SafeMath.sol",
     "base/ECDSA.sol",

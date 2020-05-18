@@ -5,8 +5,17 @@
 const fs = require('fs')
 const path = require('path')
 
+const { getMatchingNetwork } = require('../utils/functions.js')
+
+if (!process.env.RESET) {
+  console.warn('RESET environment variable NOT SET so assuming you just wanted to upgrade, and thus will not update deployedAddresses.json!')
+  process.exit(0)
+}
+
 const projectDir = path.join(__dirname, '..')
 const deployedAddressesJsonPath = path.join(projectDir, 'deployedAddresses.json')
+
+const currentAddresses = require('../deployedAddresses.json')
 
 const raw = [
   'ACL',
@@ -14,7 +23,6 @@ const raw = [
   'MatchingMarket',
   'Settings',
   'EtherToken',
-  'EntityImpl',
 ].reduce((m, name) => {
   const jsonPath = path.join(projectDir, 'build', 'contracts', `${name}.json`)
   const { networks } = require(jsonPath)
@@ -36,17 +44,20 @@ const raw = [
   return m
 }, {})
 
-const final = Object.keys(raw).reduce((m, name) => {
-  m[name] = {}
+const final = currentAddresses
 
-  Object.keys(raw[name]).forEach(network => {
-    m[name][network] = {
-      address: raw[name][network].address,
-      transactionHash: raw[name][network].transactionHash,
+Object.keys(raw).forEach(name => {
+  final[name] = final[name] || {}
+
+  Object.keys(raw[name]).forEach(networkId => {
+    const theNetwork = getMatchingNetwork({ network_id: networkId })
+
+    final[name][theNetwork.id] = {
+      ...final[name][networkId],
+      address: raw[name][networkId].address,
+      transactionHash: raw[name][networkId].transactionHash,
     }
   })
-
-  return m
-}, {})
+})
 
 fs.writeFileSync(deployedAddressesJsonPath, JSON.stringify(final, null, 2))

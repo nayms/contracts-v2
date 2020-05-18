@@ -3,15 +3,17 @@ pragma solidity >=0.6.7;
 import "./base/SafeMath.sol";
 import "./base/EternalStorage.sol";
 import "./base/Controller.sol";
-import "./base/IPolicyPremiums.sol";
-import "./base/IPolicyStates.sol";
+import "./base/IDiamondFacet.sol";
+import "./base/IPolicyCoreFacet.sol";
+import "./base/IPolicyPremiumsFacet.sol";
+import "./base/PolicyFacetBase.sol";
 import "./base/AccessControl.sol";
 import "./base/IERC20.sol";
 
 /**
  * @dev Business-logic for Policy premiums
  */
-contract PolicyPremiums is EternalStorage, Controller, IPolicyPremiums, IPolicyStates {
+contract PolicyPremiumsFacet is EternalStorage, Controller, IDiamondFacet, IPolicyPremiumsFacet, PolicyFacetBase {
   using SafeMath for uint;
 
   modifier assertTranchPaymentAllowed (uint256 _index) {
@@ -30,7 +32,37 @@ contract PolicyPremiums is EternalStorage, Controller, IPolicyPremiums, IPolicyS
     // empty
   }
 
-  function payTranchPremium (uint256 _index) public override assertTranchPaymentAllowed(_index) {
+  // IDiamondFacet
+
+  function getSelectors () public pure override returns (bytes memory) {
+    return abi.encodePacked(
+      IPolicyPremiumsFacet.getTranchPremiumInfo.selector,
+      IPolicyPremiumsFacet.payTranchPremium.selector
+    );
+  }
+
+  // IPolicyPremiumsFacet
+
+  function getTranchPremiumInfo (uint256 _tranchIndex, uint256 _premiumIndex) public view override returns (
+    uint256 amount_,
+    uint256 dueAt_,
+    uint256 paidAt_,
+    address paidBy_
+  ) {
+    amount_ = dataUint256[__ii(_tranchIndex, _premiumIndex, "premiumAmount")];
+    dueAt_ = dataUint256[__ii(_tranchIndex, _premiumIndex, "premiumDueAt")];
+    paidAt_ = dataUint256[__ii(_tranchIndex, _premiumIndex, "premiumPaidAt")];
+    paidBy_ = dataAddress[__ii(_tranchIndex, _premiumIndex, "premiumPaidBy")];
+  }
+
+  function payTranchPremium (uint256 _index) public override {
+    IPolicyCoreFacet(address(this)).checkAndUpdateState();
+    _payTranchPremium(_index);
+  }
+
+  // Internal methods
+
+  function _payTranchPremium (uint256 _index) private assertTranchPaymentAllowed(_index) {
     require(!_tranchPaymentsAllMade(_index), 'all payments already made');
 
     uint256 expectedAmount;
@@ -66,8 +98,6 @@ contract PolicyPremiums is EternalStorage, Controller, IPolicyPremiums, IPolicyS
 
     emit PremiumPayment(_index, expectedAmount, msg.sender);
   }
-
-  // Internal methods
 
   function _getNextTranchPremium (uint256 _index) private view returns (uint256, uint256) {
     uint256 numPremiumsPaid = dataUint256[__i(_index, "numPremiumsPaid")];

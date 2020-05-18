@@ -2,37 +2,37 @@ const { createLog } = require('../../utils/log')
 const { deploy } = require('../../utils/functions')
 const { SETTINGS } = require('../../utils/constants')
 
-export const ensurePolicyImplementationsAreDeployed = async ({ deployer, artifacts, logger }, aclAddress, settingsAddress) => {
-  const log = createLog(logger)
+export const ensurePolicyImplementationsAreDeployed = async ({ deployer, artifacts, log }, aclAddress, settingsAddress) => {
+  log = createLog(log)
 
-  log('Deploying Policy implementations ...')
+  let addresses
 
-  const PolicyClaims = artifacts.require('./PolicyClaims')
-  const PolicyCommissions = artifacts.require('./PolicyCommissions')
-  const PolicyPremiums = artifacts.require('./PolicyPremiums')
-  const PolicyImpl = artifacts.require('./PolicyImpl')
+  await log.task(`Deploy Policy implementations`, async task => {
+    const PolicyUpgradeFacet = artifacts.require('./PolicyUpgradeFacet')
+    const PolicyCoreFacet = artifacts.require('./PolicyCoreFacet')
+    const PolicyClaimsFacet = artifacts.require('./PolicyClaimsFacet')
+    const PolicyCommissionsFacet = artifacts.require('./PolicyCommissionsFacet')
+    const PolicyPremiumsFacet = artifacts.require('./PolicyPremiumsFacet')
+    const PolicyTranchTokensFacet = artifacts.require('./PolicyTranchTokensFacet')
 
-  const ret = {
-    policyClaims: await deploy(deployer, PolicyClaims, aclAddress, settingsAddress),
-    policyCommissions: await deploy(deployer, PolicyCommissions, aclAddress, settingsAddress),
-    policyPremiums: await deploy(deployer, PolicyPremiums, aclAddress, settingsAddress),
-    policyImpl: await deploy(deployer, PolicyImpl, aclAddress, settingsAddress),
-  }
+    addresses = (await Promise.all([
+      deploy(deployer, PolicyCoreFacet, aclAddress, settingsAddress),
+      deploy(deployer, PolicyUpgradeFacet, aclAddress, settingsAddress),
+      deploy(deployer, PolicyClaimsFacet, aclAddress, settingsAddress),
+      deploy(deployer, PolicyCommissionsFacet, aclAddress, settingsAddress),
+      deploy(deployer, PolicyPremiumsFacet, aclAddress, settingsAddress),
+      deploy(deployer, PolicyTranchTokensFacet, aclAddress, settingsAddress),
+    ])).map(c => c.address)
 
-  log(`... deployed`)
+    task.log(`Deployed at ${addresses.join(', ')}`)
+  })
 
-  log('Saving policy implementations addresses to settings ...')
+  await log.task(`Saving policy implementation addresses to settings`, async task => {
+    const Settings = artifacts.require('./ISettings')
+    const settings = await Settings.at(settingsAddress)
+    await settings.setAddresses(settings.address, SETTINGS.POLICY_IMPL, addresses)
+  })
 
-  // save to settings
-  const Settings = artifacts.require('./ISettings')
-  const settings = await Settings.at(settingsAddress)
-  await settings.setAddress(settings.address, SETTINGS.POLICY_IMPL, ret.policyImpl.address)
-  await settings.setAddress(settings.address, SETTINGS.POLICY_CLAIMS_IMPL, ret.policyClaims.address)
-  await settings.setAddress(settings.address, SETTINGS.POLICY_COMMISSIONS_IMPL, ret.policyCommissions.address)
-  await settings.setAddress(settings.address, SETTINGS.POLICY_PREMIUMS_IMPL, ret.policyPremiums.address)
-
-  log('... saved')
-
-  return ret
+  return addresses
 }
 

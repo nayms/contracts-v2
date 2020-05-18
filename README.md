@@ -26,16 +26,15 @@ The key contracts are:
 * `ACL (IACL.sol)` - Interface for our access control system. We have a single global ACL for our platform.
 * `AccessControl (AccessControl.sol)` - Interface for obtaining ACL context info from deployed contracts.
 * `EntityDeployer (IEntityDeployer.sol)` - Interface for the entity deployer. We have a single global deployer for our platform.
-* `Entity (IEntityImpl.sol)` - Interface for interacting with entities.
+* `Entity (IEntity.sol)` - Interface for interacting with entities.
 * `ERC20 (IERC20.sol)` - Interface for interacting with ERC-20 contracts.
 * `EtherToken (IEtherToken.sol)` - Interface for interacting with wrapped ETH token contract. We have a single global instance for our platform.
 * `Market (IMarket.sol)` - Interface for interacting with [our MakerOTC matching market](https://github.com/nayms/maker-otc). We have a single global instance for our platform.
-* `Policy (IPolicyImpl.sol)` - Interface for interacting with policies.
-* `Proxy (Proxy.sol)` - Interface for interacting with all upgradeable contracts (policies, entities, etc).
+* `Policy (IPolicy.sol)` - Interface for interacting with policies.
 * `Settings (ISettings.sol)` - Interface for global settings. We have a single global settings instance for our platform.
 
 We automatically deploy the first `Entity` via the `EntityDeployer`. This is the _Nayms company entity_ and its address
-can be obtained via `Settings.getNaymsEntity()` as well as by calling `EntityDeployer.getEntity(0)`.
+can be obtained via `Settings.getAddress(SETTINGS.NAYMS_ENTITY)` as well as by calling `EntityDeployer.getEntity(0)`.
 
 ## Example usage
 

@@ -1,13 +1,20 @@
 const { createLog } = require('../../utils/log')
-const { deploy } = require('../../utils/functions')
+const { deploy, getCurrentInstance } = require('../../utils/functions')
 
-export const ensureSettingsIsDeployed = async ({ deployer, artifacts, logger }, aclAddress) => {
-  const log = createLog(logger)
+export const getCurrentSettings = async ({ artifacts, networkId, log }) => {
+  return getCurrentInstance({ networkId, log, artifacts, type: 'ISettings', lookupType: 'Settings' })
+}
 
-  log('Deploying Settings ...')
-  const Settings = artifacts.require('./Settings')
-  const settings = await deploy(deployer, Settings, aclAddress)
-  log(`... deployed at ${settings.address}`)
+export const ensureSettingsIsDeployed = async ({ deployer, artifacts, log }, aclAddress) => {
+  log = createLog(log)
+
+  let settings
+
+  await log.task(`Deploy Settings`, async task => {
+    const Settings = artifacts.require('./Settings')
+    settings = await deploy(deployer, Settings, aclAddress)
+    task.log(`Deployed at ${settings.address}`)
+  })
 
   const ISettings = artifacts.require('./ISettings')
 

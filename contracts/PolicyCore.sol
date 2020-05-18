@@ -1,26 +1,24 @@
 pragma solidity >=0.6.7;
 
 import "./base/Address.sol";
-import "./base/Delegate.sol";
 import "./base/Controller.sol";
 import "./base/EternalStorage.sol";
 import './base/IERC20.sol';
-import "./base/IProxyImpl.sol";
+import "./base/IDiamondFacet.sol";
 import "./base/AccessControl.sol";
-import "./base/IPolicyImpl.sol";
-import "./base/IPolicyStates.sol";
+import "./base/IPolicyCoreFacet.sol";
+import "./base/IPolicyTranchTokensFacet.sol";
+import "./base/PolicyFacetBase.sol";
 import "./base/IMarket.sol";
-import "./base/ITranchTokenHelper.sol";
 import "./base/SafeMath.sol";
 import "./TranchToken.sol";
 
 /**
- * @dev Business-logic for Policy
+ * @dev Core policy logic
  */
-contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPolicyStates, ITranchTokenHelper {
+contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCoreFacet, PolicyFacetBase {
   using SafeMath for uint;
   using Address for address;
-  using Delegate for *;
 
   // Modifiers //
 
@@ -42,13 +40,22 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     public
   {}
 
-  // IProxyImpl //
+  // IDiamondFacet
 
-  function getImplementationVersion () public pure override returns (string memory) {
-    return "v1";
+  function getSelectors () public pure override returns (bytes memory) {
+    return abi.encodePacked(
+      IPolicyCoreFacet.createTranch.selector,
+      IPolicyCoreFacet.getInfo.selector,
+      IPolicyCoreFacet.getTranchInfo.selector,
+      IPolicyCoreFacet.calculateMaxNumOfPremiums.selector,
+      IPolicyCoreFacet.initiationDateHasPassed.selector,
+      IPolicyCoreFacet.startDateHasPassed.selector,
+      IPolicyCoreFacet.maturationDateHasPassed.selector,
+      IPolicyCoreFacet.checkAndUpdateState.selector
+    );
   }
 
-  // IPolicyImpl //
+  // IPolicyCore //
 
 
   function createTranch (
@@ -140,14 +147,6 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     state_ = dataUint256["state"];
   }
 
-  function getClaimStats() public view override returns (
-    uint256 numClaims_,
-    uint256 numPendingClaims_
-  ) {
-    numClaims_ = dataUint256["claimsCount"];
-    numPendingClaims_ = dataUint256["claimsPendingCount"];
-  }
-
   function getTranchInfo (uint256 _index) public view override returns (
     address token_,
     uint256 state_,
@@ -173,44 +172,6 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     finalBuybackofferId_ = dataUint256[__i(_index, "finalBuybackOfferId")];
   }
 
-
-  function getTranchPremiumInfo (uint256 _tranchIndex, uint256 _premiumIndex) public view override returns (
-    uint256 amount_,
-    uint256 dueAt_,
-    uint256 paidAt_,
-    address paidBy_
-  ) {
-    amount_ = dataUint256[__ii(_tranchIndex, _premiumIndex, "premiumAmount")];
-    dueAt_ = dataUint256[__ii(_tranchIndex, _premiumIndex, "premiumDueAt")];
-    paidAt_ = dataUint256[__ii(_tranchIndex, _premiumIndex, "premiumPaidAt")];
-    paidBy_ = dataAddress[__ii(_tranchIndex, _premiumIndex, "premiumPaidBy")];
-  }
-
-
-
-  function getCommissionBalances() public view override returns (
-    uint256 brokerCommissionBalance_,
-    uint256 assetManagerCommissionBalance_,
-    uint256 naymsCommissionBalance_
-  ) {
-    brokerCommissionBalance_ = dataUint256["brokerCommissionBalance"];
-    assetManagerCommissionBalance_ = dataUint256["assetManagerCommissionBalance"];
-    naymsCommissionBalance_ = dataUint256["naymsCommissionBalance"];
-  }
-
-  function getClaimInfo (uint256 _claimIndex) public view override returns (
-    uint256 amount_,
-    uint256 tranchIndex_,
-    bool approved_,
-    bool declined_,
-    bool paid_
-  ) {
-    amount_ = dataUint256[__i(_claimIndex, "claimAmount")];
-    tranchIndex_ = dataUint256[__i(_claimIndex, "claimTranch")];
-    approved_ = dataBool[__i(_claimIndex, "claimApproved")];
-    declined_ = dataBool[__i(_claimIndex, "claimDeclined")];
-    paid_ = dataBool[__i(_claimIndex, "claimPaid")];
-  }
 
   function initiationDateHasPassed () public view override returns (bool) {
     return now >= dataUint256["initiationDate"];
@@ -245,138 +206,10 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     }
   }
 
-  function payTranchPremium (uint256 _index) public override {
-    // heartbeat first
-    checkAndUpdateState();
-
-    _premiums().dcall(abi.encodeWithSelector(
-      "payTranchPremium(uint256)".dsig(),
-      _index
-    ));
-  }
-
-
-  function makeClaim(uint256 _index, address _clientManagerEntity, uint256 _amount) public override {
-    // heartbeat first
-    checkAndUpdateState();
-
-    _claims().dcall(abi.encodeWithSelector(
-      "makeClaim(uint256,address,uint256)".dsig(),
-      _index, _clientManagerEntity, _amount
-    ));
-  }
-
-
-  function approveClaim(uint256 _claimIndex) public override {
-    _claims().dcall(abi.encodeWithSelector(
-      "approveClaim(uint256)".dsig(),
-      _claimIndex
-    ));
-  }
-
-
-  function declineClaim(uint256 _claimIndex) public override {
-    _claims().dcall(abi.encodeWithSelector(
-      "declineClaim(uint256)".dsig(),
-      _claimIndex
-    ));
-  }
-
-
-  function payClaims() public override {
-    _claims().dcall(abi.encodeWithSelector(
-      "payClaims()".dsig()
-    ));
-  }
-
-
-  function payCommissions (
-    address _assetManagerEntity, address _assetManager,
-    address _brokerEntity, address _broker
-  ) public override {
-    _commissions().dcall(abi.encodeWithSelector(
-      "payCommissions(address,address,address,address)".dsig(),
-      _assetManagerEntity, _assetManager, _brokerEntity, _broker
-    ));
-  }
-
-
   function calculateMaxNumOfPremiums() public view override returns (uint256) {
     return (dataUint256["maturationDate"] - dataUint256["initiationDate"]) / dataUint256["premiumIntervalSeconds"] + 1;
   }
 
-  // TranchTokenImpl - queries //
-
-  function tknName(uint256 _index) public view override returns (string memory) {
-    return string(abi.encodePacked(address(this).toString(), "_tranch_", _index));
-  }
-
-  function tknSymbol(uint256 _index) public view override returns (string memory) {
-    return tknName(_index);
-  }
-
-  function tknTotalSupply(uint256 _index) public view override returns (uint256) {
-    string memory numSharesKey = __i(_index, "numShares");
-    return dataUint256[numSharesKey];
-  }
-
-  function tknBalanceOf(uint256 _index, address _owner) public view override returns (uint256) {
-    string memory k = __ia(_index, _owner, "balance");
-    return dataUint256[k];
-  }
-
-  function tknAllowance(uint256 _index, address _spender, address _owner) public view override returns (uint256) {
-    string memory k = __iaa(_index, _owner, _spender, "allowance");
-    return dataUint256[k];
-  }
-
-  // TranchTokenImpl - ERC20 mutations //
-
-  function tknApprove(uint256 /*_index*/, address _spender, address /*_from*/, uint256 /*_value*/) public override {
-    require(_spender == settings().getRootAddress(SETTING_MARKET), 'only nayms market is allowed to transfer');
-  }
-
-  function tknTransfer(uint256 _index, address _spender, address _from, address _to, uint256 _value) public override {
-    require(_spender == settings().getRootAddress(SETTING_MARKET), 'only nayms market is allowed to transfer');
-    _transfer(_index, _from, _to, _value);
-  }
-
-  // Internal functions
-
-  function _transfer(uint _index, address _from, address _to, uint256 _value) private {
-    // when token holder is sending to the market
-    address market = settings().getRootAddress(SETTING_MARKET);
-    if (market == _to) {
-      // and they're not the initial balance holder of the token (i.e. the policy/tranch)
-      address initialHolder = dataAddress[__i(_index, "initialHolder")];
-      if (initialHolder != _from) {
-        // then they must be a trader, in which case ony allow this if the policy is active
-        require(dataUint256["state"] == POLICY_STATE_ACTIVE, 'can only trade when policy is active');
-      }
-    }
-
-    string memory fromKey = __ia(_index, _from, "balance");
-    string memory toKey = __ia(_index, _to, "balance");
-
-    require(dataUint256[fromKey] >= _value, 'not enough balance');
-
-    dataUint256[fromKey] = dataUint256[fromKey].sub(_value);
-    dataUint256[toKey] = dataUint256[toKey].add(_value);
-
-    // if we are in the initial sale period and this is a transfer from the market to a buyer
-    if (dataUint256[__i(_index, "state")] == TRANCH_STATE_SELLING && market == _from) {
-      // record how many "shares" were sold
-      dataUint256[__i(_index, "sharesSold")] = dataUint256[__i(_index, "sharesSold")].add(_value);
-      // update tranch balance
-      dataUint256[__i(_index, "balance")] = dataUint256[__i(_index, "balance")].add(_value * dataUint256[__i(_index, "pricePerShareAmount")]);
-
-      // if the tranch has fully sold out
-      if (dataUint256[__i(_index, "sharesSold")] == dataUint256[__i(_index, "numShares")]) {
-        // flip tranch state to ACTIVE
-        _setTranchState(_index, TRANCH_STATE_ACTIVE);
-      }
-    }
-  }
 
   function _cancelTranchMarketOffer(uint _index) private {
     IMarket market = IMarket(settings().getRootAddress(SETTING_MARKET));
@@ -411,7 +244,7 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
         address initialHolder = dataAddress[__i(i, "initialHolder")];
         require(initialHolder == address(this), "initial holder must be policy contract");
         // get supply
-        uint256 totalSupply = tknTotalSupply(i);
+        uint256 totalSupply = IPolicyTranchTokensFacet(address(this)).tknTotalSupply(i);
         // calculate sale values
         uint256 pricePerShare = dataUint256[__i(i, "pricePerShareAmount")];
         uint256 totalPrice = totalSupply.mul(pricePerShare);
@@ -516,33 +349,5 @@ contract PolicyImpl is EternalStorage, Controller, IProxyImpl, IPolicyImpl, IPol
     } else {
       return 0;
     }
-  }
-
-  function _setPolicyState (uint256 _newState) private {
-    if (dataUint256["state"] != _newState) {
-      dataUint256["state"] = _newState;
-      emit PolicyStateUpdated(_newState, msg.sender);
-    }
-  }
-
-  function _setTranchState (uint256 _tranchIndex, uint256 _newState) private {
-    if (dataUint256[__i(_tranchIndex, "state")] != _newState) {
-      dataUint256[__i(_tranchIndex, "state")] = _newState;
-      emit TranchStateUpdated(_tranchIndex, _newState, msg.sender);
-    }
-  }
-
-  // Sub-delegates
-
-  function _claims () private view returns (address) {
-    return settings().getRootAddress(SETTING_POLICY_CLAIMS_IMPL);
-  }
-
-  function _commissions () private view returns (address) {
-    return settings().getRootAddress(SETTING_POLICY_COMMISSIONS_IMPL);
-  }
-
-  function _premiums () private view returns (address) {
-    return settings().getRootAddress(SETTING_POLICY_PREMIUMS_IMPL);
   }
 }

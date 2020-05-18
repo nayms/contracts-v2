@@ -11,12 +11,11 @@ const coreContracts = [
   { name: 'AccessControl', actual: 'AccessControl' },
   { name: 'Settings', actual: 'ISettings' },
   { name: 'ACL', actual: 'IACL' },
-  { name: 'Policy', actual: 'IPolicyImpl' },
+  { name: 'Policy', actual: 'IPolicy' },
   { name: 'EntityDeployer', actual: 'IEntityDeployer' },
-  { name: 'Entity', actual: 'IEntityImpl' },
+  { name: 'Entity', actual: 'IEntity' },
   { name: 'Market', actual: 'IMarket' },
   { name: 'EtherToken', actual: 'IEtherToken' },
-  { name: 'Proxy', actual: 'Proxy' },
   { name: 'ERC20', actual: 'IERC20' },
 ].reduce((m, n) => {
   m[n.name] = rawContracts[n.actual]

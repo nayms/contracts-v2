@@ -38,6 +38,19 @@ import "./base/ISettings.sol";
     emit SettingChanged(_context, _key, msg.sender, 'address');
   }
 
+  function getAddresses(address _context, bytes32 _key) public view override returns (address[] memory) {
+    return dataManyAddresses[__ab(_context, _key)];
+  }
+
+  function getRootAddresses(bytes32 _key) public view override returns (address[] memory) {
+    return getAddresses(address(this), _key);
+  }
+
+  function setAddresses(address _context, bytes32 _key, address[] memory _value) public override assertIsAuthorized(_context) {
+    dataManyAddresses[__ab(_context, _key)] = _value;
+    emit SettingChanged(_context, _key, msg.sender, 'addresses');
+  }
+
   function getBool(address _context, bytes32 _key) public view override returns (bool) {
     return dataBool[__ab(_context, _key)];
   }

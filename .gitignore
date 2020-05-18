@@ -18,4 +18,3 @@ ganache.log
 scTopics
 dapp*
 contracts.generated.js
-deployedAddresses.json

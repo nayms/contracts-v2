@@ -1,45 +1,55 @@
-const { deploy } = require('../../utils/functions')
+const _ = require('lodash')
+const { deploy, getCurrentInstance } = require('../../utils/functions')
 const { createLog } = require('../../utils/log')
 
 const { ROLES, ROLEGROUPS } = require('../../utils/constants')
 
-export const ensureAclIsDeployed = async ({ deployer, artifacts, logger }) => {
-  const log = createLog(logger)
+export const getCurrentAcl = async ({ artifacts, networkId, log }) => {
+  return getCurrentInstance({ networkId, log, artifacts, type: 'IACL', lookupType: 'ACL' })
+}
 
-  log('Deploying ACL ...')
-  const ACL = artifacts.require("./ACL")
-  const acl = await deploy(deployer, ACL, ROLES.SYSTEM_ADMIN, ROLEGROUPS.SYSTEM_ADMINS)
-  log(`... deployed at ${acl.address}`)
+export const ensureAclIsDeployed = async ({ deployer, artifacts, log }) => {
+  log = createLog(log)
 
-  log('Ensure ACL role groups and roles are setup ...')
+  let acl
 
-  // setup role groups
-  await acl.setRoleGroup(ROLEGROUPS.ASSET_MANAGERS, [ ROLES.ASSET_MANAGER ])
-  await acl.setRoleGroup(ROLEGROUPS.BROKERS, [ROLES.BROKER])
-  await acl.setRoleGroup(ROLEGROUPS.CLIENT_MANAGERS, [ ROLES.CLIENT_MANAGER ])
-  await acl.setRoleGroup(ROLEGROUPS.ENTITY_ADMINS, [ ROLES.ENTITY_ADMIN, ROLES.SOLE_PROP, ROLES.NAYM ])
-  await acl.setRoleGroup(ROLEGROUPS.ENTITY_MANAGERS, [ ROLES.ENTITY_MANAGER ])
-  await acl.setRoleGroup(ROLEGROUPS.ENTITY_REPS, [ROLES.ENTITY_REP])
-  await acl.setRoleGroup(ROLEGROUPS.FUND_MANAGERS, [ ROLES.SOLE_PROP, ROLES.ENTITY_ADMIN, ROLES.NAYM ])
-  await acl.setRoleGroup(ROLEGROUPS.POLICY_APPROVERS, [ ROLES.ASSET_MANAGER, ROLES.BROKER, ROLES.CLIENT_MANAGER, ROLES.SOLE_PROP ])
-  await acl.setRoleGroup(ROLEGROUPS.POLICY_CREATORS, [ ROLES.ENTITY_MANAGER ])
-  await acl.setRoleGroup(ROLEGROUPS.POLICY_OWNERS, [ROLES.POLICY_OWNER])
-  await acl.setRoleGroup(ROLEGROUPS.SYSTEM_ADMINS, [ROLES.SYSTEM_ADMIN])
-  await acl.setRoleGroup(ROLEGROUPS.SYSTEM_MANAGERS, [ROLES.SYSTEM_MANAGER])
-  await acl.setRoleGroup(ROLEGROUPS.TRADERS, [ROLES.NAYM, ROLES.ENTITY_REP, ROLES.SOLE_PROP])
+  await log.task('Deploy ACL', async task => {
+    const ACL = artifacts.require("./ACL")
+    acl = await deploy(deployer, ACL, ROLES.SYSTEM_ADMIN, ROLEGROUPS.SYSTEM_ADMINS)
+    task.log(`Deployed at ${acl.address}`)
+  })
 
-  // setup assigners
-  await acl.addAssigner(ROLES.ASSET_MANAGER, ROLEGROUPS.POLICY_OWNERS)
-  await acl.addAssigner(ROLES.BROKER, ROLEGROUPS.POLICY_OWNERS)
-  await acl.addAssigner(ROLES.CLIENT_MANAGER, ROLEGROUPS.POLICY_OWNERS)
-  await acl.addAssigner(ROLES.ENTITY_ADMIN, ROLEGROUPS.SYSTEM_MANAGERS)
-  await acl.addAssigner(ROLES.ENTITY_MANAGER, ROLEGROUPS.ENTITY_ADMINS)
-  await acl.addAssigner(ROLES.ENTITY_REP, ROLEGROUPS.ENTITY_MANAGERS)
-  await acl.addAssigner(ROLES.NAYM, ROLEGROUPS.SYSTEM_MANAGERS)
-  await acl.addAssigner(ROLES.SOLE_PROP, ROLEGROUPS.SYSTEM_MANAGERS)
-  await acl.addAssigner(ROLES.SYSTEM_MANAGER, ROLEGROUPS.SYSTEM_ADMINS)
+  await log.task(`Ensure ACL role groups are setup`, async () => {
+    await Promise.all([
+      acl.setRoleGroup(ROLEGROUPS.ASSET_MANAGERS, [ROLES.ASSET_MANAGER]),
+      acl.setRoleGroup(ROLEGROUPS.BROKERS, [ROLES.BROKER]),
+      acl.setRoleGroup(ROLEGROUPS.CLIENT_MANAGERS, [ROLES.CLIENT_MANAGER]),
+      acl.setRoleGroup(ROLEGROUPS.ENTITY_ADMINS, [ROLES.ENTITY_ADMIN, ROLES.SOLE_PROP, ROLES.NAYM]),
+      acl.setRoleGroup(ROLEGROUPS.ENTITY_MANAGERS, [ROLES.ENTITY_MANAGER]),
+      acl.setRoleGroup(ROLEGROUPS.ENTITY_REPS, [ROLES.ENTITY_REP]),
+      acl.setRoleGroup(ROLEGROUPS.FUND_MANAGERS, [ROLES.SOLE_PROP, ROLES.ENTITY_ADMIN, ROLES.NAYM]),
+      acl.setRoleGroup(ROLEGROUPS.POLICY_APPROVERS, [ROLES.ASSET_MANAGER, ROLES.BROKER, ROLES.CLIENT_MANAGER, ROLES.SOLE_PROP]),
+      acl.setRoleGroup(ROLEGROUPS.POLICY_CREATORS, [ROLES.ENTITY_MANAGER]),
+      acl.setRoleGroup(ROLEGROUPS.POLICY_OWNERS, [ROLES.POLICY_OWNER]),
+      acl.setRoleGroup(ROLEGROUPS.SYSTEM_ADMINS, [ROLES.SYSTEM_ADMIN]),
+      acl.setRoleGroup(ROLEGROUPS.SYSTEM_MANAGERS, [ROLES.SYSTEM_MANAGER]),
+      acl.setRoleGroup(ROLEGROUPS.TRADERS, [ROLES.NAYM, ROLES.ENTITY_REP, ROLES.SOLE_PROP]),
+    ])
+  })
 
-  log('... role groups and roles have been setup.')
+  await log.task(`Ensure ACL role assigners are setup`, async () => {
+    await Promise.all([
+      acl.addAssigner(ROLES.ASSET_MANAGER, ROLEGROUPS.POLICY_OWNERS),
+      acl.addAssigner(ROLES.BROKER, ROLEGROUPS.POLICY_OWNERS),
+      acl.addAssigner(ROLES.CLIENT_MANAGER, ROLEGROUPS.POLICY_OWNERS),
+      acl.addAssigner(ROLES.ENTITY_ADMIN, ROLEGROUPS.SYSTEM_MANAGERS),
+      acl.addAssigner(ROLES.ENTITY_MANAGER, ROLEGROUPS.ENTITY_ADMINS),
+      acl.addAssigner(ROLES.ENTITY_REP, ROLEGROUPS.ENTITY_MANAGERS),
+      acl.addAssigner(ROLES.NAYM, ROLEGROUPS.SYSTEM_MANAGERS),
+      acl.addAssigner(ROLES.SOLE_PROP, ROLEGROUPS.SYSTEM_MANAGERS),
+      acl.addAssigner(ROLES.SYSTEM_MANAGER, ROLEGROUPS.SYSTEM_ADMINS),
+    ])
+  })
 
   return acl
 }

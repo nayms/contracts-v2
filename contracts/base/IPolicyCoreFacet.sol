@@ -1,13 +1,9 @@
 pragma solidity >=0.6.7;
 
-import "./IPolicyClaims.sol";
-import "./IPolicyCommissions.sol";
-import "./IPolicyPremiums.sol";
-
 /**
- * @dev Policies.
+ * @dev Policy core logic.
  */
-abstract contract IPolicyImpl is IPolicyClaims, IPolicyCommissions, IPolicyPremiums {
+interface IPolicyCoreFacet {
   /**
    * @dev Create tranch.
    *
@@ -19,9 +15,9 @@ abstract contract IPolicyImpl is IPolicyClaims, IPolicyCommissions, IPolicyPremi
   function createTranch (
     uint256 _numShares,
     uint256 _pricePerShareAmount,
-    uint256[] memory _premiums,
+    uint256[] calldata _premiums,
     address _initialBalanceHolder
-  ) public virtual;
+  ) external;
 
   /**
    * @dev Get policy info.
@@ -38,7 +34,7 @@ abstract contract IPolicyImpl is IPolicyClaims, IPolicyCommissions, IPolicyPremi
    * @return numTranches_ No. of tranches created.
    * @return state_ Current policy state.
    */
-  function getInfo () public view virtual returns (
+  function getInfo () external view returns (
     address creatorEntity_,
     uint256 initiationDate_,
     uint256 startDate_,
@@ -50,16 +46,6 @@ abstract contract IPolicyImpl is IPolicyClaims, IPolicyCommissions, IPolicyPremi
     uint256 naymsCommissionBP_,
     uint256 numTranches_,
     uint256 state_
-  );
-
-  /**
-   * @dev Get claim stats.
-   * @return numClaims_ No. of claims raised in total.
-   * @return numPendingClaims_ No. of claims yet to be approved/declined.
-   */
-  function getClaimStats() public view virtual returns (
-    uint256 numClaims_,
-    uint256 numPendingClaims_
   );
 
   /**
@@ -78,7 +64,7 @@ abstract contract IPolicyImpl is IPolicyClaims, IPolicyCommissions, IPolicyPremi
    * @return initialSaleOfferId_ Market offer id of the initial sale.
    * @return finalBuybackofferId_ Market offer id of the post-maturation/cancellation token buyback.
    */
-  function getTranchInfo (uint256 _index) public view virtual returns (
+  function getTranchInfo (uint256 _index) external view returns (
     address token_,
     uint256 state_,
     uint256 balance_,
@@ -93,85 +79,36 @@ abstract contract IPolicyImpl is IPolicyClaims, IPolicyCommissions, IPolicyPremi
   );
 
 
-  /**
-   * @dev Get tranch premium info.
-   *
-   * @param _tranchIndex Tranch index.
-   * @param _premiumIndex Premium index.
-   * @return amount_ Amount due.
-   * @return dueAt_ When it is due by (timestamp = seconds since epoch).
-   * @return paidAt_ When it was paid (timestamp = seconds since epoch).
-   * @return paidBy_ Who paid it.
-   */
-  function getTranchPremiumInfo (uint256 _tranchIndex, uint256 _premiumIndex) public view virtual returns (
-    uint256 amount_,
-    uint256 dueAt_,
-    uint256 paidAt_,
-    address paidBy_
-  );
-
-
-  /**
-   * @dev Get accumulated commission balances.
-   *
-   * Note that these balances do not include amounts that have already been paid out (see `payCommissions()`).
-   *
-   * @return brokerCommissionBalance_ Currently accumulated broker commission.
-   * @return assetManagerCommissionBalance_ Currently accumulated asset manager commission.
-   * @return naymsCommissionBalance_ Currently accumulated Nayms commission.
-   */
-  function getCommissionBalances() public view virtual returns (
-    uint256 brokerCommissionBalance_,
-    uint256 assetManagerCommissionBalance_,
-    uint256 naymsCommissionBalance_
-  );
-
-  /**
-   * @dev Get claim info.
-   *
-   * @return amount_ Amount the claim is for.
-   * @return tranchIndex_ Tranch the claim is against.
-   * @return approved_ Whether the claim has been approved.
-   * @return declined_ Whether the claim has been declined.
-   * @return paid_ Whether the claim has been paid out.
-   */
-  function getClaimInfo (uint256 _claimIndex) public view virtual returns (
-    uint256 amount_,
-    uint256 tranchIndex_,
-    bool approved_,
-    bool declined_,
-    bool paid_
-  );
 
   /**
    * @dev Get the max. no. of premium payments possible based on the policy dates.
    *
    * @return Max. no. of premium payments possible.
    */
-  function calculateMaxNumOfPremiums() public view virtual returns (uint256);
+  function calculateMaxNumOfPremiums() external view returns (uint256);
   /**
    * @dev Get whether the initiation date has passed.
    *
    * @return true if so, false otherwise.
    */
-  function initiationDateHasPassed () public view virtual returns (bool);
+  function initiationDateHasPassed () external view returns (bool);
   /**
    * @dev Get whether the start date has passed.
    *
    * @return true if so, false otherwise.
    */
-  function startDateHasPassed () public view virtual returns (bool);
+  function startDateHasPassed () external view returns (bool);
   /**
    * @dev Get whether the maturation date has passed.
    *
    * @return true if so, false otherwise.
    */
-  function maturationDateHasPassed () public view virtual returns (bool);
+  function maturationDateHasPassed () external view returns (bool);
 
   /**
    * @dev Heartbeat: Ensure the policy and tranch states are up-to-date.
    */
-  function checkAndUpdateState () public virtual;
+  function checkAndUpdateState () external;
 
   // events
 

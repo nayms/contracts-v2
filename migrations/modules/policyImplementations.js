@@ -7,18 +7,18 @@ export const ensurePolicyImplementationsAreDeployed = async ({ deployer, artifac
 
   log('Deploying Policy implementations ...')
 
-  const PolicyClaims = artifacts.require('./PolicyClaims')
-  const PolicyCommissions = artifacts.require('./PolicyCommissions')
-  const PolicyPremiums = artifacts.require('./PolicyPremiums')
-  const PolicyCore = artifacts.require('./PolicyCore')
-  const PolicyTranchTokens = artifacts.require('./PolicyTranchTokens')
+  const PolicyClaimsFacet = artifacts.require('./PolicyClaimsFacet')
+  const PolicyCommissionsFacet = artifacts.require('./PolicyCommissionsFacet')
+  const PolicyPremiumsFacet = artifacts.require('./PolicyPremiumsFacet')
+  const PolicyCoreFacet = artifacts.require('./PolicyCoreFacet')
+  const PolicyTranchTokensFacet = artifacts.require('./PolicyTranchTokensFacet')
 
   const ret = (await Promise.all([
-    deploy(deployer, PolicyCore, aclAddress, settingsAddress),
-    deploy(deployer, PolicyClaims, aclAddress, settingsAddress),
-    deploy(deployer, PolicyCommissions, aclAddress, settingsAddress),
-    deploy(deployer, PolicyPremiums, aclAddress, settingsAddress),
-    deploy(deployer, PolicyTranchTokens, aclAddress, settingsAddress),
+    deploy(deployer, PolicyCoreFacet, aclAddress, settingsAddress),
+    deploy(deployer, PolicyClaimsFacet, aclAddress, settingsAddress),
+    deploy(deployer, PolicyCommissionsFacet, aclAddress, settingsAddress),
+    deploy(deployer, PolicyPremiumsFacet, aclAddress, settingsAddress),
+    deploy(deployer, PolicyTranchTokensFacet, aclAddress, settingsAddress),
   ])).map(c => c.address)
 
   log(`... deployed at ${ret.join(', ')}`)

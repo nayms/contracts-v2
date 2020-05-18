@@ -22,6 +22,7 @@ const IEntity = artifacts.require('./base/IEntity')
 const Entity = artifacts.require('./Entity')
 const IPolicyStates = artifacts.require("./base/IPolicyStates")
 const Policy = artifacts.require("./Policy")
+const IPolicy = artifacts.require("./IPolicy")
 const IERC20 = artifacts.require("./base/IERC20")
 
 contract('Policy flow', accounts => {
@@ -114,7 +115,7 @@ contract('Policy flow', accounts => {
     policyOwnerAddress = entityManagerAddress
 
     policyProxy = await Policy.at(policyAddress)
-    policy = await IPolicyImpl.at(policyAddress)
+    policy = await IPolicy.at(policyAddress)
     const policyContext = await policyProxy.aclContext()
 
     // get market address

@@ -16,7 +16,7 @@ import { ensureMarketIsDeployed } from '../migrations/modules/market'
 import { ensureEntityImplementationsAreDeployed } from '../migrations/modules/entityImplementations'
 import { ensurePolicyImplementationsAreDeployed } from '../migrations/modules/policyImplementations'
 
-const IEntityImpl = artifacts.require("./base/IEntityImpl")
+const IEntity = artifacts.require("./base/IEntity")
 const AccessControl = artifacts.require('./base/AccessControl')
 const TestEntityImpl = artifacts.require("./test/TestEntityImpl")
 const Entity = artifacts.require("./Entity")
@@ -44,7 +44,7 @@ contract('Entity', accounts => {
 
     entityProxy = await Entity.new(acl.address, settings.address)
     // now let's speak to Entity contract using EntityImpl ABI
-    entity = await IEntityImpl.at(entityProxy.address)
+    entity = await IEntity.at(entityProxy.address)
     entityContext = await entityProxy.aclContext()
 
     ;([ entityImplAddress ] = await settings.getRootAddresses(SETTINGS.ENTITY_IMPL))

@@ -3,7 +3,7 @@ pragma solidity >=0.6.7;
 /**
  * @dev Entity core logic.
  */
-interface IEntityCore {
+interface IEntityCoreFacet {
   /**
    * @dev Create a new policy.
    * @param _initiationDate The initiation date (seconds since epoch).

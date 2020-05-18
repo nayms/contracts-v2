@@ -4,8 +4,8 @@ import "./base/SafeMath.sol";
 import "./base/EternalStorage.sol";
 import "./base/Controller.sol";
 import "./base/IDiamondFacet.sol";
-import "./base/IPolicyCore.sol";
-import "./base/IPolicyPremiums.sol";
+import "./base/IPolicyCoreFacet.sol";
+import "./base/IPolicyPremiumsFacet.sol";
 import "./base/PolicyFacetBase.sol";
 import "./base/AccessControl.sol";
 import "./base/IERC20.sol";
@@ -13,7 +13,7 @@ import "./base/IERC20.sol";
 /**
  * @dev Business-logic for Policy premiums
  */
-contract PolicyPremiums is EternalStorage, Controller, IDiamondFacet, IPolicyPremiums, PolicyFacetBase {
+contract PolicyPremiumsFacet is EternalStorage, Controller, IDiamondFacet, IPolicyPremiumsFacet, PolicyFacetBase {
   using SafeMath for uint;
 
   modifier assertTranchPaymentAllowed (uint256 _index) {
@@ -36,12 +36,12 @@ contract PolicyPremiums is EternalStorage, Controller, IDiamondFacet, IPolicyPre
 
   function getSelectors () public pure override returns (bytes memory) {
     return abi.encodePacked(
-      IPolicyPremiums.getTranchPremiumInfo.selector,
-      IPolicyPremiums.payTranchPremium.selector
+      IPolicyPremiumsFacet.getTranchPremiumInfo.selector,
+      IPolicyPremiumsFacet.payTranchPremium.selector
     );
   }
 
-  // IPolicyPremiums
+  // IPolicyPremiumsFacet
 
   function getTranchPremiumInfo (uint256 _tranchIndex, uint256 _premiumIndex) public view override returns (
     uint256 amount_,
@@ -56,7 +56,7 @@ contract PolicyPremiums is EternalStorage, Controller, IDiamondFacet, IPolicyPre
   }
 
   function payTranchPremium (uint256 _index) public override {
-    IPolicyCore(address(this)).checkAndUpdateState();
+    IPolicyCoreFacet(address(this)).checkAndUpdateState();
     _payTranchPremium(_index);
   }
 

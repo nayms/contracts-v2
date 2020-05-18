@@ -2,7 +2,7 @@ pragma solidity >=0.6.7;
 
 import "./base/Controller.sol";
 import "./base/EternalStorage.sol";
-import "./base/IEntityCore.sol";
+import "./base/IEntityCoreFacet.sol";
 import "./base/IDiamondFacet.sol";
 import "./base/IERC20.sol";
 import "./base/IMarket.sol";
@@ -12,7 +12,7 @@ import "./Policy.sol";
 /**
  * @dev Business-logic for Entity
  */
- contract EntityCore is EternalStorage, Controller, IEntityCore, IDiamondFacet {
+ contract EntityCoreFacet is EternalStorage, Controller, IEntityCoreFacet, IDiamondFacet {
   modifier assertCanWithdraw () {
     require(inRoleGroup(msg.sender, ROLEGROUP_ENTITY_ADMINS), 'must be entity admin');
     _;
@@ -50,19 +50,19 @@ import "./Policy.sol";
 
   function getSelectors () public pure override returns (bytes memory) {
     return abi.encodePacked(
-      IEntityCore.createPolicy.selector,
-      IEntityCore.getNumPolicies.selector,
-      IEntityCore.getPolicy.selector,
-      IEntityCore.deposit.selector,
-      IEntityCore.withdraw.selector,
-      IEntityCore.payTranchPremium.selector,
-      IEntityCore.trade.selector,
-      IEntityCore.sellAtBestPrice.selector
+      IEntityCoreFacet.createPolicy.selector,
+      IEntityCoreFacet.getNumPolicies.selector,
+      IEntityCoreFacet.getPolicy.selector,
+      IEntityCoreFacet.deposit.selector,
+      IEntityCoreFacet.withdraw.selector,
+      IEntityCoreFacet.payTranchPremium.selector,
+      IEntityCoreFacet.trade.selector,
+      IEntityCoreFacet.sellAtBestPrice.selector
     );
   }
 
 
-  // IEntityCore
+  // IEntityCoreFacet
 
   function createPolicy(
     uint256 _initiationDate,

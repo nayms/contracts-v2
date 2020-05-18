@@ -3,7 +3,7 @@ pragma solidity >=0.6.7;
 import "./base/EternalStorage.sol";
 import "./base/Controller.sol";
 import "./base/IDiamondFacet.sol";
-import "./base/IPolicyCommissions.sol";
+import "./base/IPolicyCommissionsFacet.sol";
 import "./base/PolicyFacetBase.sol";
 import "./base/AccessControl.sol";
 import "./base/IERC20.sol";
@@ -11,7 +11,7 @@ import "./base/IERC20.sol";
 /**
  * @dev Business-logic for Policy commissions
  */
-contract PolicyCommissions is EternalStorage, Controller, IDiamondFacet, IPolicyCommissions, PolicyFacetBase {
+contract PolicyCommissionsFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCommissionsFacet, PolicyFacetBase {
   modifier assertIsAssetManager (address _addr) {
     require(inRoleGroup(_addr, ROLEGROUP_ASSET_MANAGERS), 'must be asset manager');
     _;
@@ -36,12 +36,12 @@ contract PolicyCommissions is EternalStorage, Controller, IDiamondFacet, IPolicy
 
   function getSelectors () public pure override returns (bytes memory) {
     return abi.encodePacked(
-      IPolicyCommissions.payCommissions.selector,
-      IPolicyCommissions.getCommissionBalances.selector
+      IPolicyCommissionsFacet.payCommissions.selector,
+      IPolicyCommissionsFacet.getCommissionBalances.selector
     );
   }
 
-  // IPolicyCommissions
+  // IPolicyCommissionsFacet
 
   function getCommissionBalances() public view override returns (
     uint256 brokerCommissionBalance_,

@@ -1,12 +1,12 @@
 pragma solidity >=0.6.7;
 
 import '../base/IDiamondFacet.sol';
-import '../base/IPolicyCore.sol';
+import '../base/IPolicyCoreFacet.sol';
 
-contract TestPolicyImpl is IDiamondFacet, IPolicyCore {
+contract TestPolicyImpl is IDiamondFacet, IPolicyCoreFacet {
   function getSelectors () public pure override returns (bytes memory) {
     return abi.encodePacked(
-      IPolicyCore.calculateMaxNumOfPremiums.selector
+      IPolicyCoreFacet.calculateMaxNumOfPremiums.selector
     );
   }
 

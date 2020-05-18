@@ -7,10 +7,10 @@ export const ensureEntityImplementationsAreDeployed = async ({ deployer, artifac
 
   log('Deploying Entity implementations ...')
 
-  const EntityCore = artifacts.require('./EntityCore')
+  const EntityCoreFacet = artifacts.require('./EntityCoreFacet')
 
   const ret = (await Promise.all([
-    deploy(deployer, EntityCore, aclAddress, settingsAddress)
+    deploy(deployer, EntityCoreFacet, aclAddress, settingsAddress)
   ])).map(c => c.address)
 
   log(`... deployed at ${ret.join(', ')}`)

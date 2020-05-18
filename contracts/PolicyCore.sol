@@ -6,8 +6,8 @@ import "./base/EternalStorage.sol";
 import './base/IERC20.sol';
 import "./base/IDiamondFacet.sol";
 import "./base/AccessControl.sol";
-import "./base/IPolicyCore.sol";
-import "./base/IPolicyTranchTokens.sol";
+import "./base/IPolicyCoreFacet.sol";
+import "./base/IPolicyTranchTokensFacet.sol";
 import "./base/PolicyFacetBase.sol";
 import "./base/IMarket.sol";
 import "./base/SafeMath.sol";
@@ -16,7 +16,7 @@ import "./TranchToken.sol";
 /**
  * @dev Core policy logic
  */
-contract PolicyCore is EternalStorage, Controller, IDiamondFacet, IPolicyCore, PolicyFacetBase {
+contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCoreFacet, PolicyFacetBase {
   using SafeMath for uint;
   using Address for address;
 
@@ -44,14 +44,14 @@ contract PolicyCore is EternalStorage, Controller, IDiamondFacet, IPolicyCore, P
 
   function getSelectors () public pure override returns (bytes memory) {
     return abi.encodePacked(
-      IPolicyCore.createTranch.selector,
-      IPolicyCore.getInfo.selector,
-      IPolicyCore.getTranchInfo.selector,
-      IPolicyCore.calculateMaxNumOfPremiums.selector,
-      IPolicyCore.initiationDateHasPassed.selector,
-      IPolicyCore.startDateHasPassed.selector,
-      IPolicyCore.maturationDateHasPassed.selector,
-      IPolicyCore.checkAndUpdateState.selector
+      IPolicyCoreFacet.createTranch.selector,
+      IPolicyCoreFacet.getInfo.selector,
+      IPolicyCoreFacet.getTranchInfo.selector,
+      IPolicyCoreFacet.calculateMaxNumOfPremiums.selector,
+      IPolicyCoreFacet.initiationDateHasPassed.selector,
+      IPolicyCoreFacet.startDateHasPassed.selector,
+      IPolicyCoreFacet.maturationDateHasPassed.selector,
+      IPolicyCoreFacet.checkAndUpdateState.selector
     );
   }
 
@@ -244,7 +244,7 @@ contract PolicyCore is EternalStorage, Controller, IDiamondFacet, IPolicyCore, P
         address initialHolder = dataAddress[__i(i, "initialHolder")];
         require(initialHolder == address(this), "initial holder must be policy contract");
         // get supply
-        uint256 totalSupply = IPolicyTranchTokens(address(this)).tknTotalSupply(i);
+        uint256 totalSupply = IPolicyTranchTokensFacet(address(this)).tknTotalSupply(i);
         // calculate sale values
         uint256 pricePerShare = dataUint256[__i(i, "pricePerShareAmount")];
         uint256 totalPrice = totalSupply.mul(pricePerShare);

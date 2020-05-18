@@ -3,7 +3,7 @@ pragma solidity >=0.6.7;
 /**
  * @dev Policy claims code.
  */
-interface IPolicyClaims {
+interface IPolicyClaimsFacet {
   /**
    * @dev Make a claim.
    *

@@ -3,7 +3,7 @@ pragma solidity >=0.6.7;
 /**
  * @dev Policy commissions code.
  */
-interface IPolicyCommissions {
+interface IPolicyCommissionsFacet {
   /**
    * @dev Payout commission balances.
    *

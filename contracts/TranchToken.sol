@@ -1,17 +1,17 @@
 pragma solidity >=0.6.7;
 
 import './base/IERC20.sol';
-import './base/IPolicyTranchTokens.sol';
+import './base/IPolicyTranchTokensFacet.sol';
 
 /**
  * @dev An Policy tranch.
  */
 contract TranchToken is IERC20 {
-  IPolicyTranchTokens public impl;
+  IPolicyTranchTokensFacet public impl;
   uint256 public index;
 
   constructor (address _impl, uint256 _index) public {
-    impl = IPolicyTranchTokens(_impl);
+    impl = IPolicyTranchTokensFacet(_impl);
     index = _index;
   }
 

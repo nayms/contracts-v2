@@ -7,19 +7,19 @@ Forked from https://github.com/mudgen/Diamond/blob/master/contracts/DiamondExamp
 
 import "./DiamondStorageBase.sol";
 
-import "./IDiamondUpgradeFacet.sol";
-import "./DiamondUpgradeFacet.sol";
+import "./IDiamondCutFacet.sol";
+import "./DiamondCutFacet.sol";
 
 import "./IDiamondLoupeFacet.sol";
 import "./DiamondLoupeFacet.sol";
 
 import "./IDiamondFacet.sol";
 
-contract DiamondProxy is DiamondStorageBase {
+abstract contract DiamondProxy is DiamondStorageBase {
   constructor () public {
-    // Create a DiamondUpgradeFacet contract which implements the Diamond interface
-    DiamondUpgradeFacet diamondFacet = new DiamondUpgradeFacet();
-    dataAddress["diamondUpgradeFacet"] = address(diamondFacet);
+    // Create a DiamondCutFacet contract
+    DiamondCutFacet diamondFacet = new DiamondCutFacet();
+    dataAddress["diamondCutFacet"] = address(diamondFacet);
 
     // Create a DiamondLoupeFacet contract which implements the Diamond Loupe interface
     DiamondLoupeFacet diamondLoupeFacet = new DiamondLoupeFacet();
@@ -27,7 +27,7 @@ contract DiamondProxy is DiamondStorageBase {
     bytes[] memory changes = new bytes[](2);
 
     // Adding cut function
-    changes[0] = abi.encodePacked(diamondFacet, IDiamondUpgradeFacet.diamondCut.selector);
+    changes[0] = abi.encodePacked(diamondFacet, IDiamondCutFacet.diamondCut.selector);
 
     // Adding diamond loupe functions
     changes[1] = abi.encodePacked(
@@ -44,8 +44,8 @@ contract DiamondProxy is DiamondStorageBase {
 
 
   function _upgradeDiamond (bytes[] memory _changes) internal {
-    bytes memory cutFunction = abi.encodeWithSelector(IDiamondUpgradeFacet.diamondCut.selector, _changes);
-    (bool success,) = dataAddress["diamondUpgradeFacet"].delegatecall(cutFunction);
+    bytes memory cutFunction = abi.encodeWithSelector(IDiamondCutFacet.diamondCut.selector, _changes);
+    (bool success,) = dataAddress["diamondCutFacet"].delegatecall(cutFunction);
     require(success, "Adding functions failed.");
   }
 
@@ -66,7 +66,7 @@ contract DiamondProxy is DiamondStorageBase {
   // Finds facet for function that is called and executes the
   // function if it is found and returns any value.
   fallback() external payable {
-    require(msg.sig != IDiamondUpgradeFacet.diamondCut.selector, "Direct diamondCut disallowed");
+    require(msg.sig != IDiamondCutFacet.diamondCut.selector, "Direct diamondCut disallowed");
 
     DiamondStorage storage ds = diamondStorage();
     address facet = address(bytes20(ds.facets[msg.sig]));

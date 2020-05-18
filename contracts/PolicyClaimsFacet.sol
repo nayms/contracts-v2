@@ -4,8 +4,8 @@ import "./base/SafeMath.sol";
 import "./base/EternalStorage.sol";
 import "./base/Controller.sol";
 import "./base/IDiamondFacet.sol";
-import "./base/IPolicyClaims.sol";
-import "./base/IPolicyCore.sol";
+import "./base/IPolicyClaimsFacet.sol";
+import "./base/IPolicyCoreFacet.sol";
 import "./base/PolicyFacetBase.sol";
 import "./base/AccessControl.sol";
 import "./base/IERC20.sol";
@@ -13,7 +13,7 @@ import "./base/IERC20.sol";
 /**
  * @dev Business-logic for Policy claims
  */
-contract PolicyClaims is EternalStorage, Controller, IDiamondFacet, IPolicyClaims, PolicyFacetBase {
+contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicyClaimsFacet, PolicyFacetBase {
   using SafeMath for uint;
 
   modifier assertActiveState () {
@@ -45,16 +45,16 @@ contract PolicyClaims is EternalStorage, Controller, IDiamondFacet, IPolicyClaim
 
   function getSelectors () public pure override returns (bytes memory) {
     return abi.encodePacked(
-      IPolicyClaims.makeClaim.selector,
-      IPolicyClaims.approveClaim.selector,
-      IPolicyClaims.declineClaim.selector,
-      IPolicyClaims.payClaims.selector,
-      IPolicyClaims.getClaimStats.selector,
-      IPolicyClaims.getClaimInfo.selector
+      IPolicyClaimsFacet.makeClaim.selector,
+      IPolicyClaimsFacet.approveClaim.selector,
+      IPolicyClaimsFacet.declineClaim.selector,
+      IPolicyClaimsFacet.payClaims.selector,
+      IPolicyClaimsFacet.getClaimStats.selector,
+      IPolicyClaimsFacet.getClaimInfo.selector
     );
   }
 
-  // IPolicyClaims
+  // IPolicyClaimsFacet
 
   function getClaimStats() public view override returns (
     uint256 numClaims_,
@@ -82,7 +82,7 @@ contract PolicyClaims is EternalStorage, Controller, IDiamondFacet, IPolicyClaim
     assertActiveState
     assertIsClientManager(msg.sender)
   {
-    IPolicyCore(address(this)).checkAndUpdateState();
+    IPolicyCoreFacet(address(this)).checkAndUpdateState();
     _makeClaim(_index, _clientManagerEntity, _amount);
   }
 

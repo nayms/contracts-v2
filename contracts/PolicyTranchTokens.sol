@@ -3,7 +3,7 @@ pragma solidity >=0.6.7;
 import "./base/EternalStorage.sol";
 import "./base/Controller.sol";
 import "./base/IDiamondFacet.sol";
-import "./base/IPolicyTranchTokens.sol";
+import "./base/IPolicyTranchTokensFacet.sol";
 import "./base/PolicyFacetBase.sol";
 import "./base/AccessControl.sol";
 import "./base/SafeMath.sol";
@@ -12,7 +12,7 @@ import "./base/IERC20.sol";
 /**
  * @dev Business-logic for Policy commissions
  */
-contract PolicyTranchTokens is EternalStorage, Controller, IDiamondFacet, IPolicyTranchTokens, PolicyFacetBase {
+contract PolicyTranchTokensFacet is EternalStorage, Controller, IDiamondFacet, IPolicyTranchTokensFacet, PolicyFacetBase {
   using SafeMath for uint;
 
   modifier assertIsAssetManager (address _addr) {
@@ -39,17 +39,17 @@ contract PolicyTranchTokens is EternalStorage, Controller, IDiamondFacet, IPolic
 
   function getSelectors () public pure override returns (bytes memory) {
     return abi.encodePacked(
-      IPolicyTranchTokens.tknName.selector,
-      IPolicyTranchTokens.tknSymbol.selector,
-      IPolicyTranchTokens.tknTotalSupply.selector,
-      IPolicyTranchTokens.tknBalanceOf.selector,
-      IPolicyTranchTokens.tknAllowance.selector,
-      IPolicyTranchTokens.tknApprove.selector,
-      IPolicyTranchTokens.tknTransfer.selector
+      IPolicyTranchTokensFacet.tknName.selector,
+      IPolicyTranchTokensFacet.tknSymbol.selector,
+      IPolicyTranchTokensFacet.tknTotalSupply.selector,
+      IPolicyTranchTokensFacet.tknBalanceOf.selector,
+      IPolicyTranchTokensFacet.tknAllowance.selector,
+      IPolicyTranchTokensFacet.tknApprove.selector,
+      IPolicyTranchTokensFacet.tknTransfer.selector
     );
   }
 
-  // IPolicyTranchTokens
+  // IPolicyTranchTokensFacet
 
   function tknName(uint256 _index) public view override returns (string memory) {
     return string(abi.encodePacked(address(this).toString(), "_tranch_", _index));

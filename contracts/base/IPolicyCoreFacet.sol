@@ -3,7 +3,7 @@ pragma solidity >=0.6.7;
 /**
  * @dev Policy core logic.
  */
-interface IPolicyCore {
+interface IPolicyCoreFacet {
   /**
    * @dev Create tranch.
    *

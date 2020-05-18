@@ -3,7 +3,7 @@ pragma solidity >=0.6.7;
 /**
  * @dev Policy premiums code.
  */
-interface IPolicyPremiums {
+interface IPolicyPremiumsFacet {
   /**
    * @dev Pay the next expected premium for the given tranch.
    *

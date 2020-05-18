@@ -14,12 +14,13 @@ import { ensureAclIsDeployed } from '../migrations/modules/acl'
 import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
 import { ensureMarketIsDeployed } from '../migrations/modules/market'
 import { ensureEntityDeployerIsDeployed } from '../migrations/modules/entityDeployer'
+import { ensureEntityImplementationsAreDeployed } from '../migrations/modules/entityImplementations'
 import { ensurePolicyImplementationsAreDeployed } from '../migrations/modules/policyImplementations'
 
-const IEntityImpl = artifacts.require('./base/IEntityImpl')
-const EntityImpl = artifacts.require('./EntityImpl')
+const IEntity = artifacts.require('./base/IEntity')
 const Entity = artifacts.require('./Entity')
-const IPolicyImpl = artifacts.require('./base/IPolicyImpl')
+const IPolicy = artifacts.require('./base/IPolicy')
+const IPolicyStates = artifacts.require('./base/IPolicyStates')
 const Policy = artifacts.require('./Policy')
 
 
@@ -29,7 +30,7 @@ contract('End-to-end integration tests', accounts => {
   let etherToken
   let entityImpl
   let entityDeployer
-  let policyImpl
+  let policyCoreAddress
   let market
 
   let systemAdmin
@@ -94,19 +95,20 @@ contract('End-to-end integration tests', accounts => {
     // wrappedEth
     etherToken = await ensureEtherTokenIsDeployed({ artifacts }, acl.address, settings.address)
     // entities
-    entityImpl = await EntityImpl.new(acl.address, settings.address)
-    entityDeployer = await ensureEntityDeployerIsDeployed({ artifacts }, acl.address, settings.address, entityImpl.address)
+    await ensureEntityImplementationsAreDeployed({ artifacts }, acl.address, settings.address)
+    entityDeployer = await ensureEntityDeployerIsDeployed({ artifacts }, acl.address, settings.address)
     // policies
-    ;({ policyImpl } = await ensurePolicyImplementationsAreDeployed({ artifacts }, acl.address, settings.address))
-    POLICY_STATE_CREATED = await policyImpl.POLICY_STATE_CREATED()
-    POLICY_STATE_SELLING = await policyImpl.POLICY_STATE_SELLING()
-    POLICY_STATE_ACTIVE = await policyImpl.POLICY_STATE_ACTIVE()
-    POLICY_STATE_MATURED = await policyImpl.POLICY_STATE_MATURED()
-    TRANCH_STATE_CREATED = await policyImpl.TRANCH_STATE_CREATED()
-    TRANCH_STATE_SELLING = await policyImpl.TRANCH_STATE_SELLING()
-    TRANCH_STATE_ACTIVE = await policyImpl.TRANCH_STATE_ACTIVE()
-    TRANCH_STATE_MATURED = await policyImpl.TRANCH_STATE_MATURED()
-    TRANCH_STATE_CANCELLED = await policyImpl.TRANCH_STATE_CANCELLED()
+    ;([ policyCoreAddress ] = await ensurePolicyImplementationsAreDeployed({ artifacts }, acl.address, settings.address))
+    const policyStates = await IPolicyStates.at(policyCoreAddress)
+    POLICY_STATE_CREATED = await policyStates.POLICY_STATE_CREATED()
+    POLICY_STATE_SELLING = await policyStates.POLICY_STATE_SELLING()
+    POLICY_STATE_ACTIVE = await policyStates.POLICY_STATE_ACTIVE()
+    POLICY_STATE_MATURED = await policyStates.POLICY_STATE_MATURED()
+    TRANCH_STATE_CREATED = await policyStates.TRANCH_STATE_CREATED()
+    TRANCH_STATE_SELLING = await policyStates.TRANCH_STATE_SELLING()
+    TRANCH_STATE_ACTIVE = await policyStates.TRANCH_STATE_ACTIVE()
+    TRANCH_STATE_MATURED = await policyStates.TRANCH_STATE_MATURED()
+    TRANCH_STATE_CANCELLED = await policyStates.TRANCH_STATE_CANCELLED()
     // market
     market = await ensureMarketIsDeployed({ artifacts }, settings.address)
 
@@ -123,7 +125,7 @@ contract('End-to-end integration tests', accounts => {
       // step 4: create entity0
       let deployEntityTx = await entityDeployer.deploy({ from: systemManager })
       entity0Address = extractEventArgs(deployEntityTx, events.NewEntity).entity
-      entity0 = await IEntityImpl.at(entity0Address)
+      entity0 = await IEntity.at(entity0Address)
       entity0Proxy = await Entity.at(entity0Address)
       entity0Context = await entity0Proxy.aclContext()
       // step 5: assign role
@@ -142,7 +144,7 @@ contract('End-to-end integration tests', accounts => {
       // step 9: create entity1
       deployEntityTx = await entityDeployer.deploy({ from: systemManager })
       entity1Address = extractEventArgs(deployEntityTx, events.NewEntity).entity
-      entity1 = await IEntityImpl.at(entity1Address)
+      entity1 = await IEntity.at(entity1Address)
       entity1Proxy = await Entity.at(entity1Address)
       entity1Context = await entity1Proxy.aclContext()
       // step 10: assign role
@@ -161,7 +163,7 @@ contract('End-to-end integration tests', accounts => {
       // step 14: create entity2
       deployEntityTx = await entityDeployer.deploy({ from: systemManager })
       entity2Address = extractEventArgs(deployEntityTx, events.NewEntity).entity
-      entity2 = await IEntityImpl.at(entity2Address)
+      entity2 = await IEntity.at(entity2Address)
       entity2Proxy = await Entity.at(entity2Address)
       entity2Context = await entity2Proxy.aclContext()
       // step 15: assign role
@@ -171,7 +173,7 @@ contract('End-to-end integration tests', accounts => {
       // step 16: create entity3
       deployEntityTx = await entityDeployer.deploy({ from: systemManager })
       entity3Address = extractEventArgs(deployEntityTx, events.NewEntity).entity
-      entity3 = await IEntityImpl.at(entity3Address)
+      entity3 = await IEntity.at(entity3Address)
       entity3Proxy = await Entity.at(entity3Address)
       entity3Context = await entity3Proxy.aclContext()
       // step 15: assign role
@@ -232,7 +234,7 @@ contract('End-to-end integration tests', accounts => {
     const policy1Address = await entity0.getPolicy(0)
     const policy1Proxy = await Policy.at(policy1Address)
     const policy1Context = await policy1Proxy.aclContext()
-    const policy1 = await IPolicyImpl.at(policy1Address)
+    const policy1 = await IPolicy.at(policy1Address)
     const policy1Owner = entity0Manager
 
     // set baseline time
@@ -487,7 +489,7 @@ contract('End-to-end integration tests', accounts => {
     const policy2Address = await entity0.getPolicy(0)
     const policy2Proxy = await Policy.at(policy2Address)
     const policy2Context = await policy2Proxy.aclContext()
-    const policy2 = await IPolicyImpl.at(policy2Address)
+    const policy2 = await IPolicy.at(policy2Address)
     const policy2Owner = entity0Manager
 
     // set baseline time

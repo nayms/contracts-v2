@@ -1,6 +1,8 @@
 pragma solidity >=0.6.7;
 
 import "./IDiamondUpgradeFacet.sol";
+import "./IAccessControl.sol";
+import "./ISettingsControl.sol";
 import "./IEntityCoreFacet.sol";
 
 /**
@@ -8,5 +10,7 @@ import "./IEntityCoreFacet.sol";
  */
 abstract contract IEntity is
   IDiamondUpgradeFacet,
+  IAccessControl,
+  ISettingsControl,
   IEntityCoreFacet
   {}

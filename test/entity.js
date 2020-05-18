@@ -22,7 +22,7 @@ const AccessControl = artifacts.require('./base/AccessControl')
 const TestEntityFacet = artifacts.require("./test/TestEntityFacet")
 const FreezeUpgradesFacet = artifacts.require("./test/FreezeUpgradesFacet")
 const Entity = artifacts.require("./Entity")
-const Policy = artifacts.require("./Policy")
+const IPolicy = artifacts.require("./IPolicy")
 
 contract('Entity', accounts => {
   let acl
@@ -216,7 +216,7 @@ contract('Entity', accounts => {
         entity: entityProxy.address,
       })
 
-      await Policy.at(eventArgs.policy).should.be.fulfilled;
+      await IPolicy.at(eventArgs.policy).should.be.fulfilled;
     })
 
     it('and the entity records get updated accordingly', async () => {
@@ -244,7 +244,7 @@ contract('Entity', accounts => {
 
       const eventArgs = extractEventArgs(result, events.NewPolicy)
 
-      const policy = await PolicyImpl.at(eventArgs.policy)
+      const policy = await IPolicy.at(eventArgs.policy)
       await policy.getInfo().should.eventually.matchObj({
         startDate: startDate
       })
@@ -255,7 +255,7 @@ contract('Entity', accounts => {
 
       const eventArgs = extractEventArgs(result, events.NewPolicy)
 
-      const policy = await PolicyImpl.at(eventArgs.policy)
+      const policy = await IPolicy.at(eventArgs.policy)
 
       const policyContext = await policy.aclContext()
 
@@ -281,7 +281,7 @@ contract('Entity', accounts => {
 
         const eventArgs = extractEventArgs(result, events.NewPolicy)
 
-        policy = await PolicyImpl.at(eventArgs.policy);
+        policy = await IPolicy.at(eventArgs.policy);
         const accessControl = await AccessControl.at(policy.address)
         policyContext = await accessControl.aclContext()
 

@@ -49,8 +49,6 @@ module.exports = async (deployer, network) => {
 
   if (doFreshDeployment || networkInfo.isLocal) {
     await log.task('Re-deploying all contracts', async () => {
-      await deployer.deploy(artifacts.require("./Migrations"))
-
       acl = await ensureAclIsDeployed({ deployer, artifacts, log })
       settings = await ensureSettingsIsDeployed({ deployer, artifacts, log }, acl.address)
 

@@ -93,48 +93,63 @@ yarn deploy:local
 
 Install dependencies:
 
-```
+```shell
 yarn
 ```
 
 Initialize git submodules (for maker-otc trading engine):
 
-```
+```shell
 git submodule init
 git submodule update
 ```
 
 First, run the dev network in a separate terminal:
 
-```
+```shell
 yarn devnet
 ```
 
 Compile the contracts:
 
-```
+```shell
 yarn compile
 ```
 
 Now deploy the contracts to it:
 
-```
+```shell
 yarn deploy:local
 ```
 
 Now you can run the tests:
 
-```
+```shell
 yarn test
 ```
 
 ### Deployments
 
-Assuming you've followed the previous compilation step, deploy to rinkeby using:
+Set up the env vars:
 
+```shell
+export MNEMONI="..."
+export INFURA_KEY="..."
 ```
-MNEMONIC="..." INFURA_KEY="..." yarn deploy:rinkeby
+
+To deploy a fresh set of contracts and update `deployedAddresses.json`, do:
+
+```shell
+FRESH=true yarn deploy:rinkeby
 ```
+
+To just upgrade existing contracts:
+
+```shell
+yarn deploy:rinkeby
+```
+
+For mainnet it's the same process, but using the `deploy:mainnet` command instead.
 
 ## Notes
 

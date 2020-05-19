@@ -28,6 +28,7 @@
     "copy-maker-otc-artifacts": "./scripts/copyMakerOtcArtifacts.js",
     "generate-index": "./scripts/generateIndex.js",
     "compile": "rm -rf build && yarn truffle compile --network test && yarn copy-maker-otc-artifacts && yarn generate-index",
+    "deploy:mainnet": "yarn truffle migrate --network mainnet && yarn extract-deployed-addresses",
     "deploy:rinkeby": "yarn truffle migrate --network rinkeby && yarn extract-deployed-addresses",
     "deploy:local": "yarn truffle migrate --network test",
     "extract-deployed-addresses": "./scripts/extractDeployedAddresses.js",

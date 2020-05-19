@@ -72,6 +72,16 @@
         {
           "type": "call",
           "contract": "Settings",
+          "method": "getRootAddresses",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_key": "@input[key]"
+          },
+          "saveResultAsInput": "addrList"
+        },
+        {
+          "type": "call",
+          "contract": "Settings",
           "method": "getTime",
           "address": "@input[contractAddress]",
           "saveResultAsInput": "getTime"
@@ -79,9 +89,14 @@
       ],
       "outputs": [
         {
-          "title": "Value",
+          "title": "Address",
           "type": "address",
           "value": "@input[addr]"
+        },
+        {
+          "title": "Addresses",
+          "type": "address[]",
+          "value": "@input[addrList]"
         },
         {
           "title": "Current time",
@@ -320,7 +335,7 @@
       "execs": [
         {
           "type": "call",
-          "contract": "AccessControl",
+          "contract": "IAccessControl",
           "method": "aclContext",
           "address": "@input[contractAddress]",
           "saveResultAsInput": "aclContext"
@@ -644,7 +659,7 @@
       "execs": [
         {
           "type": "send",
-          "contract": "PolicyImpl",
+          "contract": "IPolicy",
           "method": "checkAndUpdateState",
           "address": "@input[contractAddress]"
         }
@@ -669,7 +684,7 @@
       "execs": [
         {
           "type": "call",
-          "contract": "PolicyImpl",
+          "contract": "IPolicy",
           "method": "getInfo",
           "address": "@input[contractAddress]",
           "saveResultAsInput": "policyInfo"
@@ -787,7 +802,7 @@
       "execs": [
         {
           "type": "call",
-          "contract": "PolicyImpl",
+          "contract": "IPolicy",
           "method": "getTranchInfo",
           "address": "@input[contractAddress]",
           "args": {
@@ -917,7 +932,7 @@
       "execs": [
         {
           "type": "call",
-          "contract": "PolicyImpl",
+          "contract": "IPolicy",
           "method": "getTranchPremiumInfo",
           "address": "@input[contractAddress]",
           "args": {
@@ -965,8 +980,8 @@
       ]
     },
     {
-      "id": "payPremium",
-      "title": "Policy: Pay a tranche premium",
+      "id": "payPremiumDirectly",
+      "title": "Policy: Pay a tranche premium directly",
       "description": "Anyone can do this. Just ensure the payment token has approved the policy to transfer.",
       "inputs": [
         {
@@ -995,11 +1010,63 @@
       "execs": [
         {
           "type": "send",
-          "contract": "PolicyImpl",
+          "contract": "IPolicy",
           "method": "payTranchPremium",
           "address": "@input[contractAddress]",
           "args": {
             "_index": "@input[index]"
+          }
+        }
+      ]
+    },
+    {
+      "id": "payPremiumViaEntity",
+      "title": "Entity: Pay a tranche premium",
+      "description": "Only entity reps who are client managers of the policy can do this.",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "Entity contract address",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "policyAddress",
+          "title": "Policy contract address",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "index",
+          "title": "Tranch index (0-based)",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "send",
+          "contract": "IEntity",
+          "method": "payTranchPremium",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_policy": "@input[policyAddress]",
+            "_tranchIndex": "@input[index]"
           }
         }
       ]

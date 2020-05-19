@@ -33,7 +33,7 @@ const getDeployerWithLiveGasPrice = async ({ deployer, log }) => {
 module.exports = async (deployer, network) => {
   const log = createLog(console.log.bind(console))
 
-  const doReset = !!process.env.RESET
+  const doFreshDeployment = !!process.env.FRESH
 
   let acl
   let settings
@@ -47,7 +47,7 @@ module.exports = async (deployer, network) => {
     })
   }
 
-  if (doReset || networkInfo.isLocal) {
+  if (doFreshDeployment || networkInfo.isLocal) {
     await log.task('Re-deploying all contracts', async () => {
       await deployer.deploy(artifacts.require("./Migrations"))
 

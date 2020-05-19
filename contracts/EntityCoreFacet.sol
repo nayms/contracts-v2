@@ -119,10 +119,10 @@ import "./Policy.sol";
     tok.transfer(msg.sender, _amount);
   }
 
-  function payTranchPremium(address _policyAddress, uint256 _tranchIndex)
+  function payTranchPremium(address _policy, uint256 _tranchIndex)
     public
     override
-    assertCanPayTranchPremiums(_policyAddress)
+    assertCanPayTranchPremiums(_policy)
   {
     address policyUnitAddress;
     uint256 nextPremiumAmount;
@@ -132,14 +132,14 @@ import "./Policy.sol";
     uint256 i4;
     address a1;
 
-    IPolicy p = IPolicy(_policyAddress);
+    IPolicy p = IPolicy(_policy);
     // policy's unit
     (a1, i1, i2, i3, policyUnitAddress, , , , , ,) = p.getInfo();
     // next premium amount
     (a1, i1, i2, i3, i4, nextPremiumAmount, , , , ,) = p.getTranchInfo(_tranchIndex);
     // approve transfer
     IERC20 tok = IERC20(policyUnitAddress);
-    tok.approve(_policyAddress, nextPremiumAmount);
+    tok.approve(_policy, nextPremiumAmount);
     // do it
     p.payTranchPremium(_tranchIndex);
   }

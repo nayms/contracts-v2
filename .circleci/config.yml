@@ -45,15 +45,18 @@ jobs:
       - run:
           name: Deploy initial contracts
           command: yarn deploy:local
+      # - run:
+      #     name: Run tests with coverage
+      #     command: yarn coverage
+      # - store_artifacts:
+      #     path: ~/repo/coverage
+      #     destination: coverage
+      # - run:
+      #     name: Upload coverage report to coveralls
+      #     command: cat ./coverage/lcov.info | yarn coveralls
       - run:
-          name: Run tests with coverage
-          command: yarn coverage
-      - store_artifacts:
-          path: ~/repo/coverage
-          destination: coverage
-      - run:
-          name: Upload coverage report to coveralls
-          command: cat ./coverage/lcov.info | yarn coveralls
+          name: Run tests without coverage
+          command: yarn test
       - persist_to_workspace:
           root: ~/repo
           paths: .

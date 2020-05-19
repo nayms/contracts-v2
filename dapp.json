@@ -1,0 +1,880 @@
+{
+  "version": 1,
+  "title": "Nayms Admin",
+  "description": "The Nayms admin interface, for the overlords.",
+  "aboutUrl": "https://github.com/nayms/contracts",
+  "constants": {
+    "aclAddress": {
+      "4": "0x2e2a382C0f7Bb0902E394074C3E80eEE075B8F98",
+      "default": ""
+    },
+    "entityDeployerAddress": {
+      "4": "0xE9275a45B9390cd20eb23F40ebec08D08DD7d78C",
+      "default": ""
+    },
+    "settingsAddress": {
+      "4": "0xc778b8b5Eb79c86eA02AdC6eada3703Ca587E350",
+      "default": ""
+    },
+    "matchingMarketAddress": {
+      "4": "0x02BF70c84A13945DE0654B90CB8825989eb36Fe3",
+      "default": ""
+    },
+    "etherTokenAddress": {
+      "4": "0x18540B419a40dFB19C28C5Fba69E9dC19Ab6477E",
+      "default": ""
+    },
+    "entityImplAddress": {
+      "4": "0xD856169d1b118851BB439f626D889841AB64C8F2",
+      "default": ""
+    }
+  },
+  "panels": [
+    {
+      "id": "getSettings",
+      "title": "Settings: Check addresses",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "Settings contract",
+          "type": "address",
+          "initialValue": "@constant[settingsAddress]",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ],
+          "resolvedInitialValue": ""
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "SettingsImpl",
+          "method": "getMatchingMarket",
+          "address": "@input[contractAddress]",
+          "saveResultAsInput": "getMatchingMarket"
+        },
+        {
+          "type": "call",
+          "contract": "SettingsImpl",
+          "method": "getEntityDeployer",
+          "address": "@input[contractAddress]",
+          "saveResultAsInput": "getEntityDeployer"
+        },
+        {
+          "type": "call",
+          "contract": "SettingsImpl",
+          "method": "getPolicyImplementation",
+          "address": "@input[contractAddress]",
+          "saveResultAsInput": "getPolicyImplementation"
+        },
+        {
+          "type": "call",
+          "contract": "SettingsImpl",
+          "method": "getPolicyMutations",
+          "address": "@input[contractAddress]",
+          "saveResultAsInput": "getPolicyMutations"
+        },
+        {
+          "type": "call",
+          "contract": "SettingsImpl",
+          "method": "getNaymsEntity",
+          "address": "@input[contractAddress]",
+          "saveResultAsInput": "getNaymsEntity"
+        },
+        {
+          "type": "call",
+          "contract": "SettingsImpl",
+          "method": "getTime",
+          "address": "@input[contractAddress]",
+          "saveResultAsInput": "getTime"
+        }
+      ],
+      "outputs": [
+        {
+          "title": "Current time",
+          "type": "address",
+          "value": "@input[getTime]"
+        },
+        {
+          "title": "Matching market",
+          "type": "address",
+          "value": "@input[getMatchingMarket]"
+        },
+        {
+          "title": "Entity deployer",
+          "type": "address",
+          "value": "@input[getEntityDeployer]"
+        },
+        {
+          "title": "Policy implementation",
+          "type": "address",
+          "value": "@input[getPolicyImplementation]"
+        },
+        {
+          "title": "Policy mutations",
+          "type": "address",
+          "value": "@input[getPolicyMutations]"
+        },
+        {
+          "title": "Nayms entity",
+          "type": "address",
+          "value": "@input[getNaymsEntity]"
+        }
+      ]
+    },
+    {
+      "id": "isAdmin",
+      "title": "ACL: Check if user is admin",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "ACL contract address",
+          "description": "The address of the ACL contract",
+          "type": "address",
+          "initialValue": "@constant[aclAddress]",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ],
+          "resolvedInitialValue": ""
+        },
+        {
+          "name": "address",
+          "title": "Address",
+          "type": "address"
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "ACL",
+          "method": "isAdmin",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_addr": "@input[address]"
+          },
+          "saveResultAsInput": "isAdmin"
+        }
+      ],
+      "outputs": [
+        {
+          "title": "Is admin",
+          "type": "bool",
+          "value": "@input[isAdmin]"
+        }
+      ]
+    },
+    {
+      "id": "addAdmin",
+      "title": "ACL: Add admin",
+      "description": "You must be an admin to do this",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "ACL contract address",
+          "initialValue": "@constant[aclAddress]",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ],
+          "resolvedInitialValue": ""
+        },
+        {
+          "name": "address",
+          "title": "Address",
+          "type": "address"
+        }
+      ],
+      "execs": [
+        {
+          "type": "send",
+          "contract": "ACL",
+          "method": "addAdmin",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_addr": "@input[address]"
+          }
+        }
+      ]
+    },
+    {
+      "id": "getNumContexts",
+      "title": "ACL: Get no. of contexts",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "ACL contract address",
+          "type": "address",
+          "initialValue": "@constant[aclAddress]",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ],
+          "resolvedInitialValue": ""
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "ACL",
+          "method": "getNumContexts",
+          "address": "@input[contractAddress]",
+          "saveResultAsInput": "numContexts"
+        }
+      ],
+      "outputs": [
+        {
+          "title": "No. of contexts",
+          "type": "string",
+          "value": "@input[numContexts]"
+        }
+      ]
+    },
+    {
+      "id": "getContext",
+      "title": "ACL: Get context",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "ACL contract address",
+          "type": "address",
+          "initialValue": "@constant[aclAddress]",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ],
+          "resolvedInitialValue": ""
+        },
+        {
+          "name": "index",
+          "title": "Index",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "ACL",
+          "method": "getContextAtIndex",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_index": "@input[index]"
+          },
+          "saveResultAsInput": "context"
+        }
+      ],
+      "outputs": [
+        {
+          "title": "Context",
+          "type": "string",
+          "value": "@input[context]"
+        }
+      ]
+    },
+    {
+      "id": "genContext",
+      "title": "ACL: Generate context for address",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "ACL contract address",
+          "description": "The address of the ACL contract",
+          "type": "address",
+          "initialValue": "@constant[aclAddress]",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ],
+          "resolvedInitialValue": ""
+        },
+        {
+          "name": "address",
+          "title": "Address",
+          "type": "address"
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "ACL",
+          "method": "generateContextFromAddress",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_addr": "@input[address]"
+          },
+          "saveResultAsInput": "generatedContext"
+        }
+      ],
+      "outputs": [
+        {
+          "title": "Generated context",
+          "type": "string",
+          "value": "@input[generatedContext]"
+        }
+      ]
+    },
+    {
+      "id": "getContextForContract",
+      "title": "AccessControl: Get contract's own context",
+      "description": "This only works for contracts which talk to the ACL.",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "Contract address",
+          "description": "The address of the contract",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "AccessControl",
+          "method": "aclContext",
+          "address": "@input[contractAddress]",
+          "saveResultAsInput": "aclContext"
+        }
+      ],
+      "outputs": [
+        {
+          "title": "Contract's own context",
+          "type": "string",
+          "value": "@input[aclContext]"
+        }
+      ]
+    },
+    {
+      "id": "assignRole",
+      "title": "ACL: Assign role",
+      "description": "You must be an admin or an assigner for the role to do this",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "ACL contract address",
+          "type": "address",
+          "initialValue": "@constant[aclAddress]",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ],
+          "resolvedInitialValue": ""
+        },
+        {
+          "name": "context",
+          "title": "Context",
+          "type": "string",
+          "validation": [
+            {
+              "type": "length",
+              "min": "0"
+            }
+          ]
+        },
+        {
+          "name": "address",
+          "title": "Address",
+          "type": "address"
+        },
+        {
+          "name": "role",
+          "title": "Role",
+          "type": "bytes32"
+        }
+      ],
+      "execs": [
+        {
+          "type": "send",
+          "contract": "ACL",
+          "method": "assignRole",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_context": "@input[context]",
+            "_addr": "@input[address]",
+            "_role": "@input[role]"
+          }
+        }
+      ]
+    },
+    {
+      "id": "unassignRole",
+      "title": "ACL: Un-assign role",
+      "description": "You must be an admin or an assigner for the role to do this",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "ACL contract address",
+          "type": "address",
+          "initialValue": "@constant[aclAddress]",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ],
+          "resolvedInitialValue": ""
+        },
+        {
+          "name": "context",
+          "title": "Context",
+          "type": "bytes32",
+          "placeholder": "A bytes32 value",
+          "validation": [
+            {
+              "type": "length",
+              "min": "0"
+            }
+          ]
+        },
+        {
+          "name": "address",
+          "title": "Address",
+          "type": "address"
+        },
+        {
+          "name": "role",
+          "title": "Role",
+          "type": "bytes32"
+        }
+      ],
+      "execs": [
+        {
+          "type": "send",
+          "contract": "ACL",
+          "method": "unassignRole",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_context": "@input[context]",
+            "_addr": "@input[address]",
+            "_role": "@input[role]"
+          }
+        }
+      ]
+    },
+    {
+      "id": "hasRole",
+      "title": "ACL: Does user have role?",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "ACL contract address",
+          "type": "address",
+          "initialValue": "@constant[aclAddress]",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ],
+          "resolvedInitialValue": ""
+        },
+        {
+          "name": "context",
+          "title": "Context",
+          "type": "bytes32",
+          "placeholder": "A bytes32 value",
+          "validation": [
+            {
+              "type": "length",
+              "min": "0"
+            }
+          ]
+        },
+        {
+          "name": "address",
+          "title": "Address",
+          "type": "address"
+        },
+        {
+          "name": "role",
+          "title": "Role",
+          "type": "bytes32"
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "ACL",
+          "method": "hasRole",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_context": "@input[context]",
+            "_addr": "@input[address]",
+            "_role": "@input[role]"
+          },
+          "saveResultAsInput": "has"
+        }
+      ],
+      "outputs": [
+        {
+          "title": "Has role",
+          "type": "bool",
+          "value": "@input[has]"
+        }
+      ]
+    },
+    {
+      "id": "deployEntity",
+      "title": "EntityDeployer: Deploy entity",
+      "description": "You must be an admin to do this",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "EntityDeployer contract address",
+          "type": "address",
+          "initialValue": "@constant[entityDeployerAddress]",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ],
+          "resolvedInitialValue": ""
+        }
+      ],
+      "execs": [
+        {
+          "type": "send",
+          "contract": "EntityDeployer",
+          "method": "deploy",
+          "address": "@input[contractAddress]"
+        }
+      ]
+    },
+    {
+      "id": "getEntityCount",
+      "title": "EntityDeployer: Get no. of entities",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "EntityDeployer contract address",
+          "type": "address",
+          "initialValue": "@constant[entityDeployerAddress]",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ],
+          "resolvedInitialValue": ""
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "EntityDeployer",
+          "method": "getNumEntities",
+          "address": "@input[contractAddress]",
+          "saveResultAsInput": "numEntities"
+        }
+      ],
+      "outputs": [
+        {
+          "title": "No. of entities",
+          "type": "int",
+          "value": "@input[numEntities]"
+        }
+      ]
+    },
+    {
+      "id": "getEntity",
+      "title": "EntityDeployer: Get entity",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "EntityDeployer contract address",
+          "type": "address",
+          "initialValue": "@constant[entityDeployerAddress]",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ],
+          "resolvedInitialValue": ""
+        },
+        {
+          "name": "index",
+          "title": "Index",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "EntityDeployer",
+          "method": "getEntity",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_index": "@input[index]"
+          },
+          "saveResultAsInput": "entityAddress"
+        }
+      ],
+      "outputs": [
+        {
+          "title": "Entity",
+          "type": "address",
+          "value": "@input[entityAddress]"
+        }
+      ]
+    },
+    {
+      "id": "heartbeat",
+      "title": "Policy: Heartbeat",
+      "description": "Anyone can call this",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "Policy address",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "send",
+          "contract": "PolicyImpl",
+          "method": "checkAndUpdateState",
+          "address": "@input[contractAddress]"
+        }
+      ]
+    },
+    {
+      "id": "getpolicyInfo",
+      "title": "Policy: Get info",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "Policy contract address",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "PolicyImpl",
+          "method": "getInfo",
+          "address": "@input[contractAddress]",
+          "saveResultAsInput": "policyInfo"
+        }
+      ],
+      "outputs": [
+        {
+          "title": "No. of tranches",
+          "type": "int",
+          "value": "@input[policyInfo][numTranches_]"
+        },
+        {
+          "title": "Payment token",
+          "type": "address",
+          "value": "@input[policyInfo][unit_]"
+        },
+        {
+          "title": "State",
+          "type": "int",
+          "value": "@input[policyInfo][state_]"
+        },
+        {
+          "title": "Initiation date",
+          "type": "int",
+          "value": "@input[policyInfo][initiationDate_]"
+        },
+        {
+          "title": "Start date",
+          "type": "int",
+          "value": "@input[policyInfo][startDate_]"
+        },
+        {
+          "title": "Maturation date",
+          "type": "int",
+          "value": "@input[policyInfo][maturationDate_]"
+        },
+        {
+          "title": "Premium interval (seconds)",
+          "type": "int",
+          "value": "@input[policyInfo][premiumIntervalSeconds_]"
+        },
+        {
+          "title": "Broker commission basis-points",
+          "type": "int",
+          "value": "@input[policyInfo][brokerCommissionBP_]"
+        },
+        {
+          "title": "Asset mgr commission basis-points",
+          "type": "int",
+          "value": "@input[policyInfo][assetManagerCommissionBP_]"
+        },
+        {
+          "title": "Nayms commission basis-points",
+          "type": "int",
+          "value": "@input[policyInfo][naymsCommissionBP_]"
+        }
+      ]
+    },
+    {
+      "id": "getTranchInfo",
+      "title": "Policy: Get tranche info",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "Policy contract address",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "index",
+          "title": "Tranche index (0-based)",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "PolicyImpl",
+          "method": "getTranchInfo",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_index": "@input[index]"
+          },
+          "saveResultAsInput": "tranchInfo"
+        }
+      ],
+      "outputs": [
+        {
+          "title": "Token address",
+          "type": "address",
+          "value": "@input[tranchInfo][token_]"
+        },
+        {
+          "title": "State",
+          "type": "int",
+          "value": "@input[tranchInfo][state_]"
+        },
+        {
+          "title": "Balance (payment unit tokens)",
+          "type": "int",
+          "scale": "-18",
+          "unit": "Tokens",
+          "value": "@input[tranchInfo][balance_]"
+        },
+        {
+          "title": "No. of premium payments missed",
+          "type": "int",
+          "value": "@input[tranchInfo][premiumPaymentsMissed_]"
+        },
+        {
+          "title": "All premiums paid?",
+          "type": "bool",
+          "value": "@input[tranchInfo][allPremiumsPaid_]"
+        },
+        {
+          "title": "Next premium amount due",
+          "type": "int",
+          "scale": "-18",
+          "unit": "Tokens",
+          "value": "@input[tranchInfo][nextPremiumAmount_]"
+        },
+        {
+          "title": "Shared sold",
+          "type": "int",
+          "value": "@input[tranchInfo][sharesSold_]"
+        }
+      ]
+    },
+    {
+      "id": "payPremium",
+      "title": "Policy: Pay a tranche premium",
+      "description": "Anyone can do this. Just ensure the payment token has approved the policy to transfer.",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "Policy contract address",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "index",
+          "title": "Tranch index (0-based)",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "send",
+          "contract": "PolicyImpl",
+          "method": "payTranchPremium",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_index": "@input[index]"
+          }
+        }
+      ]
+    }
+  ]
+}

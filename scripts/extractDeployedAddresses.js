@@ -7,8 +7,8 @@ const path = require('path')
 
 const { getMatchingNetwork } = require('../utils/functions.js')
 
-if (!process.env.RESET) {
-  console.warn('RESET environment variable NOT SET so assuming you just wanted to upgrade, and thus will not update deployedAddresses.json!')
+if (!process.env.FRESH) {
+  console.warn('FRESH environment variable NOT SET so assuming you just wanted to upgrade, and thus will not update deployedAddresses.json!')
   process.exit(0)
 }
 

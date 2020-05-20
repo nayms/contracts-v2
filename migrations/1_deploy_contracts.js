@@ -12,25 +12,19 @@ const { getCurrentEntityDeployer, ensureEntityDeployerIsDeployed } = require('./
 const { ensureEntityImplementationsAreDeployed } = require('./modules/entityImplementations')
 const { ensurePolicyImplementationsAreDeployed } = require('./modules/policyImplementations')
 
-const getDeployerWithLiveGasPrice = async ({ deployer, log }) => {
+const getLiveGasPrice = async ({ log }) => {
   let gwei
 
   await log.task('Fetching live fast gas price', async task => {
     const { body: { fast } } = await got('https://ethgasstation.info/api/ethgasAPI.json', { responseType: 'json' })
-    gwei = parseInt(fast, 10) / 10
+    gwei = parseInt(parseInt(fast, 10) / 10, 10)
     task.log(`${gwei} GWEI`)
   })
 
-  return {
-    deploy: async (...args) => {
-      return deployer.deploy(...args, {
-        gasPrice: parseInt(gwei * 1000000000, 10)
-      })
-    }
-  }
+  return gwei
 }
 
-module.exports = async (deployer, network) => {
+module.exports = async (deployer, network, accounts) => {
   const log = createLog(console.log.bind(console))
 
   const doFreshDeployment = !!process.env.FRESH
@@ -41,38 +35,56 @@ module.exports = async (deployer, network) => {
   const networkInfo = getMatchingNetwork({ name: network })
   const networkId = networkInfo.id
 
+  let getTxParams
+
   if (!networkInfo.isLocal) {
-    await log.task('Configure deployer to use live gas price', async () => {
-      deployer = await getDeployerWithLiveGasPrice({ deployer, log })
-    })
+    /*
+    - use live gas price for max speed,
+    - do manual nonce tracking to avoid infura issues (https://ethereum.stackexchange.com/questions/44349/truffle-infura-on-mainnet-nonce-too-low-error)
+    */
+    const gwei = await getLiveGasPrice({ log })
+
+    let nonce = await web3.eth.getTransactionCount(accounts[0])
+
+    getTxParams = () => {
+      log.log(`Nonce: ${nonce}`)
+      nonce += 1
+      return {
+        gasPrice: gwei * 1000000000,
+        nonce: nonce - 1,
+      }
+    }
+  }
+
+  const cfg = {
+    deployer, artifacts, log, networkId, getTxParams
   }
 
   if (doFreshDeployment || networkInfo.isLocal) {
     await log.task('Re-deploying all contracts', async () => {
-      acl = await ensureAclIsDeployed({ deployer, artifacts, log })
-      settings = await ensureSettingsIsDeployed({ deployer, artifacts, log }, acl.address)
+      acl = await ensureAclIsDeployed(cfg)
+      settings = await ensureSettingsIsDeployed(cfg, acl.address)
 
       await Promise.all([
-        ensureMarketIsDeployed({ deployer, artifacts, log }, settings.address),
-        ensureEtherTokenIsDeployed({ deployer, artifacts, log }, acl.address, settings.address),
-        ensureEntityDeployerIsDeployed({ deployer, artifacts, log }, acl.address, settings.address),
+        ensureMarketIsDeployed(cfg, settings.address),
+        ensureEtherTokenIsDeployed(cfg, acl.address, settings.address),
+        ensureEntityDeployerIsDeployed(cfg, acl.address, settings.address),
       ])
     })
   } else {
     await log.task('Deploying upgrades only', async () => {
-      acl = await getCurrentAcl({ artifacts, networkId, log })
-      settings = await getCurrentSettings({ artifacts, networkId, log })
-      // check the others too
-      await Promise.all([
-        getCurrentMarket({ artifacts, networkId, log }),
-        getCurrentEtherToken({ artifacts, networkId, log }),
-        getCurrentEntityDeployer({ artifacts, networkId, log }),
+      [ acl, settings ] = await Promise.all([
+        getCurrentAcl(cfg),
+        getCurrentSettings(cfg),
+        getCurrentMarket(cfg),
+        getCurrentEtherToken(cfg),
+        getCurrentEntityDeployer(cfg),
       ])
     })
   }
 
   await Promise.all([
-    ensureEntityImplementationsAreDeployed({ deployer, artifacts, log }, acl.address, settings.address),
-    ensurePolicyImplementationsAreDeployed({ deployer, artifacts, log }, acl.address, settings.address),
+    ensureEntityImplementationsAreDeployed(cfg, acl.address, settings.address),
+    ensurePolicyImplementationsAreDeployed(cfg, acl.address, settings.address),
   ])
 }

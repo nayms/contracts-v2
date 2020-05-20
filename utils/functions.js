@@ -5,12 +5,16 @@ const { createLog } = require('./log')
 
 exports.keccak256 = a => `0x${sha3(a)}`
 
-exports.deploy = async (deployer, Contract, ...constructorArgs) => {
+exports.defaultGetTxParams = () => ({
+  gasPrice: 1 * 1000000000 // 1 GWEI
+})
+
+exports.deploy = async (deployer, txParams, Contract, ...constructorArgs) => {
   if (deployer) {
-    await deployer.deploy(Contract, ...constructorArgs)
+    await deployer.deploy(Contract, ...constructorArgs.concat(txParams))
     return await Contract.deployed()
   } else {
-    return await Contract.new(...constructorArgs)
+    return await Contract.new(...constructorArgs.concat(txParams))
   }
 }
 

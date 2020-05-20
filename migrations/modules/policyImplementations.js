@@ -1,8 +1,8 @@
 const { createLog } = require('../../utils/log')
-const { deploy } = require('../../utils/functions')
+const { deploy, defaultGetTxParams } = require('../../utils/functions')
 const { SETTINGS } = require('../../utils/constants')
 
-export const ensurePolicyImplementationsAreDeployed = async ({ deployer, artifacts, log }, aclAddress, settingsAddress) => {
+export const ensurePolicyImplementationsAreDeployed = async ({ deployer, artifacts, log, getTxParams = defaultGetTxParams }, aclAddress, settingsAddress) => {
   log = createLog(log)
 
   let addresses
@@ -16,12 +16,12 @@ export const ensurePolicyImplementationsAreDeployed = async ({ deployer, artifac
     const PolicyTranchTokensFacet = artifacts.require('./PolicyTranchTokensFacet')
 
     addresses = (await Promise.all([
-      deploy(deployer, PolicyCoreFacet, aclAddress, settingsAddress),
-      deploy(deployer, PolicyUpgradeFacet, aclAddress, settingsAddress),
-      deploy(deployer, PolicyClaimsFacet, aclAddress, settingsAddress),
-      deploy(deployer, PolicyCommissionsFacet, aclAddress, settingsAddress),
-      deploy(deployer, PolicyPremiumsFacet, aclAddress, settingsAddress),
-      deploy(deployer, PolicyTranchTokensFacet, aclAddress, settingsAddress),
+      deploy(deployer, getTxParams(), PolicyCoreFacet, aclAddress, settingsAddress),
+      deploy(deployer, getTxParams(), PolicyUpgradeFacet, aclAddress, settingsAddress),
+      deploy(deployer, getTxParams(), PolicyClaimsFacet, aclAddress, settingsAddress),
+      deploy(deployer, getTxParams(), PolicyCommissionsFacet, aclAddress, settingsAddress),
+      deploy(deployer, getTxParams(), PolicyPremiumsFacet, aclAddress, settingsAddress),
+      deploy(deployer, getTxParams(), PolicyTranchTokensFacet, aclAddress, settingsAddress),
     ])).map(c => c.address)
 
     task.log(`Deployed at ${addresses.join(', ')}`)
@@ -30,7 +30,7 @@ export const ensurePolicyImplementationsAreDeployed = async ({ deployer, artifac
   await log.task(`Saving policy implementation addresses to settings`, async task => {
     const Settings = artifacts.require('./ISettings')
     const settings = await Settings.at(settingsAddress)
-    await settings.setAddresses(settings.address, SETTINGS.POLICY_IMPL, addresses)
+    await settings.setAddresses(settings.address, SETTINGS.POLICY_IMPL, addresses, getTxParams())
   })
 
   return addresses

@@ -2,6 +2,7 @@ const path = require('path')
 
 const { createLog } = require('./log')
 const { networks } = require('../../truffle-config.js')
+const addresses = require('../../deployedAddresses.json')
 
 exports.defaultGetTxParams = () => ({
   gasPrice: 1 * 1000000000 // 1 GWEI
@@ -24,7 +25,6 @@ exports.getCurrentInstance = async ({ artifacts, lookupType, type, networkId, lo
   let inst
 
   await log.task(`Loading ${lookupType} address from deployed address list for network ${networkId}`, async task => {
-    const addresses = require(path.join(__dirname, '..', 'deployedAddresses.json'))
     inst = await Type.at(_.get(addresses, `${lookupType}.${networkId}.address`))
     task.log(`Instance: ${inst.address}`)
   })

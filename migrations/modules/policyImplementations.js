@@ -1,5 +1,5 @@
-const { createLog } = require('../../utils/log')
-const { deploy, defaultGetTxParams } = require('../../utils/functions')
+const { createLog } = require('../utils/log')
+const { deploy, defaultGetTxParams } = require('../utils')
 const { SETTINGS } = require('../../utils/constants')
 
 export const ensurePolicyImplementationsAreDeployed = async ({ deployer, artifacts, log, getTxParams = defaultGetTxParams }, aclAddress, settingsAddress) => {

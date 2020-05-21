@@ -1,5 +1,5 @@
-const { createLog } = require('../../utils/log')
-const { deploy, getCurrentInstance, defaultGetTxParams } = require('../../utils/functions')
+const { createLog } = require('../utils/log')
+const { deploy, getCurrentInstance, defaultGetTxParams } = require('../utils')
 const { SETTINGS } = require('../../utils/constants')
 
 export const getCurrentMarket = async ({ artifacts, networkId, log }) => {

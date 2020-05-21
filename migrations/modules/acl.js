@@ -1,6 +1,6 @@
 const _ = require('lodash')
-const { deploy, getCurrentInstance, defaultGetTxParams } = require('../../utils/functions')
-const { createLog } = require('../../utils/log')
+const { deploy, getCurrentInstance, defaultGetTxParams } = require('../utils')
+const { createLog } = require('../utils/log')
 
 const { ROLES, ROLEGROUPS } = require('../../utils/constants')
 

@@ -1,5 +1,5 @@
-const { createLog } = require('../../utils/log')
-const { deploy, getCurrentInstance, defaultGetTxParams } = require('../../utils/functions')
+const { createLog } = require('../utils/log')
+const { deploy, getCurrentInstance, defaultGetTxParams } = require('../utils')
 
 export const getCurrentSettings = async ({ artifacts, networkId, log }) => {
   return getCurrentInstance({ networkId, log, artifacts, type: 'ISettings', lookupType: 'Settings' })

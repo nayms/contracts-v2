@@ -5,7 +5,7 @@
 const fs = require('fs')
 const path = require('path')
 
-const { getMatchingNetwork } = require('../utils/functions.js')
+const { getMatchingNetwork } = require('../migrations/utils')
 
 if (!process.env.FRESH) {
   console.warn('FRESH environment variable NOT SET so assuming you just wanted to upgrade, and thus will not update deployedAddresses.json!')

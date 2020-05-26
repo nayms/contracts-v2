@@ -129,14 +129,13 @@ import "./Policy.sol";
     uint256 i1;
     uint256 i2;
     uint256 i3;
-    uint256 i4;
     address a1;
 
     IPolicy p = IPolicy(_policy);
     // policy's unit
     (a1, i1, i2, i3, policyUnitAddress, , , , , ,) = p.getInfo();
     // next premium amount
-    (a1, i1, i2, i3, i4, nextPremiumAmount, , , , ,) = p.getTranchInfo(_tranchIndex);
+    (a1, i1, i2, i3, nextPremiumAmount, , , , , ,) = p.getTranchInfo(_tranchIndex);
     // approve transfer
     IERC20 tok = IERC20(policyUnitAddress);
     tok.approve(_policy, nextPremiumAmount);

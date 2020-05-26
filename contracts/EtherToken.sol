@@ -1,6 +1,5 @@
 pragma solidity >=0.6.7;
 
-import "./base/IERC20.sol";
 import "./base/IEtherToken.sol";
 import "./base/SafeMath.sol";
 import "./base/Controller.sol";
@@ -8,7 +7,7 @@ import "./base/Controller.sol";
 /**
  * Represents Wrapped ETH, see https://blog.0xproject.com/canonical-weth-a9aa7d0279dd
  */
-contract EtherToken is Controller, IERC20, IEtherToken {
+contract EtherToken is Controller, IEtherToken {
   using SafeMath for *;
 
   mapping (address => uint256) private balances;

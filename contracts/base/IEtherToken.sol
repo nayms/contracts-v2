@@ -1,17 +1,17 @@
 pragma solidity >=0.6.7;
 
+import "./IERC20.sol";
+
 /**
- * @dev Our Wrapped ETH implementation.
- *
- * See https://github.com/gnosis/util-contracts/blob/master/contracts/EtherToken.sol
+ * @dev Super-interface for wrapped ETH
  */
-interface IEtherToken {
+abstract contract IEtherToken is IERC20 {
   /**
    * @dev Deposit ETH and mint tokens.
    *
    * Amount of tokens minted will equal `msg.value`. The tokens will be added to the caller's balance.
    */
-  function deposit() external payable;
+  function deposit() external virtual payable;
   /**
    * @dev Burn token and withdraw ETH.
    *
@@ -19,7 +19,7 @@ interface IEtherToken {
    *
    * @param value Amount of tokens to burn.
    */
-  function withdraw(uint value) external;
+  function withdraw(uint value) external virtual;
 
   /**
    * @dev Emitted when ETH is deposited and tokens are minted.

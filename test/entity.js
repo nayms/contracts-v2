@@ -267,6 +267,8 @@ contract('Entity', accounts => {
       let policy
       let policyContext
 
+      const premiumAmount = 50000000000
+
       beforeEach(async () => {
         policyOwner = accounts[2]
 
@@ -285,7 +287,7 @@ contract('Entity', accounts => {
         const accessControl = await AccessControl.at(policy.address)
         policyContext = await accessControl.aclContext()
 
-        await policy.createTranch(1, 1, [1], ADDRESS_ZERO, { from: policyOwner })
+        await policy.createTranch(1, 1, [premiumAmount], ADDRESS_ZERO, { from: policyOwner })
       })
 
       it('but not by anyone', async () => {
@@ -304,9 +306,9 @@ contract('Entity', accounts => {
       })
 
       it('by entity rep if we have enough tokens to pay with', async () => {
-        await etherToken.deposit({ value: 1 })
-        await etherToken.approve(entity.address, 1)
-        await entity.deposit(etherToken.address, 1)
+        await etherToken.deposit({ value: premiumAmount })
+        await etherToken.approve(entity.address, premiumAmount)
+        await entity.deposit(etherToken.address, premiumAmount)
         const entityRep = accounts[3]
         await acl.assignRole(policyContext, entityRep, ROLES.CLIENT_MANAGER)
         await entity.payTranchPremium(policy.address, 0, { from: entityRep }).should.be.fulfilled

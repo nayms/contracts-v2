@@ -1,4 +1,4 @@
-import { extractEventArgs } from './utils'
+import { extractEventArgs, EvmSnapshot } from './utils'
 import { events } from '../'
 import { ensureAclIsDeployed } from '../migrations/modules/acl'
 import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
@@ -9,16 +9,26 @@ const Entity = artifacts.require("./Entity")
 const EntityDeployer = artifacts.require("./EntityDeployer")
 
 contract('EntityDeployer', accounts => {
+  const evmSnapshot = new EvmSnapshot()
+
   let acl
   let settings
   let deployer
 
-  beforeEach(async () => {
+  before(async () => {
     acl = await ensureAclIsDeployed({ artifacts })
     settings = await ensureSettingsIsDeployed({ artifacts }, acl.address)
     await ensureEntityImplementationsAreDeployed({ artifacts }, acl.address, settings.address)
 
     deployer = await EntityDeployer.new(acl.address, settings.address)
+  })
+
+  beforeEach(async () => {
+    await evmSnapshot.take()
+  })
+
+  afterEach(async () => {
+    await evmSnapshot.restore()
   })
 
   it('does not accept ETH', async () => {

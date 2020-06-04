@@ -200,30 +200,23 @@ export const calcCommissions = ({ premiums, assetManagerCommissionBP, brokerComm
   return ret
 }
 
-const web3EvmIncreaseTime = async ts => {
-  await new Promise((resolve, reject) => {
+const callJsonRpcMethod = async (method, params = []) => {
+  return new Promise((resolve, reject) => {
     return web3.currentProvider.send({
       jsonrpc: '2.0',
-      method: 'evm_increaseTime',
-      params: [ts],
+      method,
+      params,
       id: new Date().getTime()
-    }, (err, result) => {
+    }, (err, { result }) => {
       if (err) { return reject(err) }
       return resolve(result)
     })
   })
+}
 
-  await new Promise((resolve, reject) => {
-    return web3.currentProvider.send({
-      jsonrpc: '2.0',
-      method: 'evm_mine',
-      params: [],
-      id: new Date().getTime()
-    }, (err, result) => {
-      if (err) { return reject(err) }
-      return resolve(result)
-    })
-  })
+const web3EvmIncreaseTime = async ts => {
+  await callJsonRpcMethod('evm_increaseTime', [ ts ])
+  await callJsonRpcMethod('evm_mine')
 }
 
 
@@ -248,3 +241,24 @@ export class EvmClock {
     this.lastTimestamp = this.lastTimestamp + delta
   }
 }
+
+
+export class EvmSnapshot {
+  constructor () {
+    this._ids = []
+  }
+
+  async take () {
+    this._ids.push(await callJsonRpcMethod('evm_snapshot'))
+  }
+
+  async restore () {
+    if (!this._ids.length) {
+      throw new Error('No more snapshots to revert to')
+    }
+
+    await callJsonRpcMethod('evm_revert', [ this._ids.pop() ])
+  }
+}
+
+

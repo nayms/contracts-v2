@@ -1,5 +1,5 @@
 import EthVal from 'ethval'
-import { extractEventArgs, ADDRESS_ZERO } from './utils'
+import { extractEventArgs, ADDRESS_ZERO, EvmSnapshot } from './utils'
 import { events } from '../'
 import { ensureAclIsDeployed } from '../migrations/modules/acl'
 import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
@@ -15,14 +15,24 @@ const getBalance = async a => {
 const eth = v => new EthVal(v, 'eth').toWei().toString(10)
 
 contract('EtherToken', accounts => {
+  const evmSnapshot = new EvmSnapshot()
+
   let acl
   let settings
   let etherToken
 
-  beforeEach(async () => {
+  before(async () => {
     acl = await ensureAclIsDeployed({ artifacts })
     settings = await ensureSettingsIsDeployed({ artifacts }, acl.address)
     etherToken = await ensureEtherTokenIsDeployed({ artifacts }, acl.address, settings.address)
+  })
+
+  beforeEach(async () => {
+    await evmSnapshot.take()
+  })
+
+  afterEach(async () => {
+    await evmSnapshot.restore()
   })
 
   it('has defaults', async () => {

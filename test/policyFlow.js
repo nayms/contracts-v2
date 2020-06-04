@@ -1,11 +1,11 @@
 import {
   extractEventArgs,
   parseEvents,
-  ADDRESS_ZERO,
   createTranch,
   createPolicy,
   EvmClock,
   calcPremiumsMinusCommissions,
+  EvmSnapshot,
 } from './utils'
 
 import { events } from '../'
@@ -25,7 +25,9 @@ const Policy = artifacts.require("./Policy")
 const IPolicy = artifacts.require("./IPolicy")
 const IERC20 = artifacts.require("./base/IERC20")
 
-contract('Policy flow', accounts => {
+contract('Policy: Flow', accounts => {
+  const evmSnapshot = new EvmSnapshot()
+
   const assetManagerCommissionBP = 100
   const brokerCommissionBP = 200
   const naymsCommissionBP = 300
@@ -63,7 +65,7 @@ contract('Policy flow', accounts => {
 
   let evmClock
 
-  beforeEach(async () => {
+  before(async () => {
     // acl
     acl = await ensureAclIsDeployed({ artifacts })
     systemContext = await acl.systemContext()
@@ -150,14 +152,21 @@ contract('Policy flow', accounts => {
     TRANCH_STATE_MATURED = await policyStates.TRANCH_STATE_MATURED()
     TRANCH_STATE_CANCELLED = await policyStates.TRANCH_STATE_CANCELLED()
 
-    evmClock = new EvmClock(baseDate)
-
     assetManager = accounts[5]
     await acl.assignRole(policyContext, assetManager, ROLES.ASSET_MANAGER)
 
     clientManager = accounts[6]
     await acl.assignRole(policyContext, clientManager, ROLES.CLIENT_MANAGER)
     await acl.assignRole(entityContext, clientManager, ROLES.ENTITY_REP)
+  })
+
+  beforeEach(async () => {
+    await evmSnapshot.take()
+    evmClock = new EvmClock(baseDate)
+  })
+
+  afterEach(async () => {
+    await evmSnapshot.restore()
   })
 
   describe('tranches begin selling', async () => {

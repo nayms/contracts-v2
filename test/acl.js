@@ -1,9 +1,11 @@
-import { extractEventArgs } from './utils'
+import { extractEventArgs, EvmSnapshot } from './utils'
 import { events } from '../'
 import { keccak256 } from './utils/web3'
 import { ensureAclIsDeployed } from '../migrations/modules/acl'
 
 contract('ACL', accounts => {
+  const evmSnapshot = new EvmSnapshot()
+
   const role1 = keccak256('testrole1')
   const role2 = keccak256('testrole2')
   const role3 = keccak256('testrole3')
@@ -22,11 +24,19 @@ contract('ACL', accounts => {
   let adminRole
   let adminRoleGroup
 
-  beforeEach(async () => {
+  before(async () => {
     acl = await ensureAclIsDeployed({ artifacts })
     systemContext = await acl.systemContext()
     adminRole = await acl.adminRole()
     adminRoleGroup = await acl.adminRoleGroup()
+  })
+
+  beforeEach(async () => {
+    await evmSnapshot.take()
+  })
+
+  afterEach(async () => {
+    await evmSnapshot.restore()
   })
 
   it('default account is initial admin', async () => {
@@ -298,7 +308,6 @@ contract('ACL', accounts => {
     beforeEach(async () => {
       await acl.assignRole(context1, accounts[2], role1).should.be.fulfilled
       await acl.assignRole(context1, accounts[2], role2).should.be.fulfilled
-
       await acl.assignRole(context2, accounts[2], role1).should.be.fulfilled
     })
 
@@ -317,7 +326,6 @@ contract('ACL', accounts => {
       await acl.setRoleGroup(roleGroup1, [role1, role2, role3])
       await acl.setRoleGroup(roleGroup2, [role1, role2, role3])
       await acl.setRoleGroup(roleGroup3, [role1, role2, role3])
-
       await acl.assignRole(context1, accounts[2], role2).should.be.fulfilled
     })
 

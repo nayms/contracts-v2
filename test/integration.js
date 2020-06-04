@@ -5,6 +5,7 @@ import {
   EvmClock,
   calcPremiumsMinusCommissions,
   calcCommissions,
+  EvmSnapshot,
 } from './utils'
 import { events } from '../'
 
@@ -25,6 +26,8 @@ const Policy = artifacts.require('./Policy')
 
 
 contract('End-to-end integration tests', accounts => {
+  const evmSnapshot = new EvmSnapshot()
+
   let acl
   let settings
   let etherToken
@@ -80,7 +83,7 @@ contract('End-to-end integration tests', accounts => {
   let calcTime
   let setupEntities
 
-  beforeEach(async () => {
+  before(async () => {
     // acl
     acl = await ensureAclIsDeployed({ artifacts })
     // settings
@@ -180,6 +183,14 @@ contract('End-to-end integration tests', accounts => {
       await acl.assignRole(entity3Context, accounts[11], ROLES.NAYM, { from: systemManager })
       entity3Naym = accounts[11]
     }
+  })
+
+  beforeEach(async () => {
+    await evmSnapshot.take()
+  })
+
+  afterEach(async () => {
+    await evmSnapshot.restore()
   })
 
   it('test case 1', async () => {

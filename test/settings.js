@@ -1,6 +1,7 @@
 import {
   extractEventArgs,
   ADDRESS_ZERO,
+  EvmSnapshot,
 } from './utils'
 
 import { SETTINGS } from '../utils/constants'
@@ -15,14 +16,24 @@ const ISettings = artifacts.require("./base/ISettings")
 const Settings = artifacts.require("./Settings")
 
 contract('Settings', accounts => {
+  const evmSnapshot = new EvmSnapshot()
+
   let acl
   let settingsImpl
   let settings
 
-  beforeEach(async () => {
+  before(async () => {
     acl = await ensureAclIsDeployed({ artifacts })
     settingsImpl = await Settings.new(acl.address)
     settings = await ISettings.at(settingsImpl.address)
+  })
+
+  beforeEach(async () => {
+    await evmSnapshot.take()
+  })
+
+  afterEach(async () => {
+    await evmSnapshot.restore()
   })
 
   it('can return current block time', async () => {

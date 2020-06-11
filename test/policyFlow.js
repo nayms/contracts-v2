@@ -1,11 +1,11 @@
 import {
   extractEventArgs,
   parseEvents,
-  ADDRESS_ZERO,
   createTranch,
   createPolicy,
   EvmClock,
   calcPremiumsMinusCommissions,
+  EvmSnapshot,
 } from './utils'
 
 import { events } from '../'
@@ -25,7 +25,9 @@ const Policy = artifacts.require("./Policy")
 const IPolicy = artifacts.require("./IPolicy")
 const IERC20 = artifacts.require("./base/IERC20")
 
-contract('Policy flow', accounts => {
+contract('Policy: Flow', accounts => {
+  const evmSnapshot = new EvmSnapshot()
+
   const assetManagerCommissionBP = 100
   const brokerCommissionBP = 200
   const naymsCommissionBP = 300
@@ -63,7 +65,7 @@ contract('Policy flow', accounts => {
 
   let evmClock
 
-  beforeEach(async () => {
+  before(async () => {
     // acl
     acl = await ensureAclIsDeployed({ artifacts })
     systemContext = await acl.systemContext()
@@ -150,14 +152,21 @@ contract('Policy flow', accounts => {
     TRANCH_STATE_MATURED = await policyStates.TRANCH_STATE_MATURED()
     TRANCH_STATE_CANCELLED = await policyStates.TRANCH_STATE_CANCELLED()
 
-    evmClock = new EvmClock(baseDate)
-
     assetManager = accounts[5]
     await acl.assignRole(policyContext, assetManager, ROLES.ASSET_MANAGER)
 
     clientManager = accounts[6]
     await acl.assignRole(policyContext, clientManager, ROLES.CLIENT_MANAGER)
     await acl.assignRole(entityContext, clientManager, ROLES.ENTITY_REP)
+  })
+
+  beforeEach(async () => {
+    await evmSnapshot.take()
+    evmClock = new EvmClock(baseDate)
+  })
+
+  afterEach(async () => {
+    await evmSnapshot.restore()
   })
 
   describe('tranches begin selling', async () => {
@@ -181,7 +190,7 @@ contract('Policy flow', accounts => {
         await policy.payTranchPremium(0)
         await policy.payTranchPremium(2)
 
-        await evmClock.setTime(initiationDate)
+        await evmClock.setAbsoluteTime(initiationDate)
 
         await policy.checkAndUpdateState().should.be.fulfilled
         await policy.getTranchInfo(0).should.eventually.matchObj({
@@ -196,7 +205,7 @@ contract('Policy flow', accounts => {
           await etherToken.approve(policy.address, 100)
           await policy.payTranchPremium(0)
           await policy.payTranchPremium(1)
-          await evmClock.setTime(initiationDate)
+          await evmClock.setAbsoluteTime(initiationDate)
         })
 
         it('but not if initial allocation is not to parent policy', async () => {
@@ -278,7 +287,7 @@ contract('Policy flow', accounts => {
       await policy.payTranchPremium(0)
       await policy.payTranchPremium(1)
 
-      await evmClock.setTime(initiationDate)
+      await evmClock.setAbsoluteTime(initiationDate)
       await policy.checkAndUpdateState()
 
       await policy.getTranchInfo(0).should.eventually.matchObj({
@@ -476,7 +485,7 @@ contract('Policy flow', accounts => {
       await policy.payTranchPremium(0)
       await policy.payTranchPremium(1)
 
-      await evmClock.setTime(initiationDate)
+      await evmClock.setAbsoluteTime(initiationDate)
       await policy.checkAndUpdateState()
       await policy.checkAndUpdateState()
 
@@ -493,7 +502,7 @@ contract('Policy flow', accounts => {
         await policy.payTranchPremium(0)
         await policy.payTranchPremium(1)
 
-        await evmClock.setTime(initiationDate)
+        await evmClock.setAbsoluteTime(initiationDate)
 
         // kick-off the sale
         await policy.checkAndUpdateState()
@@ -506,7 +515,7 @@ contract('Policy flow', accounts => {
 
       it('unsold tranches have their market orders automatically cancelled', async () => {
         // heartbeat
-        await evmClock.setTime(startDate)
+        await evmClock.setAbsoluteTime(startDate)
         await policy.checkAndUpdateState()
 
         await policy.getTranchInfo(0).should.eventually.matchObj({
@@ -521,7 +530,7 @@ contract('Policy flow', accounts => {
       })
 
       it('cancelled tranches emit events', async () => {
-        await evmClock.setTime(startDate)
+        await evmClock.setAbsoluteTime(startDate)
         const ret = await policy.checkAndUpdateState()
 
         const evs = parseEvents(ret, events.TranchStateUpdated)
@@ -538,7 +547,7 @@ contract('Policy flow', accounts => {
 
       describe('even if none of the tranches are active the policy still gets made active', () => {
         it('and updates internal state', async () => {
-          await evmClock.setTime(startDate)
+          await evmClock.setAbsoluteTime(startDate)
           await policy.checkAndUpdateState()
 
           await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_ACTIVE })
@@ -552,7 +561,7 @@ contract('Policy flow', accounts => {
         })
 
         it('and it emits an event', async () => {
-          await evmClock.setTime(startDate)
+          await evmClock.setAbsoluteTime(startDate)
           const result = await policy.checkAndUpdateState()
 
           const ev = extractEventArgs(result, events.PolicyStateUpdated)
@@ -572,7 +581,7 @@ contract('Policy flow', accounts => {
 
         it('and updates internal state', async () => {
           // end sale
-          await evmClock.setTime(startDate)
+          await evmClock.setAbsoluteTime(startDate)
           await policy.checkAndUpdateState()
 
           // now check
@@ -587,7 +596,7 @@ contract('Policy flow', accounts => {
 
         it('and it emits an event', async () => {
           // end sale
-          await evmClock.setTime(startDate)
+          await evmClock.setAbsoluteTime(startDate)
           const result = await policy.checkAndUpdateState()
 
           const evs = parseEvents(result, events.TranchStateUpdated)
@@ -622,7 +631,7 @@ contract('Policy flow', accounts => {
 
         it('updates internal state', async () => {
           // end sale
-          await evmClock.setTime(startDate)
+          await evmClock.setAbsoluteTime(startDate)
           await policy.checkAndUpdateState()
 
           // now check
@@ -637,7 +646,7 @@ contract('Policy flow', accounts => {
 
         it('emits an event', async () => {
           // end sale
-          await evmClock.setTime(startDate)
+          await evmClock.setAbsoluteTime(startDate)
           const result = await policy.checkAndUpdateState()
 
           const evs = parseEvents(result, events.TranchStateUpdated)
@@ -664,7 +673,7 @@ contract('Policy flow', accounts => {
         }
 
         // end sale
-        await evmClock.setTime(startDate)
+        await evmClock.setAbsoluteTime(startDate)
         await policy.checkAndUpdateState()
 
         // try trading
@@ -685,7 +694,7 @@ contract('Policy flow', accounts => {
       await policy.payTranchPremium(1)
 
       // pass the inititation date
-      await evmClock.setTime(initiationDate)
+      await evmClock.setAbsoluteTime(initiationDate)
 
       // start the sale
       await policy.checkAndUpdateState()
@@ -707,7 +716,7 @@ contract('Policy flow', accounts => {
       }
 
       // pass the start date
-      await evmClock.setTime(startDate)
+      await evmClock.setAbsoluteTime(startDate)
 
       // end the sale
       await policy.checkAndUpdateState()
@@ -801,7 +810,7 @@ contract('Policy flow', accounts => {
         })
 
         it('closes the policy and tries to buys back all tranch tokens', async () => {
-          await evmClock.setTime(maturationDate)
+          await evmClock.setAbsoluteTime(maturationDate)
           const ret = await policy.checkAndUpdateState()
 
           const ev = extractEventArgs(ret, events.PolicyStateUpdated)
@@ -833,7 +842,7 @@ contract('Policy flow', accounts => {
           await policy.makeClaim(0, entity.address, 1, { from: clientManager })
           await policy.makeClaim(0, entity.address, 2, { from: clientManager })
 
-          await evmClock.setTime(maturationDate)
+          await evmClock.setAbsoluteTime(maturationDate)
           const ret = await policy.checkAndUpdateState()
 
           const ev = extractEventArgs(ret, events.PolicyStateUpdated)
@@ -866,7 +875,7 @@ contract('Policy flow', accounts => {
         })
 
         it('and subsequent calls have no effect', async () => {
-          await evmClock.setTime(maturationDate)
+          await evmClock.setAbsoluteTime(maturationDate)
           await policy.checkAndUpdateState()
 
           const { finalBuybackofferId_: offer1 } = await policy.getTranchInfo(0)
@@ -892,7 +901,7 @@ contract('Policy flow', accounts => {
         })
 
         it('and no more claims can be made', async () => {
-          await evmClock.setTime(maturationDate)
+          await evmClock.setAbsoluteTime(maturationDate)
           await policy.checkAndUpdateState()
           await policy.makeClaim(0, entity.address, 1, { from: clientManager }).should.be.rejectedWith('must be in active state')
         })
@@ -918,7 +927,7 @@ contract('Policy flow', accounts => {
         })
 
         it('closes the policy and tries to buys back all tranch tokens', async () => {
-          await evmClock.setTime(maturationDate)
+          await evmClock.setAbsoluteTime(maturationDate)
           const ret = await policy.checkAndUpdateState()
 
           const ev = extractEventArgs(ret, events.PolicyStateUpdated)
@@ -947,7 +956,7 @@ contract('Policy flow', accounts => {
           await policy.makeClaim(0, entity.address, 1, { from: clientManager })
           await policy.makeClaim(0, entity.address, 2, { from: clientManager })
 
-          await evmClock.setTime(maturationDate)
+          await evmClock.setAbsoluteTime(maturationDate)
           const ret = await policy.checkAndUpdateState()
 
           const ev = extractEventArgs(ret, events.PolicyStateUpdated)
@@ -984,7 +993,7 @@ contract('Policy flow', accounts => {
         })
 
         it('and subsequent calls have no effect', async () => {
-          await evmClock.setTime(maturationDate)
+          await evmClock.setAbsoluteTime(maturationDate)
           await policy.checkAndUpdateState()
 
           const { finalBuybackofferId_: offer1 } = await policy.getTranchInfo(0)
@@ -1010,7 +1019,7 @@ contract('Policy flow', accounts => {
         })
 
         it('and no more claims can be made', async () => {
-          await evmClock.setTime(maturationDate)
+          await evmClock.setAbsoluteTime(maturationDate)
           await policy.checkAndUpdateState()
           await policy.makeClaim(0, entity.address, 1, { from: clientManager }).should.be.rejectedWith('must be in active state')
         })
@@ -1034,7 +1043,7 @@ contract('Policy flow', accounts => {
             await policy.payTranchPremium(1)
           }
 
-          await evmClock.setTime(maturationDate)
+          await evmClock.setAbsoluteTime(maturationDate)
           await policy.checkAndUpdateState()
         })
 

@@ -177,6 +177,39 @@ export const createPolicy = (entity, attrs, ...callAttrs) => {
   )
 }
 
+
+export const preSetupPolicy = async (ctx, createPolicyArgs) => {
+  const {
+    initiationDateDiff,
+    startDateDiff,
+    maturationDateDiff,
+    premiumIntervalSeconds,
+    brokerCommissionBP,
+    assetManagerCommissionBP,
+    naymsCommissionBP,
+  } = (createPolicyArgs || {})
+
+  // get current evm time
+  const t = await ctx.settings.getTime()
+  const currentBlockTime = parseInt(t.toString(10))
+
+  const attrs = {
+    initiationDate: currentBlockTime + initiationDateDiff,
+    startDate: currentBlockTime + startDateDiff,
+    maturationDate: currentBlockTime + maturationDateDiff,
+    unit: ctx.etherToken.address,
+    premiumIntervalSeconds,
+    brokerCommissionBP,
+    assetManagerCommissionBP,
+    naymsCommissionBP,
+  }
+
+  const createPolicyTx = await createPolicy(ctx.entity, attrs, { from: ctx.entityManagerAddress })
+  const policyAddress = extractEventArgs(createPolicyTx, ctx.events.NewPolicy).policy
+
+  ctx.policies.set(createPolicyArgs, { attrs, baseTime: currentBlockTime, policyAddress })
+}
+
 export const calcPremiumsMinusCommissions = ({ premiums, assetManagerCommissionBP, brokerCommissionBP, naymsCommissionBP }) => (
   premiums.reduce((m, v) => (
     m + v - (v * assetManagerCommissionBP / 1000) - (v * brokerCommissionBP / 1000) - (v * naymsCommissionBP / 1000)
@@ -200,39 +233,42 @@ export const calcCommissions = ({ premiums, assetManagerCommissionBP, brokerComm
   return ret
 }
 
-const web3EvmIncreaseTime = async ts => {
-  await new Promise((resolve, reject) => {
+const callJsonRpcMethod = async (method, params = []) => {
+  return new Promise((resolve, reject) => {
     return web3.currentProvider.send({
       jsonrpc: '2.0',
-      method: 'evm_increaseTime',
-      params: [ts],
+      method,
+      params,
       id: new Date().getTime()
-    }, (err, result) => {
-      if (err) { return reject(err) }
-      return resolve(result)
-    })
-  })
-
-  await new Promise((resolve, reject) => {
-    return web3.currentProvider.send({
-      jsonrpc: '2.0',
-      method: 'evm_mine',
-      params: [],
-      id: new Date().getTime()
-    }, (err, result) => {
+    }, (err, { result }) => {
       if (err) { return reject(err) }
       return resolve(result)
     })
   })
 }
 
+const web3EvmIncreaseTime = async ts => {
+  await callJsonRpcMethod('evm_increaseTime', [ ts ])
+  await callJsonRpcMethod('evm_mine')
+}
+
 
 export class EvmClock {
   constructor (initialTimestamp = 0) {
+    this.originalTimestamp = initialTimestamp
     this.lastTimestamp = initialTimestamp
   }
 
-  async setTime (timestamp) {
+  async setAbsoluteTime (timestamp) {
+    if (timestamp <= this.lastTimestamp) {
+      throw new Error(`Cannot set to past time: ${timestamp}`)
+    }
+    await web3EvmIncreaseTime(timestamp - this.lastTimestamp)
+    this.lastTimestamp = timestamp
+  }
+
+  async setRelativeTime(relativeTimestamp) {
+    const timestamp = relativeTimestamp + this.originalTimestamp
     if (timestamp <= this.lastTimestamp) {
       throw new Error(`Cannot set to past time: ${timestamp}`)
     }
@@ -248,3 +284,24 @@ export class EvmClock {
     this.lastTimestamp = this.lastTimestamp + delta
   }
 }
+
+
+export class EvmSnapshot {
+  constructor () {
+    this._ids = []
+  }
+
+  async take () {
+    this._ids.push(await callJsonRpcMethod('evm_snapshot'))
+  }
+
+  async restore () {
+    if (!this._ids.length) {
+      throw new Error('No more snapshots to revert to')
+    }
+
+    await callJsonRpcMethod('evm_revert', [ this._ids.pop() ])
+  }
+}
+
+

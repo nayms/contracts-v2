@@ -7,7 +7,7 @@ import {
   hdWallet,
   ADDRESS_ZERO,
   createTranch,
-  createPolicy,
+  preSetupPolicy,
   EvmSnapshot,
 } from './utils'
 import { events } from '../'
@@ -32,6 +32,27 @@ const Policy = artifacts.require("./Policy")
 const IPolicy = artifacts.require("./base/IPolicy")
 const TestPolicyFacet = artifacts.require("./test/TestPolicyFacet")
 const FreezeUpgradesFacet = artifacts.require("./test/FreezeUpgradesFacet")
+
+const POLICY_ATTRS_1 = {
+  initiationDateDiff: 1000,
+  startDateDiff: 2000,
+  maturationDateDiff: 3000,
+  premiumIntervalSeconds: undefined,
+  assetManagerCommissionBP: 0,
+  brokerCommissionBP: 0,
+  naymsCommissionBP: 0
+}
+
+const POLICY_ATTRS_2 = Object.assign({}, POLICY_ATTRS_1, {
+  initiationDateDiff: 0,
+})
+
+const POLICY_ATTRS_3 = Object.assign({}, POLICY_ATTRS_1, {
+  initiationDateDiff: 0,
+  startDateDiff: 0,
+  maturationDateDiff: 30,
+  premiumIntervalSeconds: 10,
+})
 
 contract('Policy Tranches: Basic', accounts => {
   const evmSnapshot = new EvmSnapshot()
@@ -62,6 +83,7 @@ contract('Policy Tranches: Basic', accounts => {
   let TRANCH_STATE_MATURED
 
   let setupPolicy
+  const policies = new Map()
 
   before(async () => {
     // acl
@@ -105,32 +127,15 @@ contract('Policy Tranches: Basic', accounts => {
     TRANCH_STATE_ACTIVE = await policyStates.TRANCH_STATE_ACTIVE()
     TRANCH_STATE_MATURED = await policyStates.TRANCH_STATE_MATURED()
 
-    setupPolicy = async ({
-      initiationDateDiff = 1000,
-      startDateDiff = 2000,
-      maturationDateDiff = 3000,
-      premiumIntervalSeconds = undefined,
-      brokerCommissionBP = 0,
-      assetManagerCommissionBP = 0,
-      naymsCommissionBP = 0,
-    } = {}) => {
-      // get current evm time
-      const t = await settings.getTime()
-      const currentBlockTime = parseInt(t.toString(10))
+    const preSetupPolicyCtx = { policies, settings, events, etherToken, entity, entityManagerAddress }
+    await Promise.all([
+      preSetupPolicy(preSetupPolicyCtx, POLICY_ATTRS_1),
+      preSetupPolicy(preSetupPolicyCtx, POLICY_ATTRS_2),
+      preSetupPolicy(preSetupPolicyCtx, POLICY_ATTRS_3),
+    ])
 
-      const attrs = {
-        initiationDate: currentBlockTime + initiationDateDiff,
-        startDate: currentBlockTime + startDateDiff,
-        maturationDate: currentBlockTime + maturationDateDiff,
-        unit: etherToken.address,
-        premiumIntervalSeconds,
-        brokerCommissionBP,
-        assetManagerCommissionBP,
-        naymsCommissionBP,
-      }
-
-      const createPolicyTx = await createPolicy(entity, attrs, { from: entityManagerAddress })
-      const policyAddress = extractEventArgs(createPolicyTx, events.NewPolicy).policy
+    setupPolicy = async arg => {
+      const { attrs, policyAddress } = policies.get(arg)
 
       policyProxy = await Policy.at(policyAddress)
       policy = await IPolicy.at(policyAddress)
@@ -155,12 +160,12 @@ contract('Policy Tranches: Basic', accounts => {
 
     describe('basic tests', () => {
       it('cannot be created without correct authorization', async () => {
-        await setupPolicy()
+        await setupPolicy(POLICY_ATTRS_1)
         await createTranch(policy, {}).should.be.rejectedWith('must be policy owner')
       })
 
       it('all basic values must be valid', async () => {
-        await setupPolicy()
+        await setupPolicy(POLICY_ATTRS_1)
         await createTranch(policy, { numShares: 0 }, { from: policyOwnerAddress }).should.be.rejectedWith('invalid num of shares')
         await createTranch(policy, { pricePerShareAmount: 0 }, { from: policyOwnerAddress }).should.be.rejectedWith('invalid price')
       })
@@ -168,7 +173,7 @@ contract('Policy Tranches: Basic', accounts => {
       describe('a valid number of premiums must be provided', () => {
         beforeEach(async () => {
           // allow upto 4 premiums
-          await setupPolicy({ initiationDateDiff: 0, startDateDiff: 0, maturationDateDiff: 30, premiumIntervalSeconds: 10 })
+          await setupPolicy(POLICY_ATTRS_3)
         })
 
         it('0', async () => {
@@ -193,7 +198,7 @@ contract('Policy Tranches: Basic', accounts => {
       })
 
       it('can be created and have initial balance auto-allocated to policy impl', async () => {
-        await setupPolicy()
+        await setupPolicy(POLICY_ATTRS_1)
 
         const result = await createTranch(policy, {
           numShares: tranchNumShares,
@@ -215,7 +220,7 @@ contract('Policy Tranches: Basic', accounts => {
       })
 
       it('can be created and have initial balance allocated to a specific address', async () => {
-        await setupPolicy()
+        await setupPolicy(POLICY_ATTRS_1)
 
         const result = await createTranch(policy, {
           numShares: tranchNumShares,
@@ -231,7 +236,7 @@ contract('Policy Tranches: Basic', accounts => {
       })
 
       it('can be created and will have state set to DRAFT', async () => {
-        await setupPolicy()
+        await setupPolicy(POLICY_ATTRS_1)
 
         await createTranch(policy, {
           numShares: tranchNumShares,
@@ -247,7 +252,7 @@ contract('Policy Tranches: Basic', accounts => {
       })
 
       it('can be created more than once', async () => {
-        await setupPolicy()
+        await setupPolicy(POLICY_ATTRS_1)
 
         await createTranch(policy, {
           numShares: tranchNumShares,
@@ -278,7 +283,7 @@ contract('Policy Tranches: Basic', accounts => {
       })
 
       it('cannot be created once already in selling state', async () => {
-        await setupPolicy({ initiationDateDiff: 0 })
+        await setupPolicy(POLICY_ATTRS_2)
         await policy.checkAndUpdateState() // kick-off sale
         await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_SELLING })
         await createTranch(policy, {}, { from: accounts[2] }).should.be.rejectedWith('must be in created state')
@@ -287,7 +292,7 @@ contract('Policy Tranches: Basic', accounts => {
 
     describe('are ERC20 tokens', () => {
       beforeEach(async () => {
-        await setupPolicy()
+        await setupPolicy(POLICY_ATTRS_1)
 
         acl.assignRole(policyContext, accounts[0], ROLES.POLICY_OWNER)
 

@@ -3,7 +3,7 @@ import { keccak256, asciiToHex } from './utils/web3'
 import {
   extractEventArgs,
   hdWallet,
-  createPolicy,
+  preSetupPolicy,
   EvmSnapshot,
 } from './utils'
 import { events } from '../'
@@ -28,6 +28,24 @@ const Policy = artifacts.require("./Policy")
 const IPolicy = artifacts.require("./base/IPolicy")
 const TestPolicyFacet = artifacts.require("./test/TestPolicyFacet")
 const FreezeUpgradesFacet = artifacts.require("./test/FreezeUpgradesFacet")
+
+const POLICY_ATTRS_1 = {
+  initiationDateDiff: 1000,
+  startDateDiff: 2000,
+  maturationDateDiff: 3000,
+  premiumIntervalSeconds: undefined,
+  assetManagerCommissionBP: 0,
+  brokerCommissionBP: 0,
+  naymsCommissionBP: 0
+}
+
+const POLICY_ATTRS_2 = Object.assign({}, POLICY_ATTRS_1, {
+  premiumIntervalSeconds: 5,
+  assetManagerCommissionBP: 1,
+  brokerCommissionBP: 2,
+  naymsCommissionBP: 3
+})
+
 
 contract('Policy: Basic', accounts => {
   const evmSnapshot = new EvmSnapshot()
@@ -57,6 +75,7 @@ contract('Policy: Basic', accounts => {
   let TRANCH_STATE_ACTIVE
   let TRANCH_STATE_MATURED
 
+  const policies = new Map()
   let setupPolicy
 
   before(async () => {
@@ -101,32 +120,14 @@ contract('Policy: Basic', accounts => {
     TRANCH_STATE_ACTIVE = await policyStates.TRANCH_STATE_ACTIVE()
     TRANCH_STATE_MATURED = await policyStates.TRANCH_STATE_MATURED()
 
-    setupPolicy = async ({
-      initiationDateDiff = 1000,
-      startDateDiff = 2000,
-      maturationDateDiff = 3000,
-      premiumIntervalSeconds = undefined,
-      brokerCommissionBP = 0,
-      assetManagerCommissionBP = 0,
-      naymsCommissionBP = 0,
-    } = {}) => {
-      // get current evm time
-      const t = await settings.getTime()
-      const currentBlockTime = parseInt(t.toString(10))
+    const preSetupPolicyCtx = { policies, settings, events, etherToken, entity, entityManagerAddress }
+    await Promise.all([
+      preSetupPolicy(preSetupPolicyCtx, POLICY_ATTRS_1),
+      preSetupPolicy(preSetupPolicyCtx, POLICY_ATTRS_2),
+    ])
 
-      const attrs = {
-        initiationDate: currentBlockTime + initiationDateDiff,
-        startDate: currentBlockTime + startDateDiff,
-        maturationDate: currentBlockTime + maturationDateDiff,
-        unit: etherToken.address,
-        premiumIntervalSeconds,
-        brokerCommissionBP,
-        assetManagerCommissionBP,
-        naymsCommissionBP,
-      }
-
-      const createPolicyTx = await createPolicy(entity, attrs, { from: entityManagerAddress })
-      const policyAddress = extractEventArgs(createPolicyTx, events.NewPolicy).policy
+    setupPolicy = async arg => {
+      const { attrs, policyAddress } = policies.get(arg)
 
       policyProxy = await Policy.at(policyAddress)
       policy = await IPolicy.at(policyAddress)
@@ -147,12 +148,7 @@ contract('Policy: Basic', accounts => {
 
   describe('basic tests', () => {
     it('can return its basic info', async () => {
-      const attrs = await setupPolicy({
-        premiumIntervalSeconds: 5,
-        assetManagerCommissionBP: 1,
-        brokerCommissionBP: 2,
-        naymsCommissionBP: 3,
-      })
+      const attrs = await setupPolicy(POLICY_ATTRS_2)
 
       await policy.getInfo().should.eventually.matchObj({
         initiationDate_: attrs.initiationDate,
@@ -174,7 +170,7 @@ contract('Policy: Basic', accounts => {
     let freezeUpgradesFacet
 
     beforeEach(async () => {
-      await setupPolicy()
+      await setupPolicy(POLICY_ATTRS_1)
 
       // assign roles
       await acl.assignRole(policyContext, accounts[3], ROLES.ASSET_MANAGER)

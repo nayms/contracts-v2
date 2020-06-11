@@ -183,6 +183,8 @@ contract('End-to-end integration tests', accounts => {
       await acl.assignRole(entity3Context, accounts[11], ROLES.NAYM, { from: systemManager })
       entity3Naym = accounts[11]
     }
+
+    await setupEntities()
   })
 
   beforeEach(async () => {
@@ -196,13 +198,12 @@ contract('End-to-end integration tests', accounts => {
   it('test case 1', async () => {
     /* https://docs.google.com/spreadsheets/d/1LEvfJvNutmXsdKk9SO0vBzAmpepFMf8188kgAvYFCc8/edit#gid=0 */
 
-    await setupEntities()
+    // nothing to as, the before() script basically already does this
+    // await setupEntities()
   })
 
   it('test case 2', async () => {
     /* https://docs.google.com/spreadsheets/d/1LEvfJvNutmXsdKk9SO0vBzAmpepFMf8188kgAvYFCc8/edit#gid=455876604 */
-
-    await setupEntities()
 
     // step 1: deposit WETH
     await etherToken.deposit({ value: 110, from: entity0Admin })
@@ -282,7 +283,7 @@ contract('End-to-end integration tests', accounts => {
     await entity1.payTranchPremium(policy1.address, 0, { from: policy1ClientManager })
 
     // step 15: heartbeat - begin sale of policy1Tranch1
-    await evmClock.setTime(5 * 60)
+    await evmClock.setAbsoluteTime(5 * 60)
     await policy1.checkAndUpdateState()
 
     // check states
@@ -327,14 +328,14 @@ contract('End-to-end integration tests', accounts => {
     })
 
     // step 19: client manager pays second premium for policy1Tranch1
-    await evmClock.setTime(9 * 60)
+    await evmClock.setAbsoluteTime(9 * 60)
     await etherToken.deposit({ value: 2000, from: policy1ClientManager })
     await etherToken.approve(entity1.address, 2000, { from: policy1ClientManager })
     await entity1.deposit(etherToken.address, 2000, { from: policy1ClientManager })
     await entity1.payTranchPremium(policy1.address, 0, { from: policy1ClientManager })
 
     // step 20: heartbeat
-    await evmClock.setTime(10 * 60)
+    await evmClock.setAbsoluteTime(10 * 60)
     await policy1.checkAndUpdateState()
     await policy1.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_ACTIVE }) // active now since startdate has passed
     await policy1.getTranchInfo(0).should.eventually.matchObj({
@@ -344,14 +345,14 @@ contract('End-to-end integration tests', accounts => {
     // step 21: skip for now
 
     // step 22: client manager pays third premium for policy1Tranch1
-    await evmClock.setTime(14 * 60)
+    await evmClock.setAbsoluteTime(14 * 60)
     await etherToken.deposit({ value: 1000, from: policy1ClientManager })
     await etherToken.approve(entity1.address, 1000, { from: policy1ClientManager })
     await entity1.deposit(etherToken.address, 1000, { from: policy1ClientManager })
     await entity1.payTranchPremium(policy1.address, 0, { from: policy1ClientManager })
 
     // step 23: heartbeat
-    await evmClock.setTime(15 * 60)
+    await evmClock.setAbsoluteTime(15 * 60)
     await policy1.checkAndUpdateState()
     await policy1.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_ACTIVE })
     await policy1.getTranchInfo(0).should.eventually.matchObj({
@@ -359,7 +360,7 @@ contract('End-to-end integration tests', accounts => {
     })
 
     // step 24: heartbeat
-    await evmClock.setTime(20 * 60)
+    await evmClock.setAbsoluteTime(20 * 60)
     await policy1.checkAndUpdateState()
     await policy1.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_ACTIVE })
     await policy1.getTranchInfo(0).should.eventually.matchObj({
@@ -367,7 +368,7 @@ contract('End-to-end integration tests', accounts => {
     })
 
     // step 25: heartbeat
-    await evmClock.setTime(25 * 60)
+    await evmClock.setAbsoluteTime(25 * 60)
     await policy1.checkAndUpdateState()
     await policy1.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_MATURED })
     await policy1.getTranchInfo(0).should.eventually.matchObj({
@@ -457,8 +458,6 @@ contract('End-to-end integration tests', accounts => {
   it('test case 3', async () => {
     /* https://docs.google.com/spreadsheets/d/1LEvfJvNutmXsdKk9SO0vBzAmpepFMf8188kgAvYFCc8/edit#gid=1017355124 */
 
-    await setupEntities()
-
     // step 1: deposit WETH
     await etherToken.deposit({ value: 110, from: entity0Admin })
     await etherToken.approve(entity0Address, 110, { from: entity0Admin })
@@ -531,14 +530,14 @@ contract('End-to-end integration tests', accounts => {
     // steps 9-13: skip for now
 
     // step 14: client manager pays first premium for policy2Tranch1
-    await evmClock.setTime(3 * 60)
+    await evmClock.setAbsoluteTime(3 * 60)
     await etherToken.deposit({ value: 1000, from: policy2ClientManager })
     await etherToken.approve(entity1.address, 1000, { from: policy2ClientManager })
     await entity1.deposit(etherToken.address, 1000, { from: policy2ClientManager })
     await entity1.payTranchPremium(policy2.address, 0, { from: policy2ClientManager })
 
     // step 15: heartbeat - begin sale of policy2Tranch1
-    await evmClock.setTime(5 * 60)
+    await evmClock.setAbsoluteTime(5 * 60)
     await policy2.checkAndUpdateState()
 
     // check states
@@ -576,14 +575,14 @@ contract('End-to-end integration tests', accounts => {
     // steps 18-20: skip for now
 
     // step 21: client manager pays second premium for policy2Tranch1
-    await evmClock.setTime(9 * 60)
+    await evmClock.setAbsoluteTime(9 * 60)
     await etherToken.deposit({ value: 2000, from: policy2ClientManager })
     await etherToken.approve(entity1.address, 2000, { from: policy2ClientManager })
     await entity1.deposit(etherToken.address, 2000, { from: policy2ClientManager })
     await entity1.payTranchPremium(policy2.address, 0, { from: policy2ClientManager })
 
     // step 22: heartbeat
-    await evmClock.setTime(10 * 60)
+    await evmClock.setAbsoluteTime(10 * 60)
     await policy2.checkAndUpdateState()
     await policy2.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_ACTIVE }) // active now since startdate has passed
     await policy2.getTranchInfo(0).should.eventually.matchObj({
@@ -591,14 +590,14 @@ contract('End-to-end integration tests', accounts => {
     })
 
     // step 23: client manager pays third premium for policy2Tranch1
-    await evmClock.setTime(14 * 60)
+    await evmClock.setAbsoluteTime(14 * 60)
     await etherToken.deposit({ value: 1000, from: policy2ClientManager })
     await etherToken.approve(entity1.address, 1000, { from: policy2ClientManager })
     await entity1.deposit(etherToken.address, 1000, { from: policy2ClientManager })
     await entity1.payTranchPremium(policy2.address, 0, { from: policy2ClientManager })
 
     // step 24: heartbeat
-    await evmClock.setTime(15 * 60)
+    await evmClock.setAbsoluteTime(15 * 60)
     await policy2.checkAndUpdateState()
     await policy2.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_ACTIVE })
     await policy2.getTranchInfo(0).should.eventually.matchObj({
@@ -606,7 +605,7 @@ contract('End-to-end integration tests', accounts => {
     })
 
     // step 25: heartbeat
-    await evmClock.setTime(20 * 60)
+    await evmClock.setAbsoluteTime(20 * 60)
     await policy2.checkAndUpdateState()
     await policy2.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_ACTIVE })
     await policy2.getTranchInfo(0).should.eventually.matchObj({
@@ -637,11 +636,11 @@ contract('End-to-end integration tests', accounts => {
     })
 
     // step 26: make claim on policy2Tranch1
-    await evmClock.setTime(23 * 60)
+    await evmClock.setAbsoluteTime(23 * 60)
     await policy2.makeClaim(0, entity1.address, 6, { from: policy2ClientManager })
 
     // step 27: heartbeat - policy matured but still have pending claims
-    await evmClock.setTime(25 * 60)
+    await evmClock.setAbsoluteTime(25 * 60)
     await policy2.checkAndUpdateState()
     await policy2.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_MATURED })
     await policy2.getTranchInfo(0).should.eventually.matchObj({
@@ -649,7 +648,7 @@ contract('End-to-end integration tests', accounts => {
     })
 
     // step 28: approve claim
-    await evmClock.setTime(27 * 60)
+    await evmClock.setAbsoluteTime(27 * 60)
     await policy2.approveClaim(0, { from: policy2AssetManager })
 
     // sanity check internal state
@@ -690,7 +689,7 @@ contract('End-to-end integration tests', accounts => {
     entity0Balance = entity0ExpectedBalance
 
     // step 31: payout claims
-    await evmClock.setTime(28 * 60)
+    await evmClock.setAbsoluteTime(28 * 60)
     await policy2.payClaims()
 
     // check claim entity balance

@@ -7,7 +7,7 @@ import {
   hdWallet,
   ADDRESS_ZERO,
   createTranch,
-  createPolicy,
+  preSetupPolicy,
   EvmClock,
   EvmSnapshot,
 } from './utils'
@@ -33,6 +33,29 @@ const Policy = artifacts.require("./Policy")
 const IPolicy = artifacts.require("./base/IPolicy")
 const TestPolicyFacet = artifacts.require("./test/TestPolicyFacet")
 const FreezeUpgradesFacet = artifacts.require("./test/FreezeUpgradesFacet")
+
+const POLICY_ATTRS_1 = {
+  initiationDateDiff: 1000,
+  startDateDiff: 2000,
+  maturationDateDiff: 3000,
+  premiumIntervalSeconds: undefined,
+  assetManagerCommissionBP: 0,
+  brokerCommissionBP: 0,
+  naymsCommissionBP: 0,
+}
+
+const POLICY_ATTRS_2 = Object.assign({}, POLICY_ATTRS_1, {
+  initiationDateDiff: 0,
+  startDateDiff: 2000,
+  maturationDateDiff: 3000,
+})
+
+const POLICY_ATTRS_3 = Object.assign({}, POLICY_ATTRS_1, {
+  initiationDateDiff: 1000,
+  startDateDiff: 3000,
+  maturationDateDiff: 6000,
+  premiumIntervalSeconds: 5000,
+})
 
 contract('Policy Tranches: Premiums', accounts => {
   const evmSnapshot = new EvmSnapshot()
@@ -64,6 +87,7 @@ contract('Policy Tranches: Premiums', accounts => {
   let TRANCH_STATE_MATURED
 
   let setupPolicy
+  const policies = new Map()
 
   const tranchNumShares = 10
   const tranchPricePerShare = 100
@@ -110,37 +134,22 @@ contract('Policy Tranches: Premiums', accounts => {
     TRANCH_STATE_ACTIVE = await policyStates.TRANCH_STATE_ACTIVE()
     TRANCH_STATE_MATURED = await policyStates.TRANCH_STATE_MATURED()
 
-    setupPolicy = async ({
-      initiationDateDiff = 1000,
-      startDateDiff = 2000,
-      maturationDateDiff = 3000,
-      premiumIntervalSeconds = undefined,
-      brokerCommissionBP = 0,
-      assetManagerCommissionBP = 0,
-      naymsCommissionBP = 0,
-    } = {}) => {
-      // get current evm time
-      const t = await settings.getTime()
-      const currentBlockTime = parseInt(t.toString(10), 10)
+    const preSetupPolicyCtx = { policies, settings, events, etherToken, entity, entityManagerAddress }
+    await Promise.all([
+      preSetupPolicy(preSetupPolicyCtx, POLICY_ATTRS_1),
+      preSetupPolicy(preSetupPolicyCtx, POLICY_ATTRS_2),
+      preSetupPolicy(preSetupPolicyCtx, POLICY_ATTRS_3),
+    ])
 
-      const attrs = {
-        initiationDate: currentBlockTime + initiationDateDiff,
-        startDate: currentBlockTime + startDateDiff,
-        maturationDate: currentBlockTime + maturationDateDiff,
-        unit: etherToken.address,
-        premiumIntervalSeconds,
-        brokerCommissionBP,
-        assetManagerCommissionBP,
-        naymsCommissionBP,
-      }
-
-      const createPolicyTx = await createPolicy(entity, attrs, { from: entityManagerAddress })
-      const policyAddress = extractEventArgs(createPolicyTx, events.NewPolicy).policy
+    setupPolicy = async arg => {
+      const { attrs, baseTime, policyAddress } = policies.get(arg)
 
       policyProxy = await Policy.at(policyAddress)
       policy = await IPolicy.at(policyAddress)
       policyContext = await policyProxy.aclContext()
       policyOwnerAddress = entityManagerAddress
+
+      evmClock = new EvmClock(baseTime)
 
       return attrs
     }
@@ -159,7 +168,7 @@ contract('Policy Tranches: Premiums', accounts => {
       let policyAttrs
 
       beforeEach(async () => {
-        policyAttrs = await setupPolicy()
+        policyAttrs = await setupPolicy(POLICY_ATTRS_1)
       })
 
       it('empty premiums array is allowed', async () => {
@@ -276,7 +285,7 @@ contract('Policy Tranches: Premiums', accounts => {
       let policyAttrs
 
       beforeEach(async () => {
-        policyAttrs = await setupPolicy()
+        policyAttrs = await setupPolicy(POLICY_ATTRS_1)
       })
 
       it('0-values are skipped over when it comes to the first payment', async () => {
@@ -367,7 +376,7 @@ contract('Policy Tranches: Premiums', accounts => {
       let policyAttrs
 
       beforeEach(async () => {
-        policyAttrs = await setupPolicy({ initiationDateDiff: 0, startDateDiff: 2000, maturationDateDiff: 3000 })
+        policyAttrs = await setupPolicy(POLICY_ATTRS_2)
 
         await createTranch(policy, {
           premiums: [2, 3, 4]
@@ -388,7 +397,7 @@ contract('Policy Tranches: Premiums', accounts => {
     })
 
     it('if all premiums are paid before initiation that is ok', async () => {
-      await setupPolicy({ initiationDateDiff: 200, startDateDiff: 400, maturationDateDiff: 6000, premiumIntervalSeconds: 10 })
+      await setupPolicy(POLICY_ATTRS_1)
 
       await createTranch(policy, {
         premiums: [2, 3, 5]
@@ -409,7 +418,7 @@ contract('Policy Tranches: Premiums', accounts => {
     })
 
     it('will not accept extra payments', async () => {
-      await setupPolicy({ initiationDateDiff: 100, startDateDiff: 200, maturationDateDiff: 2000, premiumIntervalSeconds: 10 })
+      await setupPolicy(POLICY_ATTRS_1)
 
       await createTranch(policy, {
         premiums: [2, 3, 4, 5]
@@ -427,18 +436,11 @@ contract('Policy Tranches: Premiums', accounts => {
 
     describe('disallowed', () => {
       beforeEach(async () => {
-        await setupPolicy({
-          initiationDateDiff: 10,
-          startDateDiff: 30,
-          maturationDateDiff: 60,
-          premiumIntervalSeconds: 50
-        })
+        await setupPolicy(POLICY_ATTRS_3)
 
         await createTranch(policy, {
           premiums: [2, 3]
         }, { from: policyOwnerAddress })
-
-        evmClock = new EvmClock()
 
         await etherToken.deposit({ value: 100 })
         await etherToken.approve(policy.address, 100)
@@ -447,13 +449,13 @@ contract('Policy Tranches: Premiums', accounts => {
         await policy.payTranchPremium(0).should.be.fulfilled
 
         // kick-off sale
-        await evmClock.setTime(10)
+        await evmClock.setRelativeTime(1000)
         await policy.checkAndUpdateState()
       })
 
       it('if tranch is already cancelled', async () => {
         // shift to start date
-        await evmClock.setTime(30)
+        await evmClock.setRelativeTime(3000)
         // should auto-call heartbeat in here
         await policy.payTranchPremium(0).should.be.rejectedWith('payment not allowed')
 
@@ -467,7 +469,7 @@ contract('Policy Tranches: Premiums', accounts => {
         await policy.payTranchPremium(0).should.be.fulfilled
 
         // shift to maturation date
-        await evmClock.setTime(60)
+        await evmClock.setRelativeTime(6000)
 
         // should auto-call heartbeat in here
         await policy.payTranchPremium(0).should.be.rejectedWith('payment not allowed')

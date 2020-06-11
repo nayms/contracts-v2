@@ -7,7 +7,7 @@ import {
   hdWallet,
   ADDRESS_ZERO,
   createTranch,
-  createPolicy,
+  preSetupPolicy,
   EvmClock,
   EvmSnapshot,
 } from './utils'
@@ -33,6 +33,37 @@ const Policy = artifacts.require("./Policy")
 const IPolicy = artifacts.require("./base/IPolicy")
 const TestPolicyFacet = artifacts.require("./test/TestPolicyFacet")
 const FreezeUpgradesFacet = artifacts.require("./test/FreezeUpgradesFacet")
+
+const POLICY_ATTRS_1 = {
+  initiationDateDiff: 1000,
+  startDateDiff: 2000,
+  maturationDateDiff: 3000,
+  premiumIntervalSeconds: undefined,
+  assetManagerCommissionBP: 0,
+  brokerCommissionBP: 0,
+  naymsCommissionBP: 0,
+}
+
+const POLICY_ATTRS_2 = Object.assign({}, POLICY_ATTRS_1, {
+  initiationDateDiff: 100,
+  startDateDiff: 1000,
+  maturationDateDiff: 5000,
+  premiumIntervalSeconds: 100,
+})
+
+const POLICY_ATTRS_3 = Object.assign({}, POLICY_ATTRS_1, {
+  initiationDateDiff: 100,
+  startDateDiff: 1000,
+  maturationDateDiff: 1000,
+  premiumIntervalSeconds: 100,
+})
+
+const POLICY_ATTRS_4 = Object.assign({}, POLICY_ATTRS_1, {
+  initiationDateDiff: 1000,
+  startDateDiff: 2000,
+  maturationDateDiff: 10000,
+  premiumIntervalSeconds: 1000,
+})
 
 contract('Policy Tranches: Claims', accounts => {
   const evmSnapshot = new EvmSnapshot()
@@ -63,7 +94,10 @@ contract('Policy Tranches: Claims', accounts => {
   let TRANCH_STATE_ACTIVE
   let TRANCH_STATE_MATURED
 
-  let setupPolicy
+  let setupPolicyForClaims
+  const policies = new Map()
+
+  let buyAllTranchTokens
 
   const tranchNumShares = 10
   const tranchPricePerShare = 100
@@ -110,41 +144,81 @@ contract('Policy Tranches: Claims', accounts => {
     TRANCH_STATE_ACTIVE = await policyStates.TRANCH_STATE_ACTIVE()
     TRANCH_STATE_MATURED = await policyStates.TRANCH_STATE_MATURED()
 
-    setupPolicy = async ({
-      initiationDateDiff = 1000,
-      startDateDiff = 2000,
-      maturationDateDiff = 3000,
-      premiumIntervalSeconds = undefined,
-      brokerCommissionBP = 0,
-      assetManagerCommissionBP = 0,
-      naymsCommissionBP = 0,
-    } = {}) => {
-      // get current evm time
-      const t = await settings.getTime()
-      const currentBlockTime = parseInt(t.toString(10))
+    const preSetupPolicyForClaims = async (ctx, attrs) => {
+      await preSetupPolicy(ctx, attrs)
 
-      evmClock = new EvmClock(currentBlockTime)
+      const { policyAddress } = policies.get(attrs)
 
-      const attrs = {
-        initiationDate: currentBlockTime + initiationDateDiff,
-        startDate: currentBlockTime + startDateDiff,
-        maturationDate: currentBlockTime + maturationDateDiff,
-        unit: etherToken.address,
-        premiumIntervalSeconds,
-        brokerCommissionBP,
-        assetManagerCommissionBP,
-        naymsCommissionBP,
-      }
+      policy = await IPolicy.at(policyAddress)
+      policyOwnerAddress = entityManagerAddress
 
-      const createPolicyTx = await createPolicy(entity, attrs, { from: entityManagerAddress })
-      const policyAddress = extractEventArgs(createPolicyTx, events.NewPolicy).policy
+      await createTranch(policy, {
+        premiums: [2000, 3000, 4000]
+      }, { from: policyOwnerAddress })
+
+      await createTranch(policy, {
+        premiums: [7000, 1000, 5000]
+      }, { from: policyOwnerAddress })
+
+      await createTranch(policy, {  // this tranch will be cancelled because we won't pay all the premiums
+        premiums: [7000, 1000, 5000]
+      }, { from: policyOwnerAddress })
+
+      await createTranch(policy, {  // this tranch will be cancelled because we won't pay all the premiums
+        premiums: [7000, 1000, 5000]
+      }, { from: policyOwnerAddress })
+
+      // now pay premiums
+      await etherToken.deposit({ value: 50000 })
+      await etherToken.approve(policy.address, 50000)
+
+      // pay all
+      await policy.payTranchPremium(0)
+      await policy.payTranchPremium(0)
+      await policy.payTranchPremium(0)
+
+      // pay all
+      await policy.payTranchPremium(1)
+      await policy.payTranchPremium(1)
+      await policy.payTranchPremium(1)
+
+      // pay 1 (so it's cancelled by the start date time)
+      await policy.payTranchPremium(2)
+
+      // pay 2 (so it's active by the start date time but should be cancelled after that)
+      await policy.payTranchPremium(3)
+      await policy.payTranchPremium(3)
+    }
+
+    const preSetupPolicyCtx = { policies, settings, events, etherToken, entity, entityManagerAddress }
+    await preSetupPolicyForClaims(preSetupPolicyCtx, POLICY_ATTRS_1)
+    await preSetupPolicyForClaims(preSetupPolicyCtx, POLICY_ATTRS_2)
+    await preSetupPolicyForClaims(preSetupPolicyCtx, POLICY_ATTRS_3)
+    await preSetupPolicyForClaims(preSetupPolicyCtx, POLICY_ATTRS_4)
+
+    setupPolicyForClaims = async attrs => {
+      const { baseTime, policyAddress } = policies.get(attrs)
 
       policyProxy = await Policy.at(policyAddress)
       policy = await IPolicy.at(policyAddress)
       policyContext = await policyProxy.aclContext()
       policyOwnerAddress = entityManagerAddress
 
-      return attrs
+      const { token_: tranch0Address } = await policy.getTranchInfo(0)
+      const { token_: tranch1Address } = await policy.getTranchInfo(1)
+      const { token_: tranch2Address } = await policy.getTranchInfo(2)
+      const { token_: tranch3Address } = await policy.getTranchInfo(3)
+
+      buyAllTranchTokens = async () => {
+        await etherToken.deposit({ value: 40 })
+        await etherToken.approve(market.address, 40)
+        await market.offer(10, etherToken.address, 10, tranch0Address, 0, false)
+        await market.offer(10, etherToken.address, 10, tranch1Address, 0, false)
+        await market.offer(10, etherToken.address, 10, tranch2Address, 0, false)
+        await market.offer(10, etherToken.address, 10, tranch3Address, 0, false)
+      }
+
+      evmClock = new EvmClock(baseTime)
     }
   })
 
@@ -157,88 +231,26 @@ contract('Policy Tranches: Claims', accounts => {
   })
 
   describe('claims', () => {
-    let setupPolicyForClaims
-
-    let buyAllTranchTokens
-
-    beforeEach(async () => {
-      setupPolicyForClaims = async (attrs = {}) => {
-        attrs.premiumIntervalSeconds = 10
-        await setupPolicy(attrs)
-
-        await createTranch(policy, {
-          premiums: [2000, 3000, 4000]
-        }, { from: policyOwnerAddress })
-
-        await createTranch(policy, {
-          premiums: [7000, 1000, 5000]
-        }, { from: policyOwnerAddress })
-
-        await createTranch(policy, {  // this tranch will be cancelled because we won't pay all the premiums
-          premiums: [7000, 1000, 5000]
-        }, { from: policyOwnerAddress })
-
-        await createTranch(policy, {  // this tranch will be cancelled because we won't pay all the premiums
-          premiums: [7000, 1000, 5000]
-        }, { from: policyOwnerAddress })
-
-        const { token_: tranch0Address } = await policy.getTranchInfo(0)
-        const { token_: tranch1Address } = await policy.getTranchInfo(1)
-        const { token_: tranch2Address } = await policy.getTranchInfo(2)
-        const { token_: tranch3Address } = await policy.getTranchInfo(3)
-
-        // now pay premiums
-        await etherToken.deposit({ value: 50000 })
-        await etherToken.approve(policy.address, 50000)
-
-        // pay all
-        await policy.payTranchPremium(0)
-        await policy.payTranchPremium(0)
-        await policy.payTranchPremium(0)
-
-        // pay all
-        await policy.payTranchPremium(1)
-        await policy.payTranchPremium(1)
-        await policy.payTranchPremium(1)
-
-        // pay 1 (so it's cancelled by the start date time)
-        await policy.payTranchPremium(2)
-
-        // pay 2 (so it's active by the start date time but should be cancelled after that)
-        await policy.payTranchPremium(3)
-        await policy.payTranchPremium(3)
-
-        buyAllTranchTokens = async () => {
-          await etherToken.deposit({ value: 40 })
-          await etherToken.approve(market.address, 40)
-          await market.offer(10, etherToken.address, 10, tranch0Address, 0, false)
-          await market.offer(10, etherToken.address, 10, tranch1Address, 0, false)
-          await market.offer(10, etherToken.address, 10, tranch2Address, 0, false)
-          await market.offer(10, etherToken.address, 10, tranch3Address, 0, false)
-        }
-      }
-    })
-
     it('cannot be made in created state', async () => {
-      await setupPolicyForClaims()
+      await setupPolicyForClaims(POLICY_ATTRS_1)
       await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_CREATED })
       await policy.makeClaim(0, entity.address, 1).should.be.rejectedWith('must be in active state')
     })
 
     it('cannot be made in selling state', async () => {
-      await setupPolicyForClaims({ initiationDateDiff: 10, startDateDiff: 100 })
-      await evmClock.setTime(10)
+      await setupPolicyForClaims(POLICY_ATTRS_2)
+      await evmClock.setRelativeTime(100)
       await policy.checkAndUpdateState()
       await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_SELLING })
       await policy.makeClaim(0, entity.address, 1).should.be.rejectedWith('must be in active state')
     })
 
     it('can be made in active state', async () => {
-      await setupPolicyForClaims({ initiationDateDiff: 10, startDateDiff: 100 })
+      await setupPolicyForClaims(POLICY_ATTRS_2)
 
-      await evmClock.setTime(10)
+      await evmClock.setRelativeTime(100)
       await policy.checkAndUpdateState()
-      await evmClock.setTime(100)
+      await evmClock.setRelativeTime(1000)
       await buyAllTranchTokens()
       await policy.checkAndUpdateState()
 
@@ -255,12 +267,12 @@ contract('Policy Tranches: Claims', accounts => {
     })
 
     it('cannot be made in matured state', async () => {
-      await setupPolicyForClaims({ initiationDateDiff: 10, startDateDiff: 200, maturationDateDiff: 200 })
+      await setupPolicyForClaims(POLICY_ATTRS_3)
 
-      await evmClock.setTime(10)
+      await evmClock.setRelativeTime(100)
       await policy.checkAndUpdateState()
       await buyAllTranchTokens()
-      await evmClock.setTime(200)
+      await evmClock.setRelativeTime(1000)
       await policy.checkAndUpdateState()
 
       await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_MATURED })
@@ -279,10 +291,10 @@ contract('Policy Tranches: Claims', accounts => {
       let clientManagerAddress
 
       beforeEach(async () => {
-        await setupPolicyForClaims({ initiationDateDiff: 10, startDateDiff: 20 })
-        await evmClock.setTime(10)
+        await setupPolicyForClaims(POLICY_ATTRS_4)
+        await evmClock.setRelativeTime(1000)
         await policy.checkAndUpdateState()
-        await evmClock.setTime(20) // expect 2 premium payments to have been paid for every tranch by this point
+        await evmClock.setRelativeTime(2000) // expect 2 premium payments to have been paid for every tranch by this point
         await buyAllTranchTokens()
         await policy.checkAndUpdateState()
         await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_ACTIVE })
@@ -310,7 +322,7 @@ contract('Policy Tranches: Claims', accounts => {
           })
 
           // past next premium payment interval
-          await evmClock.setTime(40)
+          await evmClock.setRelativeTime(4000)
 
           await policy.makeClaim(3, entity.address, 1, { from: clientManagerAddress }).should.be.rejectedWith('tranch must be active');
         })

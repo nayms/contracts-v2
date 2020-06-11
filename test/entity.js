@@ -1,6 +1,7 @@
 import { keccak256 } from './utils/web3'
 
 import {
+  EvmSnapshot,
   extractEventArgs,
   hdWallet,
   ADDRESS_ZERO,
@@ -25,6 +26,8 @@ const Entity = artifacts.require("./Entity")
 const IPolicy = artifacts.require("./IPolicy")
 
 contract('Entity', accounts => {
+  const evmSnapshot = new EvmSnapshot()
+
   let acl
   let settings
   let etherToken
@@ -35,7 +38,7 @@ contract('Entity', accounts => {
   let entityCoreAddress
   let entityContext
 
-  beforeEach(async () => {
+  before(async () => {
     acl = await ensureAclIsDeployed({ artifacts })
     settings = await ensureSettingsIsDeployed({ artifacts }, acl.address)
     market = await ensureMarketIsDeployed({ artifacts }, settings.address)
@@ -51,6 +54,14 @@ contract('Entity', accounts => {
     ;([ entityCoreAddress ] = await settings.getRootAddresses(SETTINGS.ENTITY_IMPL))
 
     etherToken2 = await deployNewEtherToken({ artifacts }, acl.address, settings.address)
+  })
+
+  beforeEach(async () => {
+    await evmSnapshot.take()
+  })
+
+  afterEach(async () => {
+    await evmSnapshot.restore()
   })
 
   it('can be deployed', async () => {

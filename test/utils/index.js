@@ -177,6 +177,39 @@ export const createPolicy = (entity, attrs, ...callAttrs) => {
   )
 }
 
+
+export const preSetupPolicy = async (ctx, createPolicyArgs) => {
+  const {
+    initiationDateDiff,
+    startDateDiff,
+    maturationDateDiff,
+    premiumIntervalSeconds,
+    brokerCommissionBP,
+    assetManagerCommissionBP,
+    naymsCommissionBP,
+  } = (createPolicyArgs || {})
+
+  // get current evm time
+  const t = await ctx.settings.getTime()
+  const currentBlockTime = parseInt(t.toString(10))
+
+  const attrs = {
+    initiationDate: currentBlockTime + initiationDateDiff,
+    startDate: currentBlockTime + startDateDiff,
+    maturationDate: currentBlockTime + maturationDateDiff,
+    unit: ctx.etherToken.address,
+    premiumIntervalSeconds,
+    brokerCommissionBP,
+    assetManagerCommissionBP,
+    naymsCommissionBP,
+  }
+
+  const createPolicyTx = await createPolicy(ctx.entity, attrs, { from: ctx.entityManagerAddress })
+  const policyAddress = extractEventArgs(createPolicyTx, ctx.events.NewPolicy).policy
+
+  ctx.policies.set(createPolicyArgs, { attrs, baseTime: currentBlockTime, policyAddress })
+}
+
 export const calcPremiumsMinusCommissions = ({ premiums, assetManagerCommissionBP, brokerCommissionBP, naymsCommissionBP }) => (
   premiums.reduce((m, v) => (
     m + v - (v * assetManagerCommissionBP / 1000) - (v * brokerCommissionBP / 1000) - (v * naymsCommissionBP / 1000)
@@ -222,10 +255,20 @@ const web3EvmIncreaseTime = async ts => {
 
 export class EvmClock {
   constructor (initialTimestamp = 0) {
+    this.originalTimestamp = initialTimestamp
     this.lastTimestamp = initialTimestamp
   }
 
-  async setTime (timestamp) {
+  async setAbsoluteTime (timestamp) {
+    if (timestamp <= this.lastTimestamp) {
+      throw new Error(`Cannot set to past time: ${timestamp}`)
+    }
+    await web3EvmIncreaseTime(timestamp - this.lastTimestamp)
+    this.lastTimestamp = timestamp
+  }
+
+  async setRelativeTime(relativeTimestamp) {
+    const timestamp = relativeTimestamp + this.originalTimestamp
     if (timestamp <= this.lastTimestamp) {
       throw new Error(`Cannot set to past time: ${timestamp}`)
     }

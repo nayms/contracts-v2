@@ -7,7 +7,7 @@ import {
   hdWallet,
   ADDRESS_ZERO,
   createTranch,
-  createPolicy,
+  preSetupPolicy,
   EvmSnapshot,
 } from './utils'
 import { events } from '../'
@@ -26,12 +26,19 @@ import { ensurePolicyImplementationsAreDeployed } from '../migrations/modules/po
 const IERC20 = artifacts.require("./base/IERC20")
 const IEntity = artifacts.require('./base/IEntity')
 const Entity = artifacts.require('./Entity')
-const IDiamondProxy = artifacts.require('./base/IDiamondProxy')
 const IPolicyStates = artifacts.require("./base/IPolicyStates")
 const Policy = artifacts.require("./Policy")
 const IPolicy = artifacts.require("./base/IPolicy")
-const TestPolicyFacet = artifacts.require("./test/TestPolicyFacet")
-const FreezeUpgradesFacet = artifacts.require("./test/FreezeUpgradesFacet")
+
+const POLICY_ATTRS_1 = {
+  initiationDateDiff: 1000,
+  startDateDiff: 2000,
+  maturationDateDiff: 3000,
+  premiumIntervalSeconds: undefined,
+  assetManagerCommissionBP: 1,
+  brokerCommissionBP: 2,
+  naymsCommissionBP: 3
+}
 
 contract('Policy Tranches: Commissions', accounts => {
   const evmSnapshot = new EvmSnapshot()
@@ -62,6 +69,7 @@ contract('Policy Tranches: Commissions', accounts => {
   let TRANCH_STATE_MATURED
 
   let setupPolicy
+  const policies = new Map()
 
   const tranchNumShares = 10
   const tranchPricePerShare = 100
@@ -108,32 +116,13 @@ contract('Policy Tranches: Commissions', accounts => {
     TRANCH_STATE_ACTIVE = await policyStates.TRANCH_STATE_ACTIVE()
     TRANCH_STATE_MATURED = await policyStates.TRANCH_STATE_MATURED()
 
-    setupPolicy = async ({
-      initiationDateDiff = 1000,
-      startDateDiff = 2000,
-      maturationDateDiff = 3000,
-      premiumIntervalSeconds = undefined,
-      brokerCommissionBP = 0,
-      assetManagerCommissionBP = 0,
-      naymsCommissionBP = 0,
-    } = {}) => {
-      // get current evm time
-      const t = await settings.getTime()
-      const currentBlockTime = parseInt(t.toString(10))
+    const preSetupPolicyCtx = { policies, settings, events, etherToken, entity, entityManagerAddress }
+    await Promise.all([
+      preSetupPolicy(preSetupPolicyCtx, POLICY_ATTRS_1),
+    ])
 
-      const attrs = {
-        initiationDate: currentBlockTime + initiationDateDiff,
-        startDate: currentBlockTime + startDateDiff,
-        maturationDate: currentBlockTime + maturationDateDiff,
-        unit: etherToken.address,
-        premiumIntervalSeconds,
-        brokerCommissionBP,
-        assetManagerCommissionBP,
-        naymsCommissionBP,
-      }
-
-      const createPolicyTx = await createPolicy(entity, attrs, { from: entityManagerAddress })
-      const policyAddress = extractEventArgs(createPolicyTx, events.NewPolicy).policy
+    setupPolicy = async arg => {
+      const { attrs, policyAddress } = policies.get(arg)
 
       policyProxy = await Policy.at(policyAddress)
       policy = await IPolicy.at(policyAddress)
@@ -146,9 +135,6 @@ contract('Policy Tranches: Commissions', accounts => {
 
   beforeEach(async () => {
     await evmSnapshot.take()
-
-    const t = await settings.getTime()
-    const currentBlockTime = parseInt(t.toString(10))
   })
 
   afterEach(async () => {
@@ -157,11 +143,7 @@ contract('Policy Tranches: Commissions', accounts => {
 
   describe('commissions', () => {
     beforeEach(async () => {
-      await setupPolicy({
-        brokerCommissionBP: 2,
-        assetManagerCommissionBP: 1,
-        naymsCommissionBP: 3,
-      })
+      await setupPolicy(POLICY_ATTRS_1)
 
       await createTranch(policy, {
         premiums: [2000, 3000, 4000]

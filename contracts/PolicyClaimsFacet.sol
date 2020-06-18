@@ -31,6 +31,11 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
     _;
   }
 
+  modifier assertIsSystemManager (address _addr) {
+    require(inRoleGroup(_addr, ROLEGROUP_SYSTEM_MANAGERS), 'must be system manager');
+    _;
+  }
+
   /**
    * Constructor
    */
@@ -48,7 +53,7 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
       IPolicyClaimsFacet.makeClaim.selector,
       IPolicyClaimsFacet.approveClaim.selector,
       IPolicyClaimsFacet.declineClaim.selector,
-      IPolicyClaimsFacet.payClaims.selector,
+      IPolicyClaimsFacet.payClaim.selector,
       IPolicyClaimsFacet.getClaimStats.selector,
       IPolicyClaimsFacet.getClaimInfo.selector
     );
@@ -129,20 +134,22 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
 
 
 
-  function payClaims() public override {
+  function payClaim(uint256 _claimIndex)
+    public
+    override
+    assertIsSystemManager(msg.sender)
+  {
     IERC20 tkn = IERC20(dataAddress["unit"]);
 
-    for (uint256 i = 0; i < dataUint256["claimsCount"]; i += 1) {
-      bool claimApproved = dataBool[__i(i, "claimApproved")];
-      bool claimPaid = dataBool[__i(i, "claimPaid")];
+    bool claimApproved = dataBool[__i(_claimIndex, "claimApproved")];
+    bool claimPaid = dataBool[__i(_claimIndex, "claimPaid")];
 
-      if (claimApproved && !claimPaid) {
-        tkn.transfer(dataAddress[__i(i, "claimEntity")], dataUint256[__i(i, "claimAmount")]);
-        dataBool[__i(i, "claimPaid")] = true;
-      }
+    if (claimApproved && !claimPaid) {
+      tkn.transfer(dataAddress[__i(_claimIndex, "claimEntity")], dataUint256[__i(_claimIndex, "claimAmount")]);
+      dataBool[__i(_claimIndex, "claimPaid")] = true;
     }
 
-    emit PaidClaims(msg.sender);
+    emit ClaimPaid(_claimIndex, msg.sender);
   }
 
   // Internal methods

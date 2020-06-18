@@ -25,9 +25,11 @@ interface IPolicyClaimsFacet {
    */
   function declineClaim (uint256 _claimIndex) external;
   /**
-   * @dev Payout all approved claims.
+   * @dev Payout an approved claim.
+   *
+   * @param _claimIndex Claim index.
    */
-  function payClaims() external;
+  function payClaim(uint256 _claimIndex) external;
   /**
    * @dev Get claim stats.
    * @return numClaims_ No. of claims raised in total.
@@ -81,9 +83,10 @@ interface IPolicyClaimsFacet {
    */
   event ClaimDeclined(uint256 indexed claimIndex, address indexed caller);
   /**
-   * @dev Emitted when all approved claims have been paid out.
+   * @dev Emitted when an approved claim has been paid out.
    *
+   * @param claimIndex The claim index.
    * @param caller The caller.
    */
-  event PaidClaims(address indexed caller);
+  event ClaimPaid(uint256 indexed claimIndex, address indexed caller);
 }

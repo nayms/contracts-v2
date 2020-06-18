@@ -793,7 +793,10 @@ contract('Policy: Flow', accounts => {
 
           const preBalance = ((await etherToken.balanceOf(entity.address)).toNumber())
 
-          await policy.payClaims()
+          const policyContext = await policy.aclContext()
+          await acl.assignRole(policyContext, accounts[1], ROLES.SYSTEM_MANAGER)
+          await policy.payClaim(1, { from: accounts[1] })
+          await policy.payClaim(3, { from: accounts[1] })
 
           const postBalance = ((await etherToken.balanceOf(entity.address)).toNumber())
 

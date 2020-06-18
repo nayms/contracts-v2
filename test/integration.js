@@ -690,7 +690,7 @@ contract('End-to-end integration tests', accounts => {
 
     // step 31: payout claims
     await evmClock.setAbsoluteTime(28 * 60)
-    await policy2.payClaims()
+    await policy2.payClaim(0, { from: accounts[1] })
 
     // check claim entity balance
     await etherToken.balanceOf(entity1Address).should.eventually.eq(entity1Balance + 6)

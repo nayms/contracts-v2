@@ -568,28 +568,44 @@ contract('Policy Tranches: Claims', accounts => {
             await policy.approveClaim(2, { from: assetManagerAddress })
           })
 
-          it('and an event gets emitted', async () => {
-            const ret = await policy.payClaims()
+          it('but not just by anyone', async () => {
+            await policy.payClaim(0, { from: accounts[5] }).should.be.rejectedWith('must be system manager')
+          })
 
-            expect(extractEventArgs(ret, events.PaidClaims)).to.exist
+          it('by system manager', async () => {
+            await acl.assignRole(policyContext, accounts[5], ROLES.SYSTEM_MANAGER)
+            await policy.payClaim(0, { from: accounts[5] }).should.be.fulfilled
+          })
+
+          it('and an event gets emitted', async () => {
+            const ret = await policy.payClaim(0)
+
+            expect(extractEventArgs(ret, events.ClaimPaid)).to.exist
           })
 
           it('and the payout goes to the client manager entities', async () => {
             const preBalance = ((await etherToken.balanceOf(entity.address))).toNumber()
 
-            await policy.payClaims()
+            await policy.payClaim(0)
 
             const postBalance = ((await etherToken.balanceOf(entity.address))).toNumber()
 
-            expect(postBalance - preBalance).to.eq(5)
+            expect(postBalance - preBalance).to.eq(4)
+
+            await policy.payClaim(2)
+
+            const postBalance2 = ((await etherToken.balanceOf(entity.address))).toNumber()
+
+            expect(postBalance2 - preBalance).to.eq(5)
           })
 
-          it('and only does the payouts for a given approved claim', async () => {
+          it('and only does the payouts for a approved claims', async () => {
             const preBalance = ((await etherToken.balanceOf(entity.address))).toNumber()
 
-            await policy.payClaims()
-            await policy.payClaims()
-            await policy.payClaims()
+            await policy.payClaim(0)
+            await policy.payClaim(1)
+            await policy.payClaim(2)
+            await policy.payClaim(3)
 
             const postBalance = ((await etherToken.balanceOf(entity.address))).toNumber()
 
@@ -597,7 +613,7 @@ contract('Policy Tranches: Claims', accounts => {
           })
 
           it('and it updates the internal stats', async () => {
-            await policy.payClaims()
+            await policy.payClaim(0)
 
             await policy.getClaimStats().should.eventually.matchObj({
               numClaims_: 4,
@@ -619,7 +635,7 @@ contract('Policy Tranches: Claims', accounts => {
             await policy.getClaimInfo(2).should.eventually.matchObj({
               approved_: true,
               declined_: false,
-              paid_: true,
+              paid_: false,
             })
 
             await policy.getClaimInfo(3).should.eventually.matchObj({

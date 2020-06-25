@@ -25,6 +25,12 @@ interface IPolicyClaimsFacet {
    */
   function declineClaim (uint256 _claimIndex) external;
   /**
+   * @dev Cancel a claim that has been approved.
+   *
+   * @param _claimIndex Claim index.
+   */
+  function cancelClaim (uint256 _claimIndex) external;
+  /**
    * @dev Payout an approved claim.
    *
    * @param _claimIndex Claim index.
@@ -47,13 +53,15 @@ interface IPolicyClaimsFacet {
    * @return approved_ Whether the claim has been approved.
    * @return declined_ Whether the claim has been declined.
    * @return paid_ Whether the claim has been paid out.
+   * @return cancelled_ Whether the claim was cancelled.
    */
   function getClaimInfo (uint256 _claimIndex) external view returns (
     uint256 amount_,
     uint256 tranchIndex_,
     bool approved_,
     bool declined_,
-    bool paid_
+    bool paid_,
+    bool cancelled_
   );
 
 
@@ -89,4 +97,11 @@ interface IPolicyClaimsFacet {
    * @param caller The caller.
    */
   event ClaimPaid(uint256 indexed claimIndex, address indexed caller);
+  /**
+   * @dev Emitted when a claim gets cancelled.
+   *
+   * @param claimIndex The claim index.
+   * @param caller The caller.
+   */
+  event ClaimCancelled(uint256 indexed claimIndex, address indexed caller);
 }

@@ -53,6 +53,7 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
       IPolicyClaimsFacet.makeClaim.selector,
       IPolicyClaimsFacet.approveClaim.selector,
       IPolicyClaimsFacet.declineClaim.selector,
+      IPolicyClaimsFacet.cancelClaim.selector,
       IPolicyClaimsFacet.payClaim.selector,
       IPolicyClaimsFacet.getClaimStats.selector,
       IPolicyClaimsFacet.getClaimInfo.selector
@@ -74,13 +75,15 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
     uint256 tranchIndex_,
     bool approved_,
     bool declined_,
-    bool paid_
+    bool paid_,
+    bool cancelled_
   ) {
     amount_ = dataUint256[__i(_claimIndex, "claimAmount")];
     tranchIndex_ = dataUint256[__i(_claimIndex, "claimTranch")];
     approved_ = dataBool[__i(_claimIndex, "claimApproved")];
     declined_ = dataBool[__i(_claimIndex, "claimDeclined")];
     paid_ = dataBool[__i(_claimIndex, "claimPaid")];
+    cancelled_ = dataBool[__i(_claimIndex, "claimCancelled")];
   }
 
   function makeClaim(uint256 _index, address _clientManagerEntity, uint256 _amount) public override
@@ -100,6 +103,7 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
     require(0 < dataUint256[__i(_claimIndex, "claimAmount")], 'invalid claim');
     require(!dataBool[__i(_claimIndex, "claimApproved")], 'already approved');
     require(!dataBool[__i(_claimIndex, "claimDeclined")], 'already declined');
+    require(!dataBool[__i(_claimIndex, "claimCancelled")], 'already cancelled');
 
     // mark claim as approved
     dataBool[__i(_claimIndex, "claimApproved")] = true;
@@ -124,6 +128,7 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
     require(0 < dataUint256[__i(_claimIndex, "claimAmount")], 'invalid claim');
     require(!dataBool[__i(_claimIndex, "claimApproved")], 'already approved');
     require(!dataBool[__i(_claimIndex, "claimDeclined")], 'already declined');
+    require(!dataBool[__i(_claimIndex, "claimCancelled")], 'already cancelled');
 
     // mark claim as declined
     dataBool[__i(_claimIndex, "claimDeclined")] = true;
@@ -134,20 +139,40 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
 
 
 
+  function cancelClaim(uint256 _claimIndex)
+    public
+    override
+    assertIsSystemManager(msg.sender)
+  {
+    // check claim
+    require(0 < dataUint256[__i(_claimIndex, "claimAmount")], 'invalid claim');
+    require(!dataBool[__i(_claimIndex, "claimCancelled")], 'already cancelled');
+    require(!dataBool[__i(_claimIndex, "claimPaid")], 'already paid');
+
+    // mark claim as cancelled
+    dataBool[__i(_claimIndex, "claimCancelled")] = true;
+    dataUint256["claimsPendingCount"] -= 1;
+
+    emit ClaimCancelled(_claimIndex, msg.sender);
+  }
+
+
+
   function payClaim(uint256 _claimIndex)
     public
     override
     assertIsSystemManager(msg.sender)
   {
+    // check claim
+    require(0 < dataUint256[__i(_claimIndex, "claimAmount")], 'invalid claim');
+    require(dataBool[__i(_claimIndex, "claimApproved")], 'not approved');
+    require(!dataBool[__i(_claimIndex, "claimCancelled")], 'already cancelled');
+    require(!dataBool[__i(_claimIndex, "claimPaid")], 'already paid');
+
     IERC20 tkn = IERC20(dataAddress["unit"]);
 
-    bool claimApproved = dataBool[__i(_claimIndex, "claimApproved")];
-    bool claimPaid = dataBool[__i(_claimIndex, "claimPaid")];
-
-    if (claimApproved && !claimPaid) {
-      tkn.transfer(dataAddress[__i(_claimIndex, "claimEntity")], dataUint256[__i(_claimIndex, "claimAmount")]);
-      dataBool[__i(_claimIndex, "claimPaid")] = true;
-    }
+    tkn.transfer(dataAddress[__i(_claimIndex, "claimEntity")], dataUint256[__i(_claimIndex, "claimAmount")]);
+    dataBool[__i(_claimIndex, "claimPaid")] = true;
 
     emit ClaimPaid(_claimIndex, msg.sender);
   }

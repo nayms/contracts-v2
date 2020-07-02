@@ -17,7 +17,7 @@ const getLiveGasPrice = async ({ log }) => {
 
   await log.task('Fetching live fast gas price', async task => {
     const { body: { fast } } = await got('https://ethgasstation.info/api/ethgasAPI.json', { responseType: 'json' })
-    gwei = parseInt(parseInt(fast, 10) / 10, 10)
+    gwei = parseInt(parseInt(fast, 10) / 10, 10) + 1
     task.log(`${gwei} GWEI`)
   })
 

@@ -15,14 +15,14 @@ export const ensurePolicyImplementationsAreDeployed = async ({ deployer, artifac
     const PolicyPremiumsFacet = artifacts.require('./PolicyPremiumsFacet')
     const PolicyTranchTokensFacet = artifacts.require('./PolicyTranchTokensFacet')
 
-    addresses = (await Promise.all([
-      deploy(deployer, getTxParams(), PolicyCoreFacet, aclAddress, settingsAddress),
-      deploy(deployer, getTxParams(), PolicyUpgradeFacet, aclAddress, settingsAddress),
-      deploy(deployer, getTxParams(), PolicyClaimsFacet, aclAddress, settingsAddress),
-      deploy(deployer, getTxParams(), PolicyCommissionsFacet, aclAddress, settingsAddress),
-      deploy(deployer, getTxParams(), PolicyPremiumsFacet, aclAddress, settingsAddress),
-      deploy(deployer, getTxParams(), PolicyTranchTokensFacet, aclAddress, settingsAddress),
-    ])).map(c => c.address)
+    addresses = [
+      await deploy(deployer, getTxParams(), PolicyCoreFacet, aclAddress, settingsAddress),
+      await deploy(deployer, getTxParams(), PolicyUpgradeFacet, aclAddress, settingsAddress),
+      await deploy(deployer, getTxParams(), PolicyClaimsFacet, aclAddress, settingsAddress),
+      await deploy(deployer, getTxParams(), PolicyCommissionsFacet, aclAddress, settingsAddress),
+      await deploy(deployer, getTxParams(), PolicyPremiumsFacet, aclAddress, settingsAddress),
+      await deploy(deployer, getTxParams(), PolicyTranchTokensFacet, aclAddress, settingsAddress),
+    ].map(c => c.address)
 
     task.log(`Deployed at ${addresses.join(', ')}`)
   })

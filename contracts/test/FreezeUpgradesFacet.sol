@@ -9,4 +9,8 @@ contract FreezeUpgradesFacet is IDiamondUpgradeFacet {
   function upgrade (address[] memory /*_facets*/) public override {
     revert('frozen');
   }
+
+  function getVersionInfo () public override view returns (uint256 _num, uint256 _date, string memory _hash) {
+    // empty
+  }
 }

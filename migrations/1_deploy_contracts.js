@@ -87,8 +87,6 @@ module.exports = async (deployer, network, accounts) => {
     })
   }
 
-  await Promise.all([
-    ensureEntityImplementationsAreDeployed(cfg, acl.address, settings.address),
-    ensurePolicyImplementationsAreDeployed(cfg, acl.address, settings.address),
-  ])
+  await ensureEntityImplementationsAreDeployed(cfg, acl.address, settings.address)
+  await ensurePolicyImplementationsAreDeployed(cfg, acl.address, settings.address)
 }

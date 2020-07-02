@@ -350,6 +350,57 @@
       ]
     },
     {
+      "id": "getVersionInfo",
+      "title": "Version: Get contract implementation version",
+      "description": "This only works for upgradeable contracts (Entity, Policy).",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "Contract address",
+          "description": "The address of the contract",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "IDiamondUpgradeFacet",
+          "method": "getVersionInfo",
+          "address": "@input[contractAddress]",
+          "saveResultAsInput": "versionInfo"
+        }
+      ],
+      "outputs": [
+        {
+          "title": "Version number",
+          "type": "int",
+          "value": "@input[versionInfo][num_]"
+        },
+        {
+          "title": "Date",
+          "type": "string",
+          "value": "@input[versionInfo][date_]",
+          "transform": [
+            {
+              "type": "intToDateString",
+              "format": "MMM dd, yyyy - HH:mm:ss"
+            }
+          ]
+        },
+        {
+          "title": "Git commit",
+          "type": "string",
+          "value": "@input[versionInfo][hash_]"
+        }
+      ]
+    },
+    {
       "id": "assignRole",
       "title": "ACL: Assign role",
       "description": "You must be an admin or an assigner for the role to do this",

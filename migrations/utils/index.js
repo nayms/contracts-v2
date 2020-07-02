@@ -9,6 +9,8 @@ exports.defaultGetTxParams = () => ({
 })
 
 exports.deploy = async (deployer, txParams, Contract, ...constructorArgs) => {
+  Contract.synchronization_timeout = 300 // 2mins
+
   if (deployer) {
     await deployer.deploy(Contract, ...constructorArgs.concat(txParams))
     return await Contract.deployed()

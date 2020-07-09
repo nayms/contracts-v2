@@ -2,7 +2,7 @@ const { createLog } = require('../utils/log')
 const { deploy, defaultGetTxParams } = require('../utils')
 const { SETTINGS } = require('../../utils/constants')
 
-export const ensureEntityImplementationsAreDeployed = async ({ deployer, artifacts, log, getTxParams = defaultGetTxParams }, aclAddress, settingsAddress) => {
+export const ensureEntityImplementationsAreDeployed = async ({ deployer, artifacts, log, getTxParams = defaultGetTxParams, onlyDeployingUpgrades }, aclAddress, settingsAddress) => {
   log = createLog(log)
 
   let addresses
@@ -18,6 +18,7 @@ export const ensureEntityImplementationsAreDeployed = async ({ deployer, artifac
 
     task.log(`Deployed at ${addresses.join(', ')}`)
   })
+
 
   await log.task(`Saving entity implementation addresses to settings`, async task => {
     const Settings = artifacts.require('./ISettings')

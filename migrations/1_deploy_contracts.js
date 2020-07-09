@@ -11,6 +11,7 @@ const { getCurrentEtherToken, ensureEtherTokenIsDeployed } = require('./modules/
 const { getCurrentEntityDeployer, ensureEntityDeployerIsDeployed } = require('./modules/entityDeployer')
 const { ensureEntityImplementationsAreDeployed } = require('./modules/entityImplementations')
 const { ensurePolicyImplementationsAreDeployed } = require('./modules/policyImplementations')
+const { upgradeExistingConstracts } = require('./modules/upgrades')
 
 const getLiveGasPrice = async ({ log }) => {
   let gwei
@@ -57,10 +58,15 @@ module.exports = async (deployer, network, accounts) => {
   }
 
   const cfg = {
-    deployer, artifacts, log, networkId, getTxParams
+    deployer,
+    artifacts,
+    log,
+    networkId,
+    getTxParams,
+    onlyDeployingUpgrades: !(doFreshDeployment || networkInfo.isLocal)
   }
 
-  if (doFreshDeployment || networkInfo.isLocal) {
+  if (!cfg.onlyDeployingUpgrades) {
     if (networkInfo.isLocal) {
       await deployer.deploy(artifacts.require("./Migrations"))
     }
@@ -89,4 +95,8 @@ module.exports = async (deployer, network, accounts) => {
 
   await ensureEntityImplementationsAreDeployed(cfg, acl.address, settings.address)
   await ensurePolicyImplementationsAreDeployed(cfg, acl.address, settings.address)
+
+  if (cfg.onlyDeployingUpgrades) {
+    await upgradeExistingConstracts({ artifacts, log, getTxParams }, settings.address)
+  }
 }

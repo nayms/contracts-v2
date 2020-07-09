@@ -8,6 +8,7 @@ exports.defaultGetTxParams = () => ({
   gasPrice: 1 * 1000000000 // 1 GWEI
 })
 
+
 exports.deploy = async (deployer, txParams, Contract, ...constructorArgs) => {
   Contract.synchronization_timeout = 300 // 2mins
 

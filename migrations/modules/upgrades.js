@@ -1,13 +1,6 @@
 const { createLog } = require('../utils/log')
 const { SETTINGS } = require('../../utils/constants')
 const { defaultGetTxParams } = require('../utils')
-const buildConfig = require('../../buildConfig.json')
-
-const checkVersionInfoIsCurrent = ({ num }) => {
-  if (buildConfig.num > num) {
-    throw new Error(`Impls version is not the latest`)
-  }
-}
 
 
 const upgradeIfNeeded = async ({ task, item, latestVersionInfo, facetAddresses, logStrPrefix, getTxParams }) => {
@@ -89,11 +82,9 @@ export const upgradeExistingConstracts = async ({ artifacts, log, getTxParams = 
   await log.task(`Upgrading existing contracts ...`, async task => {
     const latestEntityVersionInfo = await getImplsVersion({ task, artifacts, settings, implsKey: SETTINGS.ENTITY_IMPL })
     await task.log(`Got entity impls version info:\n${JSON.stringify(latestEntityVersionInfo, null, 2)}`)
-    await checkVersionInfoIsCurrent(latestEntityVersionInfo)
 
     const latestPolicyVersionInfo = await getImplsVersion({ task, artifacts, settings, implsKey: SETTINGS.POLICY_IMPL })
     await task.log(`Got policy impls version info:\n${JSON.stringify(latestPolicyVersionInfo, null, 2)}`)
-    await checkVersionInfoIsCurrent(latestPolicyVersionInfo)
 
     const numEntities = (await entityDeployer.getNumEntities()).toNumber()
     await task.log(`Got ${numEntities} entities`)

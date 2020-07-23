@@ -30,7 +30,7 @@ export const ensureEntityDeployerIsDeployed = async ({ deployer, artifacts, log,
     task.log(`Deployed at ${naymsEntityAddress}`)
   })
 
-  await log.task(`Saving entity deployer and nayms entity addresses to settings`, async task => {
+  await log.task(`Saving entity deployer and Nayms entity addresses to settings`, async task => {
     const Settings = artifacts.require('./ISettings')
     const settings = await Settings.at(settingsAddress)
     await Promise.all([

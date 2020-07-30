@@ -19,7 +19,7 @@ const getLiveGasPrice = async ({ log }) => {
   await log.task('Fetching live fast gas price', async task => {
     const { body } = await got('https://data-api.defipulse.com/api/v1/egs/api/ethgasAPI.json', {
       headers: {
-        'api-key': '529289733c99719c5a4ef7fb7006fc067e92bbcecb9e10353596d0b151ed',
+        'api-key': process.env.DEFIPULSE_API_KEY,
       },
       responseType: 'json'
     })

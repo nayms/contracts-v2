@@ -92,6 +92,12 @@ yarn deploy:local
 
 **Note: Requires Node 12+**
 
+Setup env vars (obtain them from 1password):
+
+```shell
+export DEFIPULSE_API_KEY=...
+```
+
 Install dependencies:
 
 ```shell

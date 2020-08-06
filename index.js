@@ -18,6 +18,7 @@ const coreContracts = [
   { name: 'Entity', actual: 'IEntity' },
   { name: 'Market', actual: 'IMarket' },
   { name: 'EtherToken', actual: 'IEtherToken' },
+  { name: 'DummyToken', actual: 'DummyToken' },
   { name: 'ERC20', actual: 'IERC20' },
 ].reduce((m, n) => {
   m[n.name] = rawContracts[n.actual]

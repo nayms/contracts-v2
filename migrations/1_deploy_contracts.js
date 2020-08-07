@@ -17,13 +17,8 @@ const getLiveGasPrice = async ({ log }) => {
   let gwei
 
   await log.task('Fetching live fast gas price', async task => {
-    const { body } = await got('https://data-api.defipulse.com/api/v1/egs/api/ethgasAPI.json', {
-      headers: {
-        'api-key': process.env.DEFIPULSE_API_KEY,
-      },
-      responseType: 'json'
-    })
-    const { fast } = body
+    const { body } = await got('https://www.ethgasstationapi.com/api/fast')
+    const fast = parseFloat(body)
     gwei = fast + 1
     task.log(`${gwei} GWEI`)
   })

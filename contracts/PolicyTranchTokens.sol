@@ -15,16 +15,6 @@ import "./base/IERC20.sol";
 contract PolicyTranchTokensFacet is EternalStorage, Controller, IDiamondFacet, IPolicyTranchTokensFacet, PolicyFacetBase {
   using SafeMath for uint;
 
-  modifier assertIsAssetManager (address _addr) {
-    require(inRoleGroup(_addr, ROLEGROUP_ASSET_MANAGERS), 'must be asset manager');
-    _;
-  }
-
-  modifier assertIsBroker (address _addr) {
-    require(inRoleGroup(_addr, ROLEGROUP_BROKERS), 'must be broker');
-    _;
-  }
-
   /**
    * Constructor
    */

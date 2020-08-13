@@ -18,7 +18,7 @@
     "LICENSE.md"
   ],
   "scripts": {
-    "devnet": "ganache-cli --gasLimit 8000000 -a 50 -m 'funny door sample enrich female wedding stereo crane setup shop dwarf dismiss'",
+    "devnet": "ganache-cli --gasLimit 8000000 -a 50 -e 1000000 -m 'funny door sample enrich female wedding stereo crane setup shop dwarf dismiss'",
     "devnet-ci": "yarn devnet >ganache.log 2>&1 &",
     "truffle": "babel-node node_modules/.bin/truffle",
     "clean": "rm -rf ./build",
@@ -75,7 +75,7 @@
     "solc": ">=0.6.7",
     "solgraph": "^0.3.2",
     "solhint": "^2.2.0",
-    "solidity-coverage": "^0.7.5",
+    "solidity-coverage": "^0.7.9",
     "truffle": "^5.0.40",
     "truffle-hdwallet-provider": "^1.0.0-web3one.0",
     "uuid": "^3.0.1",

@@ -181,6 +181,13 @@ contract('Policy: Basic', accounts => {
       freezeUpgradesFacet = await FreezeUpgradesFacet.new()
     })
 
+    it('and returns version info', async () => {
+      const versionInfo = await policy.getVersionInfo()
+      expect(versionInfo.num_).to.exist
+      expect(versionInfo.date_).to.exist
+      expect(versionInfo.hash_).to.exist
+    })
+
     it('but not just by anyone', async () => {
       await policy.upgrade([ testPolicyFacet.address ], { from: accounts[1] }).should.be.rejectedWith('must be admin')
     })

@@ -10,6 +10,7 @@ const projectDir = __dirname
 module.exports = {
   providerOptions: {
     total_accounts: 50,
+    default_balance_ether: 1000000,
     port: 8555,
     mnemonic: MNEMONIC,
     gasLimit: '0xfffffffffff',
@@ -17,11 +18,21 @@ module.exports = {
   istanbulFolder: './coverage',
   istanbulReporter: [ 'lcov', 'html' ],
   skipFiles: [
-    "base/DiamondCutter.sol",
-    "base/DiamondLoupeFacet.sol",
+    /* external libs */
     "base/Address.sol",
-    "base/SafeMath.sol",
     "base/ECDSA.sol",
+    "base/SafeMath.sol",
+    /* testcode */,
+    "test/FreezeUpgradesFacet.sol",
+    "test/TestEntityFacet.sol",
+    "test/TestPolicyFacet.sol",
+    /* build-related stuff */
+    "VersionInfo.sol",
+    "Migrations.sol",
+    "MIgrations.sol",
+    /* stuff that's mostly the Diamond Standard external lib code + has assembly in it */
+    "base/DiamondCutter.sol",
+    "base/DiamondLoupeFacet.sol"
   ],
   onCompileComplete: () => {
     console.log('Copying over maker-otc contract artifacts...')

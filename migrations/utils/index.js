@@ -4,9 +4,9 @@ const { createLog } = require('./log')
 const { networks } = require('../../truffle-config.js')
 const addresses = require('../../deployedAddresses.json')
 
-exports.defaultGetTxParams = () => ({
-  gasPrice: 1 * 1000000000 // 1 GWEI
-})
+exports.defaultGetTxParams = (txParamsOverride = {}) => Object.assign({
+  gasPrice: 1 * 1000000000, // 1 GWEI
+}, txParamsOverride)
 
 
 exports.deploy = async (deployer, txParams, Contract, ...constructorArgs) => {

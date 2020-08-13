@@ -10,14 +10,10 @@ contract Policy is Controller, DiamondProxy {
     address _settings,
     address _creatorEntity,
     address _policyOwner,
-    uint256 _initiationDate,
-    uint256 _startDate,
-    uint256 _maturationDate,
+    uint256[] memory _dates,
     address _unit,
     uint256 _premiumIntervalSeconds,
-    uint256 _brokerCommissionBP,
-    uint256 _assetManagerCommissionBP,
-    uint256 _naymsCommissionBP
+    uint256[] memory _commmissionsBP
   ) Controller(_acl, _settings) DiamondProxy() public {
     // set implementations
     _registerFacets(settings().getRootAddresses(SETTING_POLICY_IMPL));
@@ -25,13 +21,13 @@ contract Policy is Controller, DiamondProxy {
     acl().assignRole(aclContext(), _policyOwner, ROLE_POLICY_OWNER);
     // set properties
     dataAddress["creatorEntity"] = _creatorEntity;
-    dataUint256["initiationDate"] = _initiationDate;
-    dataUint256["startDate"] = _startDate;
-    dataUint256["maturationDate"] = _maturationDate;
+    dataUint256["initiationDate"] = _dates[0];
+    dataUint256["startDate"] = _dates[1];
+    dataUint256["maturationDate"] = _dates[2];
     dataAddress["unit"] = _unit;
     dataUint256["premiumIntervalSeconds"] = _premiumIntervalSeconds;
-    dataUint256["brokerCommissionBP"] = _brokerCommissionBP;
-    dataUint256["assetManagerCommissionBP"] = _assetManagerCommissionBP;
-    dataUint256["naymsCommissionBP"] = _naymsCommissionBP;
+    dataUint256["brokerCommissionBP"] = _commmissionsBP[0];
+    dataUint256["assetManagerCommissionBP"] = _commmissionsBP[1];
+    dataUint256["naymsCommissionBP"] = _commmissionsBP[2];
   }
 }

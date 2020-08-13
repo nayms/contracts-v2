@@ -28,6 +28,7 @@ module.exports = {
     "test/TestPolicyFacet.sol",
     /* build-related stuff */
     "VersionInfo.sol",
+    "Migrations.sol",
     /* stuff that's mostly the Diamond Standard external lib code + has assembly in it */
     "base/DiamondCutter.sol",
     "base/DiamondLoupeFacet.sol"

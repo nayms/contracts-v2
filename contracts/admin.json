@@ -691,6 +691,163 @@
       ]
     },
     {
+      "id": "createPolicy",
+      "title": "Entity: Create Policy",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "Entity contract address",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "dates",
+          "title": "Dates",
+          "type": "int[]",
+          "validation": [
+            {
+              "type": "listSize",
+              "min": "3",
+              "max": "3"
+            }
+          ]
+        },
+        {
+          "name": "unit",
+          "title": "Token",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "premiumIntervalSeconds",
+          "title": "Premium interval (seconds)",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "1"
+            }
+          ]
+        },
+        {
+          "name": "commissions",
+          "title": "Commissions",
+          "type": "int[]",
+          "validation": [
+            {
+              "type": "listSize",
+              "min": "3",
+              "max": "3"
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "send",
+          "contract": "IEntityCoreFacet",
+          "method": "createPolicy",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_dates": "@input[dates]",
+            "_unit": "@input[unit]",
+            "_premiumIntervalSeconds": "@input[premiumIntervalSeconds]",
+            "_commmissionsBP": "@input[dates]"
+          }
+        }
+      ]
+    },
+    {
+      "id": "getNumPolicies",
+      "title": "Entity: Get no. of policies",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "Entity contract address",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "IEntityCoreFacet",
+          "method": "getNumPolicies",
+          "address": "@input[contractAddress]",
+          "saveResultAsInput": "numPolicies"
+        }
+      ],
+      "outputs": [
+        {
+          "title": "No. of policies",
+          "type": "int",
+          "value": "@input[numPolicies]"
+        }
+      ]
+    },
+    {
+      "id": "getPolicyAtIndex",
+      "title": "Entity: Get policies at index",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "Entity contract address",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "index",
+          "title": "Index",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "IEntityCoreFacet",
+          "method": "getPolicy",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_index": "@input[index]"
+          },
+          "saveResultAsInput": "policyAddress"
+        }
+      ],
+      "outputs": [
+        {
+          "title": "Policy address",
+          "type": "address",
+          "value": "@input[policyAddress]"
+        }
+      ]
+    },
+    {
       "id": "heartbeat",
       "title": "Policy: Heartbeat",
       "description": "Anyone can call this",

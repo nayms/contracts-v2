@@ -165,14 +165,10 @@ export const createPolicy = (entity, attrs, ...callAttrs) => {
   } = attrs
 
   return entity.createPolicy(
-    initiationDate,
-    startDate,
-    maturationDate,
+    [initiationDate, startDate, maturationDate],
     unit,
     premiumIntervalSeconds,
-    brokerCommissionBP,
-    assetManagerCommissionBP,
-    naymsCommissionBP,
+    [brokerCommissionBP, assetManagerCommissionBP, naymsCommissionBP],
     ...callAttrs,
   )
 }

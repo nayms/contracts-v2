@@ -19,14 +19,10 @@ contract TestEntityFacet is IDiamondFacet, IEntityCoreFacet {
   }
 
   function createPolicy(
-    uint256 _initiationDate,
-    uint256 _startDate,
-    uint256 _maturationDate,
+    uint256[] calldata _dates,
     address _unit,
     uint256 _premiumIntervalSeconds,
-    uint256 _brokerCommissionBP,
-    uint256 _assetManagerCommissionBP,
-    uint256 _naymsCommissionBP
+    uint256[] calldata _commmissionsBP
   ) external override {}
   function deposit(address _unit, uint256 _amount) external override {}
   function withdraw(address _unit, uint256 _amount) external override {}

@@ -3,7 +3,7 @@ const path = require('path')
 const got = require('got')
 
 const { createLog } = require('./utils/log')
-const { getMatchingNetwork } = require('./utils')
+const { getMatchingNetwork, defaultGetTxParams } = require('./utils')
 const { getCurrentAcl, ensureAclIsDeployed } = require('./modules/acl')
 const { getCurrentSettings, ensureSettingsIsDeployed } = require('./modules/settings')
 const { getCurrentMarket, ensureMarketIsDeployed } = require('./modules/market')
@@ -48,13 +48,15 @@ module.exports = async (deployer, network, accounts) => {
 
     let nonce = await web3.eth.getTransactionCount(accounts[0])
 
-    getTxParams = () => {
+    getTxParams = (txParamsOverride = {}) => {
       log.log(`Nonce: ${nonce}`)
+
       nonce += 1
-      return {
+
+      return defaultGetTxParams(Object.assign({
         gasPrice: gwei * 1000000000,
         nonce: nonce - 1,
-      }
+      }, txParamsOverride))
     }
   }
 

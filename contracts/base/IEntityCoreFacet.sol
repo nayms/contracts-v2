@@ -6,24 +6,16 @@ pragma solidity >=0.6.7;
 interface IEntityCoreFacet {
   /**
    * @dev Create a new policy.
-   * @param _initiationDate The initiation date (seconds since epoch).
-   * @param _startDate The start date (seconds since epoch).
-   * @param _maturationDate The maturation date (seconds since epoch).
+   * @param _dates The initiation, start and maturation dates (seconds since epoch).
    * @param _unit The payment unit.
    * @param _premiumIntervalSeconds The time between successive premium payments (seconds).
-   * @param _brokerCommissionBP The commission to pay the broker (1 = 0.1%)
-   * @param _assetManagerCommissionBP The commission to pay the asset manager (1 = 0.1%)
-   * @param _naymsCommissionBP The commission to pay Nayms (1 = 0.1%)
+   * @param _commmissionsBP The commissions (basis points, 1 = 0.1%) to pay the broker, asset manager and Nayms (1 = 0.1%)
    */
   function createPolicy(
-    uint256 _initiationDate,
-    uint256 _startDate,
-    uint256 _maturationDate,
+    uint256[] calldata _dates,
     address _unit,
     uint256 _premiumIntervalSeconds,
-    uint256 _brokerCommissionBP,
-    uint256 _assetManagerCommissionBP,
-    uint256 _naymsCommissionBP
+    uint256[] calldata _commmissionsBP
   ) external;
 
   /**

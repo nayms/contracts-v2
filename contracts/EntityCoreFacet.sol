@@ -65,14 +65,10 @@ import "./Policy.sol";
   // IEntityCoreFacet
 
   function createPolicy(
-    uint256 _initiationDate,
-    uint256 _startDate,
-    uint256 _maturationDate,
+    uint256[] memory _dates,
     address _unit,
     uint256 _premiumIntervalSeconds,
-    uint256 _brokerCommissionBP,
-    uint256 _assetManagerCommissionBP,
-    uint256 _naymsCommissionBP
+    uint256[] memory _commmissionsBP
   )
     public
     override
@@ -83,14 +79,10 @@ import "./Policy.sol";
       address(settings()),
       address(this),
       msg.sender,
-      _initiationDate,
-      _startDate,
-      _maturationDate,
+      _dates,
       _unit,
       _premiumIntervalSeconds,
-      _brokerCommissionBP,
-      _assetManagerCommissionBP,
-      _naymsCommissionBP
+      _commmissionsBP
     );
 
     uint256 numPolicies = dataUint256["numPolicies"];

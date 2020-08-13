@@ -29,6 +29,7 @@ module.exports = {
     /* build-related stuff */
     "VersionInfo.sol",
     "Migrations.sol",
+    "MIgrations.sol",
     /* stuff that's mostly the Diamond Standard external lib code + has assembly in it */
     "base/DiamondCutter.sol",
     "base/DiamondLoupeFacet.sol"

@@ -10,7 +10,7 @@ import "./base/SafeMath.sol";
 import "./base/IERC20.sol";
 
 /**
- * @dev Business-logic for Policy commissions
+ * @dev Business-logic for Policy tranch tokens
  */
 contract PolicyTranchTokensFacet is EternalStorage, Controller, IDiamondFacet, IPolicyTranchTokensFacet, PolicyFacetBase {
   using SafeMath for uint;
@@ -62,6 +62,8 @@ contract PolicyTranchTokensFacet is EternalStorage, Controller, IDiamondFacet, I
     string memory k = __iaa(_index, _owner, _spender, "allowance");
     return dataUint256[k];
   }
+
+  // Mutations
 
   function tknApprove(uint256 /*_index*/, address _spender, address /*_from*/, uint256 /*_value*/) public override {
     require(_spender == settings().getRootAddress(SETTING_MARKET), 'only nayms market is allowed to transfer');

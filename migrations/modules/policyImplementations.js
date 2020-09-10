@@ -9,6 +9,7 @@ export const ensurePolicyImplementationsAreDeployed = async ({ deployer, artifac
 
   await log.task(`Deploy Policy implementations`, async task => {
     const PolicyUpgradeFacet = artifacts.require('./PolicyUpgradeFacet')
+    const PolicyInitializerFacet = artifacts.require('./PolicyInitializerFacet')
     const PolicyCoreFacet = artifacts.require('./PolicyCoreFacet')
     const PolicyClaimsFacet = artifacts.require('./PolicyClaimsFacet')
     const PolicyCommissionsFacet = artifacts.require('./PolicyCommissionsFacet')
@@ -18,6 +19,7 @@ export const ensurePolicyImplementationsAreDeployed = async ({ deployer, artifac
     addresses = [
       await deploy(deployer, getTxParams(), PolicyCoreFacet, aclAddress, settingsAddress),
       await deploy(deployer, getTxParams(), PolicyUpgradeFacet, aclAddress, settingsAddress),
+      await deploy(deployer, getTxParams(), PolicyInitializerFacet, aclAddress, settingsAddress),
       await deploy(deployer, getTxParams(), PolicyClaimsFacet, aclAddress, settingsAddress),
       await deploy(deployer, getTxParams(), PolicyCommissionsFacet, aclAddress, settingsAddress),
       await deploy(deployer, getTxParams(), PolicyPremiumsFacet, aclAddress, settingsAddress),

@@ -3,9 +3,9 @@ pragma solidity >=0.6.7;
 import "./IERC20.sol";
 
 /**
- * @dev Super-interface for dummy token
+ * @dev Super-interface for mintable token
  */
-abstract contract IDummyToken is IERC20 {
+abstract contract IMintableToken is IERC20 {
   /**
    * @dev Mint tokens.
    *
@@ -14,9 +14,9 @@ abstract contract IDummyToken is IERC20 {
   function mint(uint256 _amount) external virtual;
 
   /**
-   * @dev Emitted when ETH is deposited and tokens are minted.
-   * @param sender The account.
+   * @dev Emitted when tokens are minted.
+   * @param minter The minter account.
    * @param amount The amount minted.
    */
-  event Mint(address indexed sender, uint amount);
+  event Mint(address indexed minter, uint amount);
 }

@@ -1,9 +1,9 @@
 pragma solidity >=0.6.7;
 
-import "./base/IDummyToken.sol";
+import "./base/IMintableToken.sol";
 import "./base/SafeMath.sol";
 
-contract DummyToken is IDummyToken {
+contract DummyToken is IMintableToken {
   using SafeMath for *;
 
   mapping (address => uint256) private balances;

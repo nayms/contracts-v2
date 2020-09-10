@@ -7,7 +7,9 @@ import "./base/IDiamondFacet.sol";
 import "./base/IERC20.sol";
 import "./base/IMarket.sol";
 import "./base/IPolicy.sol";
+import "./TranchToken.sol";
 import "./Policy.sol";
+import "./EntityToken.sol";
 
 /**
  * @dev Business-logic for Entity
@@ -61,7 +63,6 @@ import "./Policy.sol";
     );
   }
 
-
   // IEntityCoreFacet
 
   function createPolicy(
@@ -104,6 +105,7 @@ import "./Policy.sol";
   function deposit(address _unit, uint256 _amount) public override {
     IERC20 tok = IERC20(_unit);
     tok.transferFrom(msg.sender, address(this), _amount);
+    tok.transferFrom()
   }
 
   function withdraw(address _unit, uint256 _amount) public override assertCanWithdraw {

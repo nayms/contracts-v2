@@ -57,7 +57,6 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
 
   // IPolicyCore //
 
-
   function createTranch (
     uint256 _numShares,
     uint256 _pricePerShareAmount,

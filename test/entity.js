@@ -17,6 +17,7 @@ import { ensureMarketIsDeployed } from '../migrations/modules/market'
 import { ensureEntityImplementationsAreDeployed } from '../migrations/modules/entityImplementations'
 import { ensurePolicyImplementationsAreDeployed } from '../migrations/modules/policyImplementations'
 
+const IMintableToken = artifacts.require('./base/IMintableToken')
 const IEntity = artifacts.require("./base/IEntity")
 const IDiamondProxy = artifacts.require('./base/IDiamondProxy')
 const AccessControl = artifacts.require('./base/AccessControl')
@@ -66,6 +67,19 @@ contract('Entity', accounts => {
 
   it('can be deployed', async () => {
     expect(entityProxy.address).to.exist
+  })
+
+  describe.only('deploys its own token', () => {
+    let token
+
+    beforeEach(async () => {
+      const tokenAddress = await entity.getToken()
+      token = await IMintableToken.at(tokenAddress)
+    })
+
+    it('which has a name', async () => {
+      await token.name().should.eventually.eq(entityProxy.address.toLowerCase())
+    })
   })
 
   describe('it can be upgraded', () => {

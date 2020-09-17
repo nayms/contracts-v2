@@ -19,6 +19,11 @@ interface IEntityCoreFacet {
   ) external;
 
   /**
+   * @dev Get token address.
+   * @return Token address.
+   */
+  function getToken() external view returns (address);
+  /**
    * @dev Get no. of policies created.
    * @return Total no. of policies created.
    */

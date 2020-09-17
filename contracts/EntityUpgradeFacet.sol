@@ -1,6 +1,7 @@
 pragma solidity >=0.6.7;
 
 import "./CommonUpgradeFacet.sol";
+import "./EntityToken.sol";
 
 contract EntityUpgradeFacet is CommonUpgradeFacet {
   /**

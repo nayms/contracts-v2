@@ -43,7 +43,7 @@ contract EntityTokensFacet is EternalStorage, Controller, IDiamondFacet, IEntity
   // IEntityTokensFacet
 
   function tknName() public view override returns (string memory) {
-    return string(abi.encodePacked(address(this).toString(), "tknName"));
+    return address(this).toString();
   }
 
   function tknSymbol() public view override returns (string memory) {

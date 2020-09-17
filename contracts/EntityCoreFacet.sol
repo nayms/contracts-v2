@@ -52,6 +52,7 @@ import "./EntityToken.sol";
 
   function getSelectors () public pure override returns (bytes memory) {
     return abi.encodePacked(
+      IEntityCoreFacet.getToken.selector,
       IEntityCoreFacet.createPolicy.selector,
       IEntityCoreFacet.getNumPolicies.selector,
       IEntityCoreFacet.getPolicy.selector,
@@ -64,6 +65,10 @@ import "./EntityToken.sol";
   }
 
   // IEntityCoreFacet
+
+  function getToken() public view override returns (address) {
+    return dataAddress["token"];
+  }
 
   function createPolicy(
     uint256[] memory _dates,
@@ -105,7 +110,6 @@ import "./EntityToken.sol";
   function deposit(address _unit, uint256 _amount) public override {
     IERC20 tok = IERC20(_unit);
     tok.transferFrom(msg.sender, address(this), _amount);
-    tok.transferFrom()
   }
 
   function withdraw(address _unit, uint256 _amount) public override assertCanWithdraw {

@@ -3,7 +3,6 @@ pragma experimental ABIEncoderV2;
 
 import "./base/Controller.sol";
 import "./base/DiamondProxy.sol";
-import "./base/IPolicy.sol";
 
 contract Policy is Controller, DiamondProxy {
   constructor (
@@ -30,7 +29,5 @@ contract Policy is Controller, DiamondProxy {
     dataUint256["brokerCommissionBP"] = _commmissionsBP[0];
     dataUint256["assetManagerCommissionBP"] = _commmissionsBP[1];
     dataUint256["naymsCommissionBP"] = _commmissionsBP[2];
-    // initialize
-    IPolicy(address(this)).initialize();
   }
 }

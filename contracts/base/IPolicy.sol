@@ -1,7 +1,6 @@
 pragma solidity >=0.6.7;
 
 import "./IDiamondUpgradeFacet.sol";
-import "./IDiamondInitializerFacet.sol";
 import "./IAccessControl.sol";
 import "./ISettingsControl.sol";
 import "./IPolicyCoreFacet.sol";
@@ -16,7 +15,6 @@ import "./IPolicyStates.sol";
  */
 abstract contract IPolicy is
   IDiamondUpgradeFacet,
-  IDiamondInitializerFacet,
   IAccessControl,
   ISettingsControl,
   IPolicyStates,

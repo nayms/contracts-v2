@@ -10,6 +10,10 @@ contract TestEntityFacet is IDiamondFacet, IEntityCoreFacet {
     );
   }
 
+  function getToken() public view override returns (address) {
+    return address(this);
+  }
+
   function getNumPolicies() public view override returns (uint256) {
     return 666;
   }

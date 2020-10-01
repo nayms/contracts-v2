@@ -69,6 +69,7 @@ contract DummyToken is IMintableToken {
   }
 
   function burn(address _owner, uint256 _amount) public override {
+      require(msg.sender == _owner, 'must be owner');
       balances[_owner] = balances[_owner].sub(_amount);
       totalSupply = totalSupply.sub(_amount);
       emit Burn(msg.sender, _owner, _amount);

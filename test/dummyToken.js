@@ -19,15 +19,47 @@ contract('DummyToken', accounts => {
     await dummyToken.balanceOf(accounts[0]).should.eventually.eq('100000000')
   })
 
-  describe('mint', () => {
+  describe('mint and burn', () => {
     it('mint()', async () => {
       const ret = await dummyToken.mint(23)
 
       const eventArgs = extractEventArgs(ret, events.Mint)
-      expect(eventArgs).to.include({ sender: accounts[0], amount: '23' })
+      expect(eventArgs).to.include({ minter: accounts[0], amount: '23' })
 
       await dummyToken.balanceOf(accounts[0]).should.eventually.eq('100000023')
       await dummyToken.totalSupply().should.eventually.eq('100000023')
+    })
+
+    describe('burn()', () => {
+      beforeEach(async () => {
+        await dummyToken.mint(23)
+
+        await dummyToken.balanceOf(accounts[0]).should.eventually.eq('100000023')
+        await dummyToken.totalSupply().should.eventually.eq('100000023')
+      })
+
+      it('passes', async () => {
+        const ret = await dummyToken.burn(accounts[0], 11)
+
+        const eventArgs = extractEventArgs(ret, events.Burn)
+        expect(eventArgs).to.include({ burner: accounts[0], owner: accounts[0], amount: '11' })
+
+        await dummyToken.balanceOf(accounts[0]).should.eventually.eq('100000012')
+        await dummyToken.totalSupply().should.eventually.eq('100000012')
+      })
+
+      it('fails if burning too much', async () => {
+        await dummyToken.mint(1, { from: accounts[1] })
+        
+        await dummyToken.totalSupply().should.eventually.eq('100000024')
+        await dummyToken.balanceOf(accounts[0]).should.eventually.eq('100000023')
+
+        await dummyToken.burn(accounts[0], '100000024').should.be.rejectedWith('overflow')
+      })
+
+      it('fails if not owner', async () => {
+        await dummyToken.burn(accounts[0], 11, { from: accounts[1] }).should.be.rejectedWith('must be owner')
+      })
     })
   })
 

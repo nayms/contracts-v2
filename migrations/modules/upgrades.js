@@ -9,13 +9,13 @@ const upgradeIfNeeded = async ({ task, item, latestVersionInfo, facetAddresses, 
   try {
     const itemVersionInfo = await item.getVersionInfo()
 
-    if (!itemVersionInfo.num_) {
+    if (!itemVersionInfo.date_) {
       needUpgrade = 'No version info found'
     } else {
-      const itemVersionNum = itemVersionInfo.num_.toNumber()
+      const itemVersionDate = itemVersionInfo.date_.toNumber()
 
-      if (itemVersionNum < latestVersionInfo.num) {
-        needUpgrade = `Older version: ${itemVersionNum}`
+      if (itemVersionDate < latestVersionInfo.date) {
+        needUpgrade = `Older version date: ${itemVersionDate}`
       }
     }
   } catch (err) {

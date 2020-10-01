@@ -45,32 +45,32 @@ contract EntityTokenImplFacet is EternalStorage, Controller, IDiamondFacet, IEnt
 
   // IEntityTokenImplFacet
 
-  function tknName() public view override returns (string memory) {
-    return address(this).toString();
+  function tknName(address _asset) public view override returns (string memory) {
+    return string(abi.encodePacked(address(this), IERC20(_asset).name()));
   }
 
-  function tknSymbol() public view override returns (string memory) {
-    return tknName();
+  function tknSymbol(address _asset) public view override returns (string memory) {
+    return string(abi.encodePacked(address(this), IERC20(_asset).symbol()));
   }
 
   function tknTotalSupply() public view override returns (uint256) {
-    return dataUint256["tknSupply"];
+    return dataUint256[__a(msg.sender, "tknSupply")];
   }
 
   function tknBalanceOf(address _owner) public view override returns (uint256) {
-    string memory k = __ia(0, _owner, "tknBalance");
+    string memory k = __aaa(msg.sender, _owner, address(0), "tknBalance");
     return dataUint256[k];
   }
 
   function tknAllowance(address _spender, address _owner) public view override returns (uint256) {
-    string memory k = __iaa(0, _owner, _spender, "tknAllowance");
+    string memory k = __aaa(msg.sender, _owner, _spender, "tknAllowance");
     return dataUint256[k];
   }
 
   // Mutations
 
   function tknApprove(address _spender, address _from, uint256 _value) public override {
-    string memory k = __iaa(0, _from, _spender, "tknAllowance");
+    string memory k = __aaa(msg.sender, _from, _spender, "tknAllowance");
     dataUint256[k] = _value;
   }
 
@@ -82,14 +82,14 @@ contract EntityTokenImplFacet is EternalStorage, Controller, IDiamondFacet, IEnt
   function tknMint(address _minter, uint256 _value) public override {
     require(_minter == address(this), 'only entity can mint tokens');
     dataUint256["tknSupply"] = dataUint256["tknSupply"].add(_value);
-    string memory k = __ia(0, _minter, "tknBalance");
+    string memory k = __aaa(msg.sender, _minter, address(0), "tknBalance");
     dataUint256[k] = dataUint256[k].add(_value);
   }
 
   function tknBurn(address _burner, address _owner, uint256 _value) public override {
     require(_burner == address(this), 'only entity can mint tokens');
     dataUint256["tknSupply"] = dataUint256["tknSupply"].sub(_value);
-    string memory k = __ia(0, _owner, "tknBalance");
+    string memory k = __aaa(msg.sender, _owner, address(0), "tknBalance");
     dataUint256[k] = dataUint256[k].sub(_value);
   }
 

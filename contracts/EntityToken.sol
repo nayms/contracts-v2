@@ -8,22 +8,21 @@ import './base/IEntityTokenImplFacet.sol';
  */
 contract EntityToken is IMintableToken {
   IEntityTokenImplFacet public impl;
-  uint256 public index;
-  address public unit;
+  address public asset;
 
   constructor (address _impl, address _unit) public {
     impl = IEntityTokenImplFacet(_impl);
-    _unit = unit;
+    asset = _unit;
   }
 
-  // ERC-20 queries //
+  // queries //
 
   function name() public view override returns (string memory) {
-    return impl.tknName();
+    return impl.tknName(asset);
   }
 
   function symbol() public view override returns (string memory) {
-    return impl.tknSymbol();
+    return impl.tknSymbol(asset);
   }
 
   function totalSupply() public view override returns (uint256) {

@@ -5,8 +5,8 @@ pragma solidity >=0.6.7;
  */
 interface IEntityTokenImplFacet {
   // ERC-20 queries
-  function tknName() external view returns (string memory);
-  function tknSymbol() external view returns (string memory);
+  function tknName(address _asset) external view returns (string memory);
+  function tknSymbol(address _asset) external view returns (string memory);
   function tknTotalSupply() external view returns (uint256);
   function tknBalanceOf(address _owner) external view returns (uint256);
   function tknAllowance(address _spender, address _owner) external view returns (uint256);

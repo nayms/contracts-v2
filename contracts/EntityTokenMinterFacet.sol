@@ -66,7 +66,7 @@ contract EntityTokenMinterFacet is EternalStorage, Controller, IEntityTokenMinte
   }
 
   function calculateAssetsRedeemable(address _token, uint256 _amount) public view override returns (uint256) {
-    address unit = EntityToken(_token).unit();
+    address unit = EntityToken(_token).asset();
     IERC20 tok = IERC20(unit);
     uint256 b = tok.balanceOf(address(this));
 
@@ -106,7 +106,7 @@ contract EntityTokenMinterFacet is EternalStorage, Controller, IEntityTokenMinte
     e.burn(msg.sender, _amount);
 
     // withdraw asset
-    address unit = e.unit();
+    address unit = e.asset();
     IERC20(unit).transfer(msg.sender, recvAmount);
   }
   

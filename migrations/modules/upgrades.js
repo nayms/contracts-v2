@@ -35,7 +35,7 @@ const upgradeIfNeeded = async ({ task, item, latestVersionInfo, facetAddresses, 
 
     await task.log(`${logStrPrefix} Upgraded!`)
   } else {
-    await task.log(`${logStrPrefix} Entity already up-to-date`)
+    await task.log(`${logStrPrefix} Already up-to-date`)
   }
 }
 

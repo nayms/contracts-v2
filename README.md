@@ -131,10 +131,12 @@ yarn test
 
 ### Deployments
 
+**NOTE: Pushing to the `release` branch will result in a Rinkeby deployment as well as the admin dapp being deployed.**
+
 Set up the env vars:
 
 ```shell
-export MNEMONI="..."
+export MNEMONIC="..."
 export INFURA_KEY="..."
 ```
 

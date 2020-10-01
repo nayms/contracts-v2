@@ -1,17 +1,19 @@
 pragma solidity >=0.6.7;
 
 import './base/IMintableToken.sol';
-import './base/IEntityTokensFacet.sol';
+import './base/IEntityTokenImplFacet.sol';
 
 /**
  * @dev An Entity token.
  */
 contract EntityToken is IMintableToken {
-  IEntityTokensFacet public impl;
+  IEntityTokenImplFacet public impl;
   uint256 public index;
+  address public unit;
 
-  constructor (address _impl) public {
-    impl = IEntityTokensFacet(_impl);
+  constructor (address _impl, address _unit) public {
+    impl = IEntityTokenImplFacet(_impl);
+    _unit = unit;
   }
 
   // ERC-20 queries //
@@ -46,6 +48,11 @@ contract EntityToken is IMintableToken {
   function mint(uint256 _amount) public override {
     impl.tknMint(msg.sender, _amount);
     emit Mint(msg.sender, _amount);
+  }
+
+  function burn (address _owner, uint256 _amount) public override {
+    impl.tknBurn(msg.sender, _owner, _amount);
+    emit Burn(msg.sender, _owner, _amount);
   }
 
   function approve(address spender, uint256 value) public override returns (bool) {

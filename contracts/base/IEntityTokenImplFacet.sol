@@ -1,9 +1,9 @@
 pragma solidity >=0.6.7;
 
 /**
- * @dev Entity token helpers
+ * @dev Entity token implementation
  */
-interface IEntityTokensFacet {
+interface IEntityTokenImplFacet {
   // ERC-20 queries
   function tknName() external view returns (string memory);
   function tknSymbol() external view returns (string memory);
@@ -14,4 +14,5 @@ interface IEntityTokensFacet {
   function tknApprove(address _spender, address _from, uint256 _value) external;
   function tknTransfer(address _operator, address _from, address _to, uint256 _value) external;
   function tknMint(address _minter, uint256 _value) external;
+  function tknBurn(address _burner, address _owner, uint256 _value) external;
 }

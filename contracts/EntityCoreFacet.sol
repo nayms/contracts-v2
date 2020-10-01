@@ -4,6 +4,8 @@ import "./base/Controller.sol";
 import "./base/EternalStorage.sol";
 import "./base/IEntityCoreFacet.sol";
 import "./base/IDiamondFacet.sol";
+import "./base/Address.sol";
+import "./base/SafeMath.sol";
 import "./base/IERC20.sol";
 import "./base/IMarket.sol";
 import "./base/IPolicy.sol";
@@ -14,11 +16,9 @@ import "./EntityToken.sol";
 /**
  * @dev Business-logic for Entity
  */
- contract EntityCoreFacet is EternalStorage, Controller, IEntityCoreFacet, IDiamondFacet {
-  modifier assertCanWithdraw () {
-    require(inRoleGroup(msg.sender, ROLEGROUP_ENTITY_ADMINS), 'must be entity admin');
-    _;
-  }
+contract EntityCoreFacet is EternalStorage, Controller, IEntityCoreFacet, IDiamondFacet {
+  using Address for address;
+  using SafeMath for uint256;
 
   modifier assertCanCreatePolicy () {
     require(inRoleGroup(msg.sender, ROLEGROUP_POLICY_CREATORS), 'must be policy creator');
@@ -52,12 +52,9 @@ import "./EntityToken.sol";
 
   function getSelectors () public pure override returns (bytes memory) {
     return abi.encodePacked(
-      IEntityCoreFacet.getToken.selector,
       IEntityCoreFacet.createPolicy.selector,
       IEntityCoreFacet.getNumPolicies.selector,
       IEntityCoreFacet.getPolicy.selector,
-      IEntityCoreFacet.deposit.selector,
-      IEntityCoreFacet.withdraw.selector,
       IEntityCoreFacet.payTranchPremium.selector,
       IEntityCoreFacet.trade.selector,
       IEntityCoreFacet.sellAtBestPrice.selector
@@ -65,10 +62,6 @@ import "./EntityToken.sol";
   }
 
   // IEntityCoreFacet
-
-  function getToken() public view override returns (address) {
-    return dataAddress["token"];
-  }
 
   function createPolicy(
     uint256[] memory _dates,
@@ -105,16 +98,6 @@ import "./EntityToken.sol";
 
   function getPolicy(uint256 _index) public view override returns (address) {
     return dataAddress[__i(_index, "policy")];
-  }
-
-  function deposit(address _unit, uint256 _amount) public override {
-    IERC20 tok = IERC20(_unit);
-    tok.transferFrom(msg.sender, address(this), _amount);
-  }
-
-  function withdraw(address _unit, uint256 _amount) public override assertCanWithdraw {
-    IERC20 tok = IERC20(_unit);
-    tok.transfer(msg.sender, _amount);
   }
 
   function payTranchPremium(address _policy, uint256 _tranchIndex)

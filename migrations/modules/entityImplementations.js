@@ -10,12 +10,14 @@ export const ensureEntityImplementationsAreDeployed = async ({ deployer, artifac
   await log.task(`Deploy Entity implementations`, async task => {
     const EntityUpgradeFacet = artifacts.require('./EntityUpgradeFacet')
     const EntityCoreFacet = artifacts.require('./EntityCoreFacet')
-    const EntityTokensFacet = artifacts.require('./EntityTokensFacet')
+    const EntityTokenMinterFacet = artifacts.require('./EntityTokenMinterFacet')
+    const EntityTokenImplFacet = artifacts.require('./EntityTokenImplFacet')
 
     addresses = [
       await deploy(deployer, getTxParams(), EntityCoreFacet, aclAddress, settingsAddress),
       await deploy(deployer, getTxParams(), EntityUpgradeFacet, aclAddress, settingsAddress),
-      await deploy(deployer, getTxParams(), EntityTokensFacet, aclAddress, settingsAddress),
+      await deploy(deployer, getTxParams(), EntityTokenMinterFacet, aclAddress, settingsAddress),
+      await deploy(deployer, getTxParams(), EntityTokenImplFacet, aclAddress, settingsAddress),
     ].map(c => c.address)
 
     task.log(`Deployed at ${addresses.join(', ')}`)

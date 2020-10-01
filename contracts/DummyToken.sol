@@ -67,4 +67,10 @@ contract DummyToken is IMintableToken {
       totalSupply = totalSupply.add(_amount);
       emit Mint(msg.sender, _amount);
   }
+
+  function burn(address _owner, uint256 _amount) public override {
+      balances[_owner] = balances[_owner].sub(_amount);
+      totalSupply = totalSupply.sub(_amount);
+      emit Burn(msg.sender, _owner, _amount);
+  }
 }

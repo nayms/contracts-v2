@@ -4,7 +4,8 @@ import "./IDiamondUpgradeFacet.sol";
 import "./IAccessControl.sol";
 import "./ISettingsControl.sol";
 import "./IEntityCoreFacet.sol";
-import "./IEntityTokensFacet.sol";
+import "./IEntityTokenImplFacet.sol";
+import "./IEntityTokenMinterFacet.sol";
 
 /**
  * @dev Super-interface for entities
@@ -14,5 +15,6 @@ abstract contract IEntity is
   IAccessControl,
   ISettingsControl,
   IEntityCoreFacet,
-  IEntityTokensFacet
+  IEntityTokenImplFacet,
+  IEntityTokenMinterFacet
   {}

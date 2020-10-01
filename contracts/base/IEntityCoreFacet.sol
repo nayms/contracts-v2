@@ -19,11 +19,6 @@ interface IEntityCoreFacet {
   ) external;
 
   /**
-   * @dev Get token address.
-   * @return Token address.
-   */
-  function getToken() external view returns (address);
-  /**
    * @dev Get no. of policies created.
    * @return Total no. of policies created.
    */
@@ -33,25 +28,6 @@ interface IEntityCoreFacet {
    * @return Policy at given index.
    */
   function getPolicy(uint256 _index) external view returns (address);
-
-  /**
-   * @dev Deposit assets.
-   *
-   * The caller should ensure the entity has been pre-approved to transfer the asset on their behalf.
-   *
-   * @param _unit Asset to deposit.
-   * @param _amount Amount to deposit.
-   */
-  function deposit(address _unit, uint256 _amount) external;
-  /**
-   * @dev Withdraw assets.
-   *
-   * The caller will recieved the withdrawn assets.
-   *
-   * @param _unit Asset to withdraw.
-   * @param _amount Amount to withdraw.
-   */
-  function withdraw(address _unit, uint256 _amount) external;
 
   /**
    * @dev Pay the next expected premium for a tranch using the assets owned by this entity.

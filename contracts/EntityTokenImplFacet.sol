@@ -3,17 +3,19 @@ pragma solidity >=0.6.7;
 import "./base/EternalStorage.sol";
 import "./base/Controller.sol";
 import "./base/IDiamondFacet.sol";
-import "./base/IEntityTokensFacet.sol";
+import "./base/IEntityTokenImplFacet.sol";
 import "./base/PolicyFacetBase.sol";
 import "./base/AccessControl.sol";
+import "./base/Address.sol";
 import "./base/SafeMath.sol";
 import "./base/IERC20.sol";
 
 /**
  * @dev Business-logic for Entity tokens
  */
-contract EntityTokensFacet is EternalStorage, Controller, IDiamondFacet, IEntityTokensFacet {
+contract EntityTokenImplFacet is EternalStorage, Controller, IDiamondFacet, IEntityTokenImplFacet {
   using SafeMath for uint;
+  using Address for address;
 
   /**
    * Constructor
@@ -29,18 +31,19 @@ contract EntityTokensFacet is EternalStorage, Controller, IDiamondFacet, IEntity
 
   function getSelectors () public pure override returns (bytes memory) {
     return abi.encodePacked(
-      IEntityTokensFacet.tknName.selector,
-      IEntityTokensFacet.tknSymbol.selector,
-      IEntityTokensFacet.tknTotalSupply.selector,
-      IEntityTokensFacet.tknBalanceOf.selector,
-      IEntityTokensFacet.tknAllowance.selector,
-      IEntityTokensFacet.tknApprove.selector,
-      IEntityTokensFacet.tknTransfer.selector,
-      IEntityTokensFacet.tknMint.selector
+      IEntityTokenImplFacet.tknName.selector,
+      IEntityTokenImplFacet.tknSymbol.selector,
+      IEntityTokenImplFacet.tknTotalSupply.selector,
+      IEntityTokenImplFacet.tknBalanceOf.selector,
+      IEntityTokenImplFacet.tknAllowance.selector,
+      IEntityTokenImplFacet.tknApprove.selector,
+      IEntityTokenImplFacet.tknTransfer.selector,
+      IEntityTokenImplFacet.tknMint.selector,
+      IEntityTokenImplFacet.tknBurn.selector
     );
   }
 
-  // IEntityTokensFacet
+  // IEntityTokenImplFacet
 
   function tknName() public view override returns (string memory) {
     return address(this).toString();
@@ -81,6 +84,13 @@ contract EntityTokensFacet is EternalStorage, Controller, IDiamondFacet, IEntity
     dataUint256["tknSupply"] = dataUint256["tknSupply"].add(_value);
     string memory k = __ia(0, _minter, "tknBalance");
     dataUint256[k] = dataUint256[k].add(_value);
+  }
+
+  function tknBurn(address _burner, address _owner, uint256 _value) public override {
+    require(_burner == address(this), 'only entity can mint tokens');
+    dataUint256["tknSupply"] = dataUint256["tknSupply"].sub(_value);
+    string memory k = __ia(0, _owner, "tknBalance");
+    dataUint256[k] = dataUint256[k].sub(_value);
   }
 
   // Internal functions

@@ -241,6 +241,10 @@ contract('Entity', accounts => {
         await entity.redeem(entityToken.address, 11).should.be.rejectedWith('overflow')
       })
 
+      it('only allows the parent entity to burn tokens', async () => {
+        await entityToken.burn(accounts[0], 1).should.be.rejectedWith('only entity can burn tokens')
+      })
+
       it('redeems and returns assets to caller', async () => {
         await entity.redeem(entityToken.address, 10)
 
@@ -295,6 +299,83 @@ contract('Entity', accounts => {
         await entityToken.balanceOf(accounts[0]).should.eventually.eq(0)
         await entityToken.balanceOf(accounts[1]).should.eventually.eq(1)
         await entityToken.totalSupply().should.eventually.eq(1)
+      })
+    })
+
+    describe('and tokens support ERC20 operations', () => {
+      let tkn
+      let tknSupply
+
+      beforeEach(async () => {
+        await entity.deposit(etherToken.address, 10)
+        const tokenAddr = await entity.getTokenAddress(etherToken.address)
+        tkn = await IMintableToken.at(tokenAddr)
+        tknSupply = await tkn.totalSupply()
+      })
+
+      it('such as approving an address to send on one\'s behalf', async () => {
+        const result = await tkn.approve(accounts[1], 2).should.be.fulfilled
+
+        expect(extractEventArgs(result, events.Approval)).to.include({
+          owner: accounts[0],
+          spender: accounts[1],
+          value: '2',
+        })
+
+        await tkn.allowance(accounts[0], accounts[1]).should.eventually.eq(2)
+      })
+
+      describe('such as transferring one\'s own tokens', () => {
+        it('but not when sender does not have enough', async () => {
+          await tkn.transfer(accounts[1], tknSupply + 1).should.be.rejectedWith('EntityToken: transfer amount exceeds balance')
+        })
+
+        it('the entire balance of a user if need be', async () => {
+          await tkn.transfer(accounts[1], tknSupply).should.be.fulfilled
+
+          await tkn.balanceOf(accounts[0]).should.eventually.eq(0)
+          await tkn.balanceOf(accounts[1]).should.eventually.eq(tknSupply)
+        })
+
+        it('when the sender has enough', async () => {
+          const result = await tkn.transfer(accounts[1], 5).should.be.fulfilled
+
+          await tkn.balanceOf(accounts[0]).should.eventually.eq(tknSupply - 5)
+          await tkn.balanceOf(accounts[1]).should.eventually.eq(5)
+
+          expect(extractEventArgs(result, events.Transfer)).to.include({
+            from: accounts[0],
+            to: accounts[1],
+            value: '5',
+          })
+        })
+      })
+
+      describe('such as transferring another person\'s tokens', () => {
+        it('but not if sender is not approved', async () => {
+          await tkn.transferFrom(accounts[1], accounts[2], 5, { from: accounts[0] }).should.be.rejectedWith('EntityToken: transfer amount exceeds allowance')
+        })
+
+        it('but not if sender exceeds their approved limit', async () => {
+          await tkn.approve(accounts[1], 2).should.be.fulfilled
+          await tkn.transferFrom(accounts[0], accounts[2], 5, { from: accounts[1] }).should.be.rejectedWith('EntityToken: transfer amount exceeds allowance')
+        })
+
+        it('if sender meets their approved limit', async () => {
+          await tkn.approve(accounts[1], 5).should.be.fulfilled
+
+          const result =
+            await tkn.transferFrom(accounts[0], accounts[2], 5, { from: accounts[1] }).should.be.fulfilled
+
+          await tkn.balanceOf(accounts[0]).should.eventually.eq(tknSupply - 5)
+          await tkn.balanceOf(accounts[2]).should.eventually.eq(5)
+
+          expect(extractEventArgs(result, events.Transfer)).to.include({
+            from: accounts[0],
+            to: accounts[2],
+            value: '5',
+          })
+        })
       })
     })
   })

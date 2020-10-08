@@ -53,59 +53,59 @@ contract EntityTokenImplFacet is EternalStorage, Controller, IDiamondFacet, IEnt
     return string(abi.encodePacked(address(this), IERC20(_asset).symbol()));
   }
 
-  function tknTotalSupply() public view override returns (uint256) {
-    return dataUint256[__a(msg.sender, "tknSupply")];
+  function tknTotalSupply(address _asset) public view override returns (uint256) {
+    return dataUint256[__a(_asset, "tknSupply")];
   }
 
-  function tknBalanceOf(address _owner) public view override returns (uint256) {
-    string memory k = __aaa(msg.sender, _owner, address(0), "tknBalance");
+  function tknBalanceOf(address _asset, address _owner) public view override returns (uint256) {
+    string memory k = __aaa(_asset, _owner, address(0), "tknBalance");
     return dataUint256[k];
   }
 
-  function tknAllowance(address _spender, address _owner) public view override returns (uint256) {
-    string memory k = __aaa(msg.sender, _owner, _spender, "tknAllowance");
+  function tknAllowance(address _asset, address _spender, address _owner) public view override returns (uint256) {
+    string memory k = __aaa(_asset, _owner, _spender, "tknAllowance");
     return dataUint256[k];
   }
 
   // Mutations
 
-  function tknApprove(address _spender, address _from, uint256 _value) public override {
-    string memory k = __aaa(msg.sender, _from, _spender, "tknAllowance");
+  function tknApprove(address _asset, address _spender, address _from, uint256 _value) public override {
+    string memory k = __aaa(_asset, _from, _spender, "tknAllowance");
     dataUint256[k] = _value;
   }
 
-  function tknTransfer(address _spender, address _from, address _to, uint256 _value) public override {
-    require(_spender == _from || tknAllowance(_spender, _from) >= _value, 'not allowed');
-    _transfer(_from, _to, _value);
+  function tknTransfer(address _asset, address _spender, address _from, address _to, uint256 _value) public override {
+    require(_spender == _from || tknAllowance(_asset, _spender, _from) >= _value, 'EntityToken: transfer amount exceeds allowance');
+    _transfer(_asset, _from, _to, _value);
   }
 
-  function tknMint(address _minter, address _owner, uint256 _value) public override {
+  function tknMint(address _asset, address _minter, address _owner, uint256 _value) public override {
     require(_minter == address(this), 'only entity can mint tokens');
 
-    string memory tsk = __a(msg.sender, "tknSupply");
+    string memory tsk = __a(_asset, "tknSupply");
     dataUint256[tsk] = dataUint256[tsk].add(_value);
 
-    string memory k = __aaa(msg.sender, _owner, address(0), "tknBalance");
+    string memory k = __aaa(_asset, _owner, address(0), "tknBalance");
     dataUint256[k] = dataUint256[k].add(_value);
   }
 
-  function tknBurn(address _burner, address _owner, uint256 _value) public override {
-    require(_burner == address(this), 'only entity can mint tokens');
+  function tknBurn(address _asset, address _burner, address _owner, uint256 _value) public override {
+    require(_burner == address(this), 'only entity can burn tokens');
 
-    string memory tsk = __a(msg.sender, "tknSupply");
+    string memory tsk = __a(_asset, "tknSupply");
     dataUint256[tsk] = dataUint256[tsk].sub(_value);
 
-    string memory k = __aaa(msg.sender, _owner, address(0), "tknBalance");
+    string memory k = __aaa(_asset, _owner, address(0), "tknBalance");
     dataUint256[k] = dataUint256[k].sub(_value);
   }
 
   // Internal functions
 
-  function _transfer(address _from, address _to, uint256 _value) private {
-    string memory fromKey = __ia(0, _from, "tknBalance");
-    string memory toKey = __ia(0, _to, "tknBalance");
+  function _transfer(address _asset, address _from, address _to, uint256 _value) private {
+    string memory fromKey = __aaa(_asset, _from, address(0), "tknBalance");
+    string memory toKey = __aaa(_asset, _to, address(0), "tknBalance");
 
-    require(dataUint256[fromKey] >= _value, 'not enough balance');
+    require(dataUint256[fromKey] >= _value, 'EntityToken: transfer amount exceeds balance');
 
     dataUint256[fromKey] = dataUint256[fromKey].sub(_value);
     dataUint256[toKey] = dataUint256[toKey].add(_value);

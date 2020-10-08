@@ -26,11 +26,11 @@ contract EntityToken is IMintableToken {
   }
 
   function totalSupply() public view override returns (uint256) {
-    return impl.tknTotalSupply();
+    return impl.tknTotalSupply(asset);
   }
 
   function balanceOf(address owner) public view override returns (uint256) {
-    return impl.tknBalanceOf(owner);
+    return impl.tknBalanceOf(asset, owner);
   }
 
   function decimals() public view override returns (uint8) {
@@ -38,36 +38,36 @@ contract EntityToken is IMintableToken {
   }
 
   function allowance(address owner, address spender) public view override returns (uint256) {
-    return impl.tknAllowance(spender, owner);
+    return impl.tknAllowance(asset, spender, owner);
   }
 
 
   // Mutations //
 
   function mint(address _owner, uint256 _amount) public override {
-    impl.tknMint(msg.sender, _owner, _amount);
+    impl.tknMint(asset, msg.sender, _owner, _amount);
     emit Mint(msg.sender, _owner, _amount);
   }
 
   function burn (address _owner, uint256 _amount) public override {
-    impl.tknBurn(msg.sender, _owner, _amount);
+    impl.tknBurn(asset, msg.sender, _owner, _amount);
     emit Burn(msg.sender, _owner, _amount);
   }
 
   function approve(address spender, uint256 value) public override returns (bool) {
-    impl.tknApprove(spender, msg.sender, value);
+    impl.tknApprove(asset, spender, msg.sender, value);
     emit Approval(msg.sender, spender, value);
     return true;
   }
 
   function transfer(address to, uint256 value) public override returns (bool) {
-    impl.tknTransfer(msg.sender, msg.sender, to, value);
+    impl.tknTransfer(asset, msg.sender, msg.sender, to, value);
     emit Transfer(msg.sender, to, value);
     return true;
   }
 
   function transferFrom(address from, address to, uint256 value) public override returns (bool) {
-    impl.tknTransfer(msg.sender, from, to, value);
+    impl.tknTransfer(asset, msg.sender, from, to, value);
     emit Transfer(from, to, value);
     return true;
   }

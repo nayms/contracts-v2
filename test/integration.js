@@ -19,6 +19,7 @@ import { ensureEntityImplementationsAreDeployed } from '../migrations/modules/en
 import { ensurePolicyImplementationsAreDeployed } from '../migrations/modules/policyImplementations'
 
 const IEntity = artifacts.require('./base/IEntity')
+const IERC20 = artifacts.require('./base/IERC20')
 const Entity = artifacts.require('./Entity')
 const IPolicy = artifacts.require('./base/IPolicy')
 const IPolicyStates = artifacts.require('./base/IPolicyStates')
@@ -48,6 +49,7 @@ contract('End-to-end integration tests', accounts => {
   let entity0Manager
   let entity0Rep1
   let entity0Rep2
+  let entity0EtherToken
 
   let entity1Address
   let entity1
@@ -57,18 +59,21 @@ contract('End-to-end integration tests', accounts => {
   let entity1Manager
   let entity1Rep1
   let entity1Rep2
+  let entity1EtherToken
 
   let entity2Address
   let entity2
   let entity2Proxy
   let entity2Context
   let entity2SoleProp
+  let entity2EtherToken
 
   let entity3Address
   let entity3
   let entity3Proxy
   let entity3Context
   let entity3Naym
+  let entity3EtherToken
 
   let POLICY_STATE_CREATED
   let POLICY_STATE_SELLING
@@ -202,23 +207,26 @@ contract('End-to-end integration tests', accounts => {
     // await setupEntities()
   })
 
-  it('test case 2', async () => {
+  it.only('test case 2', async () => {
     /* https://docs.google.com/spreadsheets/d/1LEvfJvNutmXsdKk9SO0vBzAmpepFMf8188kgAvYFCc8/edit#gid=455876604 */
 
     // step 1: deposit WETH
     await etherToken.deposit({ value: 110, from: entity0Admin })
     await etherToken.approve(entity0Address, 110, { from: entity0Admin })
     await entity0.deposit(etherToken.address, 110, { from: entity0Admin })
+    entity0EtherToken = await IERC20.at(await entity0.getTokenAddress(etherToken.address))
 
     // step 2: deposit WETH
     await etherToken.deposit({ value: 60, from: entity2SoleProp })
     await etherToken.approve(entity2Address, 60, { from: entity2SoleProp })
     await entity2.deposit(etherToken.address, 60, { from: entity2SoleProp })
+    entity2EtherToken = await IERC20.at(await entity2.getTokenAddress(etherToken.address))
 
     // step 3: deposit WETH
     await etherToken.deposit({ value: 30, from: entity3Naym })
     await etherToken.approve(entity3Address, 30, { from: entity3Naym })
     await entity3.deposit(etherToken.address, 30, { from: entity3Naym })
+    entity3EtherToken = await IERC20.at(await entity3.getTokenAddress(etherToken.address))
 
     let entity0Balance = 110
     let entity1Balance = 0
@@ -280,179 +288,182 @@ contract('End-to-end integration tests', accounts => {
     await etherToken.deposit({ value: 1000, from: policy1ClientManager })
     await etherToken.approve(entity1.address, 1000, { from: policy1ClientManager })
     await entity1.deposit(etherToken.address, 1000, { from: policy1ClientManager })
-    await entity1.payTranchPremium(policy1.address, 0, { from: policy1ClientManager })
+    // await entity1.payTranchPremium(policy1.address, 0, { from: policy1ClientManager })
 
-    // step 15: heartbeat - begin sale of policy1Tranch1
-    await evmClock.setAbsoluteTime(5 * 60)
-    await policy1.checkAndUpdateState()
+    // // step 15: heartbeat - begin sale of policy1Tranch1
+    // await evmClock.setAbsoluteTime(5 * 60)
+    // await policy1.checkAndUpdateState()
 
-    // check states
-    await policy1.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_SELLING })
-    await policy1.getTranchInfo(0).should.eventually.matchObj({
-      state_: TRANCH_STATE_SELLING
-    })
+    // // check states
+    // await policy1.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_SELLING })
+    // await policy1.getTranchInfo(0).should.eventually.matchObj({
+    //   state_: TRANCH_STATE_SELLING
+    // })
 
-    // step 16: trader buys 50 shares of policy1Tranch1 via entity0
-    await entity0.trade(
-      etherToken.address, 50,
-      policy1Tranch1Address, 50,
-      { from: entity0Rep1 }
-    )
-    entity0Balance -= 50
+    // // step 16: trader buys 50 shares of policy1Tranch1 via entity0
+    // await entity0.trade(
+    //   etherToken.address, 50,
+    //   policy1Tranch1Address, 50,
+    //   { from: entity0Rep1 }
+    // )
+    // entity0Balance -= 50
 
-    // step 17: trader buys 25 shares of policy1Tranch1 via entity2
-    await entity2.trade(
-      etherToken.address, 25,
-      policy1Tranch1Address, 25,
-      { from: entity2SoleProp }
-    )
-    entity2Balance -= 25
+    // // step 17: trader buys 25 shares of policy1Tranch1 via entity2
+    // await entity2.trade(
+    //   etherToken.address, 25,
+    //   policy1Tranch1Address, 25,
+    //   { from: entity2SoleProp }
+    // )
+    // entity2Balance -= 25
 
-    // step 18: trader buys 25 shares of policy1Tranch1 via entity3
-    await entity3.trade(
-      etherToken.address, 25,
-      policy1Tranch1Address, 25,
-      { from: entity3Naym }
-    )
-    entity3Balance -= 25
+    // // step 18: trader buys 25 shares of policy1Tranch1 via entity3
+    // await entity3.trade(
+    //   etherToken.address, 25,
+    //   policy1Tranch1Address, 25,
+    //   { from: entity3Naym }
+    // )
+    // entity3Balance -= 25
+
+    // // sanity check balances
+    // await etherToken.balanceOf(entity0Address).should.eventually.eq(entity0Balance)
+    // await etherToken.balanceOf(entity2Address).should.eventually.eq(entity2Balance)
+    // await etherToken.balanceOf(entity3Address).should.eventually.eq(entity3Balance)
+
+    // // check states
+    // await policy1.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_SELLING }) // pending since start date not yet passed
+    // await policy1.getTranchInfo(0).should.eventually.matchObj({
+    //   state_: TRANCH_STATE_ACTIVE  // should be active since it's fully sold out
+    // })
+
+    // // step 19: client manager pays second premium for policy1Tranch1
+    // await evmClock.setAbsoluteTime(9 * 60)
+    // await etherToken.deposit({ value: 2000, from: policy1ClientManager })
+    // await etherToken.approve(entity1.address, 2000, { from: policy1ClientManager })
+    // await entity1.deposit(etherToken.address, 2000, { from: policy1ClientManager })
+    // await entity1.payTranchPremium(policy1.address, 0, { from: policy1ClientManager })
+
+    // // step 20: heartbeat
+    // await evmClock.setAbsoluteTime(10 * 60)
+    // await policy1.checkAndUpdateState()
+    // await policy1.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_ACTIVE }) // active now since startdate has passed
+    // await policy1.getTranchInfo(0).should.eventually.matchObj({
+    //   state_: TRANCH_STATE_ACTIVE
+    // })
+
+    // // step 21: skip for now
+
+    // // step 22: client manager pays third premium for policy1Tranch1
+    // await evmClock.setAbsoluteTime(14 * 60)
+    // await etherToken.deposit({ value: 1000, from: policy1ClientManager })
+    // await etherToken.approve(entity1.address, 1000, { from: policy1ClientManager })
+    // await entity1.deposit(etherToken.address, 1000, { from: policy1ClientManager })
+    // await entity1.payTranchPremium(policy1.address, 0, { from: policy1ClientManager })
+
+    // // step 23: heartbeat
+    // await evmClock.setAbsoluteTime(15 * 60)
+    // await policy1.checkAndUpdateState()
+    // await policy1.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_ACTIVE })
+    // await policy1.getTranchInfo(0).should.eventually.matchObj({
+    //   state_: TRANCH_STATE_ACTIVE
+    // })
+
+    // // step 24: heartbeat
+    // await evmClock.setAbsoluteTime(20 * 60)
+    // await policy1.checkAndUpdateState()
+    // await policy1.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_ACTIVE })
+    // await policy1.getTranchInfo(0).should.eventually.matchObj({
+    //   state_: TRANCH_STATE_ACTIVE // all premium payments are done so all ok!
+    // })
+
+    // // step 25: heartbeat
+    // await evmClock.setAbsoluteTime(25 * 60)
+    // await policy1.checkAndUpdateState()
+    // await policy1.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_MATURED })
+    // await policy1.getTranchInfo(0).should.eventually.matchObj({
+    //   state_: TRANCH_STATE_MATURED
+    // })
 
     // sanity check balances
-    await etherToken.balanceOf(entity0Address).should.eventually.eq(entity0Balance)
-    await etherToken.balanceOf(entity2Address).should.eventually.eq(entity2Balance)
-    await etherToken.balanceOf(entity3Address).should.eventually.eq(entity3Balance)
+    // const policy1Tranch1ExpectedBalance = 100 + calcPremiumsMinusCommissions({
+    //   premiums: [1000, 2000, 1000],
+    //   assetManagerCommissionBP: 2,
+    //   brokerCommissionBP: 1,
+    //   naymsCommissionBP: 3,
+    // })
+    // expect(policy1Tranch1ExpectedBalance).to.eq(4076)
+    // await policy1.getTranchInfo(0).should.eventually.matchObj({
+    //   balance_: policy1Tranch1ExpectedBalance
+    // })
+    // const expectedCommissions = calcCommissions({
+    //   premiums: [1000, 2000, 1000],
+    //   assetManagerCommissionBP: 2,
+    //   brokerCommissionBP: 1,
+    //   naymsCommissionBP: 3,
+    // })
+    // expect(expectedCommissions.assetManagerCommission).to.eq(8)
+    // expect(expectedCommissions.brokerCommission).to.eq(4)
+    // expect(expectedCommissions.naymsCommission).to.eq(12)
+    // await policy1.getCommissionBalances().should.eventually.matchObj({
+    //   assetManagerCommissionBalance_: expectedCommissions.assetManagerCommission,
+    //   brokerCommissionBalance_: expectedCommissions.brokerCommission,
+    //   naymsCommissionBalance_: expectedCommissions.naymsCommission,
+    // })
 
-    // check states
-    await policy1.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_SELLING }) // pending since start date not yet passed
-    await policy1.getTranchInfo(0).should.eventually.matchObj({
-      state_: TRANCH_STATE_ACTIVE  // should be active since it's fully sold out
-    })
+    // // step 26: withdraw commission payments (both asset manager and broker belong to entity0 so we'll use that one!)
+    // await policy1.payCommissions(entity0Address, policy1AssetManager, entity0Address, policy1Broker)
 
-    // step 19: client manager pays second premium for policy1Tranch1
-    await evmClock.setAbsoluteTime(9 * 60)
-    await etherToken.deposit({ value: 2000, from: policy1ClientManager })
-    await etherToken.approve(entity1.address, 2000, { from: policy1ClientManager })
-    await entity1.deposit(etherToken.address, 2000, { from: policy1ClientManager })
-    await entity1.payTranchPremium(policy1.address, 0, { from: policy1ClientManager })
+    // // sanity check nayms entity balance
+    // const naymsEntityAddress = await settings.getRootAddress(SETTINGS.NAYMS_ENTITY)
+    // await etherToken.balanceOf(naymsEntityAddress).should.eventually.eq(expectedCommissions.naymsCommission)
+    // const entity0ExpectedBalance = entity0Balance + expectedCommissions.assetManagerCommission + expectedCommissions.brokerCommission
+    // await etherToken.balanceOf(entity0Address).should.eventually.eq(entity0ExpectedBalance)
+    // entity0Balance = entity0ExpectedBalance
 
-    // step 20: heartbeat
-    await evmClock.setAbsoluteTime(10 * 60)
-    await policy1.checkAndUpdateState()
-    await policy1.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_ACTIVE }) // active now since startdate has passed
-    await policy1.getTranchInfo(0).should.eventually.matchObj({
-      state_: TRANCH_STATE_ACTIVE
-    })
+    // // step 27: trader sells policy1Tranch1 tokens via entity0
+    // await entity0.sellAtBestPrice(
+    //   policy1Tranch1Address, 50,
+    //   etherToken.address,
+    //   { from: entity0Rep1 }
+    // )
+    // const entity0FinalBalance = entity0Balance + 0.5 * policy1Tranch1ExpectedBalance
+    // await etherToken.balanceOf(entity0.address).should.eventually.eq(entity0FinalBalance)
 
-    // step 21: skip for now
+    // // step 28: skip for now
 
-    // step 22: client manager pays third premium for policy1Tranch1
-    await evmClock.setAbsoluteTime(14 * 60)
-    await etherToken.deposit({ value: 1000, from: policy1ClientManager })
-    await etherToken.approve(entity1.address, 1000, { from: policy1ClientManager })
-    await entity1.deposit(etherToken.address, 1000, { from: policy1ClientManager })
-    await entity1.payTranchPremium(policy1.address, 0, { from: policy1ClientManager })
+    // // step 29: trader sells policy1Tranch1 tokens via entity2
+    // await entity2.sellAtBestPrice(
+    //   policy1Tranch1Address, 25,
+    //   etherToken.address,
+    //   { from: entity2SoleProp }
+    // )
+    // const entity2FinalBalance = entity2Balance + 0.25 * policy1Tranch1ExpectedBalance
+    // await etherToken.balanceOf(entity2.address).should.eventually.eq(entity2FinalBalance)
 
-    // step 23: heartbeat
-    await evmClock.setAbsoluteTime(15 * 60)
-    await policy1.checkAndUpdateState()
-    await policy1.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_ACTIVE })
-    await policy1.getTranchInfo(0).should.eventually.matchObj({
-      state_: TRANCH_STATE_ACTIVE
-    })
+    // // step 30: skip for now
 
-    // step 24: heartbeat
-    await evmClock.setAbsoluteTime(20 * 60)
-    await policy1.checkAndUpdateState()
-    await policy1.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_ACTIVE })
-    await policy1.getTranchInfo(0).should.eventually.matchObj({
-      state_: TRANCH_STATE_ACTIVE // all premium payments are done so all ok!
-    })
+    // // step 31: trader sells policy1Tranch1 tokens via entity3
+    // await entity3.sellAtBestPrice(
+    //   policy1Tranch1Address, 25,
+    //   etherToken.address,
+    //   { from: entity3Naym }
+    // )
+    // const entity3FinalBalance = entity3Balance + 0.25 * policy1Tranch1ExpectedBalance
+    // await etherToken.balanceOf(entity3Address).should.eventually.eq(entity3FinalBalance)
 
-    // step 25: heartbeat
-    await evmClock.setAbsoluteTime(25 * 60)
-    await policy1.checkAndUpdateState()
-    await policy1.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_MATURED })
-    await policy1.getTranchInfo(0).should.eventually.matchObj({
-      state_: TRANCH_STATE_MATURED
-    })
+    // // step 32: withdraw from entity0
+    // const entity0TokenBalance = await entity0EtherToken.balanceOf(entity0Admin)
+    // await entity0.redeem(entity0EtherToken, entity0TokenBalance, { from: entity0Admin })
+    // await etherToken.balanceOf(entity0Admin).should.eventually.eq(entity0FinalBalance)
 
-    // sanity check balances
-    const policy1Tranch1ExpectedBalance = 100 + calcPremiumsMinusCommissions({
-      premiums: [1000, 2000, 1000],
-      assetManagerCommissionBP: 2,
-      brokerCommissionBP: 1,
-      naymsCommissionBP: 3,
-    })
-    expect(policy1Tranch1ExpectedBalance).to.eq(4076)
-    await policy1.getTranchInfo(0).should.eventually.matchObj({
-      balance_: policy1Tranch1ExpectedBalance
-    })
-    const expectedCommissions = calcCommissions({
-      premiums: [1000, 2000, 1000],
-      assetManagerCommissionBP: 2,
-      brokerCommissionBP: 1,
-      naymsCommissionBP: 3,
-    })
-    expect(expectedCommissions.assetManagerCommission).to.eq(8)
-    expect(expectedCommissions.brokerCommission).to.eq(4)
-    expect(expectedCommissions.naymsCommission).to.eq(12)
-    await policy1.getCommissionBalances().should.eventually.matchObj({
-      assetManagerCommissionBalance_: expectedCommissions.assetManagerCommission,
-      brokerCommissionBalance_: expectedCommissions.brokerCommission,
-      naymsCommissionBalance_: expectedCommissions.naymsCommission,
-    })
+    // // step 33: withdraw from entity2
+    // const entity2TokenBalance = await entity2EtherToken.balanceOf(entity2SoleProp)
+    // await entity2.redeem(entity2EtherToken, entity2TokenBalance, { from: entity2SoleProp })
+    // await etherToken.balanceOf(entity2SoleProp).should.eventually.eq(entity2FinalBalance)
 
-    // step 26: withdraw commission payments (both asset manager and broker belong to entity0 so we'll use that one!)
-    await policy1.payCommissions(entity0Address, policy1AssetManager, entity0Address, policy1Broker)
-
-    // sanity check nayms entity balance
-    const naymsEntityAddress = await settings.getRootAddress(SETTINGS.NAYMS_ENTITY)
-    await etherToken.balanceOf(naymsEntityAddress).should.eventually.eq(expectedCommissions.naymsCommission)
-    const entity0ExpectedBalance = entity0Balance + expectedCommissions.assetManagerCommission + expectedCommissions.brokerCommission
-    await etherToken.balanceOf(entity0Address).should.eventually.eq(entity0ExpectedBalance)
-    entity0Balance = entity0ExpectedBalance
-
-    // step 27: trader sells policy1Tranch1 tokens via entity0
-    await entity0.sellAtBestPrice(
-      policy1Tranch1Address, 50,
-      etherToken.address,
-      { from: entity0Rep1 }
-    )
-    const entity0FinalBalance = entity0Balance + 0.5 * policy1Tranch1ExpectedBalance
-    await etherToken.balanceOf(entity0.address).should.eventually.eq(entity0FinalBalance)
-
-    // step 28: skip for now
-
-    // step 29: trader sells policy1Tranch1 tokens via entity2
-    await entity2.sellAtBestPrice(
-      policy1Tranch1Address, 25,
-      etherToken.address,
-      { from: entity2SoleProp }
-    )
-    const entity2FinalBalance = entity2Balance + 0.25 * policy1Tranch1ExpectedBalance
-    await etherToken.balanceOf(entity2.address).should.eventually.eq(entity2FinalBalance)
-
-    // step 30: skip for now
-
-    // step 31: trader sells policy1Tranch1 tokens via entity3
-    await entity3.sellAtBestPrice(
-      policy1Tranch1Address, 25,
-      etherToken.address,
-      { from: entity3Naym }
-    )
-    const entity3FinalBalance = entity3Balance + 0.25 * policy1Tranch1ExpectedBalance
-    await etherToken.balanceOf(entity3Address).should.eventually.eq(entity3FinalBalance)
-
-    // step 32: withdraw from entity0
-    await entity0.withdraw(etherToken.address, entity0FinalBalance, { from: entity0Admin })
-    await etherToken.balanceOf(entity0Admin).should.eventually.eq(entity0FinalBalance)
-
-    // step 33: withdraw from entity2
-    await entity2.withdraw(etherToken.address, entity2FinalBalance, { from: entity2SoleProp })
-    await etherToken.balanceOf(entity2SoleProp).should.eventually.eq(entity2FinalBalance)
-
-    // step 34: withdraw from entity3
-    await entity3.withdraw(etherToken.address, entity3FinalBalance, { from: entity3Naym })
-    await etherToken.balanceOf(entity3Naym).should.eventually.eq(entity3FinalBalance)
+    // // step 34: withdraw from entity3
+    // const entity3TokenBalance = await entity2EtherToken.balanceOf(entity3Naym)
+    // await entity3.redeem(entity3EtherToken, entity3TokenBalance, { from: entity3Naym })
+    // await etherToken.balanceOf(entity3Naym).should.eventually.eq(entity3FinalBalance)
   })
 
   it('test case 3', async () => {

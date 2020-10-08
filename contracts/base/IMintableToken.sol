@@ -9,9 +9,10 @@ abstract contract IMintableToken is IERC20 {
   /**
    * @dev Mint tokens.
    *
+   * @param _owner Whose balance to mint to.
    * @param _amount The amount to mint.
    */
-  function mint(uint256 _amount) external virtual;
+  function mint(address _owner, uint256 _amount) external virtual;
 
   /**
    * @dev Burn tokens.
@@ -23,14 +24,15 @@ abstract contract IMintableToken is IERC20 {
 
   /**
    * @dev Emitted when tokens are minted.
-   * @param minter The minter account.
+   * @param minter The minter.
+   * @param owner The owner account.
    * @param amount The amount minted.
    */
-  event Mint(address indexed minter, uint256 indexed amount);
+  event Mint(address indexed minter, address indexed owner, uint256 indexed amount);
 
   /**
    * @dev Emitted when tokens are burned.
-   * @param burner The burner account.
+   * @param burner The burner.
    * @param owner The owner account.
    * @param amount The amount burned.
    */

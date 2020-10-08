@@ -62,14 +62,13 @@ contract DummyToken is IMintableToken {
 
   // IDummyToken
 
-  function mint(uint256 _amount) public override {
-      balances[msg.sender] = balances[msg.sender].add(_amount);
+  function mint(address _owner, uint256 _amount) public override {
+      balances[_owner] = balances[_owner].add(_amount);
       totalSupply = totalSupply.add(_amount);
-      emit Mint(msg.sender, _amount);
+      emit Mint(msg.sender, _owner, _amount);
   }
 
   function burn(address _owner, uint256 _amount) public override {
-      require(msg.sender == _owner, 'must be owner');
       balances[_owner] = balances[_owner].sub(_amount);
       totalSupply = totalSupply.sub(_amount);
       emit Burn(msg.sender, _owner, _amount);

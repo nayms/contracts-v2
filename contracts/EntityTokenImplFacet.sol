@@ -79,16 +79,22 @@ contract EntityTokenImplFacet is EternalStorage, Controller, IDiamondFacet, IEnt
     _transfer(_from, _to, _value);
   }
 
-  function tknMint(address _minter, uint256 _value) public override {
+  function tknMint(address _minter, address _owner, uint256 _value) public override {
     require(_minter == address(this), 'only entity can mint tokens');
-    dataUint256["tknSupply"] = dataUint256["tknSupply"].add(_value);
-    string memory k = __aaa(msg.sender, _minter, address(0), "tknBalance");
+
+    string memory tsk = __a(msg.sender, "tknSupply");
+    dataUint256[tsk] = dataUint256[tsk].add(_value);
+
+    string memory k = __aaa(msg.sender, _owner, address(0), "tknBalance");
     dataUint256[k] = dataUint256[k].add(_value);
   }
 
   function tknBurn(address _burner, address _owner, uint256 _value) public override {
     require(_burner == address(this), 'only entity can mint tokens');
-    dataUint256["tknSupply"] = dataUint256["tknSupply"].sub(_value);
+
+    string memory tsk = __a(msg.sender, "tknSupply");
+    dataUint256[tsk] = dataUint256[tsk].sub(_value);
+
     string memory k = __aaa(msg.sender, _owner, address(0), "tknBalance");
     dataUint256[k] = dataUint256[k].sub(_value);
   }

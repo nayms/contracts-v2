@@ -44,9 +44,9 @@ contract EntityToken is IMintableToken {
 
   // Mutations //
 
-  function mint(uint256 _amount) public override {
-    impl.tknMint(msg.sender, _amount);
-    emit Mint(msg.sender, _amount);
+  function mint(address _owner, uint256 _amount) public override {
+    impl.tknMint(msg.sender, _owner, _amount);
+    emit Mint(msg.sender, _owner, _amount);
   }
 
   function burn (address _owner, uint256 _amount) public override {

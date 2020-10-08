@@ -61,7 +61,7 @@ contract EntityTokenMinterFacet is EternalStorage, Controller, IEntityTokenMinte
       uint256 b = tok.balanceOf(address(this));
       IERC20 entityTok = IERC20(a);
       uint256 n = entityTok.totalSupply();
-      return b.mul(_amount).div(n);
+      return _amount.mul(n).div(b);
     }
   }
 
@@ -94,8 +94,7 @@ contract EntityTokenMinterFacet is EternalStorage, Controller, IEntityTokenMinte
     IERC20(_unit).transferFrom(msg.sender, address(this), _amount);
 
     // mint tokens
-    e.mint(recvAmount);
-    e.transfer(msg.sender, recvAmount);
+    e.mint(msg.sender, recvAmount);
   }
 
   function redeem(address _token, uint256 _amount) public override assertCanRedeem {

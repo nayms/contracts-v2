@@ -69,19 +69,6 @@ contract('Entity', accounts => {
     expect(entityProxy.address).to.exist
   })
 
-  describe.only('deploys its own token', () => {
-    let token
-
-    beforeEach(async () => {
-      const tokenAddress = await entity.getToken()
-      token = await IMintableToken.at(tokenAddress)
-    })
-
-    it('which has a name', async () => {
-      await token.name().should.eventually.eq(entityProxy.address.toLowerCase())
-    })
-  })
-
   describe('it can be upgraded', () => {
     let testEntityFacet
     let freezeUpgradesFacet
@@ -119,6 +106,100 @@ contract('Entity', accounts => {
     it('and the internal upgrade function cannot be called directly', async () => {
       const proxy = await IDiamondProxy.at(entity.address)
       await proxy.registerFacets([]).should.be.rejectedWith('external caller not allowed')
+    })
+  })
+
+  describe.only('it mints entity tokens', () => {
+    beforeEach(async () => {
+      await etherToken.deposit({ value: 10 })
+      await etherToken.approve(entityProxy.address, 10)
+
+      await etherToken.deposit({ from: accounts[1], value: 10 })
+      await etherToken.approve(entityProxy.address, 10, { from: accounts[1] })
+    })
+
+    it('can calculate how many depositor will get', async () => {
+      await entity.calculateTokensReceivable(etherToken.address, 12).should.eventually.eq(12)
+    })
+
+    it('creates the token on the first deposit', async () => {
+      await entity.getTokenAddress(etherToken.address).should.eventually.eq(ADDRESS_ZERO)
+
+      await entity.deposit(etherToken.address, 5)
+
+      // unit balances updated
+      await etherToken.balanceOf(accounts[0]).should.eventually.eq(5)
+      await etherToken.balanceOf(entity.address).should.eventually.eq(5)
+
+      // check entity token
+      const tokenAddr = await entity.getTokenAddress(etherToken.address)
+      const token = await IMintableToken.at(tokenAddr)
+
+      await token.balanceOf(accounts[0]).should.eventually.eq(5)
+      await token.totalSupply().should.eventually.eq(5)
+    })
+
+    it('just mints more tokens on subsequent deposits', async () => {
+      await entity.deposit(etherToken.address, 5)
+
+      // get entity token
+      const tokenAddr = await entity.getTokenAddress(etherToken.address)
+      const token = await IMintableToken.at(tokenAddr)
+
+      // next deposit
+      await entity.deposit(etherToken.address, 3, { from: accounts[1] })
+
+      // unit balances updated
+      await etherToken.balanceOf(accounts[0]).should.eventually.eq(5)
+      await etherToken.balanceOf(accounts[1]).should.eventually.eq(7)
+      await etherToken.balanceOf(entity.address).should.eventually.eq(8)
+
+      // token balances
+      await token.balanceOf(accounts[0]).should.eventually.eq(5)
+      await token.balanceOf(accounts[1]).should.eventually.eq(3)
+      await token.totalSupply().should.eventually.eq(8)
+    })
+
+    it.only('mints tokens at current price based on unit balance', async () => {
+      await entity.deposit(etherToken.address, 5)
+
+      // get entity token
+      const tokenAddr = await entity.getTokenAddress(etherToken.address)
+      const token = await IMintableToken.at(tokenAddr)
+
+      // token balances
+      await token.balanceOf(accounts[0]).should.eventually.eq(5)
+      await token.totalSupply().should.eventually.eq(5)
+
+      // add more unit assets to entity
+      await etherToken.deposit({ value: 20 })
+      await etherToken.transfer(entity.address, 20)
+
+      // do calculation
+      await entity.calculateTokensReceivable(etherToken.address, 5).should.eventually.eq(1)
+
+      // next deposit
+      await entity.deposit(etherToken.address, 10, { from: accounts[1] })
+
+      // unit balances updated
+      await etherToken.balanceOf(accounts[0]).should.eventually.eq(5)
+      await etherToken.balanceOf(accounts[1]).should.eventually.eq(0)
+      await etherToken.balanceOf(entity.address).should.eventually.eq(35)
+
+      // new token balances
+      await token.balanceOf(accounts[0]).should.eventually.eq(5)
+      await token.balanceOf(accounts[1]).should.eventually.eq(2)
+      await token.totalSupply().should.eventually.eq(7)
+    })
+
+    it('only allows the parent entity to mint new tokens', async () => {
+      await entity.deposit(etherToken.address, 5)
+
+      // check entity token
+      const tokenAddr = await entity.getTokenAddress(etherToken.address)
+      const token = await IMintableToken.at(tokenAddr)
+
+      await token.mint(accounts[0], 1).should.be.rejectedWith('only entity can mint tokens')
     })
   })
 

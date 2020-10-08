@@ -13,6 +13,6 @@ interface IEntityTokenImplFacet {
   // ERC-20 mutations
   function tknApprove(address _spender, address _from, uint256 _value) external;
   function tknTransfer(address _operator, address _from, address _to, uint256 _value) external;
-  function tknMint(address _minter, uint256 _value) external;
+  function tknMint(address _minter, address _owner, uint256 _value) external;
   function tknBurn(address _burner, address _owner, uint256 _value) external;
 }

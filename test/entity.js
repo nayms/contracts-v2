@@ -109,7 +109,7 @@ contract('Entity', accounts => {
     })
   })
 
-  describe.only('it mints entity tokens', () => {
+  describe('it mints entity tokens', () => {
     beforeEach(async () => {
       await etherToken.deposit({ value: 10 })
       await etherToken.approve(entityProxy.address, 10)
@@ -120,6 +120,12 @@ contract('Entity', accounts => {
 
     it('can calculate how many depositor will get', async () => {
       await entity.calculateTokensReceivable(etherToken.address, 12).should.eventually.eq(12)
+    })
+
+    it('but depositor must have enough', async () => {
+      await etherToken.deposit({ value: 10 })
+      await etherToken.approve(entityProxy.address, 10)
+      await entity.deposit(etherToken.address, 11).should.be.rejectedWith('amount exceeds allowance')
     })
 
     it('creates the token on the first deposit', async () => {
@@ -160,7 +166,7 @@ contract('Entity', accounts => {
       await token.totalSupply().should.eventually.eq(8)
     })
 
-    it.only('mints tokens at current price based on unit balance', async () => {
+    it('mints tokens at current price based on unit balance', async () => {
       await entity.deposit(etherToken.address, 5)
 
       // get entity token
@@ -201,106 +207,157 @@ contract('Entity', accounts => {
 
       await token.mint(accounts[0], 1).should.be.rejectedWith('only entity can mint tokens')
     })
+
+    describe('allows for tokens to be redeemed', () => {
+      let entityToken
+
+      beforeEach(async () => {
+        await entity.deposit(etherToken.address, 10)
+
+        await etherToken.deposit({ value: 40 })
+        await etherToken.transfer(entity.address, 40)
+
+        await entity.deposit(etherToken.address, 10, { from: accounts[1] })
+
+        const tokenAddr = await entity.getTokenAddress(etherToken.address)
+        entityToken = await IMintableToken.at(tokenAddr)
+
+        // unit balances updated
+        await etherToken.balanceOf(accounts[0]).should.eventually.eq(0)
+        await etherToken.balanceOf(accounts[1]).should.eventually.eq(0)
+        await etherToken.balanceOf(entity.address).should.eventually.eq(60)
+
+        // new token balances
+        await entityToken.balanceOf(accounts[0]).should.eventually.eq(10)
+        await entityToken.balanceOf(accounts[1]).should.eventually.eq(2)
+        await entityToken.totalSupply().should.eventually.eq(12)
+      })
+
+      it('can calculate how much redeemer will get', async () => {
+        await entity.calculateAssetsRedeemable(entityToken.address, 10).should.eventually.eq(50)
+      })
+
+      it('cannot redeem beyond caller\'s balance', async () => {
+        await entity.redeem(entityToken.address, 11).should.be.rejectedWith('overflow')
+      })
+
+      it('redeems and returns assets to caller', async () => {
+        await entity.redeem(entityToken.address, 10)
+
+        // unit balances updated
+        await etherToken.balanceOf(accounts[0]).should.eventually.eq(50)
+        await etherToken.balanceOf(accounts[1]).should.eventually.eq(0)
+        await etherToken.balanceOf(entity.address).should.eventually.eq(10)
+
+        // new token balances
+        await entityToken.balanceOf(accounts[0]).should.eventually.eq(0)
+        await entityToken.balanceOf(accounts[1]).should.eventually.eq(2)
+        await entityToken.totalSupply().should.eventually.eq(2)
+
+        await entity.redeem(entityToken.address, 2, { from: accounts[1] })
+
+        // unit balances updated
+        await etherToken.balanceOf(accounts[0]).should.eventually.eq(50)
+        await etherToken.balanceOf(accounts[1]).should.eventually.eq(10)
+        await etherToken.balanceOf(entity.address).should.eventually.eq(0)
+
+        // new token balances
+        await entityToken.balanceOf(accounts[0]).should.eventually.eq(0)
+        await entityToken.balanceOf(accounts[1]).should.eventually.eq(0)
+        await entityToken.totalSupply().should.eventually.eq(0)
+      })
+
+      it('always redeems at current price', async () => {
+        await entity.redeem(entityToken.address, 10)
+
+        // unit balances updated
+        await etherToken.balanceOf(accounts[0]).should.eventually.eq(50)
+        await etherToken.balanceOf(accounts[1]).should.eventually.eq(0)
+        await etherToken.balanceOf(entity.address).should.eventually.eq(10)
+
+        // new token balances
+        await entityToken.balanceOf(accounts[0]).should.eventually.eq(0)
+        await entityToken.balanceOf(accounts[1]).should.eventually.eq(2)
+        await entityToken.totalSupply().should.eventually.eq(2)
+
+        // put some more unit asset in
+        await etherToken.deposit({ value: 100 })
+        await etherToken.transfer(entity.address, 100)
+
+        await entity.redeem(entityToken.address, 1, { from: accounts[1] })
+
+        // unit balances updated
+        await etherToken.balanceOf(accounts[0]).should.eventually.eq(50)
+        await etherToken.balanceOf(accounts[1]).should.eventually.eq(55)
+        await etherToken.balanceOf(entity.address).should.eventually.eq(55)
+
+        // new token balances
+        await entityToken.balanceOf(accounts[0]).should.eventually.eq(0)
+        await entityToken.balanceOf(accounts[1]).should.eventually.eq(1)
+        await entityToken.totalSupply().should.eventually.eq(1)
+      })
+    })
   })
 
-  describe('it can take deposits', () => {
-    it('but sender must have enough', async () => {
-      await etherToken.deposit({ value: 10 })
-      await etherToken.approve(entityProxy.address, 10)
-      await entity.deposit(etherToken.address, 11).should.be.rejectedWith('amount exceeds allowance')
-    })
-
-    it('but sender must have previously authorized the entity to do the transfer', async () => {
-      await etherToken.deposit({ value: 10 })
-      await entity.deposit(etherToken.address, 5).should.be.rejectedWith('amount exceeds allowance')
-    })
-
-    it('and gets credited with the amount', async () => {
+  describe('uses deposits to buy tokens from the market', () => {
+    beforeEach(async () => {
       await etherToken.deposit({ value: 10 })
       await etherToken.approve(entityProxy.address, 10)
       await entity.deposit(etherToken.address, 10).should.be.fulfilled
-      await etherToken.balanceOf(entityProxy.address).should.eventually.eq(10)
     })
 
-    describe('and enables subsequent withdrawals', () => {
-      beforeEach(async () => {
-        await etherToken.deposit({ value: 10 })
-        await etherToken.approve(entityProxy.address, 10)
-        await entity.deposit(etherToken.address, 10)
-      })
-
-      it('but not by just anyone', async () => {
-        await entity.withdraw(etherToken.address, 10, { from: accounts[1] }).should.be.rejectedWith('must be entity admin')
-      })
-
-      it('by entity admin', async () => {
-        await acl.assignRole(entityContext, accounts[1], ROLES.ENTITY_ADMIN)
-        await entity.withdraw(etherToken.address, 10, { from: accounts[1] }).should.be.fulfilled
-        await etherToken.balanceOf(accounts[1]).should.eventually.eq(10)
-        await etherToken.balanceOf(accounts[0]).should.eventually.eq(0)
-      })
+    it('but not just by anyone', async () => {
+      await entity.trade(etherToken.address, 1, etherToken2.address, 1).should.be.rejectedWith('must be trader')
     })
 
-    describe('and use those deposits to buy tokens from the market', () => {
-      beforeEach(async () => {
-        await etherToken.deposit({ value: 10 })
-        await etherToken.approve(entityProxy.address, 10)
-        await entity.deposit(etherToken.address, 10).should.be.fulfilled
-      })
+    it('by a trader', async () => {
+      await acl.assignRole(entityContext, accounts[3], ROLES.ENTITY_REP)
 
-      it('but not just by anyone', async () => {
-        await entity.trade(etherToken.address, 1, etherToken2.address, 1).should.be.rejectedWith('must be trader')
-      })
+      await entity.trade(etherToken.address, 1, etherToken2.address, 1, { from: accounts[3] })
 
-      it('by a trader', async () => {
-        await acl.assignRole(entityContext, accounts[3], ROLES.ENTITY_REP)
+      // pre-check
+      await etherToken.balanceOf(accounts[5]).should.eventually.eq(0)
 
-        await entity.trade(etherToken.address, 1, etherToken2.address, 1, { from: accounts[3] })
+      // now match the trade
+      await etherToken2.deposit({ value: 1, from: accounts[5] })
+      await etherToken2.approve(market.address, 1, { from: accounts[5] })
+      const offerId = await market.last_offer_id()
+      await market.buy(offerId, 1, { from: accounts[5] })
 
-        // pre-check
-        await etherToken.balanceOf(accounts[5]).should.eventually.eq(0)
+      // post-check
+      await etherToken.balanceOf(accounts[5]).should.eventually.eq(1)
+    })
+  })
 
-        // now match the trade
-        await etherToken2.deposit({ value: 1, from: accounts[5] })
-        await etherToken2.approve(market.address, 1, { from: accounts[5] })
-        const offerId = await market.last_offer_id()
-        await market.buy(offerId, 1, { from: accounts[5] })
-
-        // post-check
-        await etherToken.balanceOf(accounts[5]).should.eventually.eq(1)
-      })
+  describe('it sell assets at the best price available', () => {
+    beforeEach(async () => {
+      await etherToken.deposit({ value: 10 })
+      await etherToken.approve(entityProxy.address, 10)
+      await entity.deposit(etherToken.address, 10).should.be.fulfilled
     })
 
-    describe('and sell assets at the best price available', () => {
-      beforeEach(async () => {
-        await etherToken.deposit({ value: 10 })
-        await etherToken.approve(entityProxy.address, 10)
-        await entity.deposit(etherToken.address, 10).should.be.fulfilled
-      })
+    it('but not just by anyone', async () => {
+      await entity.sellAtBestPrice(etherToken.address, 1, etherToken2.address).should.be.rejectedWith('must be trader')
+    })
 
-      it('but not just by anyone', async () => {
-        await entity.sellAtBestPrice(etherToken.address, 1, etherToken2.address).should.be.rejectedWith('must be trader')
-      })
+    it('by a trader, and only matches offers until full amount sold', async () => {
+      // setup offers on market
+      await etherToken2.deposit({ value: 100, from: accounts[7] })
+      await etherToken2.approve(market.address, 100, { from: accounts[7] })
+      await market.offer(100, etherToken2.address, 3, etherToken.address, 0, false, { from: accounts[7] }); // best price, but only buying 3
 
-      it('by a trader, and only matches offers until full amount sold', async () => {
-        // setup offers on market
-        await etherToken2.deposit({ value: 100, from: accounts[7] })
-        await etherToken2.approve(market.address, 100, { from: accounts[7] })
-        await market.offer(100, etherToken2.address, 3, etherToken.address, 0, false, { from: accounts[7] }); // best price, but only buying 3
+      await etherToken2.deposit({ value: 50, from: accounts[8] })
+      await etherToken2.approve(market.address, 50, { from: accounts[8] })
+      await market.offer(50, etherToken2.address, 5, etherToken.address, 0, false, { from: accounts[8] }); // worse price, but able to buy all
 
-        await etherToken2.deposit({ value: 50, from: accounts[8] })
-        await etherToken2.approve(market.address, 50, { from: accounts[8] })
-        await market.offer(50, etherToken2.address, 5, etherToken.address, 0, false, { from: accounts[8] }); // worse price, but able to buy all
+      // now sell from the other direction
+      await acl.assignRole(entityContext, accounts[3], ROLES.ENTITY_REP)
+      await entity.sellAtBestPrice(etherToken.address, 5, etherToken2.address, { from: accounts[3] })
 
-        // now sell from the other direction
-        await acl.assignRole(entityContext, accounts[3], ROLES.ENTITY_REP)
-        await entity.sellAtBestPrice(etherToken.address, 5, etherToken2.address, { from: accounts[3] })
-
-        // check balances
-        await etherToken2.balanceOf(entity.address).should.eventually.eq(100 + 20)  // all of 1st offer + 2 from second
-        await etherToken.balanceOf(accounts[7]).should.eventually.eq(3)
-        await etherToken.balanceOf(accounts[8]).should.eventually.eq(2)
-      })
+      // check balances
+      await etherToken2.balanceOf(entity.address).should.eventually.eq(100 + 20)  // all of 1st offer + 2 from second
+      await etherToken.balanceOf(accounts[7]).should.eventually.eq(3)
+      await etherToken.balanceOf(accounts[8]).should.eventually.eq(2)
     })
   })
 

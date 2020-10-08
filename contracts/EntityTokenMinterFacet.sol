@@ -13,11 +13,6 @@ contract EntityTokenMinterFacet is EternalStorage, Controller, IEntityTokenMinte
   using Address for address;
   using SafeMath for uint256;
 
-  modifier assertCanRedeem () {
-    require(inRoleGroup(msg.sender, ROLEGROUP_ENTITY_ADMINS), 'must be entity admin');
-    _;
-  }
-
   /**
    * Constructor
    */
@@ -73,7 +68,7 @@ contract EntityTokenMinterFacet is EternalStorage, Controller, IEntityTokenMinte
     IERC20 entityTok = IERC20(_token);
     uint256 n = entityTok.totalSupply();
 
-    return b.mul(_amount).div(n);
+    return _amount.mul(b).div(n);
   }
 
   function deposit(address _unit, uint256 _amount) public override {
@@ -97,7 +92,7 @@ contract EntityTokenMinterFacet is EternalStorage, Controller, IEntityTokenMinte
     e.mint(msg.sender, recvAmount);
   }
 
-  function redeem(address _token, uint256 _amount) public override assertCanRedeem {
+  function redeem(address _token, uint256 _amount) public override {
     uint256 recvAmount = calculateAssetsRedeemable(_token, _amount);
     EntityToken e = EntityToken(_token);
     

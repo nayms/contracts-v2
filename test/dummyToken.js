@@ -23,11 +23,11 @@ contract('DummyToken', accounts => {
     it('mint()', async () => {
       const ret = await dummyToken.mint(23)
 
-      const eventArgs = extractEventArgs(ret, events.Mint)
-      expect(eventArgs).to.include({ sender: accounts[0], amount: '23' })
-
       await dummyToken.balanceOf(accounts[0]).should.eventually.eq('100000023')
       await dummyToken.totalSupply().should.eventually.eq('100000023')
+
+      const eventArgs = extractEventArgs(ret, events.Mint)
+      expect(eventArgs).to.include({ sender: accounts[0], amount: '23' })
     })
   })
 

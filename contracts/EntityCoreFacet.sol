@@ -111,7 +111,7 @@ import "./Policy.sol";
     tok.transfer(msg.sender, _amount);
   }
 
-  function payTranchPremium(address _policy, uint256 _tranchIndex)
+  function payTranchPremium(address _policy, uint256 _tranchIndex, uint256 _amount)
     public
     override
     assertCanPayTranchPremiums(_policy)
@@ -132,7 +132,7 @@ import "./Policy.sol";
     IERC20 tok = IERC20(policyUnitAddress);
     tok.approve(_policy, nextPremiumAmount);
     // do it
-    p.payTranchPremium(_tranchIndex);
+    p.payTranchPremium(_tranchIndex, _amount);
   }
 
   function trade(address _payUnit, uint256 _payAmount, address _buyUnit, uint256 _buyAmount)

@@ -252,7 +252,7 @@ contract('Policy Tranches: Premiums', accounts => {
         await policy.getTranchPremiumInfo(0, 0).should.eventually.matchObj({
           amount_: 2,
           dueAt_: policyAttrs.initiationDate,
-          paidBy_: accounts[0]
+          paidSoFar_: 2,
         })
       })
 
@@ -276,7 +276,7 @@ contract('Policy Tranches: Premiums', accounts => {
         await policy.getTranchPremiumInfo(0, 1).should.eventually.matchObj({
           amount_: 3,
           dueAt_: policyAttrs.initiationDate + 30,
-          paidBy_: accounts[0]
+          paidSoFar_: 3,
         })
       })
     })
@@ -431,7 +431,9 @@ contract('Policy Tranches: Premiums', accounts => {
       await policy.payTranchPremium(0, 4).should.be.fulfilled // 4
       await policy.payTranchPremium(0, 5).should.be.fulfilled // 5
 
-      await policy.payTranchPremium(0, 1).should.be.rejectedWith('all payments already made')
+      const bal = await etherToken.balanceOf(accounts[0])
+      await policy.payTranchPremium(0, 1).should.be.fulfilled // shouldn't take any money
+      await etherToken.balanceOf(accounts[0]).should.eventually.eq(bal)
     })
 
     describe('disallowed', () => {

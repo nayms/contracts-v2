@@ -46,12 +46,12 @@ contract PolicyPremiumsFacet is EternalStorage, Controller, IDiamondFacet, IPoli
   function getTranchPremiumInfo (uint256 _tranchIndex, uint256 _premiumIndex) public view override returns (
     uint256 amount_,
     uint256 dueAt_,
-    address paidSoFar_,
+    uint256 paidSoFar_,
     uint256 fullyPaidAt_
   ) {
     amount_ = dataUint256[__ii(_tranchIndex, _premiumIndex, "premiumAmount")];
     dueAt_ = dataUint256[__ii(_tranchIndex, _premiumIndex, "premiumDueAt")];
-    paidSoFar_ = dataAddress[__ii(_tranchIndex, _premiumIndex, "premiumPaidSoFar")];
+    paidSoFar_ = dataUint256[__ii(_tranchIndex, _premiumIndex, "premiumPaidSoFar")];
     fullyPaidAt_ = dataUint256[__ii(_tranchIndex, _premiumIndex, "premiumPaidAt")];
   }
 

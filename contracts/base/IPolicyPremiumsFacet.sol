@@ -27,7 +27,7 @@ interface IPolicyPremiumsFacet {
   function getTranchPremiumInfo (uint256 _tranchIndex, uint256 _premiumIndex) external view returns (
     uint256 amount_,
     uint256 dueAt_,
-    address paidSoFar_,
+    uint256 paidSoFar_,
     uint256 fullyPaidAt_
   );
 

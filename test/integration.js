@@ -280,7 +280,7 @@ contract('End-to-end integration tests', accounts => {
     await etherToken.deposit({ value: 1000, from: policy1ClientManager })
     await etherToken.approve(entity1.address, 1000, { from: policy1ClientManager })
     await entity1.deposit(etherToken.address, 1000, { from: policy1ClientManager })
-    await entity1.payTranchPremium(policy1.address, 0, { from: policy1ClientManager })
+    await entity1.payTranchPremium(policy1.address, 0, 1000, { from: policy1ClientManager })
 
     // step 15: heartbeat - begin sale of policy1Tranch1
     await evmClock.setAbsoluteTime(5 * 60)
@@ -332,7 +332,7 @@ contract('End-to-end integration tests', accounts => {
     await etherToken.deposit({ value: 2000, from: policy1ClientManager })
     await etherToken.approve(entity1.address, 2000, { from: policy1ClientManager })
     await entity1.deposit(etherToken.address, 2000, { from: policy1ClientManager })
-    await entity1.payTranchPremium(policy1.address, 0, { from: policy1ClientManager })
+    await entity1.payTranchPremium(policy1.address, 0, 2000, { from: policy1ClientManager })
 
     // step 20: heartbeat
     await evmClock.setAbsoluteTime(10 * 60)
@@ -349,7 +349,7 @@ contract('End-to-end integration tests', accounts => {
     await etherToken.deposit({ value: 1000, from: policy1ClientManager })
     await etherToken.approve(entity1.address, 1000, { from: policy1ClientManager })
     await entity1.deposit(etherToken.address, 1000, { from: policy1ClientManager })
-    await entity1.payTranchPremium(policy1.address, 0, { from: policy1ClientManager })
+    await entity1.payTranchPremium(policy1.address, 0, 1000, { from: policy1ClientManager })
 
     // step 23: heartbeat
     await evmClock.setAbsoluteTime(15 * 60)
@@ -534,7 +534,7 @@ contract('End-to-end integration tests', accounts => {
     await etherToken.deposit({ value: 1000, from: policy2ClientManager })
     await etherToken.approve(entity1.address, 1000, { from: policy2ClientManager })
     await entity1.deposit(etherToken.address, 1000, { from: policy2ClientManager })
-    await entity1.payTranchPremium(policy2.address, 0, { from: policy2ClientManager })
+    await entity1.payTranchPremium(policy2.address, 0, 1000, { from: policy2ClientManager })
 
     // step 15: heartbeat - begin sale of policy2Tranch1
     await evmClock.setAbsoluteTime(5 * 60)
@@ -579,7 +579,7 @@ contract('End-to-end integration tests', accounts => {
     await etherToken.deposit({ value: 2000, from: policy2ClientManager })
     await etherToken.approve(entity1.address, 2000, { from: policy2ClientManager })
     await entity1.deposit(etherToken.address, 2000, { from: policy2ClientManager })
-    await entity1.payTranchPremium(policy2.address, 0, { from: policy2ClientManager })
+    await entity1.payTranchPremium(policy2.address, 0, 2000, { from: policy2ClientManager })
 
     // step 22: heartbeat
     await evmClock.setAbsoluteTime(10 * 60)
@@ -594,7 +594,7 @@ contract('End-to-end integration tests', accounts => {
     await etherToken.deposit({ value: 1000, from: policy2ClientManager })
     await etherToken.approve(entity1.address, 1000, { from: policy2ClientManager })
     await entity1.deposit(etherToken.address, 1000, { from: policy2ClientManager })
-    await entity1.payTranchPremium(policy2.address, 0, { from: policy2ClientManager })
+    await entity1.payTranchPremium(policy2.address, 0, 1000, { from: policy2ClientManager })
 
     // step 24: heartbeat
     await evmClock.setAbsoluteTime(15 * 60)

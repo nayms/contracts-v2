@@ -173,21 +173,16 @@ contract('Policy Tranches: Claims', accounts => {
       await etherToken.approve(policy.address, 50000)
 
       // pay all
-      await policy.payTranchPremium(0)
-      await policy.payTranchPremium(0)
-      await policy.payTranchPremium(0)
+      await policy.payTranchPremium(0, 9000)
 
       // pay all
-      await policy.payTranchPremium(1)
-      await policy.payTranchPremium(1)
-      await policy.payTranchPremium(1)
+      await policy.payTranchPremium(1, 13000)
 
       // pay 1 (so it's cancelled by the start date time)
-      await policy.payTranchPremium(2)
+      await policy.payTranchPremium(2, 7000)
 
       // pay 2 (so it's active by the start date time but should be cancelled after that)
-      await policy.payTranchPremium(3)
-      await policy.payTranchPremium(3)
+      await policy.payTranchPremium(3, 8000)
     }
 
     const preSetupPolicyCtx = { policies, settings, events, etherToken, entity, entityManagerAddress }

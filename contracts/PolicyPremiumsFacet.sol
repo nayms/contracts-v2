@@ -76,18 +76,20 @@ contract PolicyPremiumsFacet is EternalStorage, Controller, IDiamondFacet, IPoli
 
       uint256 pending = expectedAmount.sub(paidSoFar);
 
+      uint256 numPremiumsPaid = dataUint256[__i(_index, "numPremiumsPaid")];
+
       if (_amount >= pending) {
         _applyPremiumPaymentAmount(_index, pending);
         totalPaid = totalPaid.add(pending);
         _amount = _amount.sub(pending);
 
-        uint256 numPremiumsPaid = dataUint256[__i(_index, "numPremiumsPaid")];
         dataUint256[__i(_index, "numPremiumsPaid")] = numPremiumsPaid + 1;
         dataUint256[__ii(_index, numPremiumsPaid, "premiumPaidAt")] = now;
         dataUint256[__ii(_index, numPremiumsPaid, "premiumPaidSoFar")] = dataUint256[__ii(_index, numPremiumsPaid, "premiumAmount")];
       } else {
         _applyPremiumPaymentAmount(_index, _amount);
         totalPaid = totalPaid.add(_amount);
+        dataUint256[__ii(_index, numPremiumsPaid, "premiumPaidSoFar")] = dataUint256[__ii(_index, numPremiumsPaid, "premiumPaidSoFar")].add(_amount);
         _amount = 0;
       }
     }

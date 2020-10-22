@@ -26,7 +26,7 @@ contract TestEntityFacet is IDiamondFacet, IEntityCoreFacet {
   ) external override {}
   function deposit(address _unit, uint256 _amount) external override {}
   function withdraw(address _unit, uint256 _amount) external override {}
-  function payTranchPremium(address _policy, uint256 _tranchIndex) external override {}
+  function payTranchPremium(address _policy, uint256 _tranchIndex, uint256 _amount) external override {}
   function trade(address _payUnit, uint256 _payAmount, address _buyUnit, uint256 _buyAmount) external override {}
   function sellAtBestPrice(address _sellUnit, uint256 _sellAmount, address _buyUnit) external override {}
 }

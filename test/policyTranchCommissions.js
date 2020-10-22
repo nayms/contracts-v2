@@ -34,7 +34,7 @@ const POLICY_ATTRS_1 = {
   initiationDateDiff: 1000,
   startDateDiff: 2000,
   maturationDateDiff: 3000,
-  premiumIntervalSeconds: undefined,
+  premiumIntervalSeconds: 30,
   assetManagerCommissionBP: 1,
   brokerCommissionBP: 2,
   naymsCommissionBP: 3
@@ -154,7 +154,7 @@ contract('Policy Tranches: Commissions', accounts => {
       await etherToken.deposit({ value: 10000 })
       await etherToken.approve(policy.address, 10000)
 
-      await policy.payTranchPremium(0)
+      await policy.payTranchPremium(0, 2000)
 
       await policy.getCommissionBalances().should.eventually.matchObj({
         assetManagerCommissionBalance_: 2, /* 0.1% of 2000 */
@@ -166,7 +166,7 @@ contract('Policy Tranches: Commissions', accounts => {
         balance_: 1988, /* 2000 - (2 + 4 + 6) */
       })
 
-      await policy.payTranchPremium(0)
+      await policy.payTranchPremium(0, 3000)
 
       await policy.getCommissionBalances().should.eventually.matchObj({
         assetManagerCommissionBalance_: 5, /* 2 + 3 (=0.1% of 3000) */
@@ -177,7 +177,7 @@ contract('Policy Tranches: Commissions', accounts => {
         balance_: 4970, /* 1988 + 3000 - (3 + 6 + 9) */
       })
 
-      await policy.payTranchPremium(0)
+      await policy.payTranchPremium(0, 4000)
 
       await policy.getCommissionBalances().should.eventually.matchObj({
         assetManagerCommissionBalance_: 9, /* 5 + 4 (=0.1% of 4000) */
@@ -189,13 +189,29 @@ contract('Policy Tranches: Commissions', accounts => {
       })
     })
 
+    it('updates the balances correctly for batch premium payments too', async () => {
+      await etherToken.deposit({ value: 10000 })
+      await etherToken.approve(policy.address, 10000)
+
+      await policy.payTranchPremium(0, 4000)
+
+      await policy.getCommissionBalances().should.eventually.matchObj({
+        assetManagerCommissionBalance_: 4, /* 0.1% of 4000 */
+        brokerCommissionBalance_: 8, /* 0.2% of 4000 */
+        naymsCommissionBalance_: 12, /* 0.3% of 4000 */
+      })
+
+      await policy.getTranchInfo(0).should.eventually.matchObj({
+        balance_: 3976, /* 4000 - (4 + 8 + 12) */
+      })
+    })
+
     describe('and the commissions can be paid out', async () => {
       beforeEach(async () => {
         await etherToken.deposit({ value: 10000 })
         await etherToken.approve(policy.address, 10000)
 
-        await policy.payTranchPremium(0)
-        await policy.payTranchPremium(0)
+        await policy.payTranchPremium(0, 5000)
 
         // assign roles
         await acl.assignRole(policyContext, accounts[5], ROLES.ASSET_MANAGER)
@@ -269,7 +285,7 @@ contract('Policy Tranches: Commissions', accounts => {
         await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6])
         await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6])
 
-        await policy.payTranchPremium(0)
+        await policy.payTranchPremium(0, 4000)
 
         await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6])
 

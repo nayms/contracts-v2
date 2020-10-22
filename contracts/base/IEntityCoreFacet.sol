@@ -53,8 +53,9 @@ interface IEntityCoreFacet {
    *
    * @param _policy Policy which owns the tranch.
    * @param _tranchIndex Index of the tranch in the policy.
+   * @param _amount Amount of premium to pay.
    */
-  function payTranchPremium(address _policy, uint256 _tranchIndex) external;
+  function payTranchPremium(address _policy, uint256 _tranchIndex, uint256 _amount) external;
 
   /**
    * @dev Trade assets at a specific price-point.

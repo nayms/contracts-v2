@@ -34,11 +34,13 @@ const IPolicy = artifacts.require("./base/IPolicy")
 const TestPolicyFacet = artifacts.require("./test/TestPolicyFacet")
 const FreezeUpgradesFacet = artifacts.require("./test/FreezeUpgradesFacet")
 
+const premiumIntervalSeconds = 30
+
 const POLICY_ATTRS_1 = {
   initiationDateDiff: 1000,
   startDateDiff: 2000,
   maturationDateDiff: 3000,
-  premiumIntervalSeconds: undefined,
+  premiumIntervalSeconds,
   assetManagerCommissionBP: 0,
   brokerCommissionBP: 0,
   naymsCommissionBP: 0,
@@ -205,7 +207,7 @@ contract('Policy Tranches: Premiums', accounts => {
         }, { from: policyOwnerAddress })
 
         await etherToken.deposit({ value: 10 })
-        await policy.payTranchPremium(0).should.be.rejectedWith('amount exceeds allowance')
+        await policy.payTranchPremium(0, 2).should.be.rejectedWith('amount exceeds allowance')
       })
 
       it('sender must have enough tokens to make the payment', async () => {
@@ -215,7 +217,7 @@ contract('Policy Tranches: Premiums', accounts => {
 
         await etherToken.deposit({ value: 1 })
         await etherToken.approve(policy.address, 2)
-        await policy.payTranchPremium(0).should.be.rejectedWith('amount exceeds balance')
+        await policy.payTranchPremium(0, 2).should.be.rejectedWith('amount exceeds balance')
       })
 
       it('emits an event upon payment', async () => {
@@ -225,7 +227,7 @@ contract('Policy Tranches: Premiums', accounts => {
 
         await etherToken.deposit({ value: 2 })
         await etherToken.approve(policy.address, 2)
-        const ret = await policy.payTranchPremium(0)
+        const ret = await policy.payTranchPremium(0, 2)
 
         expect(extractEventArgs(ret, events.PremiumPayment)).to.include({
           tranchIndex: '0',
@@ -240,7 +242,7 @@ contract('Policy Tranches: Premiums', accounts => {
 
         await etherToken.deposit({ value: 2 })
         await etherToken.approve(policy.address, 2)
-        await policy.payTranchPremium(0).should.be.fulfilled
+        await policy.payTranchPremium(0, 2).should.be.fulfilled
 
         await policy.getTranchInfo(0).should.eventually.matchObj({
           nextPremiumAmount_: 3,
@@ -252,7 +254,7 @@ contract('Policy Tranches: Premiums', accounts => {
         await policy.getTranchPremiumInfo(0, 0).should.eventually.matchObj({
           amount_: 2,
           dueAt_: policyAttrs.initiationDate,
-          paidBy_: accounts[0]
+          paidSoFar_: 2,
         })
       })
 
@@ -263,8 +265,8 @@ contract('Policy Tranches: Premiums', accounts => {
 
         await etherToken.deposit({ value: 5 })
         await etherToken.approve(policy.address, 5)
-        await policy.payTranchPremium(0).should.be.fulfilled
-        await policy.payTranchPremium(0).should.be.fulfilled
+        await policy.payTranchPremium(0, 2).should.be.fulfilled
+        await policy.payTranchPremium(0, 3).should.be.fulfilled
 
         await policy.getTranchInfo(0).should.eventually.matchObj({
           nextPremiumAmount_: 4,
@@ -276,8 +278,135 @@ contract('Policy Tranches: Premiums', accounts => {
         await policy.getTranchPremiumInfo(0, 1).should.eventually.matchObj({
           amount_: 3,
           dueAt_: policyAttrs.initiationDate + 30,
-          paidBy_: accounts[0]
+          paidSoFar_: 3,
         })
+      })
+
+      it('partial payments allowed', async () => {
+        await createTranch(policy, {
+          premiums: [2, 3, 4]
+        }, { from: policyOwnerAddress })
+
+        await etherToken.deposit({ value: 2 })
+        await etherToken.approve(policy.address, 2)
+
+        let ret = await policy.payTranchPremium(0, 1).should.be.fulfilled
+
+        expect(extractEventArgs(ret, events.PremiumPayment)).to.include({
+          tranchIndex: '0',
+          amount: '1',
+        })
+
+        await policy.getTranchInfo(0).should.eventually.matchObj({
+          nextPremiumAmount_: 2,
+          premiumPaymentsMissed_: 0,
+          numPremiumsPaid_: 0,
+          balance_: 1,
+        })
+
+        await policy.getTranchPremiumInfo(0, 0).should.eventually.matchObj({
+          amount_: 2,
+          dueAt_: policyAttrs.initiationDate,
+          paidSoFar_: 1,
+        })
+
+        ret = await policy.payTranchPremium(0, 1).should.be.fulfilled
+
+        expect(extractEventArgs(ret, events.PremiumPayment)).to.include({
+          tranchIndex: '0',
+          amount: '1',
+        })
+
+        await policy.getTranchInfo(0).should.eventually.matchObj({
+          nextPremiumAmount_: 3,
+          premiumPaymentsMissed_: 0,
+          numPremiumsPaid_: 1,
+          balance_: 2,
+        })
+
+        await policy.getTranchPremiumInfo(0, 0).should.eventually.matchObj({
+          amount_: 2,
+          dueAt_: policyAttrs.initiationDate,
+          paidSoFar_: 2,
+        })
+      })
+
+      it('overpayments allowed', async () => {
+        await createTranch(policy, {
+          premiums: [2, 3, 4]
+        }, { from: policyOwnerAddress })
+
+        await etherToken.deposit({ value: 3 })
+        await etherToken.approve(policy.address, 3)
+
+        let ret = await policy.payTranchPremium(0, 3).should.be.fulfilled
+
+        expect(extractEventArgs(ret, events.PremiumPayment)).to.include({
+          tranchIndex: '0',
+          amount: '3',
+        })
+
+        await policy.getTranchInfo(0).should.eventually.matchObj({
+          nextPremiumAmount_: 3,
+          premiumPaymentsMissed_: 0,
+          numPremiumsPaid_: 1,
+          balance_: 3,
+        })
+
+        await policy.getTranchPremiumInfo(0, 0).should.eventually.matchObj({
+          amount_: 2,
+          dueAt_: policyAttrs.initiationDate,
+          paidSoFar_: 2,
+        })
+
+        await policy.getTranchPremiumInfo(0, 1).should.eventually.matchObj({
+          amount_: 3,
+          dueAt_: policyAttrs.initiationDate + premiumIntervalSeconds,
+          paidSoFar_: 1,
+        })
+      })
+
+      it('can overpay the entire thing in one go', async () => {
+        await createTranch(policy, {
+          premiums: [2, 3, 4]
+        }, { from: policyOwnerAddress })
+
+        await etherToken.deposit({ value: 20 })
+        await etherToken.approve(policy.address, 20)
+
+        let ret = await policy.payTranchPremium(0, 20).should.be.fulfilled
+
+        expect(extractEventArgs(ret, events.PremiumPayment)).to.include({
+          tranchIndex: '0',
+          amount: '9',
+        })
+
+        await policy.getTranchInfo(0).should.eventually.matchObj({
+          nextPremiumAmount_: 0,
+          premiumPaymentsMissed_: 0,
+          numPremiumsPaid_: 3,
+          balance_: 9,
+        })
+
+        await policy.getTranchPremiumInfo(0, 0).should.eventually.matchObj({
+          amount_: 2,
+          dueAt_: policyAttrs.initiationDate,
+          paidSoFar_: 2,
+        })
+
+        await policy.getTranchPremiumInfo(0, 1).should.eventually.matchObj({
+          amount_: 3,
+          dueAt_: policyAttrs.initiationDate + premiumIntervalSeconds,
+          paidSoFar_: 3,
+        })
+
+        await policy.getTranchPremiumInfo(0, 2).should.eventually.matchObj({
+          amount_: 4,
+          dueAt_: policyAttrs.initiationDate + premiumIntervalSeconds * 2,
+          paidSoFar_: 4,
+        })
+
+        await etherToken.balanceOf(policy.address).should.eventually.eq(9)
       })
     })
 
@@ -303,7 +432,7 @@ contract('Policy Tranches: Premiums', accounts => {
 
         await etherToken.deposit({ value: 2 })
         await etherToken.approve(policy.address, 2)
-        await policy.payTranchPremium(0)
+        await policy.payTranchPremium(0, 2)
 
         await policy.getTranchInfo(0).should.eventually.matchObj({
           nextPremiumAmount_: 3,
@@ -357,10 +486,10 @@ contract('Policy Tranches: Premiums', accounts => {
         // pay them all
         await etherToken.deposit({ value: 40 })
         await etherToken.approve(policy.address, 40)
-        await policy.payTranchPremium(0)
-        await policy.payTranchPremium(0)
-        await policy.payTranchPremium(0)
-        await policy.payTranchPremium(0)
+        await policy.payTranchPremium(0, 2)
+        await policy.payTranchPremium(0, 3)
+        await policy.payTranchPremium(0, 4)
+        await policy.payTranchPremium(0, 5)
 
         await policy.getTranchInfo(0).should.eventually.matchObj({
           numPremiums_: 4,
@@ -368,6 +497,67 @@ contract('Policy Tranches: Premiums', accounts => {
           nextPremiumDueAt_: 0,
           premiumPaymentsMissed_: 0,
           numPremiumsPaid_: 4,
+        })
+      })
+
+      it('0-values are skipped over for bulk payments too', async () => {
+        await createTranch(policy, {
+          premiums: [2, 3, 0, 4, 0, 0, 5, 0]
+        }, { from: policyOwnerAddress })
+
+        await policy.getTranchInfo(0).should.eventually.matchObj({
+          numPremiums_: 4,
+          nextPremiumAmount_: 2,
+          nextPremiumDueAt_: policyAttrs.initiationDate,
+          premiumPaymentsMissed_: 0,
+          numPremiumsPaid_: 0,
+        })
+
+        await policy.getTranchPremiumInfo(0, 0).should.eventually.matchObj({
+          amont_: 2,
+          dueAt_: policyAttrs.initiationDate,
+          paidAt_: 0,
+          paidBy_: ADDRESS_ZERO,
+        })
+
+        await policy.getTranchPremiumInfo(0, 1).should.eventually.matchObj({
+          amont_: 3,
+          dueAt_: policyAttrs.initiationDate + 30,
+          paidAt_: 0,
+          paidBy_: ADDRESS_ZERO,
+        })
+
+        await policy.getTranchPremiumInfo(0, 2).should.eventually.matchObj({
+          amont_: 4,
+          dueAt_: policyAttrs.initiationDate + (30 * 3),
+          paidAt_: 0,
+          paidBy_: ADDRESS_ZERO,
+        })
+
+        await policy.getTranchPremiumInfo(0, 3).should.eventually.matchObj({
+          amont_: 5,
+          dueAt_: policyAttrs.initiationDate + (30 * 6),
+          paidAt_: 0,
+          paidBy_: ADDRESS_ZERO,
+        })
+
+        // pay them all
+        await etherToken.deposit({ value: 40 })
+        await etherToken.approve(policy.address, 40)
+        await policy.payTranchPremium(0, 7)
+
+        await policy.getTranchInfo(0).should.eventually.matchObj({
+          numPremiums_: 4,
+          nextPremiumAmount_: 4,
+          nextPremiumDueAt_: policyAttrs.initiationDate + (30 * 3),
+          premiumPaymentsMissed_: 0,
+          numPremiumsPaid_: 2,
+        })
+
+        await policy.getTranchPremiumInfo(0, 2).should.eventually.matchObj({
+          amount_: 4,
+          dueAt_: policyAttrs.initiationDate + (30 * 3),
+          paidSoFar_: 2,
         })
       })
     })
@@ -392,7 +582,7 @@ contract('Policy Tranches: Premiums', accounts => {
 
         await etherToken.deposit({ value: 5 })
         await etherToken.approve(policy.address, 5)
-        await policy.payTranchPremium(0).should.be.rejectedWith('payment too late')
+        await policy.payTranchPremium(0, 2).should.be.rejectedWith('payment too late')
       })
     })
 
@@ -405,9 +595,9 @@ contract('Policy Tranches: Premiums', accounts => {
 
       await etherToken.deposit({ value: 100 })
       await etherToken.approve(policy.address, 100)
-      await policy.payTranchPremium(0).should.be.fulfilled // 2
-      await policy.payTranchPremium(0).should.be.fulfilled // 3
-      await policy.payTranchPremium(0).should.be.fulfilled // 5
+      await policy.payTranchPremium(0, 2).should.be.fulfilled // 2
+      await policy.payTranchPremium(0, 3).should.be.fulfilled // 3
+      await policy.payTranchPremium(0, 5).should.be.fulfilled // 5
 
       await policy.getTranchInfo(0).should.eventually.matchObj({
         premiumPaymentsMissed_: 0,
@@ -426,12 +616,14 @@ contract('Policy Tranches: Premiums', accounts => {
 
       await etherToken.deposit({ value: 100 })
       await etherToken.approve(policy.address, 100)
-      await policy.payTranchPremium(0).should.be.fulfilled // 2
-      await policy.payTranchPremium(0).should.be.fulfilled // 3
-      await policy.payTranchPremium(0).should.be.fulfilled // 4
-      await policy.payTranchPremium(0).should.be.fulfilled // 5
+      await policy.payTranchPremium(0, 2).should.be.fulfilled // 2
+      await policy.payTranchPremium(0, 3).should.be.fulfilled // 3
+      await policy.payTranchPremium(0, 4).should.be.fulfilled // 4
+      await policy.payTranchPremium(0, 5).should.be.fulfilled // 5
 
-      await policy.payTranchPremium(0).should.be.rejectedWith('all payments already made')
+      const bal = await etherToken.balanceOf(accounts[0])
+      await policy.payTranchPremium(0, 1).should.be.fulfilled // shouldn't take any money
+      await etherToken.balanceOf(accounts[0]).should.eventually.eq(bal)
     })
 
     describe('disallowed', () => {
@@ -446,7 +638,7 @@ contract('Policy Tranches: Premiums', accounts => {
         await etherToken.approve(policy.address, 100)
 
         // pay first premium
-        await policy.payTranchPremium(0).should.be.fulfilled
+        await policy.payTranchPremium(0, 2).should.be.fulfilled
 
         // kick-off sale
         await evmClock.setRelativeTime(1000)
@@ -457,7 +649,7 @@ contract('Policy Tranches: Premiums', accounts => {
         // shift to start date
         await evmClock.setRelativeTime(3000)
         // should auto-call heartbeat in here
-        await policy.payTranchPremium(0).should.be.rejectedWith('payment not allowed')
+        await policy.payTranchPremium(0, 3).should.be.rejectedWith('payment not allowed')
 
         await policy.getTranchInfo(0).should.eventually.matchObj({
           _state: TRANCH_STATE_CANCELLED,
@@ -466,13 +658,13 @@ contract('Policy Tranches: Premiums', accounts => {
 
       it('if tranch has already matured', async () => {
         // pay second premium
-        await policy.payTranchPremium(0).should.be.fulfilled
+        await policy.payTranchPremium(0, 3).should.be.fulfilled
 
         // shift to maturation date
         await evmClock.setRelativeTime(6000)
 
         // should auto-call heartbeat in here
-        await policy.payTranchPremium(0).should.be.rejectedWith('payment not allowed')
+        await policy.payTranchPremium(0, 1).should.be.rejectedWith('payment not allowed')
 
         await policy.getTranchInfo(0).should.eventually.matchObj({
           _state: TRANCH_STATE_MATURED,

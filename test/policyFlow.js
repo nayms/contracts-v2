@@ -624,9 +624,11 @@ contract('Policy: Flow', accounts => {
 
           // pay its premiums upto start date
           await etherToken.approve(policy.address, 1000, { from: accounts[2] })
+          let toPay = 0
           for (let i = 0; (startDate - initiationDate) / premiumIntervalSeconds >= i; i += 1) {
-            await policy.payTranchPremium(0, (20 + 10 * i), { from: accounts[2] })
+            toPay += (20 + 10 * i)
           }
+          await policy.payTranchPremium(0, toPay, { from: accounts[2] })
         })
 
         it('updates internal state', async () => {
@@ -668,9 +670,11 @@ contract('Policy: Flow', accounts => {
         await market.offer(200, etherToken.address, 100, tranchToken.address, 0, true, { from: accounts[2] })
         // pay all premiums upto start date
         await etherToken.approve(policy.address, 1000, { from: accounts[2] })
+        let toPay = 0
         for (let i = 0; (startDate - initiationDate) / premiumIntervalSeconds >= i; i += 1) {
-          await policy.payTranchPremium(0, (20 + 10 * i), { from: accounts[2] })
+          toPay += (20 + 10 * i)
         }
+        await policy.payTranchPremium(0, toPay, { from: accounts[2] })
 
         // end sale
         await evmClock.setAbsoluteTime(startDate)
@@ -712,11 +716,13 @@ contract('Policy: Flow', accounts => {
       await market.offer(100, etherToken.address, 50, tranch1Address, 0, true, { from: accounts[2] })
 
       // pay premiums upto start date
+      let toPay = 0
       for (let i = 0; (startDate - initiationDate) / premiumIntervalSeconds > i; i += 1) {
         nextPremium = (20 + 10 * i)
-        await policy.payTranchPremium(0, nextPremium)
-        await policy.payTranchPremium(1, nextPremium)
+        toPay += nextPremium
       }
+      await policy.payTranchPremium(0, toPay)
+      await policy.payTranchPremium(1, toPay)
       nextPremium += 10
 
       // pass the start date
@@ -920,21 +926,23 @@ contract('Policy: Flow', accounts => {
           let nextPremiumAmount0 = t0.nextPremiumAmount_.toNumber()
           const numPremiums0 = t0.numPremiums_.toNumber()
           const numPremiumsPaid0 = t0.numPremiumsPaid_.toNumber()
-
+          let toPay0 = 0
           for (let i = numPremiumsPaid0 + 1; numPremiums0 >= i; i += 1) {
-            await policy.payTranchPremium(0, nextPremiumAmount0)
+            toPay0 += nextPremiumAmount0
             nextPremiumAmount0 += 10
           }
+          await policy.payTranchPremium(0, toPay0)
 
           const t1 = await policy.getTranchInfo(1)
           let nextPremiumAmount1 = t1.nextPremiumAmount_.toNumber()
           const numPremiums1 = t1.numPremiums_.toNumber()
           const numPremiumsPaid1 = t1.numPremiumsPaid_.toNumber()
-
+          let toPay1 = 0
           for (let i = numPremiumsPaid1 + 1; numPremiums1 >= i; i += 1) {
-            await policy.payTranchPremium(1, nextPremiumAmount1)
+            toPay1 += nextPremiumAmount1
             nextPremiumAmount1 += 10
           }
+          await policy.payTranchPremium(1, toPay1)
         })
 
         it('closes the policy and tries to buys back all tranch tokens', async () => {
@@ -1038,25 +1046,27 @@ contract('Policy: Flow', accounts => {
 
       describe('once it tries to buy back all tokens', async () => {
         beforeEach(async () => {
-          const t0 = await policy.getTranchInfo(0)
-          let nextPremiumAmount0 = t0.nextPremiumAmount_.toNumber()
+          const t0 = await policy.getTranchInfo(0)                
           const numPremiums0 = t0.numPremiums_.toNumber()
-          const numPremiumsPaid0 = t0.numPremiumsPaid_.toNumber()
-
-          for (let i = numPremiumsPaid0 + 1; numPremiums0 >= i; i += 1) {
-            await policy.payTranchPremium(0, nextPremiumAmount0)
+          let numPremiumsPaid0 = t0.numPremiumsPaid_.toNumber()
+          let nextPremiumAmount0 = t0.nextPremiumAmount_.toNumber()
+          let toPay0 = 0
+          for (let i = numPremiumsPaid0 + 1; numPremiums0 >= i; i += 1) {          
+            toPay0 += nextPremiumAmount0
             nextPremiumAmount0 += 10
           }
+          await policy.payTranchPremium(0, toPay0)
 
           const t1 = await policy.getTranchInfo(1)
           let nextPremiumAmount1 = t1.nextPremiumAmount_.toNumber()
           const numPremiums1 = t1.numPremiums_.toNumber()
           const numPremiumsPaid1 = t1.numPremiumsPaid_.toNumber()
-
+          let toPay1 = 0
           for (let i = numPremiumsPaid1 + 1; numPremiums1 >= i; i += 1) {
-            await policy.payTranchPremium(1, nextPremiumAmount1)
+            toPay1 += nextPremiumAmount1
             nextPremiumAmount1 += 10  
           }
+          await policy.payTranchPremium(1, toPay1)
 
           await evmClock.setAbsoluteTime(maturationDate)
           await policy.checkAndUpdateState()

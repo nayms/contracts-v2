@@ -104,7 +104,7 @@ jobs:
           at: ~/repo
       - run:
           name: Git commit and tag
-          command: git commit -m "v$(./scripts/outputVersion.js)" && git tag v$(./scripts/outputVersion.js) && git push
+          command: git commit -am "v$(./scripts/outputVersion.js)" && git tag v$(./scripts/outputVersion.js) && git push
 
 workflows:
   version: 2
@@ -122,6 +122,13 @@ workflows:
             branches:
               only:
                 - release
+      - deploy_admin_dapp:
+          requires:
+            - deploy_contracts
+          filters:
+            branches:
+              only:
+                - release
       - publish_to_npm:
           requires:
             - deploy_contracts
@@ -129,9 +136,9 @@ workflows:
             branches:
               only:
                 - release
-      - deploy_admin_dapp:
+      - git_tag:
           requires:
-            - deploy_contracts
+            - publish_to_npm
           filters:
             branches:
               only:

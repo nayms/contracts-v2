@@ -1,0 +1,138 @@
+version: 2.1
+
+
+executors:
+  smart_contracts:
+    docker:
+      - image: circleci/node:12.13.0
+      - image: trufflesuite/ganache-cli
+        command: ganache-cli --gasLimit 8000000 -a 50 -e 1000000 -m "funny door sample enrich female wedding stereo crane setup shop dwarf dismiss"
+
+
+commands:
+  install_node_modules:
+    parameters:
+      executor:
+        type: string
+    steps:
+      - restore_cache:
+          name: Restore yarn cache
+          key: << parameters.executor >>-yarn-cache-{{ checksum "yarn.lock" }}
+      - run:
+          name: Install dependencies
+          command: yarn
+      - save_cache:
+          name: Save yarn cache
+          key: << parameters.executor >>-yarn-cache-{{ checksum "yarn.lock" }}
+          paths:
+            - ~/.config/yarn
+
+jobs:
+  build_contracts:
+    executor: smart_contracts
+    working_directory: ~/repo
+    steps:
+      - checkout:
+          path: ~/repo
+      - install_node_modules:
+          executor: contracts
+      - run:
+          name: Setup submodules
+          command: git submodule init && git submodule update
+      - run:
+          name: Increment version
+          command: yarn inc-version
+      - run:
+          name: Compile
+          command: yarn compile
+      - run:
+          name: Deploy contracts to test chain
+          command: yarn deploy:local
+      - run:
+          name: Run tests with coverage
+          command: yarn coverage
+      - store_artifacts:
+          path: ~/repo/coverage
+          destination: coverage
+      - run:
+          name: Upload coverage report to coveralls
+          command: cat ./coverage/lcov.info | yarn coveralls
+      - persist_to_workspace:
+          root: ~/repo
+          paths: .
+  deploy_contracts:
+    executor: smart_contracts
+    working_directory: ~/repo
+    steps:
+      - attach_workspace:
+          at: ~/repo
+      - run:
+          name: Deploy to Rinkeby
+          command: yarn deploy:rinkeby
+      - persist_to_workspace:
+          root: ~/repo
+          paths: .
+  deploy_admin_dapp:
+    executor: smart_contracts
+    working_directory: ~/repo
+    steps:
+      - attach_workspace:
+          at: ~/repo
+      - run:
+          name: Add SSH fingerprint
+          command: mkdir -p ~/.ssh && ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+      - run:
+          name: Build and deploy admin dapp
+          command: yarn deploy-admin-dapp
+  publish_to_npm:
+    executor: smart_contracts
+    working_directory: ~/repo
+    steps:
+      - attach_workspace:
+          at: ~/repo
+      - run:
+          name: Authenticate with registry
+          command: echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/repo/.npmrc
+      - run:
+          name: Publish to NPM
+          command: npm publish
+  git_tag:
+    executor: smart_contracts
+    working_directory: ~/repo
+    steps:
+      - attach_workspace:
+          at: ~/repo
+      - run:
+          name: Git commit and tag
+          command: git commit -m "v$(./scripts/outputVersion.js)" && git tag v$(./scripts/outputVersion.js) && git push
+
+workflows:
+  version: 2
+  ci:
+    jobs:
+      - build_contracts:
+          filters:
+            branches:
+              ignore:
+                - gh-pages
+      - deploy_contracts:
+          requires:
+            - build_contracts
+          filters:
+            branches:
+              only:
+                - release
+      - publish_to_npm:
+          requires:
+            - deploy_contracts
+          filters:
+            branches:
+              only:
+                - release
+      - deploy_admin_dapp:
+          requires:
+            - deploy_contracts
+          filters:
+            branches:
+              only:
+                - release

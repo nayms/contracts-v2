@@ -8,6 +8,7 @@ const path = require('path')
 const git = require('git-last-commit')
 
 const projectDir = path.join(__dirname, '..')
+const packageJsonFile = path.join(projectDir, 'package.json')
 const buildConfigFile = path.join(projectDir, 'buildConfig.json')
 const versionInfoContract = path.join(projectDir, 'contracts', 'VersionInfo.sol')
 
@@ -28,6 +29,12 @@ async function main () {
 
   fs.writeFileSync(buildConfigFile, JSON.stringify(buildInfo, null, 2), 'utf8')
 
+  // update package.json
+  const packageJson = require(packageJsonFile)
+  packageJson.version = `1.0.0-${buildInfo.num}`
+  fs.writeFileSync(packageJsonFile, JSON.stringify(packageJson, null, 2), 'utf8')
+
+  // update solidity contract
   fs.writeFileSync(versionInfoContract, `pragma solidity >=0.6.7;
 
 abstract contract VersionInfo {
@@ -37,7 +44,7 @@ abstract contract VersionInfo {
 }
 `, 'utf8')
 
-  console.log(`VersionInfo.sol written!
+  console.log(`Version info updated!
 
 ${JSON.stringify(buildInfo, null, 2)}`)
 }

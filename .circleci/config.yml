@@ -104,7 +104,7 @@ jobs:
           at: ~/repo
       - run:
           name: Git commit and tag
-          command: git commit -am "v$(./scripts/outputVersion.js)" && git tag v$(./scripts/outputVersion.js) && git push
+          command: git commit -am "v$(./scripts/outputVersion.js)" && git tag v$(./scripts/outputVersion.js) && git push && git push --tags
 
 workflows:
   version: 2

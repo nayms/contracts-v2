@@ -14,8 +14,8 @@ const versionInfoContract = path.join(projectDir, 'contracts', 'VersionInfo.sol'
 
 const isCircleCi = !!process.env.CIRCLE_CI
 const isReleaseBranch = isCircleCi && process.env.CIRCLE_BRANCH === 'release'
-const isMasterBranch = isCircleCi && process.env.CIRCLE_BRANCH === 'master'
-const isPullRequest = isCircleCi && (!isMasterBranch && !isReleaseBranch)
+const pullRequestNum = process.env.CIRCLE_PR_NUMBER
+const isPullRequest = isCircleCi && !!pullRequestNum
 const buildNum = process.env.CIRCLE_BUILD_NUM
 
 async function main () {
@@ -32,7 +32,7 @@ async function main () {
     if (isPullRequest) {
       releaseInfo.pr = true
       releaseInfo.deployRinkeby = true
-      releaseInfo.npmPkgVersion = `1.0.0-${buildNum}-beta`
+      releaseInfo.npmPkgVersion = `1.0.0-pr${pullRequestNum}-beta.${buildNum}`
     } else {
       releaseInfo.deployRinkeby = true
       releaseInfo.deployMainnet = true

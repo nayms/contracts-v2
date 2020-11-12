@@ -59,6 +59,8 @@ jobs:
       - persist_to_workspace:
           root: ~/repo
           paths: .
+      - store_artifacts:
+          path: releaseConfig.json
   deploy_contracts:
     executor: smart_contracts
     working_directory: ~/repo

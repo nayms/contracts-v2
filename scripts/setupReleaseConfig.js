@@ -49,7 +49,7 @@ async function main () {
   } else {
     releaseInfo.local = true
     releaseInfo.npmTag = `local`
-    releaseInfo.npmPkgVersion = `1.0.0-beta.local.${Date.now()}`
+    releaseInfo.npmPkgVersion = `1.0.0-local.${Date.now()}`
   }
   
   releaseInfo.hash = ci.hash

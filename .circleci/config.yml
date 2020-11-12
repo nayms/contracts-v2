@@ -143,6 +143,5 @@ workflows:
             - publish_to_npm
           filters:
             branches:
-              ignore:
-                - gh-pages
-                - master
+              only:
+                - release

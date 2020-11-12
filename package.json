@@ -8,7 +8,7 @@
   },
   "files": [
     "index.js",
-    "buildConfig.json",
+    "releaseConfig.json",
     "contracts.generated.js",
     "build/**",
     "utils/**",

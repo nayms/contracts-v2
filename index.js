@@ -3,7 +3,7 @@ try {
   deployedAddresses = require('./deployedAddresses.json')
 } catch (_ignore) {}
 
-const buildConfig = require('./buildConfig.json')
+const releaseConfig = require('./releaseConfig.json')
 
 const rawContracts = require('./contracts.generated.js')
 
@@ -38,7 +38,7 @@ module.exports = {
   addresses: deployedAddresses,
   contracts: coreContracts,
   rawContracts,
-  buildConfig,
+  releaseConfig,
   events: extractEventsFromAbis(Object.values(rawContracts)),
   extractEventsFromAbis,
   ROLES,

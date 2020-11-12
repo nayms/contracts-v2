@@ -41,6 +41,7 @@ async function main () {
 
     releaseInfo.adminDappPath = releaseInfo.npmPkgVersion
   } else {
+    releaseInfo.local = true
     releaseInfo.npmPkgVersion = `1.0.0-local-${Date.now()}`
   }
   

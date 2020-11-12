@@ -29,7 +29,26 @@ const getLiveGasPrice = async ({ log }) => {
 module.exports = async (deployer, network, accounts) => {
   const log = createLog(console.log.bind(console))
 
-  const doFreshDeployment = !!process.env.FRESH
+  const releaseConfig = require('../releaseConfig.json')
+
+  // if PR or local then do fresh deployment
+  const doFreshDeployment = (releaseConfig.pr || releaseConfig.local)
+
+  // check network against deployment rules
+  switch (network) {
+    case 'mainnet':
+      if (!releaseConfig.deployMainnet) {
+        throw new Error('Relase config does not allow Mainnet deployment')
+      }
+      break
+    case 'rinkeby':
+      if (!releaseConfig.deployRinkeby) {
+        throw new Error('Relase config does not allow Rinkeby deployment')
+      }
+      break
+    default:
+      // do nothing
+  }
 
   let acl
   let settings

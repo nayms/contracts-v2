@@ -7,7 +7,7 @@ const releaseConfig = require('./releaseConfig.json')
 
 const rawContracts = require('./contracts.generated.js')
 
-const { ROLES, ROLEGROUPS } = require('./utils/constants')
+const { ROLES, ROLEGROUPS, SETTINGS } = require('./utils/constants')
 
 const coreContracts = [
   { name: 'AccessControl', actual: 'AccessControl' },
@@ -43,4 +43,5 @@ module.exports = {
   extractEventsFromAbis,
   ROLES,
   ROLEGROUPS,
+  SETTINGS,
 }

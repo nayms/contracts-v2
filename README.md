@@ -21,6 +21,7 @@ The package exposes the following properties:
 * `keccak256()` - keccak256 hash function
 * `ROLES` - role constants
 * `ROLEGROUPS` - rolegroup constants
+* `SETTINGS` - settings constants
 
 The key contracts are:
 

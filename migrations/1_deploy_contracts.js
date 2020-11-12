@@ -67,7 +67,7 @@ module.exports = async (deployer, network, accounts) => {
     if ('mainnet' === network) {
       gwei = await getLiveGasPrice({ log })
     } else {
-      gwei = 1
+      gwei = 2
     }
 
     let nonce = await web3.eth.getTransactionCount(accounts[0])

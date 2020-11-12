@@ -60,10 +60,15 @@ module.exports = async (deployer, network, accounts) => {
 
   if (!networkInfo.isLocal) {
     /*
-    - use live gas price for max speed,
+    - On mainnet, use live gas price for max speed,
     - do manual nonce tracking to avoid infura issues (https://ethereum.stackexchange.com/questions/44349/truffle-infura-on-mainnet-nonce-too-low-error)
     */
-    const gwei = await getLiveGasPrice({ log })
+    let gwei
+    if ('mainnet' === network) {
+      gwei = await getLiveGasPrice({ log })
+    } else {
+      gwei = 1
+    }
 
     let nonce = await web3.eth.getTransactionCount(accounts[0])
 

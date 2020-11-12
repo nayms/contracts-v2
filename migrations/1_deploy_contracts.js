@@ -17,7 +17,7 @@ const getLiveGasPrice = async ({ log }) => {
   let gwei
 
   await log.task('Fetching live fast gas price', async task => {
-    const { body } = await got('https://www.ethgasstationapi.com/api/fast')
+    const { body } = await got('https://www.ethgasstationapi.com/api/fast', { rejectUnauthorized: false })
     const fast = parseFloat(body)
     gwei = fast + 1
     task.log(`${gwei} GWEI`)

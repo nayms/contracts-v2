@@ -1,5 +1,6 @@
 {
   "name": "@nayms/contracts",
+  "version": "1.0.0-1134",
   "description": "Nayms smart contracts",
   "main": "index.js",
   "publishConfig": {
@@ -17,7 +18,7 @@
     "LICENSE.md"
   ],
   "scripts": {
-    "devnet": "ganache-cli --gasLimit 8000000 -a 50 -e 1000000 -m 'funny door sample enrich female wedding stereo crane setup shop dwarf dismiss'",
+    "devnet": "ganache-cli --gasLimit 8000000 -a 50 -e 1000000 -i 5777 -m 'funny door sample enrich female wedding stereo crane setup shop dwarf dismiss'",
     "devnet-ci": "yarn devnet >ganache.log 2>&1 &",
     "truffle": "babel-node node_modules/.bin/truffle",
     "clean": "rm -rf ./build",
@@ -84,6 +85,5 @@
   },
   "engines": {
     "node": ">=12.0.0"
-  },
-  "version": "1.0.0-local-1605182670139"
+  }
 }

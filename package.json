@@ -1,6 +1,5 @@
 {
   "name": "@nayms/contracts",
-  "version": "1.0.0-1134",
   "description": "Nayms smart contracts",
   "main": "index.js",
   "publishConfig": {
@@ -27,7 +26,7 @@
     "coverage": "rm -rf coverage && yarn truffle run coverage --network coverage",
     "copy-maker-otc-artifacts": "./scripts/copyMakerOtcArtifacts.js",
     "generate-index": "./scripts/generateIndex.js",
-    "inc-version": "./scripts/generateVersionInfo.js",
+    "setup-release-config": "./scripts/setupReleaseConfig.js",
     "extract-deployed-addresses": "./scripts/extractDeployedAddresses.js",
     "build-admin-dapp": "./scripts/generateAdminDapp.js && node_modules/.bin/solui publish-folder --spec ./dapp-generated.json --artifacts ./build/contracts --folder ./dapp",
     "compile": "rm -rf build && yarn truffle compile --network test && yarn copy-maker-otc-artifacts && yarn generate-index",
@@ -35,7 +34,7 @@
     "deploy:rinkeby": "yarn truffle migrate --network rinkeby && yarn extract-deployed-addresses",
     "deploy:local": "yarn truffle migrate --network test",
     "deploy-admin-dapp": "yarn build-admin-dapp && gh-pages -t -d dapp -e $(./scripts/outputVersion.js) -u \"Nayms Engineering <engineering@nayms.io>\"",
-    "setup": "[[ -f .deployment.js ]] || cp .deployment-sample.js .deployment.js",
+    "publish-to-npm": "npm publish --tag $(./scripts/outputVersion.js)",
     "lint": "solhint --config ./.solhint.json contracts/**/*.sol",
     "abi-encode": "./scripts/abiEncode.js"
   },
@@ -85,5 +84,6 @@
   },
   "engines": {
     "node": ">=12.0.0"
-  }
+  },
+  "version": "1.0.0-local-1605182670139"
 }

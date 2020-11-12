@@ -37,17 +37,19 @@ async function main () {
     if (pullRequestNum) {
       releaseInfo.pr = true
       releaseInfo.deployRinkeby = true
-      releaseInfo.npmPkgVersion = `1.0.0-pr${pullRequestNum}-beta.${buildNum}`
+      releaseInfo.npmTag = `pr${pullRequestNum}`
+      releaseInfo.npmPkgVersion = `1.0.0-pr.${pullRequestNum}.build.${buildNum}`
     } else {
       releaseInfo.deployRinkeby = true
       releaseInfo.deployMainnet = true
-      releaseInfo.npmPkgVersion = `1.0.0-${buildNum}`
+      releaseInfo.npmTag = `latest`
+      releaseInfo.npmPkgVersion = `1.0.0+build.${buildNum}`
     }
-
     releaseInfo.adminDappPath = releaseInfo.npmPkgVersion
   } else {
     releaseInfo.local = true
-    releaseInfo.npmPkgVersion = `1.0.0-local-${Date.now()}`
+    releaseInfo.npmTag = `local`
+    releaseInfo.npmPkgVersion = `1.0.0-beta.local.${Date.now()}`
   }
   
   releaseInfo.hash = ci.hash

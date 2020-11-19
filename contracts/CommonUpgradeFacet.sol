@@ -16,7 +16,7 @@ contract CommonUpgradeFacet is Controller, IDiamondUpgradeFacet, VersionInfo {
     IDiamondProxy(address(this)).registerFacets(_facets);
   }
 
-  function getVersionInfo () public override view returns (uint256 num_, uint256 date_, string memory hash_) {
+  function getVersionInfo () public override view returns (string memory num_, uint256 date_, string memory hash_) {
     num_ = VERSION_NUM;
     date_ = VERSION_DATE;
     hash_ = VERSION_GITCOMMIT;

@@ -8,7 +8,6 @@ executors:
       - image: trufflesuite/ganache-cli
         command: ganache-cli --gasLimit 8000000 -a 50 -e 1000000 -m "funny door sample enrich female wedding stereo crane setup shop dwarf dismiss"
 
-
 commands:
   install_node_modules:
     parameters:
@@ -40,8 +39,8 @@ jobs:
           name: Setup submodules
           command: git submodule init && git submodule update
       - run:
-          name: Increment version
-          command: yarn inc-version
+          name: Setup release config
+          command: yarn setup-release-config
       - run:
           name: Compile
           command: yarn compile
@@ -95,7 +94,7 @@ jobs:
           command: echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/repo/.npmrc
       - run:
           name: Publish to NPM
-          command: npm publish
+          command: npm run publish-to-npm
   git_tag:
     executor: smart_contracts
     working_directory: ~/repo
@@ -103,8 +102,8 @@ jobs:
       - attach_workspace:
           at: ~/repo
       - run:
-          name: Git commit and tag
-          command: git commit -am "v$(./scripts/outputVersion.js)" && git tag v$(./scripts/outputVersion.js) && git push && git push --tags
+          name: Git tag
+          command: git tag v$(./scripts/outputVersion.js) && git push --tags
 
 workflows:
   version: 2
@@ -120,22 +119,25 @@ workflows:
             - build_contracts
           filters:
             branches:
-              only:
-                - release
+              ignore:
+                - gh-pages
+                - master
       - deploy_admin_dapp:
           requires:
             - deploy_contracts
           filters:
             branches:
-              only:
-                - release
+              ignore:
+                - gh-pages
+                - master
       - publish_to_npm:
           requires:
             - deploy_contracts
           filters:
             branches:
-              only:
-                - release
+              ignore:
+                - gh-pages
+                - master
       - git_tag:
           requires:
             - publish_to_npm

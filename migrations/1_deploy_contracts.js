@@ -17,7 +17,7 @@ const getLiveGasPrice = async ({ log }) => {
   let gwei
 
   await log.task('Fetching live fast gas price', async task => {
-    const { body } = await got('https://www.ethgasstationapi.com/api/fast')
+    const { body } = await got('https://www.ethgasstationapi.com/api/fast', { rejectUnauthorized: false })
     const fast = parseFloat(body)
     gwei = fast + 1
     task.log(`${gwei} GWEI`)
@@ -29,7 +29,26 @@ const getLiveGasPrice = async ({ log }) => {
 module.exports = async (deployer, network, accounts) => {
   const log = createLog(console.log.bind(console))
 
-  const doFreshDeployment = !!process.env.FRESH
+  const releaseConfig = require('../releaseConfig.json')
+
+  // if PR or local then do fresh deployment
+  const doFreshDeployment = (releaseConfig.pr || releaseConfig.local)
+
+  // check network against deployment rules
+  switch (network) {
+    case 'mainnet':
+      if (!releaseConfig.deployMainnet) {
+        throw new Error('Relase config does not allow Mainnet deployment')
+      }
+      break
+    case 'rinkeby':
+      if (!releaseConfig.deployRinkeby) {
+        throw new Error('Relase config does not allow Rinkeby deployment')
+      }
+      break
+    default:
+      // do nothing
+  }
 
   let acl
   let settings
@@ -41,10 +60,15 @@ module.exports = async (deployer, network, accounts) => {
 
   if (!networkInfo.isLocal) {
     /*
-    - use live gas price for max speed,
+    - On mainnet, use live gas price for max speed,
     - do manual nonce tracking to avoid infura issues (https://ethereum.stackexchange.com/questions/44349/truffle-infura-on-mainnet-nonce-too-low-error)
     */
-    const gwei = await getLiveGasPrice({ log })
+    let gwei
+    if ('mainnet' === network) {
+      gwei = await getLiveGasPrice({ log })
+    } else {
+      gwei = 2
+    }
 
     let nonce = await web3.eth.getTransactionCount(accounts[0])
 

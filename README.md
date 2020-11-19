@@ -16,11 +16,12 @@ The package exposes the following properties:
 * `rawContracts` - ABIs of all Solidity contracts in the repo
 * `addresses` - on-chain addresses of contracts in `rawContracts`
 * `events` - ABIs for events to listen for
-* `buildConfig` - the contents of `buildConfig.json`, this is used to keep track of the build number in `VersionInfo.sol`, for upgradeable contracts.
+* `releaseConfig` - the contents of `releaseConfig.json`, this is used to keep track of the build number in `VersionInfo.sol`.
 * `extractEventsFromAbis()` - given an array of contract ABIs, this will extract the event ABIs within.
 * `keccak256()` - keccak256 hash function
 * `ROLES` - role constants
 * `ROLEGROUPS` - rolegroup constants
+* `SETTINGS` - settings constants
 
 The key contracts are:
 

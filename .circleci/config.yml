@@ -94,7 +94,7 @@ jobs:
           command: echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/repo/.npmrc
       - run:
           name: Publish to NPM
-          command: yarn publish-to-npm
+          command: npm run publish-to-npm
   git_tag:
     executor: smart_contracts
     working_directory: ~/repo

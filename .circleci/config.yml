@@ -114,25 +114,25 @@ workflows:
             branches:
               ignore:
                 - gh-pages
-      # - deploy_contracts:
-      #     requires:
-      #       - build_contracts
-      #     filters:
-      #       branches:
-      #         ignore:
-      #           - gh-pages
-      #           - master
-      # - deploy_admin_dapp:
-      #     requires:
-      #       - deploy_contracts
-      #     filters:
-      #       branches:
-      #         ignore:
-      #           - gh-pages
-      #           - master
-      - publish_to_npm:
+      - deploy_contracts:
           requires:
             - build_contracts
+          filters:
+            branches:
+              ignore:
+                - gh-pages
+                - master
+      - deploy_admin_dapp:
+          requires:
+            - deploy_contracts
+          filters:
+            branches:
+              ignore:
+                - gh-pages
+                - master
+      - publish_to_npm:
+          requires:
+            - deploy_contracts
           filters:
             branches:
               ignore:

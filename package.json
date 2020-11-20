@@ -40,7 +40,7 @@
     "abi-encode": "./scripts/abiEncode.js"
   },
   "author": "Ramesh Nair <ram@hiddentao.com>",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "@solui/cli": "^1.9.1",
     "argv": "0.0.2",

@@ -8,10 +8,10 @@ interface IPolicyClaimsFacet {
    * @dev Make a claim.
    *
    * @param _index Tranch index.
-   * @param _clientManagerEntity Entity that will receive the payout.
+   * @param _insuredPartyEntity Entity that will receive the payout.
    * @param _amount Amount claimed.
    */
-  function makeClaim (uint256 _index, address _clientManagerEntity, uint256 _amount) external;
+  function makeClaim (uint256 _index, address _insuredPartyEntity, uint256 _amount) external;
   /**
    * @dev Approve a claim.
    *

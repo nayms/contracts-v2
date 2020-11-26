@@ -34,14 +34,14 @@ const POLICY_ATTRS_1 = {
   startDateDiff: 2000,
   maturationDateDiff: 3000,
   premiumIntervalSeconds: undefined,
-  assetManagerCommissionBP: 0,
+  capitalProviderCommissionBP: 0,
   brokerCommissionBP: 0,
   naymsCommissionBP: 0
 }
 
 const POLICY_ATTRS_2 = Object.assign({}, POLICY_ATTRS_1, {
   premiumIntervalSeconds: 5,
-  assetManagerCommissionBP: 1,
+  capitalProviderCommissionBP: 1,
   brokerCommissionBP: 2,
   naymsCommissionBP: 3
 })
@@ -156,7 +156,7 @@ contract('Policy: Basic', accounts => {
         maturationDate_: attrs.maturationDate,
         unit_: attrs.unit,
         premiumIntervalSeconds_: 5,
-        assetManagerCommissionBP_: 1,
+        capitalProviderCommissionBP_: 1,
         brokerCommissionBP_: 2,
         naymsCommissionBP_: 3,
         numTranches_: 0,
@@ -173,8 +173,8 @@ contract('Policy: Basic', accounts => {
       await setupPolicy(POLICY_ATTRS_1)
 
       // assign roles
-      await acl.assignRole(policyContext, accounts[3], ROLES.ASSET_MANAGER)
-      await acl.assignRole(policyContext, accounts[4], ROLES.CLIENT_MANAGER)
+      await acl.assignRole(policyContext, accounts[3], ROLES.CAPITAL_PROVIDER)
+      await acl.assignRole(policyContext, accounts[4], ROLES.INSURED_PARTY)
 
       // deploy new implementation
       testPolicyFacet = await TestPolicyFacet.new()

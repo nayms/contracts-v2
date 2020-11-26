@@ -35,7 +35,7 @@ const POLICY_ATTRS_1 = {
   startDateDiff: 2000,
   maturationDateDiff: 3000,
   premiumIntervalSeconds: 30,
-  assetManagerCommissionBP: 1,
+  capitalProviderCommissionBP: 1,
   brokerCommissionBP: 2,
   naymsCommissionBP: 3
 }
@@ -157,7 +157,7 @@ contract('Policy Tranches: Commissions', accounts => {
       await policy.payTranchPremium(0, 2000)
 
       await policy.getCommissionBalances().should.eventually.matchObj({
-        assetManagerCommissionBalance_: 2, /* 0.1% of 2000 */
+        capitalProviderCommissionBalance_: 2, /* 0.1% of 2000 */
         brokerCommissionBalance_: 4, /* 0.2% of 2000 */
         naymsCommissionBalance_: 6, /* 0.3% of 2000 */
       })
@@ -169,7 +169,7 @@ contract('Policy Tranches: Commissions', accounts => {
       await policy.payTranchPremium(0, 3000)
 
       await policy.getCommissionBalances().should.eventually.matchObj({
-        assetManagerCommissionBalance_: 5, /* 2 + 3 (=0.1% of 3000) */
+        capitalProviderCommissionBalance_: 5, /* 2 + 3 (=0.1% of 3000) */
         brokerCommissionBalance_: 10, /* 4 + 6 (=0.2% of 3000) */
         naymsCommissionBalance_: 15, /* 6 + 9 (=0.3% of 3000) */
       })
@@ -180,7 +180,7 @@ contract('Policy Tranches: Commissions', accounts => {
       await policy.payTranchPremium(0, 4000)
 
       await policy.getCommissionBalances().should.eventually.matchObj({
-        assetManagerCommissionBalance_: 9, /* 5 + 4 (=0.1% of 4000) */
+        capitalProviderCommissionBalance_: 9, /* 5 + 4 (=0.1% of 4000) */
         brokerCommissionBalance_: 18, /* 10 + 8 (=0.2% of 4000) */
         naymsCommissionBalance_: 27, /* 15 + 12 (=0.3% of 4000) */
       })
@@ -196,7 +196,7 @@ contract('Policy Tranches: Commissions', accounts => {
       await policy.payTranchPremium(0, 4000)
 
       await policy.getCommissionBalances().should.eventually.matchObj({
-        assetManagerCommissionBalance_: 4, /* 0.1% of 4000 */
+        capitalProviderCommissionBalance_: 4, /* 0.1% of 4000 */
         brokerCommissionBalance_: 8, /* 0.2% of 4000 */
         naymsCommissionBalance_: 12, /* 0.3% of 4000 */
       })
@@ -214,7 +214,7 @@ contract('Policy Tranches: Commissions', accounts => {
         await policy.payTranchPremium(0, 5000)
 
         // assign roles
-        await acl.assignRole(policyContext, accounts[5], ROLES.ASSET_MANAGER)
+        await acl.assignRole(policyContext, accounts[5], ROLES.CAPITAL_PROVIDER)
         await acl.assignRole(policyContext, accounts[6], ROLES.BROKER)
 
         // assign to entities
@@ -222,7 +222,7 @@ contract('Policy Tranches: Commissions', accounts => {
         await acl.assignRole(entityContext, accounts[6], ROLES.ENTITY_REP)
       })
 
-      it('but not if invalid asset manager entity gets passed in', async () => {
+      it('but not if invalid capital provider entity gets passed in', async () => {
         await policy.payCommissions(accounts[1], accounts[5], entity.address, accounts[6]).should.be.rejectedWith('revert')
       })
 
@@ -230,17 +230,17 @@ contract('Policy Tranches: Commissions', accounts => {
         await policy.payCommissions(entity.address, accounts[5], accounts[1], accounts[6]).should.be.rejectedWith('revert')
       })
 
-      it('but not if invalid asset manager gets passed in', async () => {
-        await policy.payCommissions(entity.address, accounts[7], entity.address, accounts[6]).should.be.rejectedWith('must be asset manager')
+      it('but not if invalid capital provider gets passed in', async () => {
+        await policy.payCommissions(entity.address, accounts[7], entity.address, accounts[6]).should.be.rejectedWith('must be capital provider')
       })
 
       it('but not if invalid broker gets passed in', async () => {
         await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[7]).should.be.rejectedWith('must be broker')
       })
 
-      it('but not if asset manager does not belong to entity', async () => {
+      it('but not if capital provider does not belong to entity', async () => {
         await acl.unassignRole(entityContext, accounts[5], ROLES.ENTITY_REP)
-        await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6]).should.be.rejectedWith('must have role in asset manager entity')
+        await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6]).should.be.rejectedWith('must have role in capital provider entity')
       })
 
       it('but not if broker does not belong to entity', async () => {
@@ -252,7 +252,7 @@ contract('Policy Tranches: Commissions', accounts => {
         const ret = await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6])
 
         expect(extractEventArgs(ret, events.PaidCommissions)).to.include({
-          assetManagerEntity: entity.address,
+          capitalProviderEntity: entity.address,
           brokerEntity: entity.address
         })
       })
@@ -275,7 +275,7 @@ contract('Policy Tranches: Commissions', accounts => {
       it('and updates internal balance values', async () => {
         await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6])
         await policy.getCommissionBalances().should.eventually.matchObj({
-          assetManagerCommissionBalance_: 0,
+          capitalProviderCommissionBalance_: 0,
           brokerCommissionBalance_: 0,
           naymsCommissionBalance_: 0,
         })
@@ -294,7 +294,7 @@ contract('Policy Tranches: Commissions', accounts => {
         expect(naymsEntityBalance).to.eq(27)
 
         await policy.getCommissionBalances().should.eventually.matchObj({
-          assetManagerCommissionBalance_: 0,
+          capitalProviderCommissionBalance_: 0,
           brokerCommissionBalance_: 0,
           naymsCommissionBalance_: 0,
         })

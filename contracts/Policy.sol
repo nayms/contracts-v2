@@ -27,7 +27,7 @@ contract Policy is Controller, DiamondProxy {
     dataAddress["unit"] = _unit;
     dataUint256["premiumIntervalSeconds"] = _premiumIntervalSeconds;
     dataUint256["brokerCommissionBP"] = _commmissionsBP[0];
-    dataUint256["assetManagerCommissionBP"] = _commmissionsBP[1];
+    dataUint256["capitalProviderCommissionBP"] = _commmissionsBP[1];
     dataUint256["naymsCommissionBP"] = _commmissionsBP[2];
   }
 }

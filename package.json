@@ -61,7 +61,7 @@
     "faker": "^4.1.0",
     "fs-extra": "^8.1.0",
     "ganache-cli": "=6.7.0",
-    "ganache-core": "2.8.0",
+    "ganache-core": "=2.8.0",
     "get-stdin": "^7.0.0",
     "gh-pages": "^2.2.0",
     "git-last-commit": "^1.0.0",

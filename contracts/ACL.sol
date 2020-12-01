@@ -277,7 +277,7 @@ contract ACL is IACL {
   }
 
   modifier assertIsAssigner (bytes32 _context, bytes32 _role) {
-    require(canAssign(_context, msg.sender, _role), 'unauthorized');
+    require(canAssign(_context, msg.sender, _role) != CANNOT_ASSIGN, 'unauthorized');
     _;
   }
 
@@ -471,11 +471,15 @@ contract ACL is IACL {
     public
     view
     override
-    returns (bool)
+    returns (uint256)
   {
     // if they are an admin or assigning in their own context
-    if (isAdmin(_addr) || _context == generateContextFromAddress(_addr)) {
-      return true;
+    if (isAdmin(_addr)) {
+      return CAN_ASSIGN_IS_ADMIN;
+    }
+
+    if (_context == generateContextFromAddress(_addr)) {
+      return CAN_ASSIGN_IS_OWN_CONTEXT;
     }
 
     // if they belong to an role group that can assign this role
@@ -485,11 +489,11 @@ contract ACL is IACL {
       bytes32[] memory roles = getRoleGroup(roleGroups[i]);
 
       if (hasAnyRole(_context, _addr, roles)) {
-        return true;
+        return CAN_ASSIGN_HAS_ROLE;
       }
     }
 
-    return false;
+    return CANNOT_ASSIGN;
   }
 
   function generateContextFromAddress (address _addr) public pure override returns (bytes32) {

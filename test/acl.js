@@ -24,11 +24,15 @@ contract('ACL', accounts => {
   let adminRole
   let adminRoleGroup
 
+  let CANNOT_ASSIGN
+
   before(async () => {
     acl = await ensureAclIsDeployed({ artifacts })
     systemContext = await acl.systemContext()
     adminRole = await acl.adminRole()
     adminRoleGroup = await acl.adminRoleGroup()
+
+    CANNOT_ASSIGN = (await acl.CANNOT_ASSIGN()).toNumber()
   })
 
   beforeEach(async () => {
@@ -172,14 +176,14 @@ contract('ACL', accounts => {
 
   describe('can have a role assigned', async () => {
     it('but not by a non-admin', async () => {
-      await acl.canAssign(context1, accounts[1], role1).should.eventually.eq(false)
+      await acl.canAssign(context1, accounts[1], role1).should.eventually.eq(CANNOT_ASSIGN)
       await acl.assignRole(context1, accounts[2], role1, { from: accounts[1] }).should.be.rejectedWith('unauthorized')
     })
 
     it('by an admin', async () => {
       await acl.hasRole(context1, accounts[2], role1).should.eventually.eq(false)
 
-      await acl.canAssign(context1, accounts[0], role1).should.eventually.eq(true)
+      await acl.canAssign(context1, accounts[0], role1).should.eventually.not.eq(CANNOT_ASSIGN)
       await acl.assignRole(context1, accounts[2], role1).should.be.fulfilled
 
       await acl.hasRole(context1, accounts[2], role1).should.eventually.eq(true)
@@ -191,7 +195,7 @@ contract('ACL', accounts => {
 
       await acl.hasRole(callerContext, accounts[2], role1).should.eventually.eq(false)
 
-      await acl.canAssign(callerContext, accounts[4], role1).should.eventually.eq(true)
+      await acl.canAssign(callerContext, accounts[4], role1).should.eventually.not.eq(CANNOT_ASSIGN)
       await acl.assignRole(callerContext, accounts[2], role1, { from: accounts[4] }).should.be.fulfilled
 
       await acl.hasRole(callerContext, accounts[2], role1).should.eventually.eq(true)
@@ -217,7 +221,7 @@ contract('ACL', accounts => {
 
       await acl.hasRole(context1, accounts[2], role1).should.eventually.eq(false)
 
-      await acl.canAssign(context1, accounts[3], role1).should.eventually.eq(true)
+      await acl.canAssign(context1, accounts[3], role1).should.eventually.not.eq(CANNOT_ASSIGN)
       await acl.assignRole(context1, accounts[2], role1, { from: accounts[3] }).should.be.fulfilled
 
       await acl.hasRole(context1, accounts[2], role1).should.eventually.eq(true)
@@ -340,17 +344,17 @@ contract('ACL', accounts => {
     })
 
     it('works', async () => {
-      await acl.canAssign(context1, accounts[2], role1).should.eventually.eq(false)
+      await acl.canAssign(context1, accounts[2], role1).should.eventually.eq(CANNOT_ASSIGN)
       await acl.assignRole(context1, accounts[1], role1, { from: accounts[2] }).should.be.rejectedWith('unauthorized')
 
       await acl.addAssigner(role1, roleGroup1).should.be.fulfilled
 
-      await acl.canAssign(context1, accounts[2], role1).should.eventually.eq(true)
+      await acl.canAssign(context1, accounts[2], role1).should.eventually.not.eq(CANNOT_ASSIGN)
       await acl.assignRole(context1, accounts[1], role1, { from: accounts[2] }).should.be.fulfilled
 
       await acl.removeAssigner(role1, roleGroup1).should.be.fulfilled
 
-      await acl.canAssign(context1, accounts[2], role1).should.eventually.eq(false)
+      await acl.canAssign(context1, accounts[2], role1).should.eventually.eq(CANNOT_ASSIGN)
       await acl.assignRole(context1, accounts[1], role1, { from: accounts[2] }).should.be.rejectedWith('unauthorized')
     })
 

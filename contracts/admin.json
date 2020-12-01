@@ -971,7 +971,7 @@
         {
           "title": "Asset mgr commission basis-points",
           "type": "int",
-          "value": "@input[policyInfo][assetManagerCommissionBP_]"
+          "value": "@input[policyInfo][capitalProviderCommissionBP_]"
         },
         {
           "title": "Nayms commission basis-points",
@@ -1230,7 +1230,7 @@
     {
       "id": "payPremiumViaEntity",
       "title": "Entity: Pay a tranche premium",
-      "description": "Only entity reps who are client managers of the policy can do this.",
+      "description": "Only entity reps who are insured partys of the policy can do this.",
       "inputs": [
         {
           "name": "contractAddress",

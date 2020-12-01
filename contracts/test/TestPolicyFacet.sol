@@ -25,7 +25,7 @@ contract TestPolicyFacet is IDiamondFacet, IPolicyCoreFacet {
     address unit_,
     uint256 premiumIntervalSeconds_,
     uint256 brokerCommissionBP_,
-    uint256 assetManagerCommissionBP_,
+    uint256 capitalProviderCommissionBP_,
     uint256 naymsCommissionBP_,
     uint256 numTranches_,
     uint256 state_

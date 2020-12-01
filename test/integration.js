@@ -236,7 +236,7 @@ contract('End-to-end integration tests', accounts => {
         premiumIntervalSeconds: 5 * 60,
         /* basis points: 1 = 0.1% */
         brokerCommissionBP: 1,
-        assetManagerCommissionBP: 2,
+        capitalProviderCommissionBP: 2,
         naymsCommissionBP: 3,
       },
       {
@@ -254,11 +254,11 @@ contract('End-to-end integration tests', accounts => {
 
     // steps 5-7: assign roles
     await acl.assignRole(policy1Context, accounts[4], ROLES.BROKER, { from: policy1Owner })
-    await acl.assignRole(policy1Context, accounts[5], ROLES.ASSET_MANAGER, { from: policy1Owner })
-    await acl.assignRole(policy1Context, accounts[8], ROLES.CLIENT_MANAGER, { from: policy1Owner })
+    await acl.assignRole(policy1Context, accounts[5], ROLES.CAPITAL_PROVIDER, { from: policy1Owner })
+    await acl.assignRole(policy1Context, accounts[8], ROLES.INSURED_PARTY, { from: policy1Owner })
     const policy1Broker = accounts[4]
-    const policy1AssetManager = accounts[5]
-    const policy1ClientManager = accounts[8]
+    const policy1CapitalProvider = accounts[5]
+    const policy1InsuredParty = accounts[8]
 
     // step 8: create tranch policy1Tranch1
     await createTranch(
@@ -276,11 +276,11 @@ contract('End-to-end integration tests', accounts => {
 
     // steps 9-13: skip for now
 
-    // step 14: client manager pays first premium for policy1Tranch1
-    await etherToken.deposit({ value: 1000, from: policy1ClientManager })
-    await etherToken.approve(entity1.address, 1000, { from: policy1ClientManager })
-    await entity1.deposit(etherToken.address, 1000, { from: policy1ClientManager })
-    await entity1.payTranchPremium(policy1.address, 0, 1000, { from: policy1ClientManager })
+    // step 14: insured party pays first premium for policy1Tranch1
+    await etherToken.deposit({ value: 1000, from: policy1InsuredParty })
+    await etherToken.approve(entity1.address, 1000, { from: policy1InsuredParty })
+    await entity1.deposit(etherToken.address, 1000, { from: policy1InsuredParty })
+    await entity1.payTranchPremium(policy1.address, 0, 1000, { from: policy1InsuredParty })
 
     // step 15: heartbeat - begin sale of policy1Tranch1
     await evmClock.setAbsoluteTime(5 * 60)
@@ -327,12 +327,12 @@ contract('End-to-end integration tests', accounts => {
       state_: TRANCH_STATE_ACTIVE  // should be active since it's fully sold out
     })
 
-    // step 19: client manager pays second premium for policy1Tranch1
+    // step 19: insured party pays second premium for policy1Tranch1
     await evmClock.setAbsoluteTime(9 * 60)
-    await etherToken.deposit({ value: 2000, from: policy1ClientManager })
-    await etherToken.approve(entity1.address, 2000, { from: policy1ClientManager })
-    await entity1.deposit(etherToken.address, 2000, { from: policy1ClientManager })
-    await entity1.payTranchPremium(policy1.address, 0, 2000, { from: policy1ClientManager })
+    await etherToken.deposit({ value: 2000, from: policy1InsuredParty })
+    await etherToken.approve(entity1.address, 2000, { from: policy1InsuredParty })
+    await entity1.deposit(etherToken.address, 2000, { from: policy1InsuredParty })
+    await entity1.payTranchPremium(policy1.address, 0, 2000, { from: policy1InsuredParty })
 
     // step 20: heartbeat
     await evmClock.setAbsoluteTime(10 * 60)
@@ -344,12 +344,12 @@ contract('End-to-end integration tests', accounts => {
 
     // step 21: skip for now
 
-    // step 22: client manager pays third premium for policy1Tranch1
+    // step 22: insured party pays third premium for policy1Tranch1
     await evmClock.setAbsoluteTime(14 * 60)
-    await etherToken.deposit({ value: 1000, from: policy1ClientManager })
-    await etherToken.approve(entity1.address, 1000, { from: policy1ClientManager })
-    await entity1.deposit(etherToken.address, 1000, { from: policy1ClientManager })
-    await entity1.payTranchPremium(policy1.address, 0, 1000, { from: policy1ClientManager })
+    await etherToken.deposit({ value: 1000, from: policy1InsuredParty })
+    await etherToken.approve(entity1.address, 1000, { from: policy1InsuredParty })
+    await entity1.deposit(etherToken.address, 1000, { from: policy1InsuredParty })
+    await entity1.payTranchPremium(policy1.address, 0, 1000, { from: policy1InsuredParty })
 
     // step 23: heartbeat
     await evmClock.setAbsoluteTime(15 * 60)
@@ -378,7 +378,7 @@ contract('End-to-end integration tests', accounts => {
     // sanity check balances
     const policy1Tranch1ExpectedBalance = 100 + calcPremiumsMinusCommissions({
       premiums: [1000, 2000, 1000],
-      assetManagerCommissionBP: 2,
+      capitalProviderCommissionBP: 2,
       brokerCommissionBP: 1,
       naymsCommissionBP: 3,
     })
@@ -388,26 +388,26 @@ contract('End-to-end integration tests', accounts => {
     })
     const expectedCommissions = calcCommissions({
       premiums: [1000, 2000, 1000],
-      assetManagerCommissionBP: 2,
+      capitalProviderCommissionBP: 2,
       brokerCommissionBP: 1,
       naymsCommissionBP: 3,
     })
-    expect(expectedCommissions.assetManagerCommission).to.eq(8)
+    expect(expectedCommissions.capitalProviderCommission).to.eq(8)
     expect(expectedCommissions.brokerCommission).to.eq(4)
     expect(expectedCommissions.naymsCommission).to.eq(12)
     await policy1.getCommissionBalances().should.eventually.matchObj({
-      assetManagerCommissionBalance_: expectedCommissions.assetManagerCommission,
+      capitalProviderCommissionBalance_: expectedCommissions.capitalProviderCommission,
       brokerCommissionBalance_: expectedCommissions.brokerCommission,
       naymsCommissionBalance_: expectedCommissions.naymsCommission,
     })
 
-    // step 26: withdraw commission payments (both asset manager and broker belong to entity0 so we'll use that one!)
-    await policy1.payCommissions(entity0Address, policy1AssetManager, entity0Address, policy1Broker)
+    // step 26: withdraw commission payments (both capital provider and broker belong to entity0 so we'll use that one!)
+    await policy1.payCommissions(entity0Address, policy1CapitalProvider, entity0Address, policy1Broker)
 
     // sanity check nayms entity balance
     const naymsEntityAddress = await settings.getRootAddress(SETTINGS.NAYMS_ENTITY)
     await etherToken.balanceOf(naymsEntityAddress).should.eventually.eq(expectedCommissions.naymsCommission)
-    const entity0ExpectedBalance = entity0Balance + expectedCommissions.assetManagerCommission + expectedCommissions.brokerCommission
+    const entity0ExpectedBalance = entity0Balance + expectedCommissions.capitalProviderCommission + expectedCommissions.brokerCommission
     await etherToken.balanceOf(entity0Address).should.eventually.eq(entity0ExpectedBalance)
     entity0Balance = entity0ExpectedBalance
 
@@ -489,7 +489,7 @@ contract('End-to-end integration tests', accounts => {
         premiumIntervalSeconds: 5 * 60,
         /* basis points: 1 = 0.1% */
         brokerCommissionBP: 1,
-        assetManagerCommissionBP: 2,
+        capitalProviderCommissionBP: 2,
         naymsCommissionBP: 3,
       },
       {
@@ -507,11 +507,11 @@ contract('End-to-end integration tests', accounts => {
 
     // steps 5-7: assign roles
     await acl.assignRole(policy2Context, accounts[4], ROLES.BROKER, { from: policy2Owner })
-    await acl.assignRole(policy2Context, accounts[5], ROLES.ASSET_MANAGER, { from: policy2Owner })
-    await acl.assignRole(policy2Context, accounts[8], ROLES.CLIENT_MANAGER, { from: policy2Owner })
+    await acl.assignRole(policy2Context, accounts[5], ROLES.CAPITAL_PROVIDER, { from: policy2Owner })
+    await acl.assignRole(policy2Context, accounts[8], ROLES.INSURED_PARTY, { from: policy2Owner })
     const policy2Broker = accounts[4]
-    const policy2AssetManager = accounts[5]
-    const policy2ClientManager = accounts[8]
+    const policy2CapitalProvider = accounts[5]
+    const policy2InsuredParty = accounts[8]
 
     // step 8: create tranch policy2Tranch1
     await createTranch(
@@ -529,12 +529,12 @@ contract('End-to-end integration tests', accounts => {
 
     // steps 9-13: skip for now
 
-    // step 14: client manager pays first premium for policy2Tranch1
+    // step 14: insured party pays first premium for policy2Tranch1
     await evmClock.setAbsoluteTime(3 * 60)
-    await etherToken.deposit({ value: 1000, from: policy2ClientManager })
-    await etherToken.approve(entity1.address, 1000, { from: policy2ClientManager })
-    await entity1.deposit(etherToken.address, 1000, { from: policy2ClientManager })
-    await entity1.payTranchPremium(policy2.address, 0, 1000, { from: policy2ClientManager })
+    await etherToken.deposit({ value: 1000, from: policy2InsuredParty })
+    await etherToken.approve(entity1.address, 1000, { from: policy2InsuredParty })
+    await entity1.deposit(etherToken.address, 1000, { from: policy2InsuredParty })
+    await entity1.payTranchPremium(policy2.address, 0, 1000, { from: policy2InsuredParty })
 
     // step 15: heartbeat - begin sale of policy2Tranch1
     await evmClock.setAbsoluteTime(5 * 60)
@@ -574,12 +574,12 @@ contract('End-to-end integration tests', accounts => {
 
     // steps 18-20: skip for now
 
-    // step 21: client manager pays second premium for policy2Tranch1
+    // step 21: insured party pays second premium for policy2Tranch1
     await evmClock.setAbsoluteTime(9 * 60)
-    await etherToken.deposit({ value: 2000, from: policy2ClientManager })
-    await etherToken.approve(entity1.address, 2000, { from: policy2ClientManager })
-    await entity1.deposit(etherToken.address, 2000, { from: policy2ClientManager })
-    await entity1.payTranchPremium(policy2.address, 0, 2000, { from: policy2ClientManager })
+    await etherToken.deposit({ value: 2000, from: policy2InsuredParty })
+    await etherToken.approve(entity1.address, 2000, { from: policy2InsuredParty })
+    await entity1.deposit(etherToken.address, 2000, { from: policy2InsuredParty })
+    await entity1.payTranchPremium(policy2.address, 0, 2000, { from: policy2InsuredParty })
 
     // step 22: heartbeat
     await evmClock.setAbsoluteTime(10 * 60)
@@ -589,12 +589,12 @@ contract('End-to-end integration tests', accounts => {
       state_: TRANCH_STATE_ACTIVE
     })
 
-    // step 23: client manager pays third premium for policy2Tranch1
+    // step 23: insured party pays third premium for policy2Tranch1
     await evmClock.setAbsoluteTime(14 * 60)
-    await etherToken.deposit({ value: 1000, from: policy2ClientManager })
-    await etherToken.approve(entity1.address, 1000, { from: policy2ClientManager })
-    await entity1.deposit(etherToken.address, 1000, { from: policy2ClientManager })
-    await entity1.payTranchPremium(policy2.address, 0, 1000, { from: policy2ClientManager })
+    await etherToken.deposit({ value: 1000, from: policy2InsuredParty })
+    await etherToken.approve(entity1.address, 1000, { from: policy2InsuredParty })
+    await entity1.deposit(etherToken.address, 1000, { from: policy2InsuredParty })
+    await entity1.payTranchPremium(policy2.address, 0, 1000, { from: policy2InsuredParty })
 
     // step 24: heartbeat
     await evmClock.setAbsoluteTime(15 * 60)
@@ -616,14 +616,14 @@ contract('End-to-end integration tests', accounts => {
     const expectedCommissions = calcCommissions({
       premiums: [1000, 2000, 1000],
       brokerCommissionBP: 1,
-      assetManagerCommissionBP: 2,
+      capitalProviderCommissionBP: 2,
       naymsCommissionBP: 3,
     })
-    expect(expectedCommissions.assetManagerCommission).to.eq(8)
+    expect(expectedCommissions.capitalProviderCommission).to.eq(8)
     expect(expectedCommissions.brokerCommission).to.eq(4)
     expect(expectedCommissions.naymsCommission).to.eq(12)
     await policy2.getCommissionBalances().should.eventually.matchObj({
-      assetManagerCommissionBalance_: expectedCommissions.assetManagerCommission,
+      capitalProviderCommissionBalance_: expectedCommissions.capitalProviderCommission,
       brokerCommissionBalance_: expectedCommissions.brokerCommission,
       naymsCommissionBalance_: expectedCommissions.naymsCommission,
     })
@@ -631,13 +631,13 @@ contract('End-to-end integration tests', accounts => {
     const policy2Tranch1ExpectedBalanceMinusCommissions = 100 + calcPremiumsMinusCommissions({
       premiums: [1000, 2000, 1000],
       brokerCommissionBP: 1,
-      assetManagerCommissionBP: 2,
+      capitalProviderCommissionBP: 2,
       naymsCommissionBP: 3,
     })
 
     // step 26: make claim on policy2Tranch1
     await evmClock.setAbsoluteTime(23 * 60)
-    await policy2.makeClaim(0, entity1.address, 6, { from: policy2ClientManager })
+    await policy2.makeClaim(0, entity1.address, 6, { from: policy2InsuredParty })
 
     // step 27: heartbeat - policy matured but still have pending claims
     await evmClock.setAbsoluteTime(25 * 60)
@@ -649,7 +649,7 @@ contract('End-to-end integration tests', accounts => {
 
     // step 28: approve claim
     await evmClock.setAbsoluteTime(27 * 60)
-    await policy2.approveClaim(0, { from: policy2AssetManager })
+    await policy2.approveClaim(0, { from: policy2CapitalProvider })
 
     // sanity check internal state
     await policy2.getTranchInfo(0).should.eventually.matchObj({
@@ -677,14 +677,14 @@ contract('End-to-end integration tests', accounts => {
 
     // step 30: pay out commissions
     await policy2.payCommissions(
-      entity0Address, policy2AssetManager,
+      entity0Address, policy2CapitalProvider,
       entity0Address, policy2Broker,
     )
 
     // sanity check entity balances
     const naymsEntityAddress = await settings.getRootAddress(SETTINGS.NAYMS_ENTITY)
     await etherToken.balanceOf(naymsEntityAddress).should.eventually.eq(expectedCommissions.naymsCommission)
-    const entity0ExpectedBalance = entity0Balance + expectedCommissions.assetManagerCommission + expectedCommissions.brokerCommission
+    const entity0ExpectedBalance = entity0Balance + expectedCommissions.capitalProviderCommission + expectedCommissions.brokerCommission
     await etherToken.balanceOf(entity0Address).should.eventually.eq(entity0ExpectedBalance)
     entity0Balance = entity0ExpectedBalance
 

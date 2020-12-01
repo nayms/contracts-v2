@@ -5,7 +5,7 @@ executors:
   smart_contracts:
     docker:
       - image: circleci/node:12.13.0
-      - image: trufflesuite/ganache-cli
+      - image: trufflesuite/ganache-cli:v6.7.0
         command: ganache-cli --gasLimit 8000000 -a 50 -e 1000000 -m "funny door sample enrich female wedding stereo crane setup shop dwarf dismiss"
 
 commands:

@@ -162,9 +162,9 @@ export const createPolicy = (entity, attrs, ...callAttrs) => {
     brokerCommissionBP = 0,
     capitalProviderCommissionBP = 0,
     naymsCommissionBP = 0,
-    owner = ADDRESS_ZERO,
     capitalProvider = ADDRESS_ZERO,
     insuredParty = ADDRESS_ZERO,
+    broker = ADDRESS_ZERO,
   } = attrs
 
   return entity.createPolicy(
@@ -172,7 +172,7 @@ export const createPolicy = (entity, attrs, ...callAttrs) => {
     unit,
     premiumIntervalSeconds,
     [brokerCommissionBP, capitalProviderCommissionBP, naymsCommissionBP],
-    [owner, capitalProvider, insuredParty],
+    [capitalProvider, insuredParty, broker],
     ...callAttrs,
   )
 }
@@ -187,6 +187,9 @@ export const preSetupPolicy = async (ctx, createPolicyArgs) => {
     brokerCommissionBP,
     capitalProviderCommissionBP,
     naymsCommissionBP,
+    capitalProvider,
+    insuredParty,
+    broker,
   } = (createPolicyArgs || {})
 
   // get current evm time
@@ -202,6 +205,9 @@ export const preSetupPolicy = async (ctx, createPolicyArgs) => {
     brokerCommissionBP,
     capitalProviderCommissionBP,
     naymsCommissionBP,
+    capitalProvider,
+    insuredParty,
+    broker,
   }
 
   const createPolicyTx = await createPolicy(ctx.entity, attrs, { from: ctx.entityManagerAddress })

@@ -75,11 +75,12 @@ import "./Policy.sol";
     override
     assertCanCreatePolicy
   {
-    address[] memory stakeholders = new address[](4);
+    address[] memory stakeholders = new address[](5);
     stakeholders[0] = address(this);
-    stakeholders[1] = _stakeholders[0];
-    stakeholders[2] = _stakeholders[1];
-    stakeholders[3] = _stakeholders[2];
+    stakeholders[1] = msg.sender;
+    stakeholders[2] = _stakeholders[0];
+    stakeholders[3] = _stakeholders[1];
+    stakeholders[4] = _stakeholders[2];
 
     Policy f = new Policy(
       address(acl()),

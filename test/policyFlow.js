@@ -97,6 +97,11 @@ contract('Policy: Flow', accounts => {
     // get current evm time
     baseDate = parseInt((await settings.getTime()).toString(10))
 
+    // roles
+    capitalProvider = accounts[5]
+    insuredParty = accounts[6]
+    await acl.assignRole(entityContext, insuredParty, ROLES.ENTITY_REP)
+
     // initiation time is 20 seconds from now
     initiationDate = baseDate + 1000
     startDate = initiationDate + 1000
@@ -112,6 +117,8 @@ contract('Policy: Flow', accounts => {
       capitalProviderCommissionBP,
       brokerCommissionBP,
       naymsCommissionBP,
+      capitalProvider,
+      insuredParty,
     }, { from: entityManagerAddress })
     const policyAddress = extractEventArgs(createPolicyTx, events.NewPolicy).policy
     policyOwnerAddress = entityManagerAddress
@@ -151,13 +158,6 @@ contract('Policy: Flow', accounts => {
     TRANCH_STATE_ACTIVE = await policyStates.TRANCH_STATE_ACTIVE()
     TRANCH_STATE_MATURED = await policyStates.TRANCH_STATE_MATURED()
     TRANCH_STATE_CANCELLED = await policyStates.TRANCH_STATE_CANCELLED()
-
-    capitalProvider = accounts[5]
-    await acl.assignRole(policyContext, capitalProvider, ROLES.CAPITAL_PROVIDER)
-
-    insuredParty = accounts[6]
-    await acl.assignRole(policyContext, insuredParty, ROLES.INSURED_PARTY)
-    await acl.assignRole(entityContext, insuredParty, ROLES.ENTITY_REP)
   })
 
   beforeEach(async () => {

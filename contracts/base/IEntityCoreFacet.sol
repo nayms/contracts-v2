@@ -10,12 +10,14 @@ interface IEntityCoreFacet {
    * @param _unit The payment unit.
    * @param _premiumIntervalSeconds The time between successive premium payments (seconds).
    * @param _commmissionsBP The commissions (basis points, 1 = 0.1%) to pay the broker, capital provider and Nayms
+   * @param _stakeholders The three stakeholders of the policy - owner, capital provider, insured party.
    */
   function createPolicy(
     uint256[] calldata _dates,
     address _unit,
     uint256 _premiumIntervalSeconds,
-    uint256[] calldata _commmissionsBP
+    uint256[] calldata _commmissionsBP,
+    address[] calldata _stakeholders
   ) external;
 
   /**

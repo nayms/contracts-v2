@@ -22,7 +22,8 @@ contract TestEntityFacet is IDiamondFacet, IEntityCoreFacet {
     uint256[] calldata _dates,
     address _unit,
     uint256 _premiumIntervalSeconds,
-    uint256[] calldata _commmissionsBP
+    uint256[] calldata _commmissionsBP,
+    address[] calldata _stakeholders
   ) external override {}
   function deposit(address _unit, uint256 _amount) external override {}
   function withdraw(address _unit, uint256 _amount) external override {}

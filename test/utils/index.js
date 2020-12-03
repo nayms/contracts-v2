@@ -161,7 +161,10 @@ export const createPolicy = (entity, attrs, ...callAttrs) => {
     premiumIntervalSeconds = 30,
     brokerCommissionBP = 0,
     capitalProviderCommissionBP = 0,
-    naymsCommissionBP = 0
+    naymsCommissionBP = 0,
+    owner = ADDRESS_ZERO,
+    capitalProvider = ADDRESS_ZERO,
+    insuredParty = ADDRESS_ZERO,
   } = attrs
 
   return entity.createPolicy(
@@ -169,6 +172,7 @@ export const createPolicy = (entity, attrs, ...callAttrs) => {
     unit,
     premiumIntervalSeconds,
     [brokerCommissionBP, capitalProviderCommissionBP, naymsCommissionBP],
+    [owner, capitalProvider, insuredParty],
     ...callAttrs,
   )
 }

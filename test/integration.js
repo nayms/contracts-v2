@@ -238,6 +238,10 @@ contract('End-to-end integration tests', accounts => {
         brokerCommissionBP: 1,
         capitalProviderCommissionBP: 2,
         naymsCommissionBP: 3,
+        // roles
+        broker: accounts[4],
+        capitalProvider: accounts[5],
+        insuredParty: accounts[8],
       },
       {
         from: entity0Manager
@@ -253,9 +257,6 @@ contract('End-to-end integration tests', accounts => {
     const evmClock = new EvmClock()
 
     // steps 5-7: assign roles
-    await acl.assignRole(policy1Context, accounts[4], ROLES.BROKER, { from: policy1Owner })
-    await acl.assignRole(policy1Context, accounts[5], ROLES.CAPITAL_PROVIDER, { from: policy1Owner })
-    await acl.assignRole(policy1Context, accounts[8], ROLES.INSURED_PARTY, { from: policy1Owner })
     const policy1Broker = accounts[4]
     const policy1CapitalProvider = accounts[5]
     const policy1InsuredParty = accounts[8]

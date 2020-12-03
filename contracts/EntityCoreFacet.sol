@@ -68,17 +68,24 @@ import "./Policy.sol";
     uint256[] memory _dates,
     address _unit,
     uint256 _premiumIntervalSeconds,
-    uint256[] memory _commmissionsBP
+    uint256[] memory _commmissionsBP,
+    address[] memory _stakeholders 
   )
     public
     override
     assertCanCreatePolicy
   {
+    address[] memory stakeholders = new address[](5);
+    stakeholders[0] = address(this);
+    stakeholders[1] = msg.sender;
+    stakeholders[2] = _stakeholders[0];
+    stakeholders[3] = _stakeholders[1];
+    stakeholders[4] = _stakeholders[2];
+
     Policy f = new Policy(
       address(acl()),
       address(settings()),
-      address(this),
-      msg.sender,
+      stakeholders,
       _dates,
       _unit,
       _premiumIntervalSeconds,

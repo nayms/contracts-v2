@@ -8,8 +8,7 @@ contract Policy is Controller, DiamondProxy {
   constructor (
     address _acl,
     address _settings,
-    address _creatorEntity,
-    address _policyOwner,
+    address[] memory _stakeholders,
     uint256[] memory _dates,
     address _unit,
     uint256 _premiumIntervalSeconds,
@@ -17,10 +16,8 @@ contract Policy is Controller, DiamondProxy {
   ) Controller(_acl, _settings) DiamondProxy() public {
     // set implementations
     _registerFacets(settings().getRootAddresses(SETTING_POLICY_IMPL));
-    // set policy owner
-    acl().assignRole(aclContext(), _policyOwner, ROLE_POLICY_OWNER);
     // set properties
-    dataAddress["creatorEntity"] = _creatorEntity;
+    dataAddress["creatorEntity"] = _stakeholders[0];
     dataUint256["initiationDate"] = _dates[0];
     dataUint256["startDate"] = _dates[1];
     dataUint256["maturationDate"] = _dates[2];
@@ -29,5 +26,10 @@ contract Policy is Controller, DiamondProxy {
     dataUint256["brokerCommissionBP"] = _commmissionsBP[0];
     dataUint256["capitalProviderCommissionBP"] = _commmissionsBP[1];
     dataUint256["naymsCommissionBP"] = _commmissionsBP[2];
+    // set roles
+    acl().assignRole(aclContext(), _stakeholders[1], ROLE_POLICY_OWNER);
+    acl().assignRole(aclContext(), _stakeholders[2], ROLE_CAPITAL_PROVIDER);
+    acl().assignRole(aclContext(), _stakeholders[3], ROLE_INSURED_PARTY);
+    acl().assignRole(aclContext(), _stakeholders[4], ROLE_BROKER);
   }
 }

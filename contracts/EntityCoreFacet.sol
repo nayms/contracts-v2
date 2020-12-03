@@ -32,7 +32,7 @@ import "./Policy.sol";
     require(inRoleGroup(msg.sender, ROLEGROUP_ENTITY_REPS), 'must be entity rep');
     AccessControl a = AccessControl(_policyAddress);
     bytes32 ctx = a.aclContext();
-    require(inRoleGroupWithContext(ctx, msg.sender, ROLEGROUP_CLIENT_MANAGERS), 'must be client manager');
+    require(inRoleGroupWithContext(ctx, msg.sender, ROLEGROUP_INSURED_PARTYS), 'must be insured party');
     _;
   }
 

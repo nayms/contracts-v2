@@ -160,7 +160,7 @@ export const createPolicy = (entity, attrs, ...callAttrs) => {
     unit = ADDRESS_ZERO,
     premiumIntervalSeconds = 30,
     brokerCommissionBP = 0,
-    assetManagerCommissionBP = 0,
+    capitalProviderCommissionBP = 0,
     naymsCommissionBP = 0
   } = attrs
 
@@ -168,7 +168,7 @@ export const createPolicy = (entity, attrs, ...callAttrs) => {
     [initiationDate, startDate, maturationDate],
     unit,
     premiumIntervalSeconds,
-    [brokerCommissionBP, assetManagerCommissionBP, naymsCommissionBP],
+    [brokerCommissionBP, capitalProviderCommissionBP, naymsCommissionBP],
     ...callAttrs,
   )
 }
@@ -181,7 +181,7 @@ export const preSetupPolicy = async (ctx, createPolicyArgs) => {
     maturationDateDiff,
     premiumIntervalSeconds,
     brokerCommissionBP,
-    assetManagerCommissionBP,
+    capitalProviderCommissionBP,
     naymsCommissionBP,
   } = (createPolicyArgs || {})
 
@@ -196,7 +196,7 @@ export const preSetupPolicy = async (ctx, createPolicyArgs) => {
     unit: ctx.etherToken.address,
     premiumIntervalSeconds,
     brokerCommissionBP,
-    assetManagerCommissionBP,
+    capitalProviderCommissionBP,
     naymsCommissionBP,
   }
 
@@ -206,22 +206,22 @@ export const preSetupPolicy = async (ctx, createPolicyArgs) => {
   ctx.policies.set(createPolicyArgs, { attrs, baseTime: currentBlockTime, policyAddress })
 }
 
-export const calcPremiumsMinusCommissions = ({ premiums, assetManagerCommissionBP, brokerCommissionBP, naymsCommissionBP }) => (
+export const calcPremiumsMinusCommissions = ({ premiums, capitalProviderCommissionBP, brokerCommissionBP, naymsCommissionBP }) => (
   premiums.reduce((m, v) => (
-    m + v - (v * assetManagerCommissionBP / 1000) - (v * brokerCommissionBP / 1000) - (v * naymsCommissionBP / 1000)
+    m + v - (v * capitalProviderCommissionBP / 1000) - (v * brokerCommissionBP / 1000) - (v * naymsCommissionBP / 1000)
   ), 0)
 )
 
 
-export const calcCommissions = ({ premiums, assetManagerCommissionBP, brokerCommissionBP, naymsCommissionBP }) => {
+export const calcCommissions = ({ premiums, capitalProviderCommissionBP, brokerCommissionBP, naymsCommissionBP }) => {
   const ret = {
-    assetManagerCommission: 0,
+    capitalProviderCommission: 0,
     brokerCommission: 0,
     naymsCommission: 0,
   }
 
   premiums.forEach(v => {
-    ret.assetManagerCommission += (v * assetManagerCommissionBP / 1000)
+    ret.capitalProviderCommission += (v * capitalProviderCommissionBP / 1000)
     ret.brokerCommission += (v * brokerCommissionBP / 1000)
     ret.naymsCommission += (v * naymsCommissionBP / 1000)
   })

@@ -312,14 +312,14 @@ contract('Entity', accounts => {
         await entity.payTranchPremium(policy.address, 0, premiumAmount, { from: policyOwner }).should.be.rejectedWith('must be entity rep')
       })
 
-      it('but not by entity rep who is not registered as a client manager on the policy', async () => {
+      it('but not by entity rep who is not registered as a insured party on the policy', async () => {
         const entityRep = accounts[3]
-        await entity.payTranchPremium(policy.address, 0, premiumAmount, { from: entityRep }).should.be.rejectedWith('must be client manager')
+        await entity.payTranchPremium(policy.address, 0, premiumAmount, { from: entityRep }).should.be.rejectedWith('must be insured party')
       })
 
       it('but not by entity rep if we do not have enough tokens to pay with', async () => {
         const entityRep = accounts[3]
-        await acl.assignRole(policyContext, entityRep, ROLES.CLIENT_MANAGER)
+        await acl.assignRole(policyContext, entityRep, ROLES.INSURED_PARTY)
         await entity.payTranchPremium(policy.address, 0, premiumAmount, { from: entityRep }).should.be.rejectedWith('transfer amount exceeds balance')
       })
 
@@ -328,7 +328,7 @@ contract('Entity', accounts => {
         await etherToken.approve(entity.address, premiumAmount)
         await entity.deposit(etherToken.address, premiumAmount)
         const entityRep = accounts[3]
-        await acl.assignRole(policyContext, entityRep, ROLES.CLIENT_MANAGER)
+        await acl.assignRole(policyContext, entityRep, ROLES.INSURED_PARTY)
         await entity.payTranchPremium(policy.address, 0, premiumAmount, { from: entityRep }).should.be.fulfilled
       })
     })

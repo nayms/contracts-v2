@@ -29,7 +29,7 @@ interface IPolicyCoreFacet {
    * @return unit_ Payment unit (for tranch sale, premiums, claim payouts, etc).
    * @return premiumIntervalSeconds_ Time between premium payments (seconds).
    * @return brokerCommissionBP_ Broker's commission rate (1 = 0.1%)
-   * @return assetManagerCommissionBP_ Asset managers commission rate (1 = 0.1%)
+   * @return capitalProviderCommissionBP_ Asset managers commission rate (1 = 0.1%)
    * @return naymsCommissionBP_ Nayms commission rate (1 = 0.1%)
    * @return numTranches_ No. of tranches created.
    * @return state_ Current policy state.
@@ -42,7 +42,7 @@ interface IPolicyCoreFacet {
     address unit_,
     uint256 premiumIntervalSeconds_,
     uint256 brokerCommissionBP_,
-    uint256 assetManagerCommissionBP_,
+    uint256 capitalProviderCommissionBP_,
     uint256 naymsCommissionBP_,
     uint256 numTranches_,
     uint256 state_

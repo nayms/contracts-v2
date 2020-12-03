@@ -21,13 +21,13 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
     _;
   }
 
-  modifier assertIsClientManager (address _addr) {
-    require(inRoleGroup(_addr, ROLEGROUP_CLIENT_MANAGERS), 'must be client manager');
+  modifier assertIsInsuredParty (address _addr) {
+    require(inRoleGroup(_addr, ROLEGROUP_INSURED_PARTYS), 'must be insured party');
     _;
   }
 
-  modifier assertIsAssetManager (address _addr) {
-    require(inRoleGroup(_addr, ROLEGROUP_ASSET_MANAGERS), 'must be asset manager');
+  modifier assertIsCapitalProvider (address _addr) {
+    require(inRoleGroup(_addr, ROLEGROUP_CAPITAL_PROVIDERS), 'must be capital provider');
     _;
   }
 
@@ -86,18 +86,18 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
     cancelled_ = dataBool[__i(_claimIndex, "claimCancelled")];
   }
 
-  function makeClaim(uint256 _index, address _clientManagerEntity, uint256 _amount) public override
+  function makeClaim(uint256 _index, address _insuredPartyEntity, uint256 _amount) public override
     assertActiveState
-    assertIsClientManager(msg.sender)
+    assertIsInsuredParty(msg.sender)
   {
     IPolicyCoreFacet(address(this)).checkAndUpdateState();
-    _makeClaim(_index, _clientManagerEntity, _amount);
+    _makeClaim(_index, _insuredPartyEntity, _amount);
   }
 
   function approveClaim(uint256 _claimIndex)
     public
     override
-    assertIsAssetManager(msg.sender)
+    assertIsCapitalProvider(msg.sender)
   {
     // check claim
     require(0 < dataUint256[__i(_claimIndex, "claimAmount")], 'invalid claim');
@@ -122,7 +122,7 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
   function declineClaim(uint256 _claimIndex)
     public
     override
-    assertIsAssetManager(msg.sender)
+    assertIsCapitalProvider(msg.sender)
   {
     // check claim
     require(0 < dataUint256[__i(_claimIndex, "claimAmount")], 'invalid claim');
@@ -179,13 +179,13 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
 
   // Internal methods
 
-  function _makeClaim(uint256 _index, address _clientManagerEntity, uint256 _amount) private
+  function _makeClaim(uint256 _index, address _insuredPartyEntity, uint256 _amount) private
     assertActiveState
-    assertIsClientManager(msg.sender)
+    assertIsInsuredParty(msg.sender)
   {
-    // check client manager entity
-    bytes32 clientManagerEntityContext = AccessControl(_clientManagerEntity).aclContext();
-    require(acl().userSomeHasRoleInContext(clientManagerEntityContext, msg.sender), 'must have role in client manager entity');
+    // check insured party entity
+    bytes32 insuredPartyEntityContext = AccessControl(_insuredPartyEntity).aclContext();
+    require(acl().userSomeHasRoleInContext(insuredPartyEntityContext, msg.sender), 'must have role in insured party entity');
 
     // check that tranch is active
     require(dataUint256[__i(_index, "state")] == TRANCH_STATE_ACTIVE, 'tranch must be active');
@@ -199,7 +199,7 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
     uint256 claimIndex = dataUint256["claimsCount"];
     dataUint256[__i(claimIndex, "claimAmount")] = _amount;
     dataUint256[__i(claimIndex, "claimTranch")] = _index;
-    dataAddress[__i(claimIndex, "claimEntity")] = _clientManagerEntity;
+    dataAddress[__i(claimIndex, "claimEntity")] = _insuredPartyEntity;
 
     dataUint256["claimsCount"] = claimIndex + 1;
     dataUint256["claimsPendingCount"] += 1;

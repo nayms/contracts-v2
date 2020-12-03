@@ -9,7 +9,7 @@ interface IEntityCoreFacet {
    * @param _dates The initiation, start and maturation dates (seconds since epoch).
    * @param _unit The payment unit.
    * @param _premiumIntervalSeconds The time between successive premium payments (seconds).
-   * @param _commmissionsBP The commissions (basis points, 1 = 0.1%) to pay the broker, asset manager and Nayms
+   * @param _commmissionsBP The commissions (basis points, 1 = 0.1%) to pay the broker, capital provider and Nayms
    */
   function createPolicy(
     uint256[] calldata _dates,

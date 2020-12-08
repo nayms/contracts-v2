@@ -18,10 +18,7 @@ contract PolicyTranchTokensFacet is EternalStorage, Controller, IDiamondFacet, I
   /**
    * Constructor
    */
-  constructor (address _acl, address _settings)
-    Controller(_acl, _settings)
-    public
-  {
+  constructor (address _settings) Controller(_settings) public {
     // empty
   }
 

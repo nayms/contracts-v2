@@ -35,10 +35,9 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
   /**
    * Constructor
    */
-  constructor (address _acl, address _settings)
-    Controller(_acl, _settings)
-    public
-  {}
+  constructor (address _settings) Controller(_settings) public {
+    // nothing
+  }
 
   // IDiamondFacet
 
@@ -174,15 +173,15 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
 
 
   function initiationDateHasPassed () public view override returns (bool) {
-    return now >= dataUint256["initiationDate"];
+    return block.timestamp >= dataUint256["initiationDate"];
   }
 
   function startDateHasPassed () public view override returns (bool) {
-    return now >= dataUint256["startDate"];
+    return block.timestamp >= dataUint256["startDate"];
   }
 
   function maturationDateHasPassed () public view override returns (bool) {
-    return now >= dataUint256["maturationDate"];
+    return block.timestamp >= dataUint256["maturationDate"];
   }
 
   // heartbeat function!
@@ -339,7 +338,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     for (uint256 i = 0; numPremiums > i; i += 1) {
       uint256 dueAt = dataUint256[__ii(_index, i, "premiumDueAt")];
 
-      if (dueAt <= now) {
+      if (dueAt <= block.timestamp) {
         expectedNumPremiumsPaid += 1;
       }
     }

@@ -39,10 +39,7 @@ import "./Policy.sol";
   /**
    * Constructor
    */
-  constructor (address _acl, address _settings)
-    Controller(_acl, _settings)
-    public
-  {
+  constructor (address _settings) Controller(_settings) public {
     // empty
   }
 
@@ -83,7 +80,6 @@ import "./Policy.sol";
     stakeholders[4] = _stakeholders[2];
 
     Policy f = new Policy(
-      address(acl()),
       address(settings()),
       stakeholders,
       _dates,

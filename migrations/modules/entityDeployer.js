@@ -6,14 +6,14 @@ export const getCurrentEntityDeployer = async ({ artifacts, networkId, log }) =>
   return getCurrentInstance({ networkId, log, artifacts, type: 'IEntityDeployer', lookupType: 'EntityDeployer' })
 }
 
-export const ensureEntityDeployerIsDeployed = async ({ deployer, artifacts, log, getTxParams = defaultGetTxParams }, aclAddress, settingsAddress) => {
+export const ensureEntityDeployerIsDeployed = async ({ deployer, artifacts, log, getTxParams = defaultGetTxParams }, settingsAddress) => {
   log = createLog(log)
 
   let entityDeployer
 
   await log.task(`Deploy EntityDeployer`, async task => {
     const EntityDeployer = artifacts.require('./EntityDeployer')
-    entityDeployer = await deploy(deployer, getTxParams(), EntityDeployer, aclAddress, settingsAddress)
+    entityDeployer = await deploy(deployer, getTxParams(), EntityDeployer, settingsAddress)
     task.log(`Deployed at ${entityDeployer.address}`)
   })
 

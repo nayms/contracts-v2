@@ -6,14 +6,13 @@ import "./base/DiamondProxy.sol";
 
 contract Policy is Controller, DiamondProxy {
   constructor (
-    address _acl,
     address _settings,
     address[] memory _stakeholders,
     uint256[] memory _dates,
     address _unit,
     uint256 _premiumIntervalSeconds,
     uint256[] memory _commmissionsBP
-  ) Controller(_acl, _settings) DiamondProxy() public {
+  ) Controller(_settings) DiamondProxy() public {
     // set implementations
     _registerFacets(settings().getRootAddresses(SETTING_POLICY_IMPL));
     // set properties

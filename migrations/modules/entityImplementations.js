@@ -2,7 +2,7 @@ const { createLog } = require('../utils/log')
 const { deploy, defaultGetTxParams } = require('../utils')
 const { SETTINGS } = require('../../utils/constants')
 
-export const ensureEntityImplementationsAreDeployed = async ({ deployer, artifacts, log, getTxParams = defaultGetTxParams, onlyDeployingUpgrades }, aclAddress, settingsAddress) => {
+export const ensureEntityImplementationsAreDeployed = async ({ deployer, artifacts, log, getTxParams = defaultGetTxParams, }, settingsAddress) => {
   log = createLog(log)
 
   let addresses
@@ -12,8 +12,8 @@ export const ensureEntityImplementationsAreDeployed = async ({ deployer, artifac
     const EntityCoreFacet = artifacts.require('./EntityCoreFacet')
 
     addresses = [
-      await deploy(deployer, getTxParams(), EntityCoreFacet, aclAddress, settingsAddress),
-      await deploy(deployer, getTxParams(), EntityUpgradeFacet, aclAddress, settingsAddress),
+      await deploy(deployer, getTxParams(), EntityCoreFacet, settingsAddress),
+      await deploy(deployer, getTxParams(), EntityUpgradeFacet, settingsAddress),
     ].map(c => c.address)
 
     task.log(`Deployed at ${addresses.join(', ')}`)

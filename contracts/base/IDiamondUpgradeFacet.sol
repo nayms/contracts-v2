@@ -18,7 +18,7 @@ abstract contract IDiamondUpgradeFacet is IDiamondFacet {
 
   function upgrade (address[] memory _facets) public virtual;
 
-  function getVersionInfo () public virtual view returns (string memory num_, uint256 date_, string memory hash_);
+  function getVersionInfo () public virtual pure returns (string memory num_, uint256 date_, string memory hash_);
 }
 
 

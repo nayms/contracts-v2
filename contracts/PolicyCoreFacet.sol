@@ -152,6 +152,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     uint256 state_,
     uint256 balance_,
     uint256 numPremiums_,
+    uint256 nextPremiumIndex_,
     uint256 nextPremiumAmount_,
     uint256 nextPremiumDueAt_,
     uint256 premiumPaymentsMissed_,
@@ -164,7 +165,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     state_ = dataUint256[__i(_index, "state")];
     balance_ = dataUint256[__i(_index, "balance")];
     numPremiums_ = dataUint256[__i(_index, "numPremiums")];
-    (nextPremiumAmount_, nextPremiumDueAt_) = _getNextTranchPremium(_index);
+    (nextPremiumIndex_, nextPremiumAmount_, nextPremiumDueAt_) = _getNextTranchPremium(_index);
     premiumPaymentsMissed_ = _getNumberOfTranchPaymentsMissed(_index);
     numPremiumsPaid_ = dataUint256[__i(_index, "numPremiumsPaid")];
     sharesSold_ = dataUint256[__i(_index, "sharesSold")];
@@ -321,10 +322,11 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     }
   }
 
-  function _getNextTranchPremium (uint256 _index) private view returns (uint256, uint256) {
+  function _getNextTranchPremium (uint256 _index) private view returns (uint256, uint256, uint256) {
     uint256 numPremiumsPaid = dataUint256[__i(_index, "numPremiumsPaid")];
 
     return (
+      numPremiumsPaid,
       dataUint256[__ii(_index, numPremiumsPaid, "premiumAmount")],
       dataUint256[__ii(_index, numPremiumsPaid, "premiumDueAt")]
     );

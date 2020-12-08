@@ -56,6 +56,7 @@ interface IPolicyCoreFacet {
    * @return state_ Current tranch state.
    * @return balance_ Current tranch balance (of the payment unit)
    * @return numPremiums_ No. of premium payments required in total.
+   * @return nextPremiumIndex_ Index of next premium due.
    * @return nextPremiumAmount_ Payment due by the next premium interval.
    * @return nextPremiumDueAt_ When the next premium payment is due by (timestamp = seconds since epoch).
    * @return premiumPaymentsMissed_ No. of premium payments that have been missed.
@@ -69,6 +70,7 @@ interface IPolicyCoreFacet {
     uint256 state_,
     uint256 balance_,
     uint256 numPremiums_,
+    uint256 nextPremiumIndex_,
     uint256 nextPremiumAmount_,
     uint256 nextPremiumDueAt_,
     uint256 premiumPaymentsMissed_,

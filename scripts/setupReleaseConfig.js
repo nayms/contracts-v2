@@ -43,7 +43,7 @@ async function main () {
       releaseInfo.freshDeployment = true // delete after first build
       releaseInfo.deployRinkeby = true
       releaseInfo.npmTag = `latest`
-      releaseInfo.npmPkgVersion = `1.0.0+build.${buildNum}`
+      releaseInfo.npmPkgVersion = `1.0.0-build.${buildNum}`
     }
 
     releaseInfo.adminDappPath = releaseInfo.npmPkgVersion

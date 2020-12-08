@@ -41,21 +41,21 @@ jobs:
       - run:
           name: Setup release config
           command: yarn setup-release-config
-      - run:
-          name: Compile
-          command: yarn compile
-      - run:
-          name: Deploy contracts to test chain
-          command: yarn deploy:local
-      - run:
-          name: Run tests with coverage
-          command: yarn coverage
-      - store_artifacts:
-          path: ~/repo/coverage
-          destination: coverage
-      - run:
-          name: Upload coverage report to coveralls
-          command: cat ./coverage/lcov.info | yarn coveralls
+      # - run:
+      #     name: Compile
+      #     command: yarn compile
+      # - run:
+      #     name: Deploy contracts to test chain
+      #     command: yarn deploy:local
+      # - run:
+      #     name: Run tests with coverage
+      #     command: yarn coverage
+      # - store_artifacts:
+      #     path: ~/repo/coverage
+      #     destination: coverage
+      # - run:
+      #     name: Upload coverage report to coveralls
+      #     command: cat ./coverage/lcov.info | yarn coveralls
       - persist_to_workspace:
           root: ~/repo
           paths: .

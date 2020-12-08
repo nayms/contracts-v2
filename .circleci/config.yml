@@ -102,6 +102,9 @@ jobs:
       - attach_workspace:
           at: ~/repo
       - run:
+          name: Git config
+          command: git config --global user.email "engineering@nayms.io" && git config --global user.name "Nayms Engineering"
+      - run:
           name: Git commit
           command: git commit -am "Release $(./scripts/outputVersion.js)"
       - run:

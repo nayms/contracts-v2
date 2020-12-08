@@ -12,6 +12,7 @@ const { getCurrentEntityDeployer, ensureEntityDeployerIsDeployed } = require('./
 const { ensureEntityImplementationsAreDeployed } = require('./modules/entityImplementations')
 const { ensurePolicyImplementationsAreDeployed } = require('./modules/policyImplementations')
 const { upgradeExistingConstracts } = require('./modules/upgrades')
+const { updateDeployedAddressesJson } = require('./utils/postDeployment')
 
 const getLiveGasPrice = async ({ log }) => {
   let gwei
@@ -30,9 +31,6 @@ module.exports = async (deployer, network, accounts) => {
   const log = createLog(console.log.bind(console))
 
   const releaseConfig = require('../releaseConfig.json')
-
-  // if PR or local then do fresh deployment
-  const doFreshDeployment = (releaseConfig.pr || releaseConfig.local)
 
   // check network against deployment rules
   switch (network) {
@@ -90,7 +88,7 @@ module.exports = async (deployer, network, accounts) => {
     log,
     networkId,
     getTxParams,
-    onlyDeployingUpgrades: !(doFreshDeployment || networkInfo.isLocal)
+    onlyDeployingUpgrades: !(releaseConfig.freshDeployment || networkInfo.isLocal)
   }
 
   if (!cfg.onlyDeployingUpgrades) {
@@ -125,5 +123,9 @@ module.exports = async (deployer, network, accounts) => {
 
   if (cfg.onlyDeployingUpgrades) {
     await upgradeExistingConstracts({ artifacts, log, getTxParams }, settings.address)
+  }
+
+  if (releaseConfig.freshDeployment) {
+    updateDeployedAddressesJson()
   }
 }

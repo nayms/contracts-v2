@@ -1,6 +1,7 @@
 pragma solidity >=0.6.7;
 
 import "./base/IACL.sol";
+import "./base/IACLConstants.sol";
 import "./base/SafeMath.sol";
 
 /**
@@ -253,7 +254,7 @@ library Bytes32 {
 }
 
 
-contract ACL is IACL {
+contract ACL is IACL, IACLConstants {
   using Assignments for Assignments.Context;
   using Bytes32 for Bytes32.Set;
 
@@ -370,16 +371,19 @@ contract ACL is IACL {
 
   // Roles
 
-  /**
-   * @dev determine if addr has role
-   */
   function hasRole(bytes32 _context, address _addr, bytes32 _role)
     public
     view
     override
-    returns (bool)
+    returns (uint256)
   {
-    return assignments[_context].hasRoleForUser(_role, _addr) || assignments[systemContext].hasRoleForUser(_role, _addr);
+    if (assignments[_context].hasRoleForUser(_role, _addr)) {
+      return HAS_ROLE_CONTEXT;
+    } else if (assignments[systemContext].hasRoleForUser(_role, _addr)) {
+      return HAS_ROLE_SYSTEM_CONTEXT;
+    } else {
+      return DOES_NOT_HAVE_ROLE;
+    }
   }
 
   function hasAnyRole(bytes32 _context, address _addr, bytes32[] memory _roles)
@@ -391,7 +395,7 @@ contract ACL is IACL {
     bool hasAny = false;
 
     for (uint256 i = 0; i < _roles.length; i++) {
-      if (hasRole(_context, _addr, _roles[i])) {
+      if (hasRole(_context, _addr, _roles[i]) != DOES_NOT_HAVE_ROLE) {
         hasAny = true;
         break;
       }

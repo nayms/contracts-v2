@@ -38,6 +38,9 @@ contract('Entity', accounts => {
   let entityCoreAddress
   let entityContext
 
+  let DOES_NOT_HAVE_ROLE
+  let HAS_ROLE_CONTEXT
+
   before(async () => {
     acl = await ensureAclIsDeployed({ artifacts })
     settings = await ensureSettingsIsDeployed({ artifacts }, acl.address)
@@ -45,6 +48,9 @@ contract('Entity', accounts => {
     etherToken = await ensureEtherTokenIsDeployed({ artifacts }, acl.address, settings.address)
     await ensurePolicyImplementationsAreDeployed({ artifacts }, acl.address, settings.address)
     await ensureEntityImplementationsAreDeployed({ artifacts }, acl.address, settings.address)
+
+    DOES_NOT_HAVE_ROLE = (await acl.DOES_NOT_HAVE_ROLE()).toNumber()
+    HAS_ROLE_CONTEXT = (await acl.HAS_ROLE_CONTEXT()).toNumber()
 
     entityProxy = await Entity.new(acl.address, settings.address)
     // now let's speak to Entity contract using EntityImpl ABI
@@ -277,7 +283,7 @@ contract('Entity', accounts => {
 
       const policyContext = await policy.aclContext()
 
-      await acl.hasRole(policyContext, accounts[2], ROLES.POLICY_OWNER).should.eventually.eq(true)
+      await acl.hasRole(policyContext, accounts[2], ROLES.POLICY_OWNER).should.eventually.eq(HAS_ROLE_CONTEXT)
     })
 
     describe('and policy tranch premiums can be paid', () => {

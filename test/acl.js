@@ -26,6 +26,10 @@ contract('ACL', accounts => {
 
   let CANNOT_ASSIGN
 
+  let DOES_NOT_HAVE_ROLE
+  let HAS_ROLE_CONTEXT
+  let HAS_ROLE_SYSTEM_CONTEXT
+
   before(async () => {
     acl = await ensureAclIsDeployed({ artifacts })
     systemContext = await acl.systemContext()
@@ -33,6 +37,9 @@ contract('ACL', accounts => {
     adminRoleGroup = await acl.adminRoleGroup()
 
     CANNOT_ASSIGN = (await acl.CANNOT_ASSIGN()).toNumber()
+    DOES_NOT_HAVE_ROLE = (await acl.DOES_NOT_HAVE_ROLE()).toNumber()
+    HAS_ROLE_CONTEXT = (await acl.HAS_ROLE_CONTEXT()).toNumber()
+    HAS_ROLE_SYSTEM_CONTEXT = (await acl.HAS_ROLE_SYSTEM_CONTEXT()).toNumber()
   })
 
   beforeEach(async () => {
@@ -181,24 +188,24 @@ contract('ACL', accounts => {
     })
 
     it('by an admin', async () => {
-      await acl.hasRole(context1, accounts[2], role1).should.eventually.eq(false)
+      await acl.hasRole(context1, accounts[2], role1).should.eventually.eq(DOES_NOT_HAVE_ROLE)
 
       await acl.canAssign(context1, accounts[0], role1).should.eventually.not.eq(CANNOT_ASSIGN)
       await acl.assignRole(context1, accounts[2], role1).should.be.fulfilled
 
-      await acl.hasRole(context1, accounts[2], role1).should.eventually.eq(true)
+      await acl.hasRole(context1, accounts[2], role1).should.eventually.eq(HAS_ROLE_CONTEXT)
       await acl.getRolesForUser(context1, accounts[2]).should.eventually.eq([ role1 ])
     })
 
     it('by the context owner', async () => {
       const callerContext = await acl.generateContextFromAddress(accounts[4])
 
-      await acl.hasRole(callerContext, accounts[2], role1).should.eventually.eq(false)
+      await acl.hasRole(callerContext, accounts[2], role1).should.eventually.eq(DOES_NOT_HAVE_ROLE)
 
       await acl.canAssign(callerContext, accounts[4], role1).should.eventually.not.eq(CANNOT_ASSIGN)
       await acl.assignRole(callerContext, accounts[2], role1, { from: accounts[4] }).should.be.fulfilled
 
-      await acl.hasRole(callerContext, accounts[2], role1).should.eventually.eq(true)
+      await acl.hasRole(callerContext, accounts[2], role1).should.eventually.eq(HAS_ROLE_CONTEXT)
       await acl.getRolesForUser(callerContext, accounts[2]).should.eventually.eq([role1])
     })
 
@@ -219,12 +226,12 @@ contract('ACL', accounts => {
       await acl.addAssigner(role1, roleGroup1)
       await acl.assignRole(context1, accounts[3], role2)
 
-      await acl.hasRole(context1, accounts[2], role1).should.eventually.eq(false)
+      await acl.hasRole(context1, accounts[2], role1).should.eventually.eq(DOES_NOT_HAVE_ROLE)
 
       await acl.canAssign(context1, accounts[3], role1).should.eventually.not.eq(CANNOT_ASSIGN)
       await acl.assignRole(context1, accounts[2], role1, { from: accounts[3] }).should.be.fulfilled
 
-      await acl.hasRole(context1, accounts[2], role1).should.eventually.eq(true)
+      await acl.hasRole(context1, accounts[2], role1).should.eventually.eq(HAS_ROLE_CONTEXT)
       await acl.getRolesForUser(context1, accounts[2]).should.eventually.eq([role1])
     })
 
@@ -239,12 +246,12 @@ contract('ACL', accounts => {
     })
 
     it('and if assigned in the system context then it automatically applies to all other contexts', async () => {
-      await acl.hasRole(context1, accounts[2], role1).should.eventually.eq(false)
+      await acl.hasRole(context1, accounts[2], role1).should.eventually.eq(DOES_NOT_HAVE_ROLE)
 
       await acl.assignRole(systemContext, accounts[2], role1).should.be.fulfilled
 
-      await acl.hasRole(context1, accounts[2], role1).should.eventually.eq(true)
-      await acl.hasRole(context2, accounts[2], role1).should.eventually.eq(true)
+      await acl.hasRole(context1, accounts[2], role1).should.eventually.eq(HAS_ROLE_SYSTEM_CONTEXT)
+      await acl.hasRole(context2, accounts[2], role1).should.eventually.eq(HAS_ROLE_SYSTEM_CONTEXT)
     })
 
     it('cannot be assigned in the system context by a non-admin', async () => {
@@ -270,7 +277,7 @@ contract('ACL', accounts => {
     it('by an admin', async () => {
       await acl.getRolesForUser(context1, accounts[2]).should.eventually.eq([role1])
       await acl.unassignRole(context1, accounts[2], role1).should.be.fulfilled
-      await acl.hasRole(context1, accounts[2], role1).should.eventually.eq(false)
+      await acl.hasRole(context1, accounts[2], role1).should.eventually.eq(DOES_NOT_HAVE_ROLE)
       await acl.getRolesForUser(context1, accounts[2]).should.eventually.eq([])
     })
 
@@ -313,15 +320,19 @@ contract('ACL', accounts => {
       await acl.assignRole(context1, accounts[2], role1).should.be.fulfilled
       await acl.assignRole(context1, accounts[2], role2).should.be.fulfilled
       await acl.assignRole(context2, accounts[2], role1).should.be.fulfilled
+      await acl.assignRole(systemContext, accounts[2], role3).should.be.fulfilled
     })
 
     it('and can test for any of them', async () => {
-      await acl.hasRole(context1, accounts[2], role1).should.eventually.eq(true)
-      await acl.hasRole(context1, accounts[2], role2).should.eventually.eq(true)
+      await acl.hasRole(context1, accounts[2], role1).should.eventually.eq(HAS_ROLE_CONTEXT)
+      await acl.hasRole(context1, accounts[2], role2).should.eventually.eq(HAS_ROLE_CONTEXT)
       await acl.hasAnyRole(context1, accounts[2], [ role1, role2 ]).should.eventually.eq(true)
 
-      await acl.hasRole(context2, accounts[2], role1).should.eventually.eq(true)
+      await acl.hasRole(context2, accounts[2], role1).should.eventually.eq(HAS_ROLE_CONTEXT)
       await acl.hasAnyRole(context2, accounts[2], [ role1, role2 ]).should.eventually.eq(true)
+
+      await acl.hasRole(context3, accounts[2], role3).should.eventually.eq(HAS_ROLE_SYSTEM_CONTEXT)
+      await acl.hasAnyRole(context3, accounts[2], [role3]).should.eventually.eq(true)
     })
   })
 

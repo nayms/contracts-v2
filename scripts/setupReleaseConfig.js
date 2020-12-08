@@ -41,6 +41,7 @@ async function main () {
       releaseInfo.npmTag = `pr${pullRequestNum}`
       releaseInfo.npmPkgVersion = `1.0.0-pr.${pullRequestNum}.build.${buildNum}`
     } else {
+      releaseInfo.freshDeployment = true // delete after first build
       releaseInfo.deployRinkeby = true
       releaseInfo.npmTag = `latest`
       releaseInfo.npmPkgVersion = `1.0.0+build.${buildNum}`

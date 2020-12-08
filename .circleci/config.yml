@@ -41,21 +41,21 @@ jobs:
       - run:
           name: Setup release config
           command: yarn setup-release-config
-      - run:
-          name: Compile
-          command: yarn compile
-      - run:
-          name: Deploy contracts to test chain
-          command: yarn deploy:local
-      - run:
-          name: Run tests with coverage
-          command: yarn coverage
-      - store_artifacts:
-          path: ~/repo/coverage
-          destination: coverage
-      - run:
-          name: Upload coverage report to coveralls
-          command: cat ./coverage/lcov.info | yarn coveralls
+      # - run:
+      #     name: Compile
+      #     command: yarn compile
+      # - run:
+      #     name: Deploy contracts to test chain
+      #     command: yarn deploy:local
+      # - run:
+      #     name: Run tests with coverage
+      #     command: yarn coverage
+      # - store_artifacts:
+      #     path: ~/repo/coverage
+      #     destination: coverage
+      # - run:
+      #     name: Upload coverage report to coveralls
+      #     command: cat ./coverage/lcov.info | yarn coveralls
       - persist_to_workspace:
           root: ~/repo
           paths: .
@@ -93,8 +93,11 @@ jobs:
           name: Authenticate with registry
           command: echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/repo/.npmrc
       - run:
-          name: Publish to NPM
-          command: npm run publish-to-npm
+          name: Output package.json version
+          command: ./scripts/outputNpmTag.js
+      # - run:
+      #     name: Publish to NPM
+      #     command: npm run publish-to-npm
   git_tag:
     executor: smart_contracts
     working_directory: ~/repo
@@ -114,7 +117,23 @@ workflows:
             branches:
               ignore:
                 - gh-pages
-      - deploy_contracts:
+      # - deploy_contracts:
+      #     requires:
+      #       - build_contracts
+      #     filters:
+      #       branches:
+      #         ignore:
+      #           - gh-pages
+      #           - master
+      # - deploy_admin_dapp:
+      #     requires:
+      #       - deploy_contracts
+      #     filters:
+      #       branches:
+      #         ignore:
+      #           - gh-pages
+      #           - master
+      - publish_to_npm:
           requires:
             - build_contracts
           filters:
@@ -122,26 +141,10 @@ workflows:
               ignore:
                 - gh-pages
                 - master
-      - deploy_admin_dapp:
-          requires:
-            - deploy_contracts
-          filters:
-            branches:
-              ignore:
-                - gh-pages
-                - master
-      - publish_to_npm:
-          requires:
-            - deploy_contracts
-          filters:
-            branches:
-              ignore:
-                - gh-pages
-                - master
-      - git_tag:
-          requires:
-            - publish_to_npm
-          filters:
-            branches:
-              only:
-                - release
+      # - git_tag:
+      #     requires:
+      #       - publish_to_npm
+      #     filters:
+      #       branches:
+      #         only:
+      #           - release

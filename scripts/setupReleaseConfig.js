@@ -34,9 +34,8 @@ async function main () {
   const releaseInfo = {}
 
   if (isReleaseBranch || pullRequestNum) {
-    releaseInfo.freshDeployment = true
-
     if (pullRequestNum) {
+      releaseInfo.freshDeployment = true
       releaseInfo.pr = true
       releaseInfo.deployRinkeby = true
       releaseInfo.npmTag = `pr${pullRequestNum}`
@@ -46,9 +45,10 @@ async function main () {
       releaseInfo.npmTag = `latest`
       releaseInfo.npmPkgVersion = `1.0.0+build.${buildNum}`
     }
-    
+
     releaseInfo.adminDappPath = releaseInfo.npmPkgVersion
   } else {
+    releaseInfo.freshDeployment = true
     releaseInfo.local = true
     releaseInfo.npmTag = `local`
     releaseInfo.npmPkgVersion = `1.0.0-local.${Date.now()}`

@@ -102,6 +102,9 @@ jobs:
       - attach_workspace:
           at: ~/repo
       - run:
+          name: Git commit
+          command: git commit -am "Release $(./scripts/outputVersion.js)"
+      - run:
           name: Git tag
           command: git tag v$(./scripts/outputVersion.js) && git push --tags
 
@@ -114,33 +117,33 @@ workflows:
             branches:
               ignore:
                 - gh-pages
-      - deploy_contracts:
-          requires:
-            - build_contracts
-          filters:
-            branches:
-              ignore:
-                - gh-pages
-                - master
-      - deploy_admin_dapp:
-          requires:
-            - deploy_contracts
-          filters:
-            branches:
-              ignore:
-                - gh-pages
-                - master
-      - publish_to_npm:
-          requires:
-            - deploy_contracts
-          filters:
-            branches:
-              ignore:
-                - gh-pages
-                - master
+      # - deploy_contracts:
+      #     requires:
+      #       - build_contracts
+      #     filters:
+      #       branches:
+      #         ignore:
+      #           - gh-pages
+      #           - master
+      # - deploy_admin_dapp:
+      #     requires:
+      #       - deploy_contracts
+      #     filters:
+      #       branches:
+      #         ignore:
+      #           - gh-pages
+      #           - master
+      # - publish_to_npm:
+      #     requires:
+      #       - deploy_contracts
+      #     filters:
+      #       branches:
+      #         ignore:
+      #           - gh-pages
+      #           - master
       - git_tag:
           requires:
-            - publish_to_npm
+            - build_contracts
           filters:
             branches:
               only:

@@ -109,7 +109,13 @@ jobs:
           command: git commit -am "Release $(./scripts/outputVersion.js)"
       - run:
           name: Git tag
-          command: git tag v$(./scripts/outputVersion.js) && git push --tags
+          command: git tag v$(./scripts/outputVersion.js)
+      - run:
+          name: Add Github to known_hosts
+          command: ssh-keyscan -p 443 ssh.github.com >> ~/.ssh/known_hosts
+      - run:
+          name: Git push
+          command: git push --tags
 
 workflows:
   version: 2

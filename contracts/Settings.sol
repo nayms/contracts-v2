@@ -1,17 +1,17 @@
 pragma solidity >=0.6.7;
 
-import "./base/AccessControl.sol";
 import "./base/EternalStorage.sol";
 import "./base/ISettings.sol";
+import "./base/IACL.sol";
 
 /**
  * @dev Business-logic for Settings
  */
- contract Settings is EternalStorage, AccessControl, ISettings {
+ contract Settings is EternalStorage, ISettings {
 
   modifier assertIsAuthorized (address _context) {
     if (_context == address(this)) {
-      require(isAdmin(msg.sender), 'must be admin');
+      require(acl().isAdmin(msg.sender), 'must be admin');
     } else {
       require(msg.sender == _context, 'must be context owner');
     }
@@ -20,10 +20,17 @@ import "./base/ISettings.sol";
 
   /**
    * Constructor
+   * @param _acl ACL address.
    */
-  constructor (address _acl) AccessControl(_acl) public {}
+  constructor (address _acl) public {
+    dataAddress["acl"] = _acl;
+  }
 
   // ISettings
+
+  function acl() public view override returns (IACL) {
+    return IACL(dataAddress["acl"]);
+  }
 
   function getAddress(address _context, bytes32 _key) public view override returns (address) {
     return dataAddress[__ab(_context, _key)];
@@ -91,6 +98,6 @@ import "./base/ISettings.sol";
   }
 
   function getTime() public view override returns (uint256) {
-    return now;
+    return block.timestamp;
   }
 }

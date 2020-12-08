@@ -8,10 +8,11 @@ import "./Controller.sol";
 contract Destructible is Controller {
   /**
    * @dev Constructor.
-   * @param _acl ACL address.
    * @param _settings Settings address.
    */
-  constructor(address _acl, address _settings) Controller(_acl, _settings) public { }
+  constructor(address _settings) Controller(_settings) public {
+    // empty
+  }
 
   /**
    * @dev Destroy this contract and transfer the current ETH balance to the sender.

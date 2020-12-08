@@ -45,21 +45,21 @@ contract('Entity', accounts => {
     acl = await ensureAclIsDeployed({ artifacts })
     settings = await ensureSettingsIsDeployed({ artifacts }, acl.address)
     market = await ensureMarketIsDeployed({ artifacts }, settings.address)
-    etherToken = await ensureEtherTokenIsDeployed({ artifacts }, acl.address, settings.address)
-    await ensurePolicyImplementationsAreDeployed({ artifacts }, acl.address, settings.address)
-    await ensureEntityImplementationsAreDeployed({ artifacts }, acl.address, settings.address)
+    etherToken = await ensureEtherTokenIsDeployed({ artifacts }, settings.address)
+    await ensurePolicyImplementationsAreDeployed({ artifacts }, settings.address)
+    await ensureEntityImplementationsAreDeployed({ artifacts }, settings.address)
 
     DOES_NOT_HAVE_ROLE = (await acl.DOES_NOT_HAVE_ROLE()).toNumber()
     HAS_ROLE_CONTEXT = (await acl.HAS_ROLE_CONTEXT()).toNumber()
 
-    entityProxy = await Entity.new(acl.address, settings.address)
+    entityProxy = await Entity.new(settings.address)
     // now let's speak to Entity contract using EntityImpl ABI
     entity = await IEntity.at(entityProxy.address)
     entityContext = await entityProxy.aclContext()
 
     ;([ entityCoreAddress ] = await settings.getRootAddresses(SETTINGS.ENTITY_IMPL))
 
-    etherToken2 = await deployNewEtherToken({ artifacts }, acl.address, settings.address)
+    etherToken2 = await deployNewEtherToken({ artifacts }, settings.address)
   })
 
   beforeEach(async () => {

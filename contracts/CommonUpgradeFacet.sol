@@ -5,10 +5,7 @@ import "./base/IDiamondUpgradeFacet.sol";
 import "./VersionInfo.sol";
 
 contract CommonUpgradeFacet is Controller, IDiamondUpgradeFacet, VersionInfo {
-  constructor (address _acl, address _settings)
-    Controller(_acl, _settings)
-    public
-  {
+  constructor (address _settings) Controller(_settings) public {
     // empty
   }
 
@@ -16,7 +13,7 @@ contract CommonUpgradeFacet is Controller, IDiamondUpgradeFacet, VersionInfo {
     IDiamondProxy(address(this)).registerFacets(_facets);
   }
 
-  function getVersionInfo () public override view returns (string memory num_, uint256 date_, string memory hash_) {
+  function getVersionInfo () public override pure returns (string memory num_, uint256 date_, string memory hash_) {
     num_ = VERSION_NUM;
     date_ = VERSION_DATE;
     hash_ = VERSION_GITCOMMIT;

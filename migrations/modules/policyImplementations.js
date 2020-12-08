@@ -2,7 +2,7 @@ const { createLog } = require('../utils/log')
 const { deploy, defaultGetTxParams } = require('../utils')
 const { SETTINGS } = require('../../utils/constants')
 
-export const ensurePolicyImplementationsAreDeployed = async ({ deployer, artifacts, log, getTxParams = defaultGetTxParams }, aclAddress, settingsAddress) => {
+export const ensurePolicyImplementationsAreDeployed = async ({ deployer, artifacts, log, getTxParams = defaultGetTxParams }, settingsAddress) => {
   log = createLog(log)
 
   let addresses
@@ -16,12 +16,12 @@ export const ensurePolicyImplementationsAreDeployed = async ({ deployer, artifac
     const PolicyTranchTokensFacet = artifacts.require('./PolicyTranchTokensFacet')
 
     addresses = [
-      await deploy(deployer, getTxParams(), PolicyCoreFacet, aclAddress, settingsAddress),
-      await deploy(deployer, getTxParams(), PolicyUpgradeFacet, aclAddress, settingsAddress),
-      await deploy(deployer, getTxParams(), PolicyClaimsFacet, aclAddress, settingsAddress),
-      await deploy(deployer, getTxParams(), PolicyCommissionsFacet, aclAddress, settingsAddress),
-      await deploy(deployer, getTxParams(), PolicyPremiumsFacet, aclAddress, settingsAddress),
-      await deploy(deployer, getTxParams(), PolicyTranchTokensFacet, aclAddress, settingsAddress),
+      await deploy(deployer, getTxParams(), PolicyCoreFacet, settingsAddress),
+      await deploy(deployer, getTxParams(), PolicyUpgradeFacet, settingsAddress),
+      await deploy(deployer, getTxParams(), PolicyClaimsFacet, settingsAddress),
+      await deploy(deployer, getTxParams(), PolicyCommissionsFacet, settingsAddress),
+      await deploy(deployer, getTxParams(), PolicyPremiumsFacet, settingsAddress),
+      await deploy(deployer, getTxParams(), PolicyTranchTokensFacet, settingsAddress),
     ].map(c => c.address)
 
     task.log(`Deployed at ${addresses.join(', ')}`)

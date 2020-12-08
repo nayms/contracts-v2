@@ -2,6 +2,7 @@ pragma solidity >=0.6.7;
 
 import "./Address.sol";
 import "./EternalStorage.sol";
+import "./ISettings.sol";
 import "./IACL.sol";
 import "./IAccessControl.sol";
 import "./IACLConstants.sol";
@@ -42,10 +43,10 @@ contract AccessControl is EternalStorage, IAccessControl, IACLConstants {
 
   /**
    * @dev Constructor.
-   * @param _acl Address of ACL.
+   * @param _settings Address of Settings.
    */
-  constructor (address _acl) public {
-    dataAddress["acl"] = _acl;
+  constructor (address _settings) public {
+    dataAddress["settings"] = _settings;
     dataBytes32["aclContext"] = acl().generateContextFromAddress(address(this));
   }
 
@@ -113,7 +114,7 @@ contract AccessControl is EternalStorage, IAccessControl, IACLConstants {
    * @return ACL reference.
    */
   function acl () public view override returns (IACL) {
-    return IACL(dataAddress["acl"]);
+    return ISettings(dataAddress["settings"]).acl();
   }
 
   /**

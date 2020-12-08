@@ -576,8 +576,18 @@
       "outputs": [
         {
           "title": "Has role",
-          "type": "bool",
-          "value": "@input[has]"
+          "type": "int",
+          "value": "@input[has]",
+          "transform": [
+            {
+              "type": "toMappedString",
+              "options": {
+                "0": "Does not have role",
+                "1": "Has role in given context",
+                "2": "Has role in system context"
+              }              
+            }
+          ]
         }
       ]
     },
@@ -1065,6 +1075,11 @@
           "value": "@input[tranchInfo][premiumPaymentsMissed_]"
         },
         {
+          "title": "Next premium index",
+          "type": "int",
+          "value": "@input[tranchInfo][nextPremiumIndex_]"
+        },
+        {
           "title": "Next premium due",
           "type": "int",
           "scale": "-18",
@@ -1213,6 +1228,17 @@
               "min": "0"
             }
           ]
+        },
+        {
+          "name": "amount",
+          "title": "Amount to pay (in WEI)",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
         }
       ],
       "execs": [
@@ -1222,7 +1248,8 @@
           "method": "payTranchPremium",
           "address": "@input[contractAddress]",
           "args": {
-            "_index": "@input[index]"
+            "_index": "@input[index]",
+            "_amount": "@input[amount]"
           }
         }
       ]
@@ -1264,6 +1291,17 @@
               "min": "0"
             }
           ]
+        },
+        {
+          "name": "amount",
+          "title": "Amount to pay (in WEI)",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
         }
       ],
       "execs": [
@@ -1274,7 +1312,8 @@
           "address": "@input[contractAddress]",
           "args": {
             "_policy": "@input[policyAddress]",
-            "_tranchIndex": "@input[index]"
+            "_tranchIndex": "@input[index]",
+            "_amount": "@input[amount]"
           }
         }
       ]

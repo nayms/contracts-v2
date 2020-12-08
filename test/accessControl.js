@@ -2,6 +2,7 @@ import EthVal from 'ethval'
 import { extractEventArgs, ADDRESS_ZERO, EvmSnapshot } from './utils'
 import { events } from '../'
 import { ensureAclIsDeployed } from '../migrations/modules/acl'
+import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
 import { ROLES, ROLEGROUPS } from '../utils/constants'
 
 const AccessControl = artifacts.require("./base/AccessControl")
@@ -10,13 +11,15 @@ contract('AccessControl', accounts => {
   const evmSnapshot = new EvmSnapshot()
 
   let acl
+  let settings
   let accessControl
   let accessControlContext
   let otherContext
 
   before(async () => {
     acl = await ensureAclIsDeployed({ artifacts })
-    accessControl = await AccessControl.new(acl.address)
+    settings = await ensureSettingsIsDeployed({ artifacts }, acl.address)
+    accessControl = await AccessControl.new(settings.address)
     accessControlContext = await accessControl.aclContext()
     otherContext = await acl.generateContextFromAddress(accounts[5])
   })

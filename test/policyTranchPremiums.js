@@ -180,6 +180,7 @@ contract('Policy Tranches: Premiums', accounts => {
 
         await policy.getTranchInfo(0).should.eventually.matchObj({
           numPremiums_: 0,
+          nextPremiumIndex_: 0,
           nextPremiumAmount_: 0,
           nextPremiumDueAt_: 0,
           premiumPaymentsMissed_: 0,
@@ -194,6 +195,7 @@ contract('Policy Tranches: Premiums', accounts => {
 
         await policy.getTranchInfo(0).should.eventually.matchObj({
           numPremiums_: 3,
+          nextPremiumIndex_: 0,
           nextPremiumAmount_: 2,
           nextPremiumDueAt_: policyAttrs.initiationDate,
           premiumPaymentsMissed_: 0,
@@ -245,6 +247,7 @@ contract('Policy Tranches: Premiums', accounts => {
         await policy.payTranchPremium(0, 2).should.be.fulfilled
 
         await policy.getTranchInfo(0).should.eventually.matchObj({
+          nextPremiumIndex_: 1,
           nextPremiumAmount_: 3,
           premiumPaymentsMissed_: 0,
           numPremiumsPaid_: 1,
@@ -269,6 +272,7 @@ contract('Policy Tranches: Premiums', accounts => {
         await policy.payTranchPremium(0, 3).should.be.fulfilled
 
         await policy.getTranchInfo(0).should.eventually.matchObj({
+          nextPremiumIndex_: 2,
           nextPremiumAmount_: 4,
           premiumPaymentsMissed_: 0,
           numPremiumsPaid_: 2,
@@ -298,6 +302,7 @@ contract('Policy Tranches: Premiums', accounts => {
         })
 
         await policy.getTranchInfo(0).should.eventually.matchObj({
+          nextPremiumIndex_: 0,
           nextPremiumAmount_: 2,
           premiumPaymentsMissed_: 0,
           numPremiumsPaid_: 0,
@@ -318,6 +323,7 @@ contract('Policy Tranches: Premiums', accounts => {
         })
 
         await policy.getTranchInfo(0).should.eventually.matchObj({
+          nextPremiumIndex_: 1,
           nextPremiumAmount_: 3,
           premiumPaymentsMissed_: 0,
           numPremiumsPaid_: 1,
@@ -347,6 +353,7 @@ contract('Policy Tranches: Premiums', accounts => {
         })
 
         await policy.getTranchInfo(0).should.eventually.matchObj({
+          nextPremiumIndex_: 1,
           nextPremiumAmount_: 3,
           premiumPaymentsMissed_: 0,
           numPremiumsPaid_: 1,
@@ -382,6 +389,7 @@ contract('Policy Tranches: Premiums', accounts => {
         })
 
         await policy.getTranchInfo(0).should.eventually.matchObj({
+          nextPremiumIndex_: 3,
           nextPremiumAmount_: 0,
           premiumPaymentsMissed_: 0,
           numPremiumsPaid_: 3,
@@ -424,6 +432,7 @@ contract('Policy Tranches: Premiums', accounts => {
 
         await policy.getTranchInfo(0).should.eventually.matchObj({
           numPremiums_: 3,
+          nextPremiumIndex_: 0,
           nextPremiumAmount_: 2,
           nextPremiumDueAt_: policyAttrs.initiationDate + (30 * 3),
           premiumPaymentsMissed_: 0,
@@ -435,6 +444,7 @@ contract('Policy Tranches: Premiums', accounts => {
         await policy.payTranchPremium(0, 2)
 
         await policy.getTranchInfo(0).should.eventually.matchObj({
+          nextPremiumIndex_: 1,
           nextPremiumAmount_: 3,
           premiumPaymentsMissed_: 0,
           numPremiumsPaid_: 1,
@@ -449,6 +459,7 @@ contract('Policy Tranches: Premiums', accounts => {
 
         await policy.getTranchInfo(0).should.eventually.matchObj({
           numPremiums_: 4,
+          nextPremiumIndex_: 0,
           nextPremiumAmount_: 2,
           nextPremiumDueAt_: policyAttrs.initiationDate,
           premiumPaymentsMissed_: 0,
@@ -493,6 +504,7 @@ contract('Policy Tranches: Premiums', accounts => {
 
         await policy.getTranchInfo(0).should.eventually.matchObj({
           numPremiums_: 4,
+          nextPremiumIndex_: 4,
           nextPremiumAmount_: 0,
           nextPremiumDueAt_: 0,
           premiumPaymentsMissed_: 0,
@@ -507,6 +519,7 @@ contract('Policy Tranches: Premiums', accounts => {
 
         await policy.getTranchInfo(0).should.eventually.matchObj({
           numPremiums_: 4,
+          nextPremiumIndex_: 0,
           nextPremiumAmount_: 2,
           nextPremiumDueAt_: policyAttrs.initiationDate,
           premiumPaymentsMissed_: 0,
@@ -548,6 +561,7 @@ contract('Policy Tranches: Premiums', accounts => {
 
         await policy.getTranchInfo(0).should.eventually.matchObj({
           numPremiums_: 4,
+          nextPremiumIndex_: 2,
           nextPremiumAmount_: 4,
           nextPremiumDueAt_: policyAttrs.initiationDate + (30 * 3),
           premiumPaymentsMissed_: 0,
@@ -576,6 +590,7 @@ contract('Policy Tranches: Premiums', accounts => {
       it('it requires first payment to have been made', async () => {
         await policy.getTranchInfo(0).should.eventually.matchObj({
           premiumPaymentsMissed_: 1,
+          nextPremiumIndex_: 0,
           nextPremiumAmount_: 2,
           numPremiumsPaid_: 0,
         })
@@ -601,6 +616,7 @@ contract('Policy Tranches: Premiums', accounts => {
 
       await policy.getTranchInfo(0).should.eventually.matchObj({
         premiumPaymentsMissed_: 0,
+        nextPremiumIndex_: 3,
         nextPremiumAmount_: 0,
         nextPremiumDueAt_: 0,
         numPremiumsPaid_: 3,

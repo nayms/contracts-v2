@@ -10,7 +10,7 @@ contract FreezeUpgradesFacet is IDiamondUpgradeFacet {
     revert('frozen');
   }
 
-  function getVersionInfo () public override view returns (string memory _num, uint256 _date, string memory _hash) {
+  function getVersionInfo () public override pure returns (string memory _num, uint256 _date, string memory _hash) {
     // empty
   }
 }

@@ -74,11 +74,11 @@ contract('Policy: Flow', accounts => {
     settings = await ensureSettingsIsDeployed({ artifacts }, acl.address)
 
     // wrappedEth
-    etherToken = await ensureEtherTokenIsDeployed({ artifacts }, acl.address, settings.address)
+    etherToken = await ensureEtherTokenIsDeployed({ artifacts }, settings.address)
 
     // entity
-    await ensureEntityImplementationsAreDeployed({ artifacts }, acl.address, settings.address)
-    const entityDeployer = await ensureEntityDeployerIsDeployed({ artifacts }, acl.address, settings.address)
+    await ensureEntityImplementationsAreDeployed({ artifacts }, settings.address)
+    const entityDeployer = await ensureEntityDeployerIsDeployed({ artifacts }, settings.address)
 
     await acl.assignRole(systemContext, accounts[0], ROLES.SYSTEM_MANAGER)
     const deployEntityTx = await entityDeployer.deploy()
@@ -92,7 +92,7 @@ contract('Policy: Flow', accounts => {
     await acl.assignRole(entityContext, accounts[1], ROLES.ENTITY_MANAGER)
     entityManagerAddress = accounts[1]
 
-    const [ policyCoreAddress ] = await ensurePolicyImplementationsAreDeployed({ artifacts }, acl.address, settings.address)
+    const [ policyCoreAddress ] = await ensurePolicyImplementationsAreDeployed({ artifacts }, settings.address)
 
     // get current evm time
     baseDate = parseInt((await settings.getTime()).toString(10))

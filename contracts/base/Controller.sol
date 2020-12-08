@@ -9,14 +9,12 @@ import "./AccessControl.sol";
 contract Controller is AccessControl, SettingsControl {
   /**
    * @dev Constructor.
-   * @param _acl ACL address.
    * @param _settings Settings address.
    */
-  constructor (address _acl, address _settings)
-    public
-    AccessControl(_acl)
+  constructor (address _settings)
+    AccessControl(_settings)
     SettingsControl(_settings)
+    public
   {
-    dataAddress["settings"] = _settings;
   }
 }

@@ -6,14 +6,14 @@ export const getCurrentEtherToken = async ({ artifacts, networkId, log }) => {
   return getCurrentInstance({ networkId, log, artifacts, type: 'IEtherToken', lookupType: 'EtherToken' })
 }
 
-export const ensureEtherTokenIsDeployed = async ({ deployer, artifacts, log, getTxParams = defaultGetTxParams }, aclAddress, settingsAddress) => {
+export const ensureEtherTokenIsDeployed = async ({ deployer, artifacts, log, getTxParams = defaultGetTxParams }, settingsAddress) => {
   log = createLog(log)
 
   let etherToken
 
   await log.task(`Deploy EtherToken`, async task => {
     const EtherToken = artifacts.require('./EtherToken')
-    etherToken = await deploy(deployer, getTxParams(), EtherToken, aclAddress, settingsAddress)
+    etherToken = await deploy(deployer, getTxParams(), EtherToken, settingsAddress)
     task.log(`Deployed at ${etherToken.address}`)
   })
 
@@ -26,7 +26,7 @@ export const ensureEtherTokenIsDeployed = async ({ deployer, artifacts, log, get
   return etherToken
 }
 
-export const deployNewEtherToken = async ({ artifacts }, aclAddress, settingsAddress) => {
+export const deployNewEtherToken = async ({ artifacts }, settingsAddress) => {
   const EtherToken = artifacts.require('./EtherToken')
-  return await EtherToken.new(aclAddress, settingsAddress)
+  return await EtherToken.new(settingsAddress)
 }

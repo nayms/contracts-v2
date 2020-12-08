@@ -17,7 +17,7 @@ contract EtherToken is Controller, IEtherToken {
   uint8 public constant override decimals = 18;
   uint256 public override totalSupply;
 
-  constructor (address _acl, address _settings) Controller(_acl, _settings) public {
+  constructor (address _settings) Controller(_settings) public {
     // nothing needed
   }
 

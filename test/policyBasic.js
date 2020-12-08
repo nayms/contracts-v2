@@ -90,11 +90,11 @@ contract('Policy: Basic', accounts => {
     market = await ensureMarketIsDeployed({ artifacts }, settings.address)
 
     // registry + wrappedEth
-    etherToken = await ensureEtherTokenIsDeployed({ artifacts }, acl.address, settings.address)
+    etherToken = await ensureEtherTokenIsDeployed({ artifacts }, settings.address)
 
     // entity
-    await ensureEntityImplementationsAreDeployed({ artifacts }, acl.address, settings.address)
-    entityDeployer = await ensureEntityDeployerIsDeployed({ artifacts }, acl.address, settings.address)
+    await ensureEntityImplementationsAreDeployed({ artifacts }, settings.address)
+    entityDeployer = await ensureEntityDeployerIsDeployed({ artifacts }, settings.address)
 
     await acl.assignRole(systemContext, accounts[0], ROLES.SYSTEM_MANAGER)
     const deployEntityTx = await entityDeployer.deploy()
@@ -109,7 +109,7 @@ contract('Policy: Basic', accounts => {
     await acl.assignRole(entityContext, accounts[2], ROLES.ENTITY_MANAGER)
     entityManagerAddress = accounts[2]
 
-    ;([ policyCoreAddress ] = await ensurePolicyImplementationsAreDeployed({ artifacts }, acl.address, settings.address))
+    ;([ policyCoreAddress ] = await ensurePolicyImplementationsAreDeployed({ artifacts }, settings.address))
 
     const policyStates = await IPolicyStates.at(policyCoreAddress)
     POLICY_STATE_CREATED = await policyStates.POLICY_STATE_CREATED()

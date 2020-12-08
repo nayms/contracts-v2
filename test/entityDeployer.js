@@ -18,9 +18,9 @@ contract('EntityDeployer', accounts => {
   before(async () => {
     acl = await ensureAclIsDeployed({ artifacts })
     settings = await ensureSettingsIsDeployed({ artifacts }, acl.address)
-    await ensureEntityImplementationsAreDeployed({ artifacts }, acl.address, settings.address)
+    await ensureEntityImplementationsAreDeployed({ artifacts }, settings.address)
 
-    deployer = await EntityDeployer.new(acl.address, settings.address)
+    deployer = await EntityDeployer.new(settings.address)
   })
 
   beforeEach(async () => {

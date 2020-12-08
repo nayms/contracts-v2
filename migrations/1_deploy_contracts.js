@@ -104,8 +104,8 @@ module.exports = async (deployer, network, accounts) => {
 
       await Promise.all([
         ensureMarketIsDeployed(cfg, settings.address),
-        ensureEtherTokenIsDeployed(cfg, acl.address, settings.address),
-        ensureEntityDeployerIsDeployed(cfg, acl.address, settings.address),
+        ensureEtherTokenIsDeployed(cfg, settings.address),
+        ensureEntityDeployerIsDeployed(cfg, settings.address),
       ])
     })
   } else {
@@ -120,8 +120,8 @@ module.exports = async (deployer, network, accounts) => {
     })
   }
 
-  await ensureEntityImplementationsAreDeployed(cfg, acl.address, settings.address)
-  await ensurePolicyImplementationsAreDeployed(cfg, acl.address, settings.address)
+  await ensureEntityImplementationsAreDeployed(cfg, settings.address)
+  await ensurePolicyImplementationsAreDeployed(cfg, settings.address)
 
   if (cfg.onlyDeployingUpgrades) {
     await upgradeExistingConstracts({ artifacts, log, getTxParams }, settings.address)

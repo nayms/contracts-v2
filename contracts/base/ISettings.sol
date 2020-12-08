@@ -1,11 +1,17 @@
 pragma solidity >=0.6.7;
 
 import "./ISettingsKeys.sol";
+import "./IACL.sol";
 
 /**
  * @dev Settings.
  */
 abstract contract ISettings is ISettingsKeys {
+  /**
+   * @dev Get ACL.
+   */
+  function acl() public view virtual returns (IACL);
+
   /**
    * @dev Get an address.
    *

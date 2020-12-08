@@ -12,8 +12,7 @@ const packageJsonFile = path.join(projectDir, 'package.json')
 const releaseConfigFile = path.join(projectDir, 'releaseConfig.json')
 const versionInfoContract = path.join(projectDir, 'contracts', 'VersionInfo.sol')
 
-const isCircleCi = !!process.env.CIRCLE_CI
-const isReleaseBranch = isCircleCi && process.env.CIRCLE_BRANCH === 'release'
+const isReleaseBranch = process.env.CIRCLE_BRANCH === 'release'
 const pullRequestUrl = process.env.CIRCLE_PULL_REQUEST
 
 let pullRequestNum

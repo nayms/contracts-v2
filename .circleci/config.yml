@@ -93,11 +93,8 @@ jobs:
           name: Authenticate with registry
           command: echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/repo/.npmrc
       - run:
-          name: Output package.json version
-          command: ./scripts/outputNpmTag.js
-      # - run:
-      #     name: Publish to NPM
-      #     command: npm run publish-to-npm
+          name: Publish to NPM
+          command: npm run publish-to-npm
   git_tag:
     executor: smart_contracts
     working_directory: ~/repo

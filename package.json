@@ -34,7 +34,7 @@
     "deploy:rinkeby": "yarn truffle migrate --network rinkeby",
     "deploy:local": "yarn truffle migrate --network test",
     "deploy-admin-dapp": "yarn build-admin-dapp && gh-pages -t -d dapp -e $(./scripts/outputVersion.js) -u \"Nayms Engineering <engineering@nayms.io>\"",
-    "publish-to-npm": "echo \"Publishing to tag: $(./scripts/outputNpmTag.js)\" && npm publish --tag $(./scripts/outputNpmTag.js)",
+    "publish-to-npm": "echo \"Publishing version: $(./scripts/outputVersion.js)\" && echo \"Publishing to tag: $(./scripts/outputNpmTag.js)\"",
     "lint": "solhint --config ./.solhint.json contracts/**/*.sol",
     "abi-encode": "./scripts/abiEncode.js"
   },

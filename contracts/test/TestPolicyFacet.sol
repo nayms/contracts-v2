@@ -36,6 +36,7 @@ contract TestPolicyFacet is IDiamondFacet, IPolicyCoreFacet {
     uint256 state_,
     uint256 balance_,
     uint256 numPremiums_,
+    uint256 nextPremiumIndex_,
     uint256 nextPremiumAmount_,
     uint256 nextPremiumDueAt_,
     uint256 premiumPaymentsMissed_,

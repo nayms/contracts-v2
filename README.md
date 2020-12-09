@@ -35,8 +35,7 @@ The key contracts are:
 * `Policy (IPolicy.sol)` - Interface for interacting with policies.
 * `Settings (ISettings.sol)` - Interface for global settings. We have a single global settings instance for our platform.
 
-We automatically deploy the first `Entity` via the `EntityDeployer`. This is the _Nayms company entity_ and its address
-can be obtained via `Settings.getAddress(SETTINGS.NAYMS_ENTITY)` as well as by calling `EntityDeployer.getEntity(0)`.
+The _Nayms company entity_ and its address can be obtained via `Settings.getAddress(SETTINGS.NAYMS_ENTITY)`.
 
 ## Example usage
 
@@ -88,8 +87,7 @@ yarn compile
 yarn deploy:local
 # The addresses at which the contract are deployed will be output in the terminal.
 ```
-
-## Development
+## Development
 
 **Note: Requires Node 12+**
 
@@ -130,9 +128,13 @@ Now you can run the tests:
 yarn test
 ```
 
-### Deployments
+### Deployments
 
-**NOTE: Pushing to the `release` branch will result in a Rinkeby deployment as well as the admin dapp being deployed.**
+Setup release config:
+
+```
+yarn setup-release-config
+```
 
 Set up the env vars:
 
@@ -141,22 +143,39 @@ export MNEMONIC="..."
 export INFURA_KEY="..."
 ```
 
-To deploy a fresh set of contracts and update `deployedAddresses.json`, do:
-
-```shell
-FRESH=true yarn deploy:rinkeby
-```
-
-To just upgrade existing contracts:
+To upgrade existing Rinkeby contracts:
 
 ```shell
 yarn deploy:rinkeby
 ```
 
-For mainnet it's the same process, but using the `deploy:mainnet` command instead.
+For mainnet:
 
-_Note: when deploying to public networks, if deployment fails with a "transaction underpriced" error then it means there are pending transactions for the deployment account - you need to wait for these to complete before trying again._
+```shell
+yarn deploy:rinkeby
+```
 
-## Notes
+**Fresh deployments**
+
+To deploy a fresh set of contracts and update `deployedAddresses.json`, edit `releaseConfig.json` and add the following keys before running the deploy command:
+
+```shell
+{
+  ...
+  "freshDeployment": true,
+  "extractDeployedAddresses": true,
+}
+```
+
+**The `release` branch**
+
+Pushing to the `release` branch will result in a Rinkeby deployment as well as the admin dapp being deployed.
+
+**Known issues**
+
+When deploying to public networks, if deployment fails with a "transaction underpriced" error then it means there are pending transactions for the deployment account - you need to wait for these to complete before trying again.
+
+
+## Notes
 
 * We use `block.timestamp (now)` in the code. We assume this is safe to do since our timescales occur across days and months rather than seconds, see https://medium.com/@phillipgoldberg/smart-contract-best-practices-revisited-block-number-vs-timestamp-648905104323

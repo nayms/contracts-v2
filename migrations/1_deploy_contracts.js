@@ -88,7 +88,7 @@ module.exports = async (deployer, network, accounts) => {
     log,
     networkId,
     getTxParams,
-    onlyDeployingUpgrades: !(releaseConfig.freshDeployment || networkInfo.isLocal)
+    onlyDeployingUpgrades: !releaseConfig.freshDeployment,
   }
 
   if (!cfg.onlyDeployingUpgrades) {
@@ -125,7 +125,7 @@ module.exports = async (deployer, network, accounts) => {
     await upgradeExistingConstracts({ artifacts, log, getTxParams }, settings.address)
   }
 
-  if (releaseConfig.freshDeployment) {
+  if (releaseConfig.extractDeployedAddresses) {
     updateDeployedAddressesJson()
   }
 }

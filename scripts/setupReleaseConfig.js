@@ -41,6 +41,10 @@ async function main () {
       releaseInfo.npmTag = `pr${pullRequestNum}`
       releaseInfo.npmPkgVersion = `1.0.0-pr.${pullRequestNum}.build.${buildNum}`
     } else {
+      // BEGIN: TEMP
+      releaseInfo.freshDeployment = true
+      releaseInfo.extractDeployedAddresses = true
+      // END: TEMP
       releaseInfo.deployRinkeby = true
       releaseInfo.npmTag = `latest`
       releaseInfo.npmPkgVersion = `1.0.0-build.${buildNum}`

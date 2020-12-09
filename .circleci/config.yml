@@ -111,8 +111,8 @@ jobs:
           name: Git tag
           command: git tag v$(./scripts/outputVersion.js)
       - run:
-          name: Add Github to known_hosts
-          command: mkdir -p ~/.ssh && ssh-keyscan -p 443 ssh.github.com >> ~/.ssh/known_hosts
+          name: Avoid hosts unknown for github
+          command: mkdir ~/.ssh/ && echo -e "Host github.com\n\tStrictHostKeyChecking no\n" > ~/.ssh/config          
       - run:
           name: Git push
           command: git push --tags

@@ -1,6 +1,6 @@
 {
   "name": "@nayms/contracts",
-  "version": "1.0.0-local.1607440689705",
+  "version": "1.0.0-local.1607597463508",
   "description": "Nayms smart contracts",
   "main": "index.js",
   "publishConfig": {
@@ -25,11 +25,11 @@
     "test": "yarn truffle test --network test",
     "trace": "MODE=trace yarn test",
     "coverage": "rm -rf coverage && yarn truffle run coverage --network coverage",
-    "copy-maker-otc-artifacts": "./scripts/copyMakerOtcArtifacts.js",
+    "copy-artifacts": "./scripts/copyArtifacts.js",
     "generate-index": "./scripts/generateIndex.js",
     "setup-release-config": "./scripts/setupReleaseConfig.js",
     "build-admin-dapp": "./scripts/generateAdminDapp.js && node_modules/.bin/solui publish-folder --spec ./dapp-generated.json --artifacts ./build/contracts --folder ./dapp",
-    "compile": "rm -rf build && yarn truffle compile --network test && yarn copy-maker-otc-artifacts && yarn generate-index",
+    "compile": "rm -rf build && yarn truffle compile --network test && yarn copy-artifacts && yarn generate-index",
     "deploy:mainnet": "yarn truffle migrate --network mainnet",
     "deploy:rinkeby": "yarn truffle migrate --network rinkeby",
     "deploy:local": "yarn truffle migrate --network test",
@@ -83,6 +83,8 @@
     "yargs": "^9.0.1"
   },
   "dependencies": {
+    "@gnosis.pm/safe-contracts": "^1.2.0",
+    "ethereumjs-util": "^7.0.7",
     "js-sha3": "^0.8.0"
   },
   "engines": {

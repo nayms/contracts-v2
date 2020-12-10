@@ -1,8 +1,8 @@
 const { createLog } = require('../utils/log')
 const { deploy, getCurrentInstance, defaultGetTxParams } = require('../utils')
 
-export const getCurrentSettings = async ({ artifacts, networkId, log }) => {
-  return getCurrentInstance({ networkId, log, artifacts, type: 'ISettings', lookupType: 'Settings' })
+export const getCurrentSettings = async ({ artifacts, networkInfo, log }) => {
+  return getCurrentInstance({ networkInfo, log, artifacts, type: 'ISettings', lookupType: 'Settings' })
 }
 
 export const ensureSettingsIsDeployed = async ({ deployer, artifacts, log, getTxParams = defaultGetTxParams }, aclAddress) => {

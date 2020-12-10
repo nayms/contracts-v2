@@ -1,5 +1,5 @@
 const mnemonic = process.env.MNEMONIC || 'notset'
-const infuraKey = process.env.INFURA_KEY || 'notset'
+const infuraKey = process.env.INFURA_KEY || process.env.INFURA_ID || 'notset'
 
 const HDWalletProvider = require('truffle-hdwallet-provider')
 

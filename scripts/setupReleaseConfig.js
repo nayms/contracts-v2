@@ -42,6 +42,7 @@ async function main () {
       releaseInfo.npmPkgVersion = `1.0.0-pr.${pullRequestNum}.build.${buildNum}`
     } else {
       releaseInfo.deployRinkeby = true
+      releaseInfo.multisig = '0x52A1A89bF7C028f889Bf57D50aEB7B418c2Fc79B' // nayms rinkeby gnosis SAFE
       releaseInfo.npmTag = `latest`
       releaseInfo.npmPkgVersion = `1.0.0-build.${buildNum}`
     }

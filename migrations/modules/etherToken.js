@@ -2,8 +2,8 @@ const { createLog } = require('../utils/log')
 const { deploy, getCurrentInstance, defaultGetTxParams } = require('../utils')
 const { SETTINGS } = require('../../utils/constants')
 
-export const getCurrentEtherToken = async ({ artifacts, networkId, log }) => {
-  return getCurrentInstance({ networkId, log, artifacts, type: 'IEtherToken', lookupType: 'EtherToken' })
+export const getCurrentEtherToken = async ({ artifacts, networkInfo, log }) => {
+  return getCurrentInstance({ networkInfo, log, artifacts, type: 'IEtherToken', lookupType: 'EtherToken' })
 }
 
 export const ensureEtherTokenIsDeployed = async ({ deployer, artifacts, log, getTxParams = defaultGetTxParams }, settingsAddress) => {

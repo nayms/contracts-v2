@@ -4,8 +4,8 @@ const { createLog } = require('../utils/log')
 
 const { ROLES, ROLEGROUPS } = require('../../utils/constants')
 
-export const getCurrentAcl = async ({ artifacts, networkId, log }) => {
-  return getCurrentInstance({ networkId, log, artifacts, type: 'IACL', lookupType: 'ACL' })
+export const getCurrentAcl = async ({ artifacts, networkInfo, log }) => {
+  return getCurrentInstance({ networkInfo, log, artifacts, type: 'IACL', lookupType: 'ACL' })
 }
 
 export const ensureAclIsDeployed = async ({ deployer, artifacts, log, getTxParams = defaultGetTxParams }) => {

@@ -1,9 +1,9 @@
 const { createLog } = require('../utils/log')
 const { SETTINGS } = require('../../utils/constants')
-const { defaultGetTxParams } = require('../utils')
+const { execCall } = require('../utils')
 
 
-const upgradeIfNeeded = async ({ task, item, latestVersionInfo, facetAddresses, logStrPrefix, getTxParams }) => {
+const upgradeIfNeeded = async ({ task, item, latestVersionInfo, facetAddresses, logStrPrefix, cfg }) => {
   let needUpgrade = false
 
   try {
@@ -31,7 +31,13 @@ const upgradeIfNeeded = async ({ task, item, latestVersionInfo, facetAddresses, 
   if (needUpgrade) {
     await task.log(`${logStrPrefix} Requires upgrade: ${needUpgrade}`)
 
-    await item.upgrade(facetAddresses, getTxParams())
+    await execCall({
+      task,
+      contract: item,
+      method: 'upgrade',
+      args: [facetAddresses],
+      cfg,
+    })
 
     await task.log(`${logStrPrefix} Upgraded!`)
   } else {
@@ -65,8 +71,9 @@ const getImplsVersion = async ({ artifacts, settings, implsKey }) => {
 }
 
 
-export const upgradeExistingConstracts = async ({ artifacts, log, getTxParams = defaultGetTxParams }, settingsAddress) => {
-  log = createLog(log)
+export const upgradeExistingConstracts = async (cfg, settingsAddress) => {
+  const { artifacts, log: baseLog } = cfg
+  const log = createLog(baseLog)
 
   const Settings = artifacts.require('./ISettings')
   const EntityDeployer = await artifacts.require('./IEntityDeployer')
@@ -101,7 +108,7 @@ export const upgradeExistingConstracts = async ({ artifacts, log, getTxParams = 
         latestVersionInfo: latestEntityVersionInfo,
         facetAddresses: entityImplAddresses,
         logStrPrefix: `--->`,
-        getTxParams,
+        cfg,
       })
 
       let numPolicies
@@ -127,7 +134,7 @@ export const upgradeExistingConstracts = async ({ artifacts, log, getTxParams = 
           latestVersionInfo: latestPolicyVersionInfo,
           facetAddresses: policyImplAddresses,
           logStrPrefix: `--------->`,
-          getTxParams,
+          cfg,
         })
       }
     }

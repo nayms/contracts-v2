@@ -1,9 +1,10 @@
 const { createLog } = require('../utils/log')
-const { deploy, defaultGetTxParams } = require('../utils')
+const { deploy, defaultGetTxParams, execCall } = require('../utils')
 const { SETTINGS } = require('../../utils/constants')
 
-export const ensurePolicyImplementationsAreDeployed = async ({ deployer, artifacts, log, getTxParams = defaultGetTxParams }, settingsAddress) => {
-  log = createLog(log)
+export const ensurePolicyImplementationsAreDeployed = async (cfg, settingsAddress) => {
+  const { deployer, artifacts, log: baseLog, getTxParams = defaultGetTxParams } = cfg
+  const log = createLog(baseLog)
 
   let addresses
 
@@ -30,7 +31,14 @@ export const ensurePolicyImplementationsAreDeployed = async ({ deployer, artifac
   await log.task(`Saving policy implementation addresses to settings`, async task => {
     const Settings = artifacts.require('./ISettings')
     const settings = await Settings.at(settingsAddress)
-    await settings.setAddresses(settings.address, SETTINGS.POLICY_IMPL, addresses, getTxParams())
+
+    await execCall({
+      task,
+      contract: settings,
+      method: 'setAddresses',
+      args: [settings.address, SETTINGS.POLICY_IMPL, addresses],
+      cfg,
+    })
   })
 
   return addresses

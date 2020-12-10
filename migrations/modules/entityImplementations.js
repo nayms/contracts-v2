@@ -1,9 +1,10 @@
 const { createLog } = require('../utils/log')
-const { deploy, defaultGetTxParams } = require('../utils')
+const { deploy, defaultGetTxParams, execCall } = require('../utils')
 const { SETTINGS } = require('../../utils/constants')
 
-export const ensureEntityImplementationsAreDeployed = async ({ deployer, artifacts, log, getTxParams = defaultGetTxParams, }, settingsAddress) => {
-  log = createLog(log)
+export const ensureEntityImplementationsAreDeployed = async (cfg, settingsAddress) => {
+  const { deployer, artifacts, log: baseLog, getTxParams = defaultGetTxParams } = cfg
+  const log = createLog(baseLog)
 
   let addresses
 
@@ -23,7 +24,14 @@ export const ensureEntityImplementationsAreDeployed = async ({ deployer, artifac
   await log.task(`Saving entity implementation addresses to settings`, async task => {
     const Settings = artifacts.require('./ISettings')
     const settings = await Settings.at(settingsAddress)
-    await settings.setAddresses(settings.address, SETTINGS.ENTITY_IMPL, addresses, getTxParams())
+
+    await execCall({
+      task,
+      contract: settings,
+      method: 'setAddresses',
+      args: [settings.address, SETTINGS.ENTITY_IMPL, addresses],
+      cfg,
+    })
   })
 
   return addresses

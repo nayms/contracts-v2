@@ -37,11 +37,6 @@ module.exports = async (deployer, network, accounts) => {
 
   // check network
   switch (network) {
-    case 'test':
-      // turn off multisig on test network
-      log.log(`Turning off multisig for test network deployment`)
-      releaseConfig.multisig = false
-      break
     case 'mainnet':
       canMultisig = true
       if (!releaseConfig.deployMainnet) {

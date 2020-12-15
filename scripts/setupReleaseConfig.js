@@ -14,6 +14,7 @@ const versionInfoContract = path.join(projectDir, 'contracts', 'VersionInfo.sol'
 
 const isReleaseBranch = process.env.CIRCLE_BRANCH === 'release'
 const pullRequestUrl = process.env.CIRCLE_PULL_REQUEST
+const isForTesting = !!process.env.TEST
 
 let pullRequestNum
 if (pullRequestUrl) {
@@ -32,7 +33,7 @@ async function main () {
 
   const releaseInfo = {}
 
-  if (isReleaseBranch || pullRequestNum) {
+  if (isReleaseBranch || pullRequestNum && (!isForTesting)) {
     if (pullRequestNum) {
       releaseInfo.freshDeployment = true
       releaseInfo.extractDeployedAddresses = true

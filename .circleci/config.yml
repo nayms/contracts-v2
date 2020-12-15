@@ -40,7 +40,7 @@ jobs:
           command: git submodule init && git submodule update
       - run:
           name: Setup release config
-          command: yarn setup-release-config
+          command: TEST=true yarn setup-release-config
       - run:
           name: Compile
           command: yarn compile
@@ -65,6 +65,9 @@ jobs:
     steps:
       - attach_workspace:
           at: ~/repo
+      - run:
+          name: Setup release config
+          command: yarn setup-release-config
       - run:
           name: Deploy to Rinkeby
           command: yarn deploy:rinkeby

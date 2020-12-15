@@ -16,8 +16,6 @@ const isReleaseBranch = process.env.CIRCLE_BRANCH === 'release'
 const pullRequestUrl = process.env.CIRCLE_PULL_REQUEST
 const isForTesting = !!process.env.TEST
 
-console.log(process.env, isForTesting)
-
 let pullRequestNum
 if (pullRequestUrl) {
   pullRequestNum = pullRequestUrl.substr(pullRequestUrl.lastIndexOf('/') + 1)
@@ -35,7 +33,7 @@ async function main () {
 
   const releaseInfo = {}
 
-  if (isReleaseBranch || pullRequestNum && (!isForTesting)) {
+  if ((!isForTesting) && (isReleaseBranch || pullRequestNum)) {
     if (pullRequestNum) {
       releaseInfo.freshDeployment = true
       releaseInfo.extractDeployedAddresses = true

@@ -37,16 +37,21 @@ module.exports = async (deployer, network, accounts) => {
 
   // check network
   switch (network) {
+    case 'test':
+      // turn off multisig on test network
+      log.log(`Turning off multisig for test network deployment`)
+      releaseConfig.multisig = false
+      break
     case 'mainnet':
       canMultisig = true
       if (!releaseConfig.deployMainnet) {
-        throw new Error('Relase config does not allow Mainnet deployment')
+        throw new Error('Release config does not allow Mainnet deployment')
       }
       break
     case 'rinkeby':
       canMultisig = true
       if (!releaseConfig.deployRinkeby) {
-        throw new Error('Relase config does not allow Rinkeby deployment')
+        throw new Error('Release config does not allow Rinkeby deployment')
       }
       break
     default:

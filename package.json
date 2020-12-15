@@ -42,6 +42,7 @@
   "author": "Ramesh Nair <ram@hiddentao.com>",
   "license": "MIT",
   "devDependencies": {
+    "@gnosis.pm/safe-contracts": "^1.2.0",
     "@solui/cli": "^1.9.1",
     "argv": "0.0.2",
     "babel-cli": "^6.26.0",
@@ -84,7 +85,6 @@
     "yargs": "^9.0.1"
   },
   "dependencies": {
-    "@gnosis.pm/safe-contracts": "^1.2.0",
     "ethereumjs-util": "^7.0.7",
     "js-sha3": "^0.8.0"
   },

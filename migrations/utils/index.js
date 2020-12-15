@@ -1,6 +1,5 @@
 const path = require('path')
 const got = require('got')
-const GnosisSafeAbi = require('@gnosis.pm/safe-contracts/build/contracts/GnosisSafe.json')
 const ethUtil = require('ethereumjs-util')
 
 const { keccak256 } = require('../../utils/functions')
@@ -38,7 +37,7 @@ exports.execCall = async ({ task, contract, method, args, cfg }) => {
         throw new Error(`Cannot use multisig for network ${JSON.stringify(networkInfo)}`)
     }
 
-    const GnosisSafe = await artifacts.require('../../node_modules/@gnosis.pm/safe-contracts/build/contracts/GnosisSafe')
+    const GnosisSafe = await artifacts.require('GnosisSafe')
     const safe = await GnosisSafe.at(multisig)
 
     const cm = contract.contract.methods

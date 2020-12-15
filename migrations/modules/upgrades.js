@@ -57,7 +57,7 @@ const getImplsVersion = async ({ artifacts, settings, implsKey }) => {
       const versionInfo = await facet.getVersionInfo()
       if (versionInfo.num_) {
         const ret = {
-          num: versionInfo.num_.toNumber(),
+          num: versionInfo.num_,
           date: versionInfo.date_.toNumber(),
           hash: versionInfo.hash_,
         }

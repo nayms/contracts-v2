@@ -28,6 +28,7 @@
     "copy-artifacts": "./scripts/copyArtifacts.js",
     "generate-index": "./scripts/generateIndex.js",
     "setup-release-config": "./scripts/setupReleaseConfig.js",
+    "setup-release-config-for-testing": "TEST=true ./scripts/setupReleaseConfig.js",
     "build-admin-dapp": "./scripts/generateAdminDapp.js && node_modules/.bin/solui publish-folder --spec ./dapp-generated.json --artifacts ./build/contracts --folder ./dapp",
     "compile": "rm -rf build && yarn truffle compile --network test && yarn copy-artifacts && yarn generate-index",
     "deploy:mainnet": "yarn truffle migrate --network mainnet",

@@ -40,7 +40,7 @@ jobs:
           command: git submodule init && git submodule update
       - run:
           name: Setup release config
-          command: TEST=true yarn setup-release-config
+          command: yarn setup-release-config-for-testing
       - run:
           name: Compile
           command: yarn compile

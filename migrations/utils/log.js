@@ -6,20 +6,20 @@ exports.createLog = logger => {
     return logger
   }
 
-  const logMsg = logger ? msg => logger(chalk.blue(msg)) : () => {}
+  const logMsg = logger ? (msg, col = 'blue') => logger(chalk[col].call(chalk, msg)) : () => {}
   let step = 0
 
   return {
     log: logMsg,
     task: async (name, fn) => {
       const num = ++step
-      logMsg(`[${num}] BEGIN: ${name} ...`)
+      logMsg(`[${num}] BEGIN: ${name} ...`, 'cyan')
 
       const ret = await fn({
-        log: msg => logMsg(`[${num}] ${msg}`)
+        log: (msg, col) => logMsg(`[${num}] ${msg}`, col)
       })
 
-      logMsg(`[${num}] ... END: ${name}`)
+      logMsg(`[${num}] ... END: ${name}`, 'cyan')
 
       return ret
     }

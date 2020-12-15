@@ -1,9 +1,10 @@
 const _ = require('lodash')
 const path = require('path')
 const got = require('got')
+const { EthHdWallet } = require('eth-hd-wallet')
 
 const { createLog } = require('./utils/log')
-const { getMatchingNetwork, defaultGetTxParams } = require('./utils')
+const { getMatchingNetwork, defaultGetTxParams, ADDRESS_ZERO, execCall } = require('./utils')
 const { getCurrentAcl, ensureAclIsDeployed } = require('./modules/acl')
 const { getCurrentSettings, ensureSettingsIsDeployed } = require('./modules/settings')
 const { getCurrentMarket, ensureMarketIsDeployed } = require('./modules/market')
@@ -32,14 +33,18 @@ module.exports = async (deployer, network, accounts) => {
 
   const releaseConfig = require('../releaseConfig.json')
 
-  // check network against deployment rules
+  let canMultisig = false
+
+  // check network
   switch (network) {
     case 'mainnet':
+      canMultisig = true
       if (!releaseConfig.deployMainnet) {
         throw new Error('Relase config does not allow Mainnet deployment')
       }
       break
     case 'rinkeby':
+      canMultisig = true
       if (!releaseConfig.deployRinkeby) {
         throw new Error('Relase config does not allow Rinkeby deployment')
       }
@@ -48,11 +53,27 @@ module.exports = async (deployer, network, accounts) => {
       // do nothing
   }
 
+  let hdWallet
+
+  // if trying to do multisig
+  if (releaseConfig.multisig) {
+    if (!canMultisig) {
+      throw new Error(`Cannot use multisig with network: ${network} !`)
+    }
+
+    if (!process.env.MNEMONIC) {
+      throw new Error('MNEMONIC env var must be set')
+    }
+
+    // generate HD wallet for use with multisig signing
+    hdWallet = EthHdWallet.fromMnemonic(process.env.MNEMONIC)
+    hdWallet.generateAddresses(1)
+  }
+
   let acl
   let settings
 
   const networkInfo = getMatchingNetwork({ name: network })
-  const networkId = networkInfo.id
 
   let getTxParams
 
@@ -83,13 +104,18 @@ module.exports = async (deployer, network, accounts) => {
   }
 
   const cfg = {
+    web3,
     deployer,
     artifacts,
+    accounts,
     log,
-    networkId,
+    networkInfo,
     getTxParams,
     onlyDeployingUpgrades: !releaseConfig.freshDeployment,
+    multisig: releaseConfig.multisig,
+    hdWallet,
   }
+
 
   if (!cfg.onlyDeployingUpgrades) {
     if (networkInfo.isLocal) {
@@ -122,7 +148,7 @@ module.exports = async (deployer, network, accounts) => {
   await ensurePolicyImplementationsAreDeployed(cfg, settings.address)
 
   if (cfg.onlyDeployingUpgrades) {
-    await upgradeExistingConstracts({ artifacts, log, getTxParams }, settings.address)
+    await upgradeExistingConstracts(cfg, settings.address)
   }
 
   if (releaseConfig.extractDeployedAddresses) {

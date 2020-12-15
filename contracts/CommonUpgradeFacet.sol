@@ -2,6 +2,7 @@ pragma solidity >=0.6.7;
 
 import "./base/Controller.sol";
 import "./base/IDiamondUpgradeFacet.sol";
+import "./base/IDiamondProxy.sol";
 import "./VersionInfo.sol";
 
 contract CommonUpgradeFacet is Controller, IDiamondUpgradeFacet, VersionInfo {

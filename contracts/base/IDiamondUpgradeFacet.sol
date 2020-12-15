@@ -1,8 +1,6 @@
 pragma solidity >=0.6.7;
 
-import "./EternalStorage.sol";
 import "./IDiamondFacet.sol";
-import "./IDiamondProxy.sol";
 
 abstract contract IDiamondUpgradeFacet is IDiamondFacet {
   // IDiamondFacet

@@ -37,7 +37,7 @@ exports.execCall = async ({ task, contract, method, args, cfg }) => {
         throw new Error(`Cannot use multisig for network ${JSON.stringify(networkInfo)}`)
     }
 
-    const GnosisSafe = await artifacts.require('GnosisSafe')
+    const GnosisSafe = await artifacts.require('./GnosisSafe')
     const safe = await GnosisSafe.at(multisig)
 
     const cm = contract.contract.methods

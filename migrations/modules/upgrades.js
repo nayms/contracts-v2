@@ -55,6 +55,7 @@ const getImplsVersion = async ({ artifacts, settings, implsKey }) => {
     try {
       const facet = await IDiamondUpgradeFacet.at(addresses[i])
       const versionInfo = await facet.getVersionInfo()
+      console.log(versionInfo)
       if (versionInfo.num_) {
         const ret = {
           num: versionInfo.num_,
@@ -64,7 +65,10 @@ const getImplsVersion = async ({ artifacts, settings, implsKey }) => {
 
         return ret
       }
-    } catch (err) { /* do nothing */ }
+    } catch (err) { 
+      console.error(err)
+      /* do nothing */ 
+    }
   }
 
   throw new Error('Unable to get current impl version info')

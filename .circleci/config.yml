@@ -44,7 +44,7 @@ jobs:
       - run:
           name: Compile
           command: yarn compile
-      - run:
+      # - run:
       #     name: Deploy contracts to test chain
       #     command: yarn deploy:local
       # - run:

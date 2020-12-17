@@ -116,9 +116,9 @@ jobs:
       - run:
           name: Avoid hosts unknown for github
           command: mkdir ~/.ssh/ && echo -e "Host github.com\n\tStrictHostKeyChecking no\n" > ~/.ssh/config          
-      - run:
-          name: Git push to update branch
-          command: git push -u origin release
+      # - run: ONLY RUN WHEN WE WISH TO UPDATE deployedAddresses.json
+      #     name: Git push to update branch
+      #     command: git push -u origin release
       - run:
           name: Git push tags
           command: git push --follow-tags

@@ -121,7 +121,7 @@ jobs:
       #     command: git push -u origin release
       - run:
           name: Git push tags
-          command: git push --follow-tags
+          command: git push --tags
 
 workflows:
   version: 2

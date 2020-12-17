@@ -118,7 +118,7 @@ jobs:
           command: mkdir ~/.ssh/ && echo -e "Host github.com\n\tStrictHostKeyChecking no\n" > ~/.ssh/config          
       - run:
           name: Git push
-          command: git push -u origin release && git push --follow-tags
+          command: git push --follow-tags
 
 workflows:
   version: 2

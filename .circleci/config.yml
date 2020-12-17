@@ -117,8 +117,11 @@ jobs:
           name: Avoid hosts unknown for github
           command: mkdir ~/.ssh/ && echo -e "Host github.com\n\tStrictHostKeyChecking no\n" > ~/.ssh/config          
       - run:
-          name: Git push
-          command: git push -u origin release && git push --follow-tags
+          name: Git push to update branch
+          command: git push -u origin release
+      - run:
+          name: Git push tags
+          command: git push --follow-tags
 
 workflows:
   version: 2

@@ -18,7 +18,7 @@ contract('AccessControl', accounts => {
 
   before(async () => {
     acl = await ensureAclIsDeployed({ artifacts })
-    settings = await ensureSettingsIsDeployed({ artifacts }, acl.address)
+    settings = await ensureSettingsIsDeployed({ artifacts, acl })
     accessControl = await AccessControl.new(settings.address)
     accessControlContext = await accessControl.aclContext()
     otherContext = await acl.generateContextFromAddress(accounts[5])

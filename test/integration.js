@@ -87,7 +87,7 @@ contract('End-to-end integration tests', accounts => {
     // acl
     acl = await ensureAclIsDeployed({ artifacts })
     // settings
-    settings = await ensureSettingsIsDeployed({ artifacts }, acl.address)
+    settings = await ensureSettingsIsDeployed({ artifacts, acl })
 
     calcTime = async deltaSeconds => {
       const t = await settings.getTime()
@@ -96,12 +96,12 @@ contract('End-to-end integration tests', accounts => {
     }
 
     // wrappedEth
-    etherToken = await ensureEtherTokenIsDeployed({ artifacts }, settings.address)
+    etherToken = await ensureEtherTokenIsDeployed({ artifacts, settings })
     // entities
-    await ensureEntityImplementationsAreDeployed({ artifacts }, settings.address)
+    await ensureEntityImplementationsAreDeployed({ artifacts, settings })
     entityDeployer = await ensureEntityDeployerIsDeployed({ artifacts }, settings.address)
     // policies
-    ;([ policyCoreAddress ] = await ensurePolicyImplementationsAreDeployed({ artifacts }, settings.address))
+    ;([ policyCoreAddress ] = await ensurePolicyImplementationsAreDeployed({ artifacts, settings }))
     const policyStates = await IPolicyStates.at(policyCoreAddress)
     POLICY_STATE_CREATED = await policyStates.POLICY_STATE_CREATED()
     POLICY_STATE_SELLING = await policyStates.POLICY_STATE_SELLING()
@@ -113,7 +113,7 @@ contract('End-to-end integration tests', accounts => {
     TRANCH_STATE_MATURED = await policyStates.TRANCH_STATE_MATURED()
     TRANCH_STATE_CANCELLED = await policyStates.TRANCH_STATE_CANCELLED()
     // market
-    market = await ensureMarketIsDeployed({ artifacts }, settings.address)
+    market = await ensureMarketIsDeployed({ artifacts, settings })
 
     systemAdmin = accounts[0]
     systemContext = await acl.systemContext()

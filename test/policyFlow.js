@@ -71,13 +71,13 @@ contract('Policy: Flow', accounts => {
     systemContext = await acl.systemContext()
 
     // settings
-    settings = await ensureSettingsIsDeployed({ artifacts }, acl.address)
+    settings = await ensureSettingsIsDeployed({ artifacts, acl })
 
     // wrappedEth
-    etherToken = await ensureEtherTokenIsDeployed({ artifacts }, settings.address)
+    etherToken = await ensureEtherTokenIsDeployed({ artifacts, settings })
 
     // entity
-    await ensureEntityImplementationsAreDeployed({ artifacts }, settings.address)
+    await ensureEntityImplementationsAreDeployed({ artifacts, settings })
     const entityDeployer = await ensureEntityDeployerIsDeployed({ artifacts }, settings.address)
 
     await acl.assignRole(systemContext, accounts[0], ROLES.SYSTEM_MANAGER)
@@ -92,7 +92,7 @@ contract('Policy: Flow', accounts => {
     await acl.assignRole(entityContext, accounts[1], ROLES.ENTITY_MANAGER)
     entityManagerAddress = accounts[1]
 
-    const [ policyCoreAddress ] = await ensurePolicyImplementationsAreDeployed({ artifacts }, settings.address)
+    const [ policyCoreAddress ] = await ensurePolicyImplementationsAreDeployed({ artifacts, settings })
 
     // get current evm time
     baseDate = parseInt((await settings.getTime()).toString(10))
@@ -128,7 +128,7 @@ contract('Policy: Flow', accounts => {
     const policyContext = await policyProxy.aclContext()
 
     // get market address
-    market = await ensureMarketIsDeployed({ artifacts }, settings.address)
+    market = await ensureMarketIsDeployed({ artifacts, settings })
 
     // setup two tranches
     await createTranch(policy, {

@@ -1,56 +1,39 @@
 const fs = require('fs')
 const path = require('path')
 
-const { getMatchingNetwork } = require('.')
+const { createLog } = require('./log')
 
-export const updateDeployedAddressesJson = () => {
-  console.log('Updating deployedAddresses.json ...')
+export const updateDeployedAddressesJson = async cfg => {
+  const { log: baseLog, networkInfo: { id: networkId } } = cfg
 
-  const projectDir = path.join(__dirname, '..', '..')
-  const deployedAddressesJsonPath = path.join(projectDir, 'deployedAddresses.json')
-  const currentAddresses = require(deployedAddressesJsonPath)
+  const log = createLog(baseLog)
 
-  const raw = [
-    'ACL',
-    'EntityDeployer',
-    'MatchingMarket',
-    'Settings',
-    'EtherToken',
-  ].reduce((m, name) => {
-    const jsonPath = path.join(projectDir, 'build', 'contracts', `${name}.json`)
-    const { networks } = require(jsonPath)
-    Object.keys(networks).forEach(key => {
-      switch (key) {
-        case '1': // mainnet
-        case '3': // ropsten
-        case '4': // rinkeby
-        case '5': // goerli
-        case '42': // kovan
-          break
-        default:
-          delete networks[key]
-      }
-    })
+  await log.task('Update deployedAddresses.json', async task => {
+    const projectDir = path.join(__dirname, '..', '..')
+    const deployedAddressesJsonPath = path.join(projectDir, 'deployedAddresses.json')
+    const currentAddresses = require(deployedAddressesJsonPath)
+    const final = currentAddresses
 
-    m[name] = networks
+    const MAP = {
+      ACL: 'acl',
+      Settings: 'settings',
+      EntityDeployer: 'entityDeployer',
+      EtherToken: 'etherToken',
+      Market: 'market',
+    }
 
-    return m
-  }, {})
+    Object.keys(MAP).forEach(name => {
+      final[name] = final[name] || {}
 
-  const final = currentAddresses
+      task.log(`Updating ${name} address for network ${networkId} to: ${cfg[MAP[name]].address}`)
 
-  Object.keys(raw).forEach(name => {
-    final[name] = final[name] || {}
-
-    Object.keys(raw[name]).forEach(networkId => {
-      const theNetwork = getMatchingNetwork({ network_id: networkId })
-
-      final[name][theNetwork.id] = Object.assign({}, final[name][networkId], {
-        address: raw[name][networkId].address,
-        transactionHash: raw[name][networkId].transactionHash,
+      final[name][networkId] = Object.assign({}, final[name][networkId], {
+        address: cfg[MAP[name]].address,
       })
     })
-  })
 
-  fs.writeFileSync(deployedAddressesJsonPath, JSON.stringify(final, null, 2))
+    task.log('Writing JSON file ...')
+
+    fs.writeFileSync(deployedAddressesJsonPath, JSON.stringify(final, null, 2))
+  })
 }

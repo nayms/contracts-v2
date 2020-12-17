@@ -70,9 +70,6 @@ module.exports = async (deployer, network, accounts) => {
     hdWallet.generateAddresses(1)
   }
 
-  let acl
-  let settings
-
   const networkInfo = getMatchingNetwork({ name: network })
 
   let getTxParams
@@ -116,6 +113,9 @@ module.exports = async (deployer, network, accounts) => {
     hdWallet,
   }
 
+  let acl
+  let settings
+  let entityDeployer
 
   if (!cfg.onlyDeployingUpgrades) {
     if (networkInfo.isLocal) {
@@ -123,35 +123,35 @@ module.exports = async (deployer, network, accounts) => {
     }
 
     await log.task('Re-deploying all contracts', async () => {
-      acl = await ensureAclIsDeployed(cfg)
-      settings = await ensureSettingsIsDeployed(cfg, acl.address)
+      cfg.acl = await ensureAclIsDeployed(cfg)
+      cfg.settings = await ensureSettingsIsDeployed(cfg)
 
-      await Promise.all([
-        ensureMarketIsDeployed(cfg, settings.address),
-        ensureEtherTokenIsDeployed(cfg, settings.address),
-        ensureEntityDeployerIsDeployed(cfg, settings.address),
+      ;[ cfg.entityDeployer, cfg.market, cfg.etherToken ] = await Promise.all([
+        ensureEntityDeployerIsDeployed(cfg),
+        ensureMarketIsDeployed(cfg),
+        ensureEtherTokenIsDeployed(cfg),
       ])
     })
   } else {
     await log.task('Deploying upgrades only', async () => {
-      [ acl, settings ] = await Promise.all([
+      ;[ cfg.acl, cfg.settings, cfg.entityDeployer, cfg.market, cfg.etherToken ] = await Promise.all([
         getCurrentAcl(cfg),
         getCurrentSettings(cfg),
+        getCurrentEntityDeployer(cfg),
         getCurrentMarket(cfg),
         getCurrentEtherToken(cfg),
-        getCurrentEntityDeployer(cfg),
       ])
     })
   }
 
-  await ensureEntityImplementationsAreDeployed(cfg, settings.address)
-  await ensurePolicyImplementationsAreDeployed(cfg, settings.address)
+  await ensureEntityImplementationsAreDeployed(cfg)
+  await ensurePolicyImplementationsAreDeployed(cfg)
 
   if (cfg.onlyDeployingUpgrades) {
-    await upgradeExistingConstracts(cfg, settings.address)
+    await upgradeExistingConstracts(cfg)
   }
 
   if (releaseConfig.extractDeployedAddresses) {
-    updateDeployedAddressesJson()
+    await updateDeployedAddressesJson(cfg)
   }
 }

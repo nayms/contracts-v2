@@ -43,11 +43,11 @@ contract('Entity', accounts => {
 
   before(async () => {
     acl = await ensureAclIsDeployed({ artifacts })
-    settings = await ensureSettingsIsDeployed({ artifacts }, acl.address)
-    market = await ensureMarketIsDeployed({ artifacts }, settings.address)
-    etherToken = await ensureEtherTokenIsDeployed({ artifacts }, settings.address)
-    await ensurePolicyImplementationsAreDeployed({ artifacts }, settings.address)
-    await ensureEntityImplementationsAreDeployed({ artifacts }, settings.address)
+    settings = await ensureSettingsIsDeployed({ artifacts, acl })
+    market = await ensureMarketIsDeployed({ artifacts, settings })
+    etherToken = await ensureEtherTokenIsDeployed({ artifacts, settings })
+    await ensurePolicyImplementationsAreDeployed({ artifacts, settings })
+    await ensureEntityImplementationsAreDeployed({ artifacts, settings })
 
     DOES_NOT_HAVE_ROLE = (await acl.DOES_NOT_HAVE_ROLE()).toNumber()
     HAS_ROLE_CONTEXT = (await acl.HAS_ROLE_CONTEXT()).toNumber()
@@ -59,7 +59,7 @@ contract('Entity', accounts => {
 
     ;([ entityCoreAddress ] = await settings.getRootAddresses(SETTINGS.ENTITY_IMPL))
 
-    etherToken2 = await deployNewEtherToken({ artifacts }, settings.address)
+    etherToken2 = await deployNewEtherToken({ artifacts, settings })
   })
 
   beforeEach(async () => {

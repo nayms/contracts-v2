@@ -10,7 +10,7 @@ const git = require('git-last-commit')
 const projectDir = path.join(__dirname, '..')
 const packageJsonFile = path.join(projectDir, 'package.json')
 const releaseConfigFile = path.join(projectDir, 'releaseConfig.json')
-const versionInfoContract = path.join(projectDir, 'contracts', 'VersionInfo.sol')
+const commonUpgradeFacetContract = path.join(projectDir, 'contracts', 'CommonUpgradeFacet.sol')
 
 const isReleaseBranch = process.env.CIRCLE_BRANCH === 'release'
 const pullRequestUrl = process.env.CIRCLE_PULL_REQUEST
@@ -42,8 +42,10 @@ async function main () {
       releaseInfo.npmTag = `pr${pullRequestNum}`
       releaseInfo.npmPkgVersion = `1.0.0-pr.${pullRequestNum}.build.${buildNum}`
     } else {
+      releaseInfo.freshDeployment = true
+      releaseInfo.extractDeployedAddresses = true
       releaseInfo.deployRinkeby = true
-      releaseInfo.multisig = '0x52A1A89bF7C028f889Bf57D50aEB7B418c2Fc79B' // nayms rinkeby gnosis SAFE
+      // releaseInfo.multisig = '0x52A1A89bF7C028f889Bf57D50aEB7B418c2Fc79B' // nayms rinkeby gnosis SAFE
       releaseInfo.npmTag = `latest`
       releaseInfo.npmPkgVersion = `1.0.0-build.${buildNum}`
     }
@@ -67,12 +69,26 @@ async function main () {
   fs.writeFileSync(packageJsonFile, JSON.stringify(packageJson, null, 2), 'utf8')
 
   // update solidity contract
-  fs.writeFileSync(versionInfoContract, `pragma solidity >=0.6.7;
+  fs.writeFileSync(commonUpgradeFacetContract, `pragma solidity >=0.6.7;
 
-abstract contract VersionInfo {
-  string constant public VERSION_NUM = "${releaseInfo.npmPkgVersion}";
-  uint256 constant public VERSION_DATE = ${parseInt(releaseInfo.date.getTime() / 1000, 10)};
-  string constant public VERSION_GITCOMMIT = "${releaseInfo.hash}";
+import "./base/Controller.sol";
+import "./base/IDiamondUpgradeFacet.sol";
+import "./base/IDiamondProxy.sol";
+
+contract CommonUpgradeFacet is Controller, IDiamondUpgradeFacet {
+  constructor (address _settings) Controller(_settings) public {
+    // empty
+  }
+
+  function upgrade (address[] memory _facets) public override assertIsAdmin {
+    IDiamondProxy(address(this)).registerFacets(_facets);
+  }
+
+  function getVersionInfo () public override pure returns (string memory num_, uint256 date_, string memory hash_) {
+    num_ = "${releaseInfo.npmPkgVersion}";
+    date_ = ${parseInt(releaseInfo.date.getTime() / 1000, 10)};
+    hash_ = "${releaseInfo.hash}";
+  }
 }
 `, 'utf8')
 

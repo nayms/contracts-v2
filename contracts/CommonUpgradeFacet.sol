@@ -3,9 +3,8 @@ pragma solidity >=0.6.7;
 import "./base/Controller.sol";
 import "./base/IDiamondUpgradeFacet.sol";
 import "./base/IDiamondProxy.sol";
-import "./VersionInfo.sol";
 
-contract CommonUpgradeFacet is Controller, IDiamondUpgradeFacet, VersionInfo {
+contract CommonUpgradeFacet is Controller, IDiamondUpgradeFacet {
   constructor (address _settings) Controller(_settings) public {
     // empty
   }
@@ -15,9 +14,8 @@ contract CommonUpgradeFacet is Controller, IDiamondUpgradeFacet, VersionInfo {
   }
 
   function getVersionInfo () public override pure returns (string memory num_, uint256 date_, string memory hash_) {
-    num_ = VERSION_NUM;
-    date_ = VERSION_DATE;
-    hash_ = VERSION_GITCOMMIT;
+    num_ = "1.0.0-local.1608223229104";
+    date_ = 1608223229;
+    hash_ = "23470d6c57ba4d289bf3b84ba057b8cd5114be18";
   }
 }
-

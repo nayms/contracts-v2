@@ -23,8 +23,8 @@ contract('EtherToken', accounts => {
 
   before(async () => {
     acl = await ensureAclIsDeployed({ artifacts })
-    settings = await ensureSettingsIsDeployed({ artifacts }, acl.address)
-    etherToken = await ensureEtherTokenIsDeployed({ artifacts }, settings.address)
+    settings = await ensureSettingsIsDeployed({ artifacts, acl })
+    etherToken = await ensureEtherTokenIsDeployed({ artifacts, settings })
   })
 
   beforeEach(async () => {

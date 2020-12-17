@@ -55,7 +55,6 @@ const getImplsVersion = async ({ artifacts, settings, implsKey }) => {
     try {
       const facet = await IDiamondUpgradeFacet.at(addresses[i])
       const versionInfo = await facet.getVersionInfo()
-      console.log(versionInfo)
       if (versionInfo.num_) {
         const ret = {
           num: versionInfo.num_,
@@ -66,8 +65,12 @@ const getImplsVersion = async ({ artifacts, settings, implsKey }) => {
         return ret
       }
     } catch (err) { 
-      console.error(err)
-      /* do nothing */ 
+      // errors are expected when trying to request version info from a non-upgrade facet
+      if (err.message.includes('revert')) {
+        // do nothing
+      } else {
+        throw err
+      }
     }
   }
 
@@ -75,20 +78,16 @@ const getImplsVersion = async ({ artifacts, settings, implsKey }) => {
 }
 
 
-export const upgradeExistingConstracts = async (cfg, settingsAddress) => {
+export const upgradeExistingConstracts = async (cfg) => {
   const { artifacts, log: baseLog } = cfg
   const log = createLog(baseLog)
 
-  const Settings = artifacts.require('./ISettings')
-  const EntityDeployer = await artifacts.require('./IEntityDeployer')
   const Entity = await artifacts.require('./IEntity')
   const Policy = await artifacts.require('./IPolicy')
 
-  const settings = await Settings.at(settingsAddress)
-  const entityDeployerAddress = await settings.getRootAddress(SETTINGS.ENTITY_DEPLOYER)
+  const { settings, entityDeployer } = cfg
   const entityImplAddresses = await settings.getRootAddresses(SETTINGS.ENTITY_IMPL)
   const policyImplAddresses = await settings.getRootAddresses(SETTINGS.POLICY_IMPL)
-  const entityDeployer = await EntityDeployer.at(entityDeployerAddress)
 
   await log.task(`Upgrading existing contracts ...`, async task => {
     const latestEntityVersionInfo = await getImplsVersion({ task, artifacts, settings, implsKey: SETTINGS.ENTITY_IMPL })

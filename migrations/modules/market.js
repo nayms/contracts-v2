@@ -6,7 +6,7 @@ export const getCurrentMarket = async ({ artifacts, networkInfo, log }) => {
   return getCurrentInstance({ networkInfo, log, artifacts, type: 'IMarket', lookupType: 'MatchingMarket' })
 }
 
-export const ensureMarketIsDeployed = async ({ deployer, artifacts, log, getTxParams = defaultGetTxParams }, settingsAddress) => {
+export const ensureMarketIsDeployed = async ({ deployer, artifacts, log, settings, getTxParams = defaultGetTxParams }) => {
   log = createLog(log)
 
   let market
@@ -17,9 +17,7 @@ export const ensureMarketIsDeployed = async ({ deployer, artifacts, log, getTxPa
     task.log(`Deployed at ${market.address}`)
   })
 
-  await log.task(`Saving Market address to settings`, async task => {
-    const Settings = artifacts.require('./ISettings')
-    const settings = await Settings.at(settingsAddress)
+  await log.task(`Saving Market address to settings`, async () => {
     await settings.setAddress(settings.address, SETTINGS.MARKET, market.address, getTxParams())
   })
 

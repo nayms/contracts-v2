@@ -116,6 +116,12 @@ Compile the contracts:
 yarn compile
 ```
 
+Setup release config:
+
+```
+yarn setup-release-config-for-testing
+```
+
 Now deploy the contracts to it:
 
 ```shell

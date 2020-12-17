@@ -6,37 +6,20 @@ export const getCurrentEntityDeployer = async ({ artifacts, networkInfo, log }) 
   return getCurrentInstance({ networkInfo, log, artifacts, type: 'IEntityDeployer', lookupType: 'EntityDeployer' })
 }
 
-export const ensureEntityDeployerIsDeployed = async ({ deployer, artifacts, log, getTxParams = defaultGetTxParams }, settingsAddress) => {
+export const ensureEntityDeployerIsDeployed = async ({ deployer, artifacts, log, settings, getTxParams = defaultGetTxParams }) => {
   log = createLog(log)
 
   let entityDeployer
 
   await log.task(`Deploy EntityDeployer`, async task => {
     const EntityDeployer = artifacts.require('./EntityDeployer')
-    entityDeployer = await deploy(deployer, getTxParams(), EntityDeployer, settingsAddress)
+    entityDeployer = await deploy(deployer, getTxParams(), EntityDeployer, settings.address)
     task.log(`Deployed at ${entityDeployer.address}`)
   })
 
-  let naymsEntityAddress
 
-  await log.task(`Deploy Nayms entity`, async task => {
-    const numEntities = await entityDeployer.getNumEntities()
-    if (0 == numEntities) {
-      await entityDeployer.deploy(getTxParams())
-    }
-
-    naymsEntityAddress = await entityDeployer.getEntity(0)
-
-    task.log(`Deployed at ${naymsEntityAddress}`)
-  })
-
-  await log.task(`Saving entity deployer and Nayms entity addresses to settings`, async task => {
-    const Settings = artifacts.require('./ISettings')
-    const settings = await Settings.at(settingsAddress)
-    await Promise.all([
-      settings.setAddress(settings.address, SETTINGS.ENTITY_DEPLOYER, entityDeployer.address, getTxParams()),
-      settings.setAddress(settings.address, SETTINGS.NAYMS_ENTITY, naymsEntityAddress, getTxParams()),
-    ])
+  await log.task(`Saving entity deployer address to settings`, async () => {
+    await settings.setAddress(settings.address, SETTINGS.ENTITY_DEPLOYER, entityDeployer.address, getTxParams())
   })
 
   return entityDeployer

@@ -31,25 +31,32 @@ export const ensureEntityImplementationsAreDeployed = async (cfg) => {
     })
   })
 
-  let naymsEntityAddress
-  const numEntities = await entityDeployer.getNumEntities()
-  if (0 == numEntities) {
-    await log.task(`Deploy Nayms entity`, async task => {
-      await entityDeployer.deploy(getTxParams())
+  if (entityDeployer) {
+    let naymsEntityAddress
+    const numEntities = await entityDeployer.getNumEntities()
+    if (0 == numEntities) {
+      await log.task(`Deploy Nayms entity`, async task => {
+        await entityDeployer.deploy(getTxParams())
 
-      naymsEntityAddress = await entityDeployer.getEntity(0)
+        naymsEntityAddress = await entityDeployer.getEntity(0)
 
-      task.log(`Deployed at ${naymsEntityAddress}`)
-    })
+        task.log(`Deployed at ${naymsEntityAddress}`)
+      })
+    } else {
+      await log.task('Retrieving existing Nayms entity', async task => {
+        naymsEntityAddress = await entityDeployer.getEntity(0)
+        task.log(`Existing Nayms entity: ${naymsEntityAddress}`)
+      })
+    }
+
+    const storedNaymsEntityAddress = await settings.getRootAddress(SETTINGS.NAYMS_ENTITY)
+    if (storedNaymsEntityAddress !== naymsEntityAddress) {
+      await log.task(`Saving Nayms entity address ${naymsEntityAddress} to settings`, async () => {
+        await settings.setAddress(settings.address, SETTINGS.NAYMS_ENTITY, naymsEntityAddress, getTxParams())
+      })
+    }
   } else {
-    naymsEntityAddress = await entityDeployer.getEntity(0)
-  }
-
-  const storedNaymsEntityAddress = await settings.getRootAddress(SETTINGS.NAYMS_ENTITY)
-  if (storedNaymsEntityAddress !== naymsEntityAddress) {
-    await log.task(`Saving Nayms entity address ${naymsEntityAddress} to settings`, async () => {
-      await settings.setAddress(settings.address, SETTINGS.NAYMS_ENTITY, naymsEntityAddress, getTxParams())
-    })
+    log.log('EntityDeployer not provided, skipping deployment of Nayms entity')
   }
 
   return addresses

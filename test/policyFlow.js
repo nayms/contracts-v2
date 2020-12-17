@@ -78,7 +78,7 @@ contract('Policy: Flow', accounts => {
 
     // entity
     await ensureEntityImplementationsAreDeployed({ artifacts, settings })
-    const entityDeployer = await ensureEntityDeployerIsDeployed({ artifacts }, settings.address)
+    const entityDeployer = await ensureEntityDeployerIsDeployed({ artifacts, settings })
 
     await acl.assignRole(systemContext, accounts[0], ROLES.SYSTEM_MANAGER)
     const deployEntityTx = await entityDeployer.deploy()

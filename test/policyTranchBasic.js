@@ -101,7 +101,7 @@ contract('Policy Tranches: Basic', accounts => {
 
     // entity
     await ensureEntityImplementationsAreDeployed({ artifacts, settings })
-    entityDeployer = await ensureEntityDeployerIsDeployed({ artifacts }, settings.address)
+    entityDeployer = await ensureEntityDeployerIsDeployed({ artifacts, settings })
 
     await acl.assignRole(systemContext, accounts[0], ROLES.SYSTEM_MANAGER)
     const deployEntityTx = await entityDeployer.deploy()

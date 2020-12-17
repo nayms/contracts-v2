@@ -1,2 +1,27 @@
 {
+  "ACL": {
+    "4": {
+      "address": "0x4027fC5235eb88D53b861d708eD821F7fAE11CC3"
+    }
+  },
+  "Settings": {
+    "4": {
+      "address": "0x465077538D19A2821eFab5767f9F0dae744ac599"
+    }
+  },
+  "EntityDeployer": {
+    "4": {
+      "address": "0x60995f3afFe4BEd27D115d6D8d195bc206FCdA57"
+    }
+  },
+  "EtherToken": {
+    "4": {
+      "address": "0x655F4457964e6e626B6206A52232d0D5eA8b3aF1"
+    }
+  },
+  "Market": {
+    "4": {
+      "address": "0xf3efE9Fdc17A6fB43676DD8Eb4A862731F56de2f"
+    }
+  }
 }

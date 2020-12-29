@@ -89,8 +89,8 @@ contract('Policy Tranches: Commissions', accounts => {
     etherToken = await ensureEtherTokenIsDeployed({ artifacts, settings })
 
     // entity
-    await ensureEntityImplementationsAreDeployed({ artifacts, settings })
     entityDeployer = await ensureEntityDeployerIsDeployed({ artifacts, settings })
+    await ensureEntityImplementationsAreDeployed({ artifacts, settings, entityDeployer })
 
     await acl.assignRole(systemContext, accounts[0], ROLES.SYSTEM_MANAGER)
     const deployEntityTx = await entityDeployer.deploy()

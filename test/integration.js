@@ -98,8 +98,8 @@ contract('End-to-end integration tests', accounts => {
     // wrappedEth
     etherToken = await ensureEtherTokenIsDeployed({ artifacts, settings })
     // entities
-    await ensureEntityImplementationsAreDeployed({ artifacts, settings })
     entityDeployer = await ensureEntityDeployerIsDeployed({ artifacts, settings })
+    await ensureEntityImplementationsAreDeployed({ artifacts, settings, entityDeployer })
     // policies
     ;([ policyCoreAddress ] = await ensurePolicyImplementationsAreDeployed({ artifacts, settings }))
     const policyStates = await IPolicyStates.at(policyCoreAddress)

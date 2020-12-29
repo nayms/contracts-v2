@@ -35,6 +35,7 @@ contract('Policy: Flow', accounts => {
   let acl
   let systemContext
   let settings
+  let entityDeployer
   let policyProxy
   let policy
   let entity

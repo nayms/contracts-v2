@@ -71,9 +71,10 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     require(_numShares > 0, 'invalid num of shares');
     require(_pricePerShareAmount > 0, 'invalid price');
 
-    // instantiate tranches
+    // tranch count
     uint256 i = dataUint256["numTranches"];
     dataUint256["numTranches"] = i + 1;
+    require(dataUint256["numTranches"] <= 99, 'max tranches reached');
 
     // setup initial data for tranch
     dataUint256[__i(i, "numShares")] = _numShares;

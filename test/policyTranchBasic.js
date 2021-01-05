@@ -315,10 +315,11 @@ contract('Policy Tranches: Basic', accounts => {
         await Promise.all(_.range(0, 2).map(async i => {
           const tkn = await IERC20.at((await policy.getTranchInfo(i)).token_)
 
-          const NAME = `${policyProxy.address.toLowerCase()}_tranch_\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000` + String.fromCodePoint(i)
+          const NAME = `NAYMS-${policyProxy.address.toLowerCase()}-TRANCH-${i + 1}`
+          const SYMBOL = `N-${policyProxy.address.toLowerCase().substr(0, 6)}-${i + 1}`
 
           await tkn.name().should.eventually.eq(NAME)
-          await tkn.symbol().should.eventually.eq(NAME)
+          await tkn.symbol().should.eventually.eq(SYMBOL)
           await tkn.totalSupply().should.eventually.eq(tranchNumShares)
           await tkn.decimals().should.eventually.eq(18)
           await tkn.allowance(accounts[0], accounts[1]).should.eventually.eq(0)

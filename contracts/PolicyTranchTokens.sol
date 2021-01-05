@@ -7,6 +7,9 @@ import "./base/IPolicyTranchTokensFacet.sol";
 import "./base/PolicyFacetBase.sol";
 import "./base/AccessControl.sol";
 import "./base/SafeMath.sol";
+import "./base/Address.sol";
+import "./base/Strings.sol";
+import "./base/Uint.sol";
 import "./base/IERC20.sol";
 
 /**
@@ -14,6 +17,9 @@ import "./base/IERC20.sol";
  */
 contract PolicyTranchTokensFacet is EternalStorage, Controller, IDiamondFacet, IPolicyTranchTokensFacet, PolicyFacetBase {
   using SafeMath for uint;
+  using Uint for uint;
+  using Address for address;
+  using Strings for string;
 
   /**
    * Constructor
@@ -39,11 +45,12 @@ contract PolicyTranchTokensFacet is EternalStorage, Controller, IDiamondFacet, I
   // IPolicyTranchTokensFacet
 
   function tknName(uint256 _index) public view override returns (string memory) {
-    return string(abi.encodePacked(address(this).toString(), "_tranch_", _index));
+    return string(abi.encodePacked("NAYMS-", address(this).toString(), "-TRANCH-", uint256(_index + 1).toString()));
   }
 
   function tknSymbol(uint256 _index) public view override returns (string memory) {
-    return tknName(_index);
+    // max len = 11 chars
+    return string(abi.encodePacked("N-", address(this).toString().substring(6), "-", uint256(_index + 1).toString()));
   }
 
   function tknTotalSupply(uint256 _index) public view override returns (uint256) {

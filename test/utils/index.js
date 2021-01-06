@@ -1,3 +1,4 @@
+import EthVal from 'ethval'
 import { EthHdWallet } from 'eth-hd-wallet'
 import _ from 'lodash'
 import chai from 'chai'
@@ -5,7 +6,6 @@ import { parseLog } from 'ethereum-event-logs'
 import chaiAsPromised from 'chai-as-promised'
 
 import packageJson from '../../package.json'
-import { extractEventsFromAbis } from '../../'
 import { toBN, isBN } from './web3'
 
 const MNEMONIC = (packageJson.scripts.devnet.match(/\'(.+)\'/))[1]
@@ -15,9 +15,9 @@ chai.use((_chai, utils) => {
   const sanitizeResultVal = (result, val) => {
     // if bignumber
     if (_.get(result, 'toNumber')) {
-      if (_.get(val, 'toNumber')) {
-        result = result.toString(16)
-        val = val.toString(16)
+      if (_.get(val, 'toString')) {
+        result = result.toString(10)
+        val = val.toString(10)
       }
       else if (typeof val === 'string') {
         if (val.startsWith('0x')) {
@@ -100,6 +100,8 @@ hdWallet.generateAddresses(10)
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000'
 export const BYTES32_ZERO = '0x0000000000000000000000000000000000000000000000000000000000000000'
 
+export const tokenWeiBN = units => new EthVal(units, 'eth').toWei()
+export const tokenWeiStr = units => tokenWeiBN(units).toString()
 
 export const getBalance = async addr => toBN(await web3.eth.getBalance(addr))
 

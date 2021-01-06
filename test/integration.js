@@ -6,6 +6,7 @@ import {
   calcPremiumsMinusCommissions,
   calcCommissions,
   EvmSnapshot,
+  tokenWeiStr,
 } from './utils'
 import { events } from '../'
 
@@ -296,7 +297,7 @@ contract('End-to-end integration tests', accounts => {
     // step 16: trader buys 50 shares of policy1Tranch1 via entity0
     await entity0.trade(
       etherToken.address, 50,
-      policy1Tranch1Address, 50,
+      policy1Tranch1Address, tokenWeiStr(50),
       { from: entity0Rep1 }
     )
     entity0Balance -= 50
@@ -304,7 +305,7 @@ contract('End-to-end integration tests', accounts => {
     // step 17: trader buys 25 shares of policy1Tranch1 via entity2
     await entity2.trade(
       etherToken.address, 25,
-      policy1Tranch1Address, 25,
+      policy1Tranch1Address, tokenWeiStr(25),
       { from: entity2SoleProp }
     )
     entity2Balance -= 25
@@ -312,7 +313,7 @@ contract('End-to-end integration tests', accounts => {
     // step 18: trader buys 25 shares of policy1Tranch1 via entity3
     await entity3.trade(
       etherToken.address, 25,
-      policy1Tranch1Address, 25,
+      policy1Tranch1Address, tokenWeiStr(25),
       { from: entity3Naym }
     )
     entity3Balance -= 25
@@ -550,7 +551,7 @@ contract('End-to-end integration tests', accounts => {
     // step 16: trader buys 50 shares of policy2Tranch1 via entity0
     await entity0.trade(
       etherToken.address, 50,
-      policy2Tranch1Address, 50,
+      policy2Tranch1Address, tokenWeiStr(50),
       { from: entity0Rep1 }
     )
     entity0Balance -= 50
@@ -558,7 +559,7 @@ contract('End-to-end integration tests', accounts => {
     // step 17: trader buys 50 shares of policy2Tranch1 via entity2
     await entity2.trade(
       etherToken.address, 50,
-      policy2Tranch1Address, 50,
+      policy2Tranch1Address, tokenWeiStr(50),
       { from: entity2SoleProp }
     )
     entity2Balance -= 50
@@ -699,7 +700,7 @@ contract('End-to-end integration tests', accounts => {
 
     // step 32: trader sells policy2Tranch1 tokens via entity0
     await entity0.sellAtBestPrice(
-      policy2Tranch1Address, 50,
+      policy2Tranch1Address, tokenWeiStr(50),
       etherToken.address,
       { from: entity0Rep2 }
     )
@@ -708,7 +709,7 @@ contract('End-to-end integration tests', accounts => {
 
     // step 33: trader sells policy2Tranch1 tokens via entity2
     await entity2.sellAtBestPrice(
-      policy2Tranch1Address, 50,
+      policy2Tranch1Address, tokenWeiStr(50),
       etherToken.address,
       { from: entity2SoleProp }
     )

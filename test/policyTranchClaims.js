@@ -1,19 +1,17 @@
-
-import { keccak256, asciiToHex } from './utils/web3'
+import EthVal from 'ethval'
 
 import {
-  parseEvents,
   extractEventArgs,
-  hdWallet,
-  ADDRESS_ZERO,
   createTranch,
   preSetupPolicy,
   EvmClock,
   EvmSnapshot,
+  tokenWeiStr,
+  tokenWeiBN,
 } from './utils'
 import { events } from '../'
 
-import { ROLES, ROLEGROUPS, SETTINGS } from '../utils/constants'
+import { ROLES } from '../utils/constants'
 
 import { ensureAclIsDeployed } from '../migrations/modules/acl'
 
@@ -207,10 +205,10 @@ contract('Policy Tranches: Claims', accounts => {
       buyAllTranchTokens = async () => {
         await etherToken.deposit({ value: 40 })
         await etherToken.approve(market.address, 40)
-        await market.offer(10, etherToken.address, 10, tranch0Address, 0, false)
-        await market.offer(10, etherToken.address, 10, tranch1Address, 0, false)
-        await market.offer(10, etherToken.address, 10, tranch2Address, 0, false)
-        await market.offer(10, etherToken.address, 10, tranch3Address, 0, false)
+        await market.offer(10, etherToken.address, tokenWeiStr(10), tranch0Address, 0, false)
+        await market.offer(10, etherToken.address, tokenWeiStr(10), tranch1Address, 0, false)
+        await market.offer(10, etherToken.address, tokenWeiStr(10), tranch2Address, 0, false)
+        await market.offer(10, etherToken.address, tokenWeiStr(10), tranch3Address, 0, false)
       }
 
       evmClock = new EvmClock(baseTime)

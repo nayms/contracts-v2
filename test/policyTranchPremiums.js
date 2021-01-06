@@ -188,7 +188,7 @@ contract('Policy Tranches: Premiums', accounts => {
         })
       })
 
-      it('initially the first premium is expected by the inititation date', async () => {
+      it('initially the first premium is expected by the initiation date', async () => {
         await createTranch(policy, {
           premiums: [2, 3, 4]
         }, { from: policyOwnerAddress })

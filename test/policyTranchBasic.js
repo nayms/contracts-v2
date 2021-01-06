@@ -1,18 +1,16 @@
-
-import { keccak256, asciiToHex } from './utils/web3'
-
 import {
   parseEvents,
   extractEventArgs,
-  hdWallet,
   ADDRESS_ZERO,
   createTranch,
   preSetupPolicy,
   EvmSnapshot,
+  tokenWeiBN,
+  tokenWeiStr,
 } from './utils'
 import { events } from '../'
 
-import { ROLES, ROLEGROUPS, SETTINGS } from '../utils/constants'
+import { ROLES, SETTINGS } from '../utils/constants'
 
 import { ensureAclIsDeployed } from '../migrations/modules/acl'
 
@@ -26,12 +24,9 @@ import { ensurePolicyImplementationsAreDeployed } from '../migrations/modules/po
 const IERC20 = artifacts.require("./base/IERC20")
 const IEntity = artifacts.require('./base/IEntity')
 const Entity = artifacts.require('./Entity')
-const IDiamondProxy = artifacts.require('./base/IDiamondProxy')
 const IPolicyStates = artifacts.require("./base/IPolicyStates")
 const Policy = artifacts.require("./Policy")
 const IPolicy = artifacts.require("./base/IPolicy")
-const TestPolicyFacet = artifacts.require("./test/TestPolicyFacet")
-const FreezeUpgradesFacet = artifacts.require("./test/FreezeUpgradesFacet")
 
 const POLICY_ATTRS_1 = {
   initiationDateDiff: 1000,
@@ -320,7 +315,7 @@ contract('Policy Tranches: Basic', accounts => {
 
           await tkn.name().should.eventually.eq(NAME)
           await tkn.symbol().should.eventually.eq(SYMBOL)
-          await tkn.totalSupply().should.eventually.eq(tranchNumShares)
+          await tkn.totalSupply().should.eventually.eq(tokenWeiBN(tranchNumShares))
           await tkn.decimals().should.eventually.eq(18)
           await tkn.allowance(accounts[0], accounts[1]).should.eventually.eq(0)
 

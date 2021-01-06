@@ -76,6 +76,9 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     dataUint256["numTranches"] = i + 1;
     require(dataUint256["numTranches"] <= 99, 'max tranches reached');
 
+    // shares should be to 18 decimal places
+    _numShares = _numShares * 10**18;
+
     // setup initial data for tranch
     dataUint256[__i(i, "numShares")] = _numShares;
     dataUint256[__i(i, "pricePerShareAmount")] = _pricePerShareAmount;
@@ -248,7 +251,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
         uint256 totalSupply = IPolicyTranchTokensFacet(address(this)).tknTotalSupply(i);
         // calculate sale values
         uint256 pricePerShare = dataUint256[__i(i, "pricePerShareAmount")];
-        uint256 totalPrice = totalSupply.mul(pricePerShare);
+        uint256 totalPrice = (totalSupply.div(10 ** 18)).mul(pricePerShare);
         // set tranch state
         _setTranchState(i, TRANCH_STATE_SELLING);
         // offer tokens in initial sale

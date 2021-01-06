@@ -103,7 +103,7 @@ contract PolicyTranchTokensFacet is EternalStorage, Controller, IDiamondFacet, I
       // record how many "shares" were sold
       dataUint256[__i(_index, "sharesSold")] = dataUint256[__i(_index, "sharesSold")].add(_value);
       // update tranch balance
-      dataUint256[__i(_index, "balance")] = dataUint256[__i(_index, "balance")].add(_value * dataUint256[__i(_index, "pricePerShareAmount")]);
+      dataUint256[__i(_index, "balance")] = dataUint256[__i(_index, "balance")].add(_value.mul(dataUint256[__i(_index, "pricePerShareAmount")]).div(10 ** 18));
 
       // if the tranch has fully sold out
       if (dataUint256[__i(_index, "sharesSold")] == dataUint256[__i(_index, "numShares")]) {

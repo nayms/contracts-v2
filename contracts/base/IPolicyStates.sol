@@ -20,6 +20,18 @@ abstract contract IPolicyStates {
    * @dev State: The policy has matured.
    */
   uint256 constant public POLICY_STATE_MATURED = 3;
+  /**
+   * @dev State: The policy got cancelled.
+   */
+  uint256 constant public POLICY_STATE_CANCELLED = 4;
+  /**
+   * @dev State: The policy is undergoing approval.
+   */
+  uint256 constant public POLICY_STATE_IN_APPROVAL = 5;
+  /**
+   * @dev State: The policy is has been initiated, meaning all policy approvals have been obtained.
+   */
+  uint256 constant public POLICY_STATE_INITIATED = 6;
 
   /**
    * @dev State: The tranch has just been created.

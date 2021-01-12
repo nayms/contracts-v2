@@ -77,6 +77,9 @@ contract('Policy Tranches: Basic', accounts => {
   let POLICY_STATE_SELLING
   let POLICY_STATE_ACTIVE
   let POLICY_STATE_MATURED
+  let POLICY_STATE_IN_APPROVAL
+  let POLICY_STATE_INITIATED
+  let POLICY_STATE_CANCELLED
 
   let TRANCH_STATE_CANCELLED
   let TRANCH_STATE_ACTIVE
@@ -123,6 +126,9 @@ contract('Policy Tranches: Basic', accounts => {
     POLICY_STATE_SELLING = await policyStates.POLICY_STATE_SELLING()
     POLICY_STATE_ACTIVE = await policyStates.POLICY_STATE_ACTIVE()
     POLICY_STATE_MATURED = await policyStates.POLICY_STATE_MATURED()
+    POLICY_STATE_CANCELLED = await policyStates.POLICY_STATE_CANCELLED()
+    POLICY_STATE_IN_APPROVAL = await policyStates.POLICY_STATE_IN_APPROVAL()
+    POLICY_STATE_INITIATED = await policyStates.POLICY_STATE_INITIATED()
     TRANCH_STATE_CANCELLED = await policyStates.TRANCH_STATE_CANCELLED()
     TRANCH_STATE_ACTIVE = await policyStates.TRANCH_STATE_ACTIVE()
     TRANCH_STATE_MATURED = await policyStates.TRANCH_STATE_MATURED()
@@ -235,7 +241,7 @@ contract('Policy Tranches: Basic', accounts => {
         expect(log.args.initialBalanceHolder).to.eq(accounts[3])
       })
 
-      it('can be created and will have state set to DRAFT', async () => {
+      it('can be created and will have state set to CREATED', async () => {
         await setupPolicy(POLICY_ATTRS_1)
 
         await createTranch(policy, {
@@ -282,10 +288,10 @@ contract('Policy Tranches: Basic', accounts => {
         expect(Object.keys(addresses).length).to.eq(2)
       })
 
-      it('cannot be created once already in selling state', async () => {
+      it('cannot be created once an approval has come in', async () => {
         await setupPolicy(POLICY_ATTRS_2)
-        await policy.checkAndUpdateState() // kick-off sale
-        await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_SELLING })
+        await acl.assignRole(policyContext, accounts[1], ROLES.CAPITAL_PROVIDER)
+        await policy.approve({ from: accounts[1] })
         await createTranch(policy, {}, { from: accounts[2] }).should.be.rejectedWith('must be in created state')
       })
     })

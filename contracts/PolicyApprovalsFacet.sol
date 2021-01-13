@@ -44,6 +44,9 @@ contract PolicyApprovalsFacet is EternalStorage, Controller, IDiamondFacet, IPol
     } else if (inRoleGroup(msg.sender, ROLEGROUP_INSURED_PARTYS)) {
       role = ROLE_INSURED_PARTY;
       dataBool["insuredPartyApproved"] = true;
+    } else if (inRoleGroup(msg.sender, ROLEGROUP_BROKERS)) {
+      role = ROLE_BROKER;
+      dataBool["brokerApproved"] = true;
     } else {
       revert('caller does not have right role');
     }
@@ -62,11 +65,13 @@ contract PolicyApprovalsFacet is EternalStorage, Controller, IDiamondFacet, IPol
   function getApprovalsInfo () public view override returns (
     bool approved_,
     bool insuredPartyApproved_,
-    bool capitalProviderApproved_
+    bool capitalProviderApproved_,
+    bool brokerApproved_
   ) {
     approved_ = _isFullyApproved();
     insuredPartyApproved_ = dataBool["insuredPartyApproved"];
     capitalProviderApproved_ = dataBool["capitalProviderApproved"];
+    brokerApproved_ = dataBool["brokerApproved"];
   }
 
   // Internal methods
@@ -74,6 +79,7 @@ contract PolicyApprovalsFacet is EternalStorage, Controller, IDiamondFacet, IPol
   function _isFullyApproved () private view returns (bool) {
     uint256 numApprovals = dataBool["capitalProviderApproved"] ? 1 : 0;
     numApprovals += dataBool["insuredPartyApproved"] ? 1 : 0;
-    return numApprovals == 2;
+    numApprovals += dataBool["brokerApproved"] ? 1 : 0;
+    return numApprovals == 3;
   }
 }

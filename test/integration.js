@@ -74,6 +74,10 @@ contract('End-to-end integration tests', accounts => {
   let POLICY_STATE_SELLING
   let POLICY_STATE_ACTIVE
   let POLICY_STATE_MATURED
+  let POLICY_STATE_IN_APPROVAL
+  let POLICY_STATE_INITIATED
+  let POLICY_STATE_CANCELLED
+
   let TRANCH_STATE_CREATED
   let TRANCH_STATE_SELLING
   let TRANCH_STATE_ACTIVE
@@ -107,6 +111,10 @@ contract('End-to-end integration tests', accounts => {
     POLICY_STATE_SELLING = await policyStates.POLICY_STATE_SELLING()
     POLICY_STATE_ACTIVE = await policyStates.POLICY_STATE_ACTIVE()
     POLICY_STATE_MATURED = await policyStates.POLICY_STATE_MATURED()
+    POLICY_STATE_CANCELLED = await policyStates.POLICY_STATE_CANCELLED()
+    POLICY_STATE_IN_APPROVAL = await policyStates.POLICY_STATE_IN_APPROVAL()
+    POLICY_STATE_INITIATED = await policyStates.POLICY_STATE_INITIATED()
+
     TRANCH_STATE_CREATED = await policyStates.TRANCH_STATE_CREATED()
     TRANCH_STATE_SELLING = await policyStates.TRANCH_STATE_SELLING()
     TRANCH_STATE_ACTIVE = await policyStates.TRANCH_STATE_ACTIVE()
@@ -225,6 +233,11 @@ contract('End-to-end integration tests', accounts => {
     let entity2Balance = 60
     let entity3Balance = 30
 
+    // assign roles
+    const policy1Broker = accounts[4]
+    const policy1CapitalProvider = accounts[5]
+    const policy1InsuredParty = accounts[8]
+
     // step 4: create policyImpl1
     await createPolicy(
       entity0,
@@ -239,9 +252,9 @@ contract('End-to-end integration tests', accounts => {
         capitalProviderCommissionBP: 2,
         naymsCommissionBP: 3,
         // roles
-        broker: accounts[4],
-        capitalProvider: accounts[5],
-        insuredParty: accounts[8],
+        broker: policy1Broker,
+        capitalProvider: policy1CapitalProvider,
+        insuredParty: policy1InsuredParty,
       },
       {
         from: entity0Manager
@@ -256,11 +269,6 @@ contract('End-to-end integration tests', accounts => {
     // set baseline time
     const evmClock = new EvmClock()
 
-    // steps 5-7: assign roles
-    const policy1Broker = accounts[4]
-    const policy1CapitalProvider = accounts[5]
-    const policy1InsuredParty = accounts[8]
-
     // step 8: create tranch policy1Tranch1
     await createTranch(
       policy1,
@@ -274,6 +282,11 @@ contract('End-to-end integration tests', accounts => {
       }
     )
     const { token_: policy1Tranch1Address } = await policy1.getTranchInfo(0)
+
+    // step 8.b: approve policy1
+    await policy1.approve({ from: policy1Broker })
+    await policy1.approve({ from: policy1CapitalProvider })
+    await policy1.approve({ from: policy1InsuredParty })
 
     // steps 9-13: skip for now
 
@@ -479,6 +492,11 @@ contract('End-to-end integration tests', accounts => {
     let entity2Balance = 60
     let entity3Balance = 30
 
+    // roles
+    const policy2Broker = accounts[4]
+    const policy2CapitalProvider = accounts[5]
+    const policy2InsuredParty = accounts[8]
+
     // step 4: create policy2
     await createPolicy(
       entity0,
@@ -492,6 +510,10 @@ contract('End-to-end integration tests', accounts => {
         brokerCommissionBP: 1,
         capitalProviderCommissionBP: 2,
         naymsCommissionBP: 3,
+        // roles
+        broker: policy2Broker,
+        insuredParty: policy2InsuredParty,
+        capitalProvider: policy2CapitalProvider,
       },
       {
         from: entity0Manager
@@ -505,14 +527,6 @@ contract('End-to-end integration tests', accounts => {
 
     // set baseline time
     const evmClock = new EvmClock()
-
-    // steps 5-7: assign roles
-    await acl.assignRole(policy2Context, accounts[4], ROLES.BROKER, { from: policy2Owner })
-    await acl.assignRole(policy2Context, accounts[5], ROLES.CAPITAL_PROVIDER, { from: policy2Owner })
-    await acl.assignRole(policy2Context, accounts[8], ROLES.INSURED_PARTY, { from: policy2Owner })
-    const policy2Broker = accounts[4]
-    const policy2CapitalProvider = accounts[5]
-    const policy2InsuredParty = accounts[8]
 
     // step 8: create tranch policy2Tranch1
     await createTranch(
@@ -529,6 +543,11 @@ contract('End-to-end integration tests', accounts => {
     const { token_: policy2Tranch1Address } = await policy2.getTranchInfo(0)
 
     // steps 9-13: skip for now
+
+    // approve policy2
+    await policy2.approve({ from: policy2Broker })
+    await policy2.approve({ from: policy2CapitalProvider })
+    await policy2.approve({ from: policy2InsuredParty })
 
     // step 14: insured party pays first premium for policy2Tranch1
     await evmClock.setAbsoluteTime(3 * 60)

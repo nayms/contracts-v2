@@ -129,6 +129,7 @@ contract('Policy Tranches: Basic', accounts => {
     POLICY_STATE_CANCELLED = await policyStates.POLICY_STATE_CANCELLED()
     POLICY_STATE_IN_APPROVAL = await policyStates.POLICY_STATE_IN_APPROVAL()
     POLICY_STATE_INITIATED = await policyStates.POLICY_STATE_INITIATED()
+    
     TRANCH_STATE_CANCELLED = await policyStates.TRANCH_STATE_CANCELLED()
     TRANCH_STATE_ACTIVE = await policyStates.TRANCH_STATE_ACTIVE()
     TRANCH_STATE_MATURED = await policyStates.TRANCH_STATE_MATURED()

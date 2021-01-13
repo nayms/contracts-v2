@@ -59,6 +59,10 @@ contract('Policy Tranches: Commissions', accounts => {
   let market
   let etherToken
 
+  let capitalProvider
+  let insuredParty
+  let broker
+
   let POLICY_STATE_CREATED
   let POLICY_STATE_SELLING
   let POLICY_STATE_ACTIVE
@@ -107,6 +111,11 @@ contract('Policy Tranches: Commissions', accounts => {
 
     ;([ policyCoreAddress ] = await ensurePolicyImplementationsAreDeployed({ artifacts, settings }))
 
+    capitalProvider = accounts[6]
+    insuredParty = accounts[7]
+    broker = accounts[8]
+    Object.assign(POLICY_ATTRS_1, { capitalProvider, insuredParty, broker })
+
     const policyStates = await IPolicyStates.at(policyCoreAddress)
     POLICY_STATE_CREATED = await policyStates.POLICY_STATE_CREATED()
     POLICY_STATE_SELLING = await policyStates.POLICY_STATE_SELLING()
@@ -148,6 +157,10 @@ contract('Policy Tranches: Commissions', accounts => {
       await createTranch(policy, {
         premiums: [2000, 3000, 4000]
       }, { from: policyOwnerAddress })
+
+      await policy.approve({ from: capitalProvider })
+      await policy.approve({ from: insuredParty })
+      await policy.approve({ from: broker })
     })
 
     it('updates the balances correctly as premiums get paid in', async () => {

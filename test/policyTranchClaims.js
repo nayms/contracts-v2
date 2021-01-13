@@ -85,15 +85,23 @@ contract('Policy Tranches: Claims', accounts => {
   let market
   let etherToken
 
+  let capitalProvider
+  let insuredParty
+  let broker
+
   let POLICY_STATE_CREATED
   let POLICY_STATE_SELLING
   let POLICY_STATE_ACTIVE
   let POLICY_STATE_MATURED
+  let POLICY_STATE_IN_APPROVAL
+  let POLICY_STATE_INITIATED
+  let POLICY_STATE_CANCELLED
 
   let TRANCH_STATE_CANCELLED
   let TRANCH_STATE_ACTIVE
   let TRANCH_STATE_MATURED
 
+  let approvePolicy
   let setupPolicyForClaims
   const policies = new Map()
 
@@ -140,6 +148,10 @@ contract('Policy Tranches: Claims', accounts => {
     POLICY_STATE_SELLING = await policyStates.POLICY_STATE_SELLING()
     POLICY_STATE_ACTIVE = await policyStates.POLICY_STATE_ACTIVE()
     POLICY_STATE_MATURED = await policyStates.POLICY_STATE_MATURED()
+    POLICY_STATE_CANCELLED = await policyStates.POLICY_STATE_CANCELLED()
+    POLICY_STATE_IN_APPROVAL = await policyStates.POLICY_STATE_IN_APPROVAL()
+    POLICY_STATE_INITIATED = await policyStates.POLICY_STATE_INITIATED()
+
     TRANCH_STATE_CANCELLED = await policyStates.TRANCH_STATE_CANCELLED()
     TRANCH_STATE_ACTIVE = await policyStates.TRANCH_STATE_ACTIVE()
     TRANCH_STATE_MATURED = await policyStates.TRANCH_STATE_MATURED()
@@ -185,19 +197,37 @@ contract('Policy Tranches: Claims', accounts => {
       await policy.payTranchPremium(3, 8000)
     }
 
+    capitalProvider = accounts[6]
+    insuredParty = accounts[7]
+    broker = accounts[8]
+
+    const approvers = { capitalProvider, insuredParty, broker }
+
+    Object.assign(POLICY_ATTRS_1, approvers)
+    Object.assign(POLICY_ATTRS_2, approvers)
+    Object.assign(POLICY_ATTRS_3, approvers)
+    Object.assign(POLICY_ATTRS_4, approvers)
+
     const preSetupPolicyCtx = { policies, settings, events, etherToken, entity, entityManagerAddress }
     await preSetupPolicyForClaims(preSetupPolicyCtx, POLICY_ATTRS_1)
     await preSetupPolicyForClaims(preSetupPolicyCtx, POLICY_ATTRS_2)
     await preSetupPolicyForClaims(preSetupPolicyCtx, POLICY_ATTRS_3)
     await preSetupPolicyForClaims(preSetupPolicyCtx, POLICY_ATTRS_4)
 
-    setupPolicyForClaims = async attrs => {
+    setupPolicyForClaims = async (attrs, { skipApprovals = false } = {}) => {
       const { baseTime, policyAddress } = policies.get(attrs)
 
       policyProxy = await Policy.at(policyAddress)
       policy = await IPolicy.at(policyAddress)
       policyContext = await policyProxy.aclContext()
       policyOwnerAddress = entityManagerAddress
+
+      // approve policy
+      if (!skipApprovals) {
+        await policy.approve({ from: capitalProvider })
+        await policy.approve({ from: insuredParty })
+        await policy.approve({ from: broker })
+      }
 
       const { token_: tranch0Address } = await policy.getTranchInfo(0)
       const { token_: tranch1Address } = await policy.getTranchInfo(1)
@@ -227,8 +257,21 @@ contract('Policy Tranches: Claims', accounts => {
 
   describe('claims', () => {
     it('cannot be made in created state', async () => {
-      await setupPolicyForClaims(POLICY_ATTRS_1)
+      await setupPolicyForClaims(POLICY_ATTRS_1, { skipApprovals: true })
       await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_CREATED })
+      await policy.makeClaim(0, entity.address, 1).should.be.rejectedWith('must be in active state')
+    })
+
+    it('cannot be made in in-approval state', async () => {
+      await setupPolicyForClaims(POLICY_ATTRS_1, { skipApprovals: true })
+      await policy.approve({ from: capitalProvider })
+      await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_IN_APPROVAL })
+      await policy.makeClaim(0, entity.address, 1).should.be.rejectedWith('must be in active state')
+    })
+
+    it('cannot be made in initiated state', async () => {
+      await setupPolicyForClaims(POLICY_ATTRS_1)
+      await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_INITIATED })
       await policy.makeClaim(0, entity.address, 1).should.be.rejectedWith('must be in active state')
     })
 

@@ -51,6 +51,7 @@ contract('Policy: Flow', accounts => {
 
   let insuredParty
   let capitalProvider
+  let broker
 
   let POLICY_STATE_CREATED
   let POLICY_STATE_SELLING
@@ -105,6 +106,7 @@ contract('Policy: Flow', accounts => {
     // roles
     capitalProvider = accounts[5]
     insuredParty = accounts[6]
+    broker = accounts[7]
     await acl.assignRole(entityContext, insuredParty, ROLES.ENTITY_REP)
 
     // initiation time is 20 seconds from now
@@ -124,6 +126,7 @@ contract('Policy: Flow', accounts => {
       naymsCommissionBP,
       capitalProvider,
       insuredParty,
+      broker,
     }, { from: entityManagerAddress })
     const policyAddress = extractEventArgs(createPolicyTx, events.NewPolicy).policy
     policyOwnerAddress = entityManagerAddress
@@ -187,12 +190,6 @@ contract('Policy: Flow', accounts => {
 
     describe('if initiation date has passed', () => {
       it('but not if policy has not been approved', async () => {
-        await createTranch(policy, {
-          numShares: 50,
-          pricePerShareAmount: 2,
-          premiums: [10, 20, 30],
-        }, { from: policyOwnerAddress })
-
         await evmClock.setAbsoluteTime(initiationDate)
 
         await policy.checkAndUpdateState().should.be.fulfilled
@@ -203,6 +200,7 @@ contract('Policy: Flow', accounts => {
         beforeEach(async () => {
           await policy.approve({ from: capitalProvider })
           await policy.approve({ from: insuredParty })
+          await policy.approve({ from: broker })
           await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_INITIATED })
         })
 
@@ -299,6 +297,7 @@ contract('Policy: Flow', accounts => {
     beforeEach(async () => {
       await policy.approve({ from: capitalProvider })
       await policy.approve({ from: insuredParty })
+      await policy.approve({ from: broker })
 
       await etherToken.deposit({ value: 100 })
       await etherToken.approve(policy.address, 100)
@@ -497,10 +496,13 @@ contract('Policy: Flow', accounts => {
   })
 
   describe('sale gets ended', async () => {
-    it('but not if start date has not passed', async () => {
+    beforeEach(async () => {
       await policy.approve({ from: capitalProvider })
       await policy.approve({ from: insuredParty })
+      await policy.approve({ from: broker })
+    })
 
+    it('but not if start date has not passed', async () => {
       await etherToken.deposit({ value: 100 })
       await etherToken.approve(policy.address, 100)
       await policy.payTranchPremium(0, 10)
@@ -719,6 +721,7 @@ contract('Policy: Flow', accounts => {
       // approve policy
       await policy.approve({ from: capitalProvider })
       await policy.approve({ from: insuredParty })
+      await policy.approve({ from: broker })
 
       // pay first premiums
       await etherToken.deposit({ value: 2000 })

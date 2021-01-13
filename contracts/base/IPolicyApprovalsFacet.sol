@@ -15,11 +15,13 @@ interface IPolicyApprovalsFacet {
    * @return approved_ Whether the policy has been fully approved.
    * @return insuredPartyApproved_ Whether the insured party has approved the policy.
    * @return capitalProviderApproved_ Whether the capital provider has approved the policy.
+   * @return brokerApproved_ Whether the broker has approved the policy.
    */
   function getApprovalsInfo () external view returns (
     bool approved_,
     bool insuredPartyApproved_,
-    bool capitalProviderApproved_
+    bool capitalProviderApproved_,
+    bool brokerApproved_
   );
 
   // events

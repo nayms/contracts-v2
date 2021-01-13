@@ -102,6 +102,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     TranchToken t = new TranchToken(address(this), i);
 
     // work out initial holder
+    // (NOTE: initial holder should only be set to an arbitrary address for testing purposes only, so that we can check erc20 mechanics)
     address holder = _initialBalanceHolder;
     if (holder == address(0)) {
       // by default it's this conract
@@ -202,6 +203,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
       }
       // not yet past start date
       else {
+        _cancelPolicyIfNotFullyApproved();
         _beginPolicySaleIfNotYetStarted();
       }
     }
@@ -222,9 +224,15 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     }
   }
 
+  function _cancelPolicyIfNotFullyApproved() private {
+    if (dataUint256["state"] == POLICY_STATE_CREATED || dataUint256["state"] == POLICY_STATE_IN_APPROVAL) {
+      _setPolicyState(POLICY_STATE_CANCELLED);
+    }
+  }
+
 
   function _beginPolicySaleIfNotYetStarted() private {
-    if (dataUint256["state"] == POLICY_STATE_CREATED) {
+    if (dataUint256["state"] == POLICY_STATE_INITIATED) {
       IMarket market = IMarket(settings().getRootAddress(SETTING_MARKET));
 
       bool allReady = true;
@@ -241,9 +249,6 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
       for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
         // tranch/token address
         address tranchAddress = dataAddress[__i(i, "address")];
-        // initial token holder must be contract address
-        address initialHolder = dataAddress[__i(i, "initialHolder")];
-        require(initialHolder == address(this), "initial holder must be policy contract");
         // get supply
         uint256 totalSupply = IPolicyTranchTokensFacet(address(this)).tknTotalSupply(i);
         // calculate sale values
@@ -257,7 +262,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
         );
       }
 
-      // set policy state to PENDING
+      // set policy state to selling
       _setPolicyState(POLICY_STATE_SELLING);
     }
   }

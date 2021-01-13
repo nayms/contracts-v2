@@ -15,6 +15,7 @@ export const ensurePolicyImplementationsAreDeployed = async (cfg) => {
     const PolicyCommissionsFacet = artifacts.require('./PolicyCommissionsFacet')
     const PolicyPremiumsFacet = artifacts.require('./PolicyPremiumsFacet')
     const PolicyTranchTokensFacet = artifacts.require('./PolicyTranchTokensFacet')
+    const PolicyApprovalsFacet = artifacts.require('./PolicyApprovalsFacet')
 
     addresses = [
       await deploy(deployer, getTxParams(), PolicyCoreFacet, settings.address),
@@ -23,6 +24,7 @@ export const ensurePolicyImplementationsAreDeployed = async (cfg) => {
       await deploy(deployer, getTxParams(), PolicyCommissionsFacet, settings.address),
       await deploy(deployer, getTxParams(), PolicyPremiumsFacet, settings.address),
       await deploy(deployer, getTxParams(), PolicyTranchTokensFacet, settings.address),
+      await deploy(deployer, getTxParams(), PolicyApprovalsFacet, settings.address),
     ].map(c => c.address)
 
     task.log(`Deployed at ${addresses.join(', ')}`)

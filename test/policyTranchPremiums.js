@@ -79,15 +79,23 @@ contract('Policy Tranches: Premiums', accounts => {
   let market
   let etherToken
 
+  let capitalProvider
+  let insuredParty
+  let broker
+
   let POLICY_STATE_CREATED
   let POLICY_STATE_SELLING
   let POLICY_STATE_ACTIVE
   let POLICY_STATE_MATURED
+  let POLICY_STATE_IN_APPROVAL
+  let POLICY_STATE_INITIATED
+  let POLICY_STATE_CANCELLED
 
   let TRANCH_STATE_CANCELLED
   let TRANCH_STATE_ACTIVE
   let TRANCH_STATE_MATURED
 
+  let approvePolicy
   let setupPolicy
   const policies = new Map()
 
@@ -132,9 +140,20 @@ contract('Policy Tranches: Premiums', accounts => {
     POLICY_STATE_SELLING = await policyStates.POLICY_STATE_SELLING()
     POLICY_STATE_ACTIVE = await policyStates.POLICY_STATE_ACTIVE()
     POLICY_STATE_MATURED = await policyStates.POLICY_STATE_MATURED()
+    POLICY_STATE_CANCELLED = await policyStates.POLICY_STATE_CANCELLED()
+    POLICY_STATE_IN_APPROVAL = await policyStates.POLICY_STATE_IN_APPROVAL()
+    POLICY_STATE_INITIATED = await policyStates.POLICY_STATE_INITIATED()
+
     TRANCH_STATE_CANCELLED = await policyStates.TRANCH_STATE_CANCELLED()
     TRANCH_STATE_ACTIVE = await policyStates.TRANCH_STATE_ACTIVE()
     TRANCH_STATE_MATURED = await policyStates.TRANCH_STATE_MATURED()
+
+    capitalProvider = accounts[6]
+    insuredParty = accounts[7]
+    broker = accounts[8]
+    Object.assign(POLICY_ATTRS_1, { capitalProvider, insuredParty, broker })
+    Object.assign(POLICY_ATTRS_2, { capitalProvider, insuredParty, broker })
+    Object.assign(POLICY_ATTRS_3, { capitalProvider, insuredParty, broker })
 
     const preSetupPolicyCtx = { policies, settings, events, etherToken, entity, entityManagerAddress }
     await Promise.all([
@@ -154,6 +173,12 @@ contract('Policy Tranches: Premiums', accounts => {
       evmClock = new EvmClock(baseTime)
 
       return attrs
+    }
+
+    approvePolicy = async () => {
+      await policy.approve({ from: capitalProvider })
+      await policy.approve({ from: insuredParty })
+      await policy.approve({ from: broker })
     }
   })
 
@@ -585,6 +610,8 @@ contract('Policy Tranches: Premiums', accounts => {
         await createTranch(policy, {
           premiums: [2, 3, 4]
         }, { from: policyOwnerAddress })
+
+        await approvePolicy()
       })
 
       it('it requires first payment to have been made', async () => {
@@ -608,6 +635,8 @@ contract('Policy Tranches: Premiums', accounts => {
         premiums: [2, 3, 5]
       }, { from: policyOwnerAddress })
 
+      await approvePolicy()
+
       await etherToken.deposit({ value: 100 })
       await etherToken.approve(policy.address, 100)
       await policy.payTranchPremium(0, 2).should.be.fulfilled // 2
@@ -630,6 +659,8 @@ contract('Policy Tranches: Premiums', accounts => {
         premiums: [2, 3, 4, 5]
       }, { from: policyOwnerAddress })
 
+      await approvePolicy()
+
       await etherToken.deposit({ value: 100 })
       await etherToken.approve(policy.address, 100)
       await policy.payTranchPremium(0, 2).should.be.fulfilled // 2
@@ -649,6 +680,8 @@ contract('Policy Tranches: Premiums', accounts => {
         await createTranch(policy, {
           premiums: [2, 3]
         }, { from: policyOwnerAddress })
+
+        await approvePolicy()
 
         await etherToken.deposit({ value: 100 })
         await etherToken.approve(policy.address, 100)

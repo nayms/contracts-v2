@@ -160,7 +160,7 @@ module.exports = async (deployer, network, accounts) => {
   }
 
   if (releaseConfig.freshDeployment && releaseConfig.multisig) {
-    setAclAdminToMultisigAddress(cfg, releaseConfig.multisig)
+    await setAclAdminToMultisigAddress(cfg, releaseConfig.multisig)
     // upgrades following this fresh deployment should use the multisig!
   }
 }

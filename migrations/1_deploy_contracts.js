@@ -5,7 +5,7 @@ const { EthHdWallet } = require('eth-hd-wallet')
 
 const { createLog } = require('./utils/log')
 const { getMatchingNetwork, defaultGetTxParams, ADDRESS_ZERO, execCall } = require('./utils')
-const { getCurrentAcl, ensureAclIsDeployed } = require('./modules/acl')
+const { getCurrentAcl, ensureAclIsDeployed, setAclAdminToMultisigAddress } = require('./modules/acl')
 const { getCurrentSettings, ensureSettingsIsDeployed } = require('./modules/settings')
 const { getCurrentMarket, ensureMarketIsDeployed } = require('./modules/market')
 const { getCurrentEtherToken, ensureEtherTokenIsDeployed } = require('./modules/etherToken')
@@ -54,9 +54,10 @@ module.exports = async (deployer, network, accounts) => {
   }
 
   let hdWallet
+  let multisig
 
   // if trying to do multisig
-  if (releaseConfig.multisig) {
+  if (releaseConfig.multisig && !releaseConfig.freshDeployment) {
     if (!canMultisig) {
       throw new Error(`Cannot use multisig with network: ${network} !`)
     }
@@ -68,6 +69,9 @@ module.exports = async (deployer, network, accounts) => {
     // generate HD wallet for use with multisig signing
     hdWallet = EthHdWallet.fromMnemonic(process.env.MNEMONIC)
     hdWallet.generateAddresses(1)
+
+    // multisig enabled
+    multisig = releaseConfig.multisig
   }
 
   const networkInfo = getMatchingNetwork({ name: network })
@@ -109,7 +113,7 @@ module.exports = async (deployer, network, accounts) => {
     networkInfo,
     getTxParams,
     onlyDeployingUpgrades: !releaseConfig.freshDeployment,
-    multisig: releaseConfig.multisig,
+    multisig,
     hdWallet,
   }
 
@@ -147,11 +151,16 @@ module.exports = async (deployer, network, accounts) => {
   await ensureEntityImplementationsAreDeployed(cfg)
   await ensurePolicyImplementationsAreDeployed(cfg)
 
-  if (cfg.onlyDeployingUpgrades) {
+  if (!releaseConfig.freshDeployment) {
     await upgradeExistingConstracts(cfg)
   }
 
   if (releaseConfig.extractDeployedAddresses) {
     await updateDeployedAddressesJson(cfg)
+  }
+
+  if (releaseConfig.freshDeployment && releaseConfig.multisig) {
+    setAclAdminToMultisigAddress(cfg, releaseConfig.multisig)
+    // upgrades following this fresh deployment should use the multisig!
   }
 }

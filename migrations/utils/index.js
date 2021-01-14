@@ -45,7 +45,7 @@ exports.execCall = async ({ task, contract, method, args, cfg }) => {
     const data = cm[method].apply(cm, args).encodeABI()
     await task.log(`     --> Data: ${data}`, 'green')
 
-    const safeTxGas = await cm[method].apply(cm, args).estimateGas({ from: accounts[0] })
+    const safeTxGas = await cm[method].apply(cm, args).estimateGas({ from: multisig })
     await task.log(`     --> Gas estimate: ${safeTxGas}`, 'green')
 
     if (!safeNonce) {

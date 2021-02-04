@@ -10,12 +10,18 @@ import "./base/SafeMath.sol";
 library Assignments {
   using SafeMath for *;
 
+  struct RoleUsers {
+    mapping (address => uint256) map;
+    address[] list;
+  }
+
   struct UserRoles {
     mapping (bytes32 => uint256) map;
     bytes32[] list;
   }
 
   struct Context {
+    mapping (bytes32 => RoleUsers) roleUsers;
     mapping (address => UserRoles) userRoles;
     mapping (address => uint256) userMap;
     address[] userList;
@@ -28,6 +34,7 @@ library Assignments {
     internal
   {
     UserRoles storage ur = _context.userRoles[_addr];
+    RoleUsers storage ru = _context.roleUsers[_role];
 
     // new user?
     if (_context.userMap[_addr] == 0) {
@@ -40,6 +47,12 @@ library Assignments {
       ur.list.push(_role);
       ur.map[_role] = ur.list.length;
     }
+
+    // set user for role
+    if (ru.map[_addr] == 0) {
+      ru.list.push(_addr);
+      ru.map[_addr] = ru.list.length;
+    }
   }
 
   /**
@@ -49,9 +62,10 @@ library Assignments {
     internal
   {
     UserRoles storage ur = _context.userRoles[_addr];
+    RoleUsers storage ru = _context.roleUsers[_role];
 
+    // remove from addr -> role map
     uint256 idx = ur.map[_role];
-
     if (idx > 0) {
       uint256 actualIdx = idx.sub(1);
 
@@ -63,6 +77,21 @@ library Assignments {
 
       ur.list.pop();
       ur.map[_role] = 0;
+    }
+
+    // remove from role -> addr map
+    idx = ru.map[_addr];
+    if (idx > 0) {
+      uint256 actualIdx = idx.sub(1);
+
+      // replace item to remove with last item in list and update mappings
+      if (ru.list.length.sub(1) > actualIdx) {
+        ru.list[actualIdx] = ru.list[ru.list.length.sub(1)];
+        ru.map[ru.list[actualIdx]] = actualIdx.add(1);
+      }
+
+      ru.list.pop();
+      ru.map[_addr] = 0;
     }
 
     // remove user if they don't have roles anymore
@@ -107,6 +136,21 @@ library Assignments {
     UserRoles storage ur = _context.userRoles[_addr];
 
     return ur.list;
+  }
+
+
+  /**
+   * @dev get all addresses assigned the given role
+   * @return address[]
+   */
+  function getUsersForRole(Context storage _context, bytes32 _role)
+    internal
+    view
+    returns (address[] storage)
+  {
+    RoleUsers storage ru = _context.roleUsers[_role];
+
+    return ru.list;
   }
 
 
@@ -438,6 +482,10 @@ contract ACL is IACL, IACLConstants {
 
   function getRolesForUser(bytes32 _context, address _addr) public view override returns (bytes32[] memory) {
     return assignments[_context].getRolesForUser(_addr);
+  }
+
+  function getUsersForRole(bytes32 _context, bytes32 _role) public view override returns (address[] memory) {
+    return assignments[_context].getUsersForRole(_role);
   }
 
   // Role assigners

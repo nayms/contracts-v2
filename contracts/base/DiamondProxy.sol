@@ -7,7 +7,6 @@ Forked from https://github.com/mudgen/Diamond/blob/master/contracts/DiamondExamp
 
 import "./DiamondStorageBase.sol";
 import "./DiamondCutter.sol";
-import "./DiamondLoupeFacet.sol";
 import "./IDiamondFacet.sol";
 import "./IDiamondProxy.sol";
 
@@ -15,13 +14,6 @@ abstract contract DiamondProxy is DiamondStorageBase, IDiamondProxy {
   constructor () public {
     DiamondCutter diamondCutter = new DiamondCutter();
     dataAddress["diamondCutter"] = address(diamondCutter);
-
-    DiamondLoupeFacet diamondLoupeFacet = new DiamondLoupeFacet();
-
-    address[] memory facets = new address[](1);
-    facets[0] = address(diamondLoupeFacet);
-
-    _registerFacets(facets);
   }
 
   // IDiamondProxy

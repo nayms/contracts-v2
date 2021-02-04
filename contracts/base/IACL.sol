@@ -147,6 +147,13 @@ interface IACL {
    * @return list of roles
    */
   function getRolesForUser(bytes32 _context, address _addr) external view returns (bytes32[] memory);
+  /**
+   * @dev Get all addresses for given role in the given context.
+   * @param _context Context name.
+   * @param _role Role.
+   * @return list of roles
+   */
+  function getUsersForRole(bytes32 _context, bytes32 _role) external view returns (address[] memory);
 
   // who can assign roles
 

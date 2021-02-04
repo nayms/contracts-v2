@@ -6,22 +6,28 @@ pragma solidity >=0.6.7;
 interface IPolicyApprovalsFacet {
   /**
    * @dev Approve this policy.
+   *
+   * Caller must be a representative of given entity.
+   *
+   * @param _entity One of the entities which has a role with this policy.
    */
-  function approve () external;
+  function approve (address _entity) external;
 
  /**
    * @dev Get approvals info.
    *
    * @return approved_ Whether the policy has been fully approved.
    * @return insuredPartyApproved_ Whether the insured party has approved the policy.
-   * @return capitalProviderApproved_ Whether the capital provider has approved the policy.
+   * @return underwriterApproved_ Whether the capital provider has approved the policy.
    * @return brokerApproved_ Whether the broker has approved the policy.
+   * @return claimsAdminApproved_ Whether the claims administrator has approved the policy.
    */
   function getApprovalsInfo () external view returns (
     bool approved_,
     bool insuredPartyApproved_,
-    bool capitalProviderApproved_,
-    bool brokerApproved_
+    bool underwriterApproved_,
+    bool brokerApproved_,
+    bool claimsAdminApproved_
   );
 
   // events

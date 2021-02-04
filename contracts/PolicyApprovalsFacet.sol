@@ -33,20 +33,28 @@ contract PolicyApprovalsFacet is EternalStorage, Controller, IDiamondFacet, IPol
 
   // IPolicyApprovalsFacet
 
-  function approve () public override 
+  function approve (address _entity) public override 
     assertInApprovableState
+    assertIsEntityRep(msg.sender, _entity)
   {
     bytes32 role;
 
-    if (inRoleGroup(msg.sender, ROLEGROUP_CAPITAL_PROVIDERS)) {
-      role = ROLE_CAPITAL_PROVIDER;
-      dataBool["capitalProviderApproved"] = true;
-    } else if (inRoleGroup(msg.sender, ROLEGROUP_INSURED_PARTYS)) {
-      role = ROLE_INSURED_PARTY;
-      dataBool["insuredPartyApproved"] = true;
-    } else if (inRoleGroup(msg.sender, ROLEGROUP_BROKERS)) {
+    if (hasRole(_entity, ROLE_PENDING_UNDERWRITER)) {
+      role = ROLE_UNDERWRITER;
+      _switchRole(_entity, ROLE_PENDING_UNDERWRITER, role);
+      dataBool["underwriterApproved"] = true;
+    } else if (hasRole(_entity, ROLE_PENDING_BROKER)) {
       role = ROLE_BROKER;
+      _switchRole(_entity, ROLE_PENDING_BROKER, role);
       dataBool["brokerApproved"] = true;
+    } else if (hasRole(_entity, ROLE_PENDING_INSURED_PARTY)) {
+      role = ROLE_INSURED_PARTY;
+      _switchRole(_entity, ROLE_PENDING_INSURED_PARTY, role);
+      dataBool["insuredPartyApproved"] = true;
+    } else if (hasRole(_entity, ROLE_PENDING_CLAIMS_ADMIN)) {
+      role = ROLE_CLAIMS_ADMIN;
+      _switchRole(_entity, ROLE_PENDING_CLAIMS_ADMIN, role);
+      dataBool["claimsAdminApproved"] = true;
     } else {
       revert('caller does not have right role');
     }
@@ -65,21 +73,29 @@ contract PolicyApprovalsFacet is EternalStorage, Controller, IDiamondFacet, IPol
   function getApprovalsInfo () public view override returns (
     bool approved_,
     bool insuredPartyApproved_,
-    bool capitalProviderApproved_,
-    bool brokerApproved_
+    bool underwriterApproved_,
+    bool brokerApproved_,
+    bool claimsAdminApproved_
   ) {
     approved_ = _isFullyApproved();
     insuredPartyApproved_ = dataBool["insuredPartyApproved"];
-    capitalProviderApproved_ = dataBool["capitalProviderApproved"];
+    underwriterApproved_ = dataBool["underwriterApproved"];
     brokerApproved_ = dataBool["brokerApproved"];
+    claimsAdminApproved_ = dataBool["claimsAdminApproved"];
   }
 
   // Internal methods
 
   function _isFullyApproved () private view returns (bool) {
-    uint256 numApprovals = dataBool["capitalProviderApproved"] ? 1 : 0;
+    uint256 numApprovals = dataBool["underwriterApproved"] ? 1 : 0;
     numApprovals += dataBool["insuredPartyApproved"] ? 1 : 0;
     numApprovals += dataBool["brokerApproved"] ? 1 : 0;
-    return numApprovals == 3;
+    numApprovals += dataBool["claimsAdminApproved"] ? 1 : 0;
+    return numApprovals == 4;
+  }
+
+  function _switchRole (address _addr, bytes32 _oldRole, bytes32 _newRole) private {
+    acl().assignRole(aclContext(), _addr, _newRole);    
+    acl().unassignRole(aclContext(), _addr, _oldRole);    
   }
 }

@@ -232,7 +232,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
 
 
   function _beginPolicySaleIfNotYetStarted() private {
-    if (dataUint256["state"] == POLICY_STATE_INITIATED) {
+    if (dataUint256["state"] == POLICY_STATE_APPROVED) {
       IMarket market = IMarket(settings().getRootAddress(SETTING_MARKET));
 
       bool allReady = true;
@@ -263,13 +263,13 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
       }
 
       // set policy state to selling
-      _setPolicyState(POLICY_STATE_SELLING);
+      _setPolicyState(POLICY_STATE_INITIATED);
     }
   }
 
   function _activatePolicyIfPending() private {
     // make policy active if necessary
-    if (dataUint256["state"] == POLICY_STATE_SELLING) {
+    if (dataUint256["state"] == POLICY_STATE_INITIATED) {
       _setPolicyState(POLICY_STATE_ACTIVE);
     }
   }

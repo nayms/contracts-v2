@@ -71,11 +71,11 @@ contract('End-to-end integration tests', accounts => {
   let entity3Naym
 
   let POLICY_STATE_CREATED
-  let POLICY_STATE_SELLING
+  let POLICY_STATE_INITIATED
   let POLICY_STATE_ACTIVE
   let POLICY_STATE_MATURED
   let POLICY_STATE_IN_APPROVAL
-  let POLICY_STATE_INITIATED
+  let POLICY_STATE_APPROVED
   let POLICY_STATE_CANCELLED
 
   let TRANCH_STATE_CREATED
@@ -108,12 +108,12 @@ contract('End-to-end integration tests', accounts => {
     ;([ policyCoreAddress ] = await ensurePolicyImplementationsAreDeployed({ artifacts, settings }))
     const policyStates = await IPolicyStates.at(policyCoreAddress)
     POLICY_STATE_CREATED = await policyStates.POLICY_STATE_CREATED()
-    POLICY_STATE_SELLING = await policyStates.POLICY_STATE_SELLING()
+    POLICY_STATE_INITIATED = await policyStates.POLICY_STATE_INITIATED()
     POLICY_STATE_ACTIVE = await policyStates.POLICY_STATE_ACTIVE()
     POLICY_STATE_MATURED = await policyStates.POLICY_STATE_MATURED()
     POLICY_STATE_CANCELLED = await policyStates.POLICY_STATE_CANCELLED()
     POLICY_STATE_IN_APPROVAL = await policyStates.POLICY_STATE_IN_APPROVAL()
-    POLICY_STATE_INITIATED = await policyStates.POLICY_STATE_INITIATED()
+    POLICY_STATE_APPROVED = await policyStates.POLICY_STATE_APPROVED()
 
     TRANCH_STATE_CREATED = await policyStates.TRANCH_STATE_CREATED()
     TRANCH_STATE_SELLING = await policyStates.TRANCH_STATE_SELLING()
@@ -301,7 +301,7 @@ contract('End-to-end integration tests', accounts => {
     await policy1.checkAndUpdateState()
 
     // check states
-    await policy1.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_SELLING })
+    await policy1.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_INITIATED })
     await policy1.getTranchInfo(0).should.eventually.matchObj({
       state_: TRANCH_STATE_SELLING
     })
@@ -336,7 +336,7 @@ contract('End-to-end integration tests', accounts => {
     await etherToken.balanceOf(entity3Address).should.eventually.eq(entity3Balance)
 
     // check states
-    await policy1.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_SELLING }) // pending since start date not yet passed
+    await policy1.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_INITIATED }) // pending since start date not yet passed
     await policy1.getTranchInfo(0).should.eventually.matchObj({
       state_: TRANCH_STATE_ACTIVE  // should be active since it's fully sold out
     })
@@ -561,7 +561,7 @@ contract('End-to-end integration tests', accounts => {
     await policy2.checkAndUpdateState()
 
     // check states
-    await policy2.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_SELLING })
+    await policy2.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_INITIATED })
     await policy2.getTranchInfo(0).should.eventually.matchObj({
       state_: TRANCH_STATE_SELLING
     })
@@ -587,7 +587,7 @@ contract('End-to-end integration tests', accounts => {
     await etherToken.balanceOf(entity2Address).should.eventually.eq(entity2Balance)
 
     // check states
-    await policy2.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_SELLING }) // pending since start date not yet passed
+    await policy2.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_INITIATED }) // pending since start date not yet passed
     await policy2.getTranchInfo(0).should.eventually.matchObj({
       state_: TRANCH_STATE_ACTIVE // should be active since it's fully sold out
     })

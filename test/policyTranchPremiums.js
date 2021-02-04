@@ -84,11 +84,11 @@ contract('Policy Tranches: Premiums', accounts => {
   let broker
 
   let POLICY_STATE_CREATED
-  let POLICY_STATE_SELLING
+  let POLICY_STATE_INITIATED
   let POLICY_STATE_ACTIVE
   let POLICY_STATE_MATURED
   let POLICY_STATE_IN_APPROVAL
-  let POLICY_STATE_INITIATED
+  let POLICY_STATE_APPROVED
   let POLICY_STATE_CANCELLED
 
   let TRANCH_STATE_CANCELLED
@@ -137,12 +137,12 @@ contract('Policy Tranches: Premiums', accounts => {
 
     const policyStates = await IPolicyStates.at(policyCoreAddress)
     POLICY_STATE_CREATED = await policyStates.POLICY_STATE_CREATED()
-    POLICY_STATE_SELLING = await policyStates.POLICY_STATE_SELLING()
+    POLICY_STATE_INITIATED = await policyStates.POLICY_STATE_INITIATED()
     POLICY_STATE_ACTIVE = await policyStates.POLICY_STATE_ACTIVE()
     POLICY_STATE_MATURED = await policyStates.POLICY_STATE_MATURED()
     POLICY_STATE_CANCELLED = await policyStates.POLICY_STATE_CANCELLED()
     POLICY_STATE_IN_APPROVAL = await policyStates.POLICY_STATE_IN_APPROVAL()
-    POLICY_STATE_INITIATED = await policyStates.POLICY_STATE_INITIATED()
+    POLICY_STATE_APPROVED = await policyStates.POLICY_STATE_APPROVED()
 
     TRANCH_STATE_CANCELLED = await policyStates.TRANCH_STATE_CANCELLED()
     TRANCH_STATE_ACTIVE = await policyStates.TRANCH_STATE_ACTIVE()

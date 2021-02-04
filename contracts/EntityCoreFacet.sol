@@ -19,7 +19,7 @@ import "./Policy.sol";
   }
 
   modifier assertCanCreatePolicy () {
-    require(inRoleGroup(msg.sender, ROLEGROUP_POLICY_CREATORS), 'must be policy creator');
+    require(inRoleGroup(msg.sender, ROLEGROUP_ENTITY_REPS), 'must be entity rep');
     _;
   }
 

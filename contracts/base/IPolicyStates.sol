@@ -11,7 +11,7 @@ abstract contract IPolicyStates {
   /**
    * @dev State: The policy initial sale is in progress.
    */
-  uint256 constant public POLICY_STATE_SELLING = 1;
+  uint256 constant public POLICY_STATE_INITIATED = 1;
   /**
    * @dev State: The policy initial sale has completed and it is now active.
    */
@@ -31,7 +31,7 @@ abstract contract IPolicyStates {
   /**
    * @dev State: The policy is has been initiated, meaning all policy approvals have been obtained.
    */
-  uint256 constant public POLICY_STATE_INITIATED = 6;
+  uint256 constant public POLICY_STATE_APPROVED = 6;
 
   /**
    * @dev State: The tranch has just been created.

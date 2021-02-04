@@ -54,11 +54,11 @@ contract('Policy: Flow', accounts => {
   let broker
 
   let POLICY_STATE_CREATED
-  let POLICY_STATE_SELLING
+  let POLICY_STATE_INITIATED
   let POLICY_STATE_ACTIVE
   let POLICY_STATE_MATURED
   let POLICY_STATE_IN_APPROVAL
-  let POLICY_STATE_INITIATED
+  let POLICY_STATE_APPROVED
   let POLICY_STATE_CANCELLED
   
   let TRANCH_STATE_CREATED
@@ -159,12 +159,12 @@ contract('Policy: Flow', accounts => {
     const policyStates = await IPolicyStates.at(policyCoreAddress)
 
     POLICY_STATE_CREATED = await policyStates.POLICY_STATE_CREATED()
-    POLICY_STATE_SELLING = await policyStates.POLICY_STATE_SELLING()
+    POLICY_STATE_INITIATED = await policyStates.POLICY_STATE_INITIATED()
     POLICY_STATE_ACTIVE = await policyStates.POLICY_STATE_ACTIVE()
     POLICY_STATE_MATURED = await policyStates.POLICY_STATE_MATURED()
     POLICY_STATE_CANCELLED = await policyStates.POLICY_STATE_CANCELLED()
     POLICY_STATE_IN_APPROVAL = await policyStates.POLICY_STATE_IN_APPROVAL()
-    POLICY_STATE_INITIATED = await policyStates.POLICY_STATE_INITIATED()
+    POLICY_STATE_APPROVED = await policyStates.POLICY_STATE_APPROVED()
 
     TRANCH_STATE_CREATED = await policyStates.TRANCH_STATE_CREATED()
     TRANCH_STATE_SELLING = await policyStates.TRANCH_STATE_SELLING()
@@ -201,7 +201,7 @@ contract('Policy: Flow', accounts => {
           await policy.approve({ from: capitalProvider })
           await policy.approve({ from: insuredParty })
           await policy.approve({ from: broker })
-          await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_INITIATED })
+          await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_APPROVED })
         })
 
         it('but not if tranch premiums have not been paid', async () => {
@@ -218,7 +218,7 @@ contract('Policy: Flow', accounts => {
           await policy.getTranchInfo(0).should.eventually.matchObj({
             initialSaleOfferId_: 0,
           })
-          await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_INITIATED })
+          await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_APPROVED })
         })
 
         describe('once tranch premiums are up-to-date', () => {
@@ -250,7 +250,7 @@ contract('Policy: Flow', accounts => {
             const result = await policy.checkAndUpdateState()
 
             const ev = extractEventArgs(result, events.PolicyStateUpdated)
-            expect(ev.state).to.eq(POLICY_STATE_SELLING.toString())
+            expect(ev.state).to.eq(POLICY_STATE_INITIATED.toString())
 
             await tranchTokens[0].balanceOf(market.address).should.eventually.eq(100)
             await tranchTokens[1].balanceOf(market.address).should.eventually.eq(50)
@@ -269,7 +269,7 @@ contract('Policy: Flow', accounts => {
 
           it('and then policy state gets updated', async () => {
             await policy.checkAndUpdateState()
-            await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_SELLING })
+            await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_INITIATED })
           })
 
           it('and then tranch states get updated', async () => {
@@ -512,7 +512,7 @@ contract('Policy: Flow', accounts => {
       await policy.checkAndUpdateState()
 
       await policy.checkAndUpdateState()
-      await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_SELLING })
+      await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_INITIATED })
     })
 
     describe('once start date has passed', () => {

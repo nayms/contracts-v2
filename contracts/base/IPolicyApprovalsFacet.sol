@@ -9,9 +9,9 @@ interface IPolicyApprovalsFacet {
    *
    * Caller must be a representative of given entity.
    *
-   * @param _entity One of the entities which has a role with this policy.
+   * @param _role Role the entity of the caller has.
    */
-  function approve (address _entity) external;
+  function approve (bytes32 _role) external; 
 
  /**
    * @dev Get approvals info.

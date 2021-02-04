@@ -21,13 +21,13 @@ export const ensureAclIsDeployed = async ({ deployer, artifacts, log, getTxParam
 
   await log.task(`Ensure ACL role groups are setup`, async () => {
     await Promise.all([
-      acl.setRoleGroup(ROLEGROUPS.CAPITAL_PROVIDERS, [ROLES.CAPITAL_PROVIDER], getTxParams()),
+      acl.setRoleGroup(ROLEGROUPS.CAPITAL_PROVIDERS, [ROLES.UNDERWRITER, ROLES.CAPITAL_PROVIDER], getTxParams()),
       acl.setRoleGroup(ROLEGROUPS.UNDERWRITERS, [ROLES.UNDERWRITER], getTxParams()),
       acl.setRoleGroup(ROLEGROUPS.BROKERS, [ROLES.BROKER], getTxParams()),
       acl.setRoleGroup(ROLEGROUPS.INSURED_PARTYS, [ROLES.INSURED_PARTY], getTxParams()),
       acl.setRoleGroup(ROLEGROUPS.ENTITY_ADMINS, [ROLES.ENTITY_ADMIN], getTxParams()),
-      acl.setRoleGroup(ROLEGROUPS.ENTITY_MANAGERS, [ROLES.ENTITY_MANAGER], getTxParams()),
-      acl.setRoleGroup(ROLEGROUPS.ENTITY_REPS, [ROLES.ENTITY_REP], getTxParams()),
+      acl.setRoleGroup(ROLEGROUPS.ENTITY_MANAGERS, [ROLES.ENTITY_ADMIN, ROLES.ENTITY_MANAGER], getTxParams()),
+      acl.setRoleGroup(ROLEGROUPS.ENTITY_REPS, [ROLES.ENTITY_ADMIN, ROLES.ENTITY_MANAGER, ROLES.ENTITY_REP], getTxParams()),
       acl.setRoleGroup(ROLEGROUPS.POLICY_OWNERS, [ROLES.POLICY_OWNER], getTxParams()),
       acl.setRoleGroup(ROLEGROUPS.SYSTEM_ADMINS, [ROLES.SYSTEM_ADMIN], getTxParams()),
       acl.setRoleGroup(ROLEGROUPS.SYSTEM_MANAGERS, [ROLES.SYSTEM_MANAGER], getTxParams()),
@@ -41,7 +41,7 @@ export const ensureAclIsDeployed = async ({ deployer, artifacts, log, getTxParam
       acl.addAssigner(ROLES.CAPITAL_PROVIDER, ROLEGROUPS.POLICY_OWNERS, getTxParams()),
       acl.addAssigner(ROLES.BROKER, ROLEGROUPS.POLICY_OWNERS, getTxParams()),
       acl.addAssigner(ROLES.INSURED_PARTY, ROLEGROUPS.POLICY_OWNERS, getTxParams()),
-      acl.addAssigner(ROLES.ENTITY_ADMIN, ROLEGROUPS.SYSTEM_MANAGERS, getTxParams()),
+      acl.addAssigner(ROLES.ENTITY_ADMIN, ROLEGROUPS.SYSTEM_ADMINS, getTxParams()),
       acl.addAssigner(ROLES.ENTITY_MANAGER, ROLEGROUPS.ENTITY_ADMINS, getTxParams()),
       acl.addAssigner(ROLES.ENTITY_REP, ROLEGROUPS.ENTITY_MANAGERS, getTxParams()),
       acl.addAssigner(ROLES.SYSTEM_MANAGER, ROLEGROUPS.SYSTEM_ADMINS, getTxParams()),

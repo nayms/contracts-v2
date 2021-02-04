@@ -90,11 +90,11 @@ contract('Policy Tranches: Claims', accounts => {
   let broker
 
   let POLICY_STATE_CREATED
-  let POLICY_STATE_SELLING
+  let POLICY_STATE_INITIATED
   let POLICY_STATE_ACTIVE
   let POLICY_STATE_MATURED
   let POLICY_STATE_IN_APPROVAL
-  let POLICY_STATE_INITIATED
+  let POLICY_STATE_APPROVED
   let POLICY_STATE_CANCELLED
 
   let TRANCH_STATE_CANCELLED
@@ -145,12 +145,12 @@ contract('Policy Tranches: Claims', accounts => {
 
     const policyStates = await IPolicyStates.at(policyCoreAddress)
     POLICY_STATE_CREATED = await policyStates.POLICY_STATE_CREATED()
-    POLICY_STATE_SELLING = await policyStates.POLICY_STATE_SELLING()
+    POLICY_STATE_INITIATED = await policyStates.POLICY_STATE_INITIATED()
     POLICY_STATE_ACTIVE = await policyStates.POLICY_STATE_ACTIVE()
     POLICY_STATE_MATURED = await policyStates.POLICY_STATE_MATURED()
     POLICY_STATE_CANCELLED = await policyStates.POLICY_STATE_CANCELLED()
     POLICY_STATE_IN_APPROVAL = await policyStates.POLICY_STATE_IN_APPROVAL()
-    POLICY_STATE_INITIATED = await policyStates.POLICY_STATE_INITIATED()
+    POLICY_STATE_APPROVED = await policyStates.POLICY_STATE_APPROVED()
 
     TRANCH_STATE_CANCELLED = await policyStates.TRANCH_STATE_CANCELLED()
     TRANCH_STATE_ACTIVE = await policyStates.TRANCH_STATE_ACTIVE()
@@ -271,7 +271,7 @@ contract('Policy Tranches: Claims', accounts => {
 
     it('cannot be made in initiated state', async () => {
       await setupPolicyForClaims(POLICY_ATTRS_1)
-      await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_INITIATED })
+      await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_APPROVED })
       await policy.makeClaim(0, entity.address, 1).should.be.rejectedWith('must be in active state')
     })
 
@@ -279,7 +279,7 @@ contract('Policy Tranches: Claims', accounts => {
       await setupPolicyForClaims(POLICY_ATTRS_2)
       await evmClock.setRelativeTime(100)
       await policy.checkAndUpdateState()
-      await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_SELLING })
+      await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_INITIATED })
       await policy.makeClaim(0, entity.address, 1).should.be.rejectedWith('must be in active state')
     })
 

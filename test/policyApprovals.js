@@ -54,11 +54,11 @@ contract('Policy: Approvals', accounts => {
   let broker
 
   let POLICY_STATE_CREATED
-  let POLICY_STATE_SELLING
+  let POLICY_STATE_INITIATED
   let POLICY_STATE_ACTIVE
   let POLICY_STATE_MATURED
   let POLICY_STATE_IN_APPROVAL
-  let POLICY_STATE_INITIATED
+  let POLICY_STATE_APPROVED
   let POLICY_STATE_CANCELLED
   
   let TRANCH_STATE_CREATED
@@ -159,12 +159,12 @@ contract('Policy: Approvals', accounts => {
     const policyStates = await IPolicyStates.at(policyCoreAddress)
 
     POLICY_STATE_CREATED = await policyStates.POLICY_STATE_CREATED()
-    POLICY_STATE_SELLING = await policyStates.POLICY_STATE_SELLING()
+    POLICY_STATE_INITIATED = await policyStates.POLICY_STATE_INITIATED()
     POLICY_STATE_ACTIVE = await policyStates.POLICY_STATE_ACTIVE()
     POLICY_STATE_MATURED = await policyStates.POLICY_STATE_MATURED()
     POLICY_STATE_CANCELLED = await policyStates.POLICY_STATE_CANCELLED()
     POLICY_STATE_IN_APPROVAL = await policyStates.POLICY_STATE_IN_APPROVAL()
-    POLICY_STATE_INITIATED = await policyStates.POLICY_STATE_INITIATED()
+    POLICY_STATE_APPROVED = await policyStates.POLICY_STATE_APPROVED()
 
     TRANCH_STATE_CREATED = await policyStates.TRANCH_STATE_CREATED()
     TRANCH_STATE_SELLING = await policyStates.TRANCH_STATE_SELLING()
@@ -271,7 +271,7 @@ contract('Policy: Approvals', accounts => {
       })
 
       await policy.getInfo().should.eventually.matchObj({
-        state_: POLICY_STATE_INITIATED
+        state_: POLICY_STATE_APPROVED
       })
     })
   })

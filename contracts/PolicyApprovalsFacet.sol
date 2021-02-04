@@ -33,27 +33,29 @@ contract PolicyApprovalsFacet is EternalStorage, Controller, IDiamondFacet, IPol
 
   // IPolicyApprovalsFacet
 
-  function approve (address _entity) public override 
+  function approve (bytes32 _role) public override 
     assertInApprovableState
-    assertIsEntityRep(msg.sender, _entity)
+    assertBelongsToEntityWithRole(msg.sender, _role)
   {
     bytes32 role;
 
-    if (hasRole(_entity, ROLE_PENDING_UNDERWRITER)) {
+    address entity = _getEntityWithRole(_role);
+
+    if (hasRole(entity, ROLE_PENDING_UNDERWRITER)) {
       role = ROLE_UNDERWRITER;
-      _switchRole(_entity, ROLE_PENDING_UNDERWRITER, role);
+      _switchRole(entity, ROLE_PENDING_UNDERWRITER, role);
       dataBool["underwriterApproved"] = true;
-    } else if (hasRole(_entity, ROLE_PENDING_BROKER)) {
+    } else if (hasRole(entity, ROLE_PENDING_BROKER)) {
       role = ROLE_BROKER;
-      _switchRole(_entity, ROLE_PENDING_BROKER, role);
+      _switchRole(entity, ROLE_PENDING_BROKER, role);
       dataBool["brokerApproved"] = true;
-    } else if (hasRole(_entity, ROLE_PENDING_INSURED_PARTY)) {
+    } else if (hasRole(entity, ROLE_PENDING_INSURED_PARTY)) {
       role = ROLE_INSURED_PARTY;
-      _switchRole(_entity, ROLE_PENDING_INSURED_PARTY, role);
+      _switchRole(entity, ROLE_PENDING_INSURED_PARTY, role);
       dataBool["insuredPartyApproved"] = true;
-    } else if (hasRole(_entity, ROLE_PENDING_CLAIMS_ADMIN)) {
+    } else if (hasRole(entity, ROLE_PENDING_CLAIMS_ADMIN)) {
       role = ROLE_CLAIMS_ADMIN;
-      _switchRole(_entity, ROLE_PENDING_CLAIMS_ADMIN, role);
+      _switchRole(entity, ROLE_PENDING_CLAIMS_ADMIN, role);
       dataBool["claimsAdminApproved"] = true;
     } else {
       revert('caller does not have right role');
@@ -61,7 +63,7 @@ contract PolicyApprovalsFacet is EternalStorage, Controller, IDiamondFacet, IPol
 
     // update state
     if (_isFullyApproved()) {
-      _setPolicyState(POLICY_STATE_INITIATED);
+      _setPolicyState(POLICY_STATE_APPROVED);
     } else {
       _setPolicyState(POLICY_STATE_IN_APPROVAL);
     }

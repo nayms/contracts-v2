@@ -8,10 +8,17 @@ import "./AccessControl.sol";
  * @dev Policy facet base class
  */
 abstract contract PolicyFacetBase is EternalStorage, IPolicyStates, AccessControl {
-  modifier assertIsEntityRep(address _user, address _entity) {
-    bytes32 ctx = AccessControl(_entity).aclContext();
-    require(hasRoleWithContext(ctx, _user, ROLE_ENTITY_REP), 'must be entity rep');
+  modifier assertBelongsToEntityWithRole(address _user, bytes32 _role) {
+    address entity = _getEntityWithRole(_role);
+    // check they are a rep
+    bytes32 ctx = AccessControl(entity).aclContext();
+    require(hasRoleWithContext(ctx, _user, ROLE_ENTITY_REP), 'not a rep of associated entity');
     _;
+  }
+
+  function _getEntityWithRole (bytes32 _role) internal view returns (address) {
+    address[] memory entities = acl().getUsersForRole(aclContext(), _role);
+    return entities[0];
   }
 
   function _setPolicyState (uint256 _newState) internal {

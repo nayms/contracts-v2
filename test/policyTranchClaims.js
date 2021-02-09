@@ -85,7 +85,7 @@ contract('Policy Tranches: Claims', accounts => {
   let market
   let etherToken
 
-  let underwriter:
+  let underwriter
   let insuredParty
   let broker
 
@@ -197,11 +197,11 @@ contract('Policy Tranches: Claims', accounts => {
       await policy.payTranchPremium(3, 8000)
     }
 
-    underwriter: = accounts[6]
+    underwriter = accounts[6]
     insuredParty = accounts[7]
     broker = accounts[8]
 
-    const approvers = { underwriter:, insuredParty, broker }
+    const approvers = { underwriter, insuredParty, broker }
 
     Object.assign(POLICY_ATTRS_1, approvers)
     Object.assign(POLICY_ATTRS_2, approvers)
@@ -224,7 +224,7 @@ contract('Policy Tranches: Claims', accounts => {
 
       // approve policy
       if (!skipApprovals) {
-        await policy.approve({ from: underwriter: })
+        await policy.approve({ from: underwriter })
         await policy.approve({ from: insuredParty })
         await policy.approve({ from: broker })
       }
@@ -264,7 +264,7 @@ contract('Policy Tranches: Claims', accounts => {
 
     it('cannot be made in in-approval state', async () => {
       await setupPolicyForClaims(POLICY_ATTRS_1, { skipApprovals: true })
-      await policy.approve({ from: underwriter: })
+      await policy.approve({ from: underwriter })
       await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_IN_APPROVAL })
       await policy.makeClaim(0, entity.address, 1).should.be.rejectedWith('must be in active state')
     })

@@ -59,7 +59,7 @@ contract('Policy Tranches: Commissions', accounts => {
   let market
   let etherToken
 
-  let underwriter:
+  let underwriter
   let insuredParty
   let broker
 
@@ -111,10 +111,10 @@ contract('Policy Tranches: Commissions', accounts => {
 
     ;([ policyCoreAddress ] = await ensurePolicyImplementationsAreDeployed({ artifacts, settings }))
 
-    underwriter: = accounts[6]
+    underwriter = accounts[6]
     insuredParty = accounts[7]
     broker = accounts[8]
-    Object.assign(POLICY_ATTRS_1, { underwriter:, insuredParty, broker })
+    Object.assign(POLICY_ATTRS_1, { underwriter, insuredParty, broker })
 
     const policyStates = await IPolicyStates.at(policyCoreAddress)
     POLICY_STATE_CREATED = await policyStates.POLICY_STATE_CREATED()
@@ -158,7 +158,7 @@ contract('Policy Tranches: Commissions', accounts => {
         premiums: [2000, 3000, 4000]
       }, { from: policyOwnerAddress })
 
-      await policy.approve({ from: underwriter: })
+      await policy.approve({ from: underwriter })
       await policy.approve({ from: insuredParty })
       await policy.approve({ from: broker })
     })
@@ -265,7 +265,7 @@ contract('Policy Tranches: Commissions', accounts => {
         const ret = await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6])
 
         expect(extractEventArgs(ret, events.PaidCommissions)).to.include({
-          underwriter:Entity: entity.address,
+          underwriter: entity.address,
           brokerEntity: entity.address
         })
       })

@@ -50,7 +50,7 @@ contract('Policy: Approvals', accounts => {
   let policyOwnerAddress
 
   let insuredParty
-  let underwriter:
+  let underwriter
   let broker
 
   let POLICY_STATE_CREATED
@@ -104,7 +104,7 @@ contract('Policy: Approvals', accounts => {
     baseDate = parseInt((await settings.getTime()).toString(10))
 
     // roles
-    underwriter: = accounts[5]
+    underwriter = accounts[5]
     insuredParty = accounts[6]
     broker = accounts[7]
     await acl.assignRole(entityContext, insuredParty, ROLES.ENTITY_REP)
@@ -124,7 +124,7 @@ contract('Policy: Approvals', accounts => {
       underwriterCommissionBP,
       brokerCommissionBP,
       naymsCommissionBP,
-      underwriter:,
+      underwriter,
       insuredParty,
       broker,
     }, { from: entityManagerAddress })
@@ -190,7 +190,7 @@ contract('Policy: Approvals', accounts => {
     })
 
     it('by capital provider', async () => {
-      await policy.approve({ from: underwriter: })
+      await policy.approve({ from: underwriter })
 
       await policy.getApprovalsInfo().should.eventually.matchObj({
         approved_: false,
@@ -205,8 +205,8 @@ contract('Policy: Approvals', accounts => {
     })
 
     it('and approvals are idempotent', async () => {
-      await policy.approve({ from: underwriter: })
-      await policy.approve({ from: underwriter: })
+      await policy.approve({ from: underwriter })
+      await policy.approve({ from: underwriter })
 
       await policy.getApprovalsInfo().should.eventually.matchObj({
         approved_: false,
@@ -221,10 +221,10 @@ contract('Policy: Approvals', accounts => {
     })
 
     it('and approvals emit an event', async () => {
-      const result = await policy.approve({ from: underwriter: })
+      const result = await policy.approve({ from: underwriter })
 
       const ev = extractEventArgs(result, events.Approved)
-      expect(ev.caller).to.eq(underwriter:)
+      expect(ev.caller).to.eq(underwriter)
       expect(ev.role).to.eq(ROLES.CAPITAL_PROVIDER)
     })
 
@@ -260,7 +260,7 @@ contract('Policy: Approvals', accounts => {
 
     it('by everyone and this then initiates it', async () => {
       await policy.approve({ from: insuredParty })
-      await policy.approve({ from: underwriter: })
+      await policy.approve({ from: underwriter })
       await policy.approve({ from: broker })
 
       await policy.getApprovalsInfo().should.eventually.matchObj({

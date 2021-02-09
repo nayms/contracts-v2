@@ -79,7 +79,7 @@ contract('Policy Tranches: Premiums', accounts => {
   let market
   let etherToken
 
-  let underwriter:
+  let underwriter
   let insuredParty
   let broker
 
@@ -148,12 +148,12 @@ contract('Policy Tranches: Premiums', accounts => {
     TRANCH_STATE_ACTIVE = await policyStates.TRANCH_STATE_ACTIVE()
     TRANCH_STATE_MATURED = await policyStates.TRANCH_STATE_MATURED()
 
-    underwriter: = accounts[6]
+    underwriter = accounts[6]
     insuredParty = accounts[7]
     broker = accounts[8]
-    Object.assign(POLICY_ATTRS_1, { underwriter:, insuredParty, broker })
-    Object.assign(POLICY_ATTRS_2, { underwriter:, insuredParty, broker })
-    Object.assign(POLICY_ATTRS_3, { underwriter:, insuredParty, broker })
+    Object.assign(POLICY_ATTRS_1, { underwriter, insuredParty, broker })
+    Object.assign(POLICY_ATTRS_2, { underwriter, insuredParty, broker })
+    Object.assign(POLICY_ATTRS_3, { underwriter, insuredParty, broker })
 
     const preSetupPolicyCtx = { policies, settings, events, etherToken, entity, entityManagerAddress }
     await Promise.all([
@@ -176,7 +176,7 @@ contract('Policy Tranches: Premiums', accounts => {
     }
 
     approvePolicy = async () => {
-      await policy.approve({ from: underwriter: })
+      await policy.approve({ from: underwriter })
       await policy.approve({ from: insuredParty })
       await policy.approve({ from: broker })
     }

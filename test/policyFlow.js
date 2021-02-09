@@ -50,7 +50,7 @@ contract('Policy: Flow', accounts => {
   let policyOwnerAddress
 
   let insuredParty
-  let underwriter:
+  let underwriter
   let broker
 
   let POLICY_STATE_CREATED
@@ -104,7 +104,7 @@ contract('Policy: Flow', accounts => {
     baseDate = parseInt((await settings.getTime()).toString(10))
 
     // roles
-    underwriter: = accounts[5]
+    underwriter = accounts[5]
     insuredParty = accounts[6]
     broker = accounts[7]
     await acl.assignRole(entityContext, insuredParty, ROLES.ENTITY_REP)
@@ -124,7 +124,7 @@ contract('Policy: Flow', accounts => {
       underwriterCommissionBP,
       brokerCommissionBP,
       naymsCommissionBP,
-      underwriter:,
+      underwriter,
       insuredParty,
       broker,
     }, { from: entityManagerAddress })
@@ -198,7 +198,7 @@ contract('Policy: Flow', accounts => {
 
       describe('once policy has been approved', () => {
         beforeEach(async () => {
-          await policy.approve({ from: underwriter: })
+          await policy.approve({ from: underwriter })
           await policy.approve({ from: insuredParty })
           await policy.approve({ from: broker })
           await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_APPROVED })
@@ -295,7 +295,7 @@ contract('Policy: Flow', accounts => {
     let marketOfferId
 
     beforeEach(async () => {
-      await policy.approve({ from: underwriter: })
+      await policy.approve({ from: underwriter })
       await policy.approve({ from: insuredParty })
       await policy.approve({ from: broker })
 
@@ -497,7 +497,7 @@ contract('Policy: Flow', accounts => {
 
   describe('sale gets ended', async () => {
     beforeEach(async () => {
-      await policy.approve({ from: underwriter: })
+      await policy.approve({ from: underwriter })
       await policy.approve({ from: insuredParty })
       await policy.approve({ from: broker })
     })
@@ -719,7 +719,7 @@ contract('Policy: Flow', accounts => {
 
     beforeEach(async () => {
       // approve policy
-      await policy.approve({ from: underwriter: })
+      await policy.approve({ from: underwriter })
       await policy.approve({ from: insuredParty })
       await policy.approve({ from: broker })
 
@@ -821,15 +821,15 @@ contract('Policy: Flow', accounts => {
         })
 
         it('they can then be approved or declined', async () => {
-          await policy.declineClaim(0, { from: underwriter: })
+          await policy.declineClaim(0, { from: underwriter })
           await policy.makeClaim(0, entity.address, 1, { from: insuredParty })
-          await policy.approveClaim(1, { from: underwriter: })
+          await policy.approveClaim(1, { from: underwriter })
         })
 
         it('and approved ones can be paid out', async () => {
-          await policy.declineClaim(0, { from: underwriter: })
-          await policy.approveClaim(1, { from: underwriter: })
-          await policy.approveClaim(3, { from: underwriter: })
+          await policy.declineClaim(0, { from: underwriter })
+          await policy.approveClaim(1, { from: underwriter })
+          await policy.approveClaim(3, { from: underwriter })
 
           const preBalance = ((await etherToken.balanceOf(entity.address)).toNumber())
 
@@ -902,8 +902,8 @@ contract('Policy: Flow', accounts => {
             finalBuybackofferId_: 0,
           })
 
-          await policy.declineClaim(0, { from: underwriter: })
-          await policy.approveClaim(1, { from: underwriter: })
+          await policy.declineClaim(0, { from: underwriter })
+          await policy.approveClaim(1, { from: underwriter })
 
           const ret2 = await policy.checkAndUpdateState()
           const postEvs = parseEvents(ret2, events.TranchStateUpdated)
@@ -1022,8 +1022,8 @@ contract('Policy: Flow', accounts => {
             finalBuybackofferId_: 0,
           })
 
-          await policy.declineClaim(0, { from: underwriter: })
-          await policy.approveClaim(1, { from: underwriter: })
+          await policy.declineClaim(0, { from: underwriter })
+          await policy.approveClaim(1, { from: underwriter })
 
           const ret2 = await policy.checkAndUpdateState()
 

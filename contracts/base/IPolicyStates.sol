@@ -9,6 +9,14 @@ abstract contract IPolicyStates {
    */
   uint256 constant public POLICY_STATE_CREATED = 0;
   /**
+   * @dev State: The policy is undergoing approval.
+   */
+  uint256 constant public POLICY_STATE_IN_APPROVAL = 5;
+  /**
+   * @dev State: All policy approvals have been obtained.
+   */
+  uint256 constant public POLICY_STATE_APPROVED = 6;
+  /**
    * @dev State: The policy initial sale is in progress.
    */
   uint256 constant public POLICY_STATE_INITIATED = 1;
@@ -21,17 +29,17 @@ abstract contract IPolicyStates {
    */
   uint256 constant public POLICY_STATE_MATURED = 3;
   /**
+   * @dev State: Policy has matured, claims have been settled, and shares are being bought back from the market.
+   */
+  uint256 constant public POLICY_STATE_BUYBACK = 7;
+  /**
+   * @dev State: Policy has matured, claims have been settled, and all shares have been bought back.
+   */
+  uint256 constant public POLICY_STATE_CLOSED = 8;
+  /**
    * @dev State: The policy got cancelled.
    */
   uint256 constant public POLICY_STATE_CANCELLED = 4;
-  /**
-   * @dev State: The policy is undergoing approval.
-   */
-  uint256 constant public POLICY_STATE_IN_APPROVAL = 5;
-  /**
-   * @dev State: The policy is has been initiated, meaning all policy approvals have been obtained.
-   */
-  uint256 constant public POLICY_STATE_APPROVED = 6;
 
   /**
    * @dev State: The tranch has just been created.

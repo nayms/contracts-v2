@@ -25,6 +25,7 @@ export const ensureAclIsDeployed = async ({ deployer, artifacts, log, getTxParam
       acl.setRoleGroup(ROLEGROUPS.UNDERWRITERS, [ROLES.UNDERWRITER], getTxParams()),
       acl.setRoleGroup(ROLEGROUPS.BROKERS, [ROLES.BROKER], getTxParams()),
       acl.setRoleGroup(ROLEGROUPS.INSURED_PARTYS, [ROLES.INSURED_PARTY], getTxParams()),
+      acl.setRoleGroup(ROLEGROUPS.CLAIMS_ADMINS, [ROLES.CLAIMS_ADMIN], getTxParams()),
       acl.setRoleGroup(ROLEGROUPS.ENTITY_ADMINS, [ROLES.ENTITY_ADMIN], getTxParams()),
       acl.setRoleGroup(ROLEGROUPS.ENTITY_MANAGERS, [ROLES.ENTITY_ADMIN, ROLES.ENTITY_MANAGER], getTxParams()),
       acl.setRoleGroup(ROLEGROUPS.ENTITY_REPS, [ROLES.ENTITY_ADMIN, ROLES.ENTITY_MANAGER, ROLES.ENTITY_REP], getTxParams()),
@@ -44,6 +45,7 @@ export const ensureAclIsDeployed = async ({ deployer, artifacts, log, getTxParam
       acl.addAssigner(ROLES.ENTITY_ADMIN, ROLEGROUPS.SYSTEM_ADMINS, getTxParams()),
       acl.addAssigner(ROLES.ENTITY_MANAGER, ROLEGROUPS.ENTITY_ADMINS, getTxParams()),
       acl.addAssigner(ROLES.ENTITY_REP, ROLEGROUPS.ENTITY_MANAGERS, getTxParams()),
+      acl.addAssigner(ROLES.ENTITY_REP, ROLEGROUPS.SYSTEM_MANAGERS, getTxParams()),
       acl.addAssigner(ROLES.SYSTEM_MANAGER, ROLEGROUPS.SYSTEM_ADMINS, getTxParams()),
     ])
   })

@@ -249,11 +249,11 @@ contract('End-to-end integration tests', accounts => {
         premiumIntervalSeconds: 5 * 60,
         /* basis points: 1 = 0.1% */
         brokerCommissionBP: 1,
-        capitalProviderCommissionBP: 2,
+        underwriterCommissionBP: 2,
         naymsCommissionBP: 3,
         // roles
         broker: policy1Broker,
-        capitalProvider: policy1CapitalProvider,
+        underwriter: policy1CapitalProvider,
         insuredParty: policy1InsuredParty,
       },
       {
@@ -392,7 +392,7 @@ contract('End-to-end integration tests', accounts => {
     // sanity check balances
     const policy1Tranch1ExpectedBalance = 100 + calcPremiumsMinusCommissions({
       premiums: [1000, 2000, 1000],
-      capitalProviderCommissionBP: 2,
+      underwriterCommissionBP: 2,
       brokerCommissionBP: 1,
       naymsCommissionBP: 3,
     })
@@ -402,15 +402,15 @@ contract('End-to-end integration tests', accounts => {
     })
     const expectedCommissions = calcCommissions({
       premiums: [1000, 2000, 1000],
-      capitalProviderCommissionBP: 2,
+      underwriterCommissionBP: 2,
       brokerCommissionBP: 1,
       naymsCommissionBP: 3,
     })
-    expect(expectedCommissions.capitalProviderCommission).to.eq(8)
+    expect(expectedCommissions.underwriterCommission).to.eq(8)
     expect(expectedCommissions.brokerCommission).to.eq(4)
     expect(expectedCommissions.naymsCommission).to.eq(12)
     await policy1.getCommissionBalances().should.eventually.matchObj({
-      capitalProviderCommissionBalance_: expectedCommissions.capitalProviderCommission,
+      underwriterCommissionBalance_: expectedCommissions.underwriterCommission,
       brokerCommissionBalance_: expectedCommissions.brokerCommission,
       naymsCommissionBalance_: expectedCommissions.naymsCommission,
     })
@@ -421,7 +421,7 @@ contract('End-to-end integration tests', accounts => {
     // sanity check nayms entity balance
     const naymsEntityAddress = await settings.getRootAddress(SETTINGS.NAYMS_ENTITY)
     await etherToken.balanceOf(naymsEntityAddress).should.eventually.eq(expectedCommissions.naymsCommission)
-    const entity0ExpectedBalance = entity0Balance + expectedCommissions.capitalProviderCommission + expectedCommissions.brokerCommission
+    const entity0ExpectedBalance = entity0Balance + expectedCommissions.underwriterCommission + expectedCommissions.brokerCommission
     await etherToken.balanceOf(entity0Address).should.eventually.eq(entity0ExpectedBalance)
     entity0Balance = entity0ExpectedBalance
 
@@ -508,12 +508,12 @@ contract('End-to-end integration tests', accounts => {
         premiumIntervalSeconds: 5 * 60,
         /* basis points: 1 = 0.1% */
         brokerCommissionBP: 1,
-        capitalProviderCommissionBP: 2,
+        underwriterCommissionBP: 2,
         naymsCommissionBP: 3,
         // roles
         broker: policy2Broker,
         insuredParty: policy2InsuredParty,
-        capitalProvider: policy2CapitalProvider,
+        underwriter: policy2CapitalProvider,
       },
       {
         from: entity0Manager
@@ -636,14 +636,14 @@ contract('End-to-end integration tests', accounts => {
     const expectedCommissions = calcCommissions({
       premiums: [1000, 2000, 1000],
       brokerCommissionBP: 1,
-      capitalProviderCommissionBP: 2,
+      underwriterCommissionBP: 2,
       naymsCommissionBP: 3,
     })
-    expect(expectedCommissions.capitalProviderCommission).to.eq(8)
+    expect(expectedCommissions.underwriterCommission).to.eq(8)
     expect(expectedCommissions.brokerCommission).to.eq(4)
     expect(expectedCommissions.naymsCommission).to.eq(12)
     await policy2.getCommissionBalances().should.eventually.matchObj({
-      capitalProviderCommissionBalance_: expectedCommissions.capitalProviderCommission,
+      underwriterCommissionBalance_: expectedCommissions.underwriterCommission,
       brokerCommissionBalance_: expectedCommissions.brokerCommission,
       naymsCommissionBalance_: expectedCommissions.naymsCommission,
     })
@@ -651,7 +651,7 @@ contract('End-to-end integration tests', accounts => {
     const policy2Tranch1ExpectedBalanceMinusCommissions = 100 + calcPremiumsMinusCommissions({
       premiums: [1000, 2000, 1000],
       brokerCommissionBP: 1,
-      capitalProviderCommissionBP: 2,
+      underwriterCommissionBP: 2,
       naymsCommissionBP: 3,
     })
 
@@ -704,7 +704,7 @@ contract('End-to-end integration tests', accounts => {
     // sanity check entity balances
     const naymsEntityAddress = await settings.getRootAddress(SETTINGS.NAYMS_ENTITY)
     await etherToken.balanceOf(naymsEntityAddress).should.eventually.eq(expectedCommissions.naymsCommission)
-    const entity0ExpectedBalance = entity0Balance + expectedCommissions.capitalProviderCommission + expectedCommissions.brokerCommission
+    const entity0ExpectedBalance = entity0Balance + expectedCommissions.underwriterCommission + expectedCommissions.brokerCommission
     await etherToken.balanceOf(entity0Address).should.eventually.eq(entity0ExpectedBalance)
     entity0Balance = entity0ExpectedBalance
 

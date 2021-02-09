@@ -28,7 +28,7 @@ const IERC20 = artifacts.require("./base/IERC20")
 contract('Policy: Flow', accounts => {
   const evmSnapshot = new EvmSnapshot()
 
-  const capitalProviderCommissionBP = 100
+  const underwriterCommissionBP = 100
   const brokerCommissionBP = 200
   const naymsCommissionBP = 300
 
@@ -50,7 +50,7 @@ contract('Policy: Flow', accounts => {
   let policyOwnerAddress
 
   let insuredParty
-  let capitalProvider
+  let underwriter:
   let broker
 
   let POLICY_STATE_CREATED
@@ -104,7 +104,7 @@ contract('Policy: Flow', accounts => {
     baseDate = parseInt((await settings.getTime()).toString(10))
 
     // roles
-    capitalProvider = accounts[5]
+    underwriter: = accounts[5]
     insuredParty = accounts[6]
     broker = accounts[7]
     await acl.assignRole(entityContext, insuredParty, ROLES.ENTITY_REP)
@@ -121,10 +121,10 @@ contract('Policy: Flow', accounts => {
       maturationDate,
       premiumIntervalSeconds,
       unit: etherToken.address,
-      capitalProviderCommissionBP,
+      underwriterCommissionBP,
       brokerCommissionBP,
       naymsCommissionBP,
-      capitalProvider,
+      underwriter:,
       insuredParty,
       broker,
     }, { from: entityManagerAddress })
@@ -198,7 +198,7 @@ contract('Policy: Flow', accounts => {
 
       describe('once policy has been approved', () => {
         beforeEach(async () => {
-          await policy.approve({ from: capitalProvider })
+          await policy.approve({ from: underwriter: })
           await policy.approve({ from: insuredParty })
           await policy.approve({ from: broker })
           await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_APPROVED })
@@ -295,7 +295,7 @@ contract('Policy: Flow', accounts => {
     let marketOfferId
 
     beforeEach(async () => {
-      await policy.approve({ from: capitalProvider })
+      await policy.approve({ from: underwriter: })
       await policy.approve({ from: insuredParty })
       await policy.approve({ from: broker })
 
@@ -359,7 +359,7 @@ contract('Policy: Flow', accounts => {
         const b = (await policy.getTranchInfo(0)).balance_
         expect(b.toNumber()).to.eq(calcPremiumsMinusCommissions({
           premiums: [10],
-          capitalProviderCommissionBP,
+          underwriterCommissionBP,
           brokerCommissionBP,
           naymsCommissionBP,
         }))
@@ -414,7 +414,7 @@ contract('Policy: Flow', accounts => {
         const b = (await policy.getTranchInfo(0)).balance_
         expect(b.toNumber()).to.eq(10 + calcPremiumsMinusCommissions({
           premiums: [10],
-          capitalProviderCommissionBP,
+          underwriterCommissionBP,
           brokerCommissionBP,
           naymsCommissionBP,
         }))
@@ -474,7 +474,7 @@ contract('Policy: Flow', accounts => {
         const b = (await policy.getTranchInfo(0)).balance_
         expect(b.toNumber()).to.eq(200 + calcPremiumsMinusCommissions({
           premiums: [10],
-          capitalProviderCommissionBP,
+          underwriterCommissionBP,
           brokerCommissionBP,
           naymsCommissionBP,
         }))
@@ -497,7 +497,7 @@ contract('Policy: Flow', accounts => {
 
   describe('sale gets ended', async () => {
     beforeEach(async () => {
-      await policy.approve({ from: capitalProvider })
+      await policy.approve({ from: underwriter: })
       await policy.approve({ from: insuredParty })
       await policy.approve({ from: broker })
     })
@@ -719,7 +719,7 @@ contract('Policy: Flow', accounts => {
 
     beforeEach(async () => {
       // approve policy
-      await policy.approve({ from: capitalProvider })
+      await policy.approve({ from: underwriter: })
       await policy.approve({ from: insuredParty })
       await policy.approve({ from: broker })
 
@@ -821,15 +821,15 @@ contract('Policy: Flow', accounts => {
         })
 
         it('they can then be approved or declined', async () => {
-          await policy.declineClaim(0, { from: capitalProvider })
+          await policy.declineClaim(0, { from: underwriter: })
           await policy.makeClaim(0, entity.address, 1, { from: insuredParty })
-          await policy.approveClaim(1, { from: capitalProvider })
+          await policy.approveClaim(1, { from: underwriter: })
         })
 
         it('and approved ones can be paid out', async () => {
-          await policy.declineClaim(0, { from: capitalProvider })
-          await policy.approveClaim(1, { from: capitalProvider })
-          await policy.approveClaim(3, { from: capitalProvider })
+          await policy.declineClaim(0, { from: underwriter: })
+          await policy.approveClaim(1, { from: underwriter: })
+          await policy.approveClaim(3, { from: underwriter: })
 
           const preBalance = ((await etherToken.balanceOf(entity.address)).toNumber())
 
@@ -902,8 +902,8 @@ contract('Policy: Flow', accounts => {
             finalBuybackofferId_: 0,
           })
 
-          await policy.declineClaim(0, { from: capitalProvider })
-          await policy.approveClaim(1, { from: capitalProvider })
+          await policy.declineClaim(0, { from: underwriter: })
+          await policy.approveClaim(1, { from: underwriter: })
 
           const ret2 = await policy.checkAndUpdateState()
           const postEvs = parseEvents(ret2, events.TranchStateUpdated)
@@ -1022,8 +1022,8 @@ contract('Policy: Flow', accounts => {
             finalBuybackofferId_: 0,
           })
 
-          await policy.declineClaim(0, { from: capitalProvider })
-          await policy.approveClaim(1, { from: capitalProvider })
+          await policy.declineClaim(0, { from: underwriter: })
+          await policy.approveClaim(1, { from: underwriter: })
 
           const ret2 = await policy.checkAndUpdateState()
 
@@ -1118,7 +1118,7 @@ contract('Policy: Flow', accounts => {
 
           const expectedPremiumBalance = calcPremiumsMinusCommissions({
             premiums: [10, 20, 30, 40, 50, 60, 70],
-            capitalProviderCommissionBP,
+            underwriterCommissionBP,
             brokerCommissionBP,
             naymsCommissionBP,
           })

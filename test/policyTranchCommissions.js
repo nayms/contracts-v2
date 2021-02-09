@@ -35,7 +35,7 @@ const POLICY_ATTRS_1 = {
   startDateDiff: 2000,
   maturationDateDiff: 3000,
   premiumIntervalSeconds: 30,
-  capitalProviderCommissionBP: 1,
+  underwriterCommissionBP: 1,
   brokerCommissionBP: 2,
   naymsCommissionBP: 3
 }
@@ -59,7 +59,7 @@ contract('Policy Tranches: Commissions', accounts => {
   let market
   let etherToken
 
-  let capitalProvider
+  let underwriter:
   let insuredParty
   let broker
 
@@ -111,10 +111,10 @@ contract('Policy Tranches: Commissions', accounts => {
 
     ;([ policyCoreAddress ] = await ensurePolicyImplementationsAreDeployed({ artifacts, settings }))
 
-    capitalProvider = accounts[6]
+    underwriter: = accounts[6]
     insuredParty = accounts[7]
     broker = accounts[8]
-    Object.assign(POLICY_ATTRS_1, { capitalProvider, insuredParty, broker })
+    Object.assign(POLICY_ATTRS_1, { underwriter:, insuredParty, broker })
 
     const policyStates = await IPolicyStates.at(policyCoreAddress)
     POLICY_STATE_CREATED = await policyStates.POLICY_STATE_CREATED()
@@ -158,7 +158,7 @@ contract('Policy Tranches: Commissions', accounts => {
         premiums: [2000, 3000, 4000]
       }, { from: policyOwnerAddress })
 
-      await policy.approve({ from: capitalProvider })
+      await policy.approve({ from: underwriter: })
       await policy.approve({ from: insuredParty })
       await policy.approve({ from: broker })
     })
@@ -170,7 +170,7 @@ contract('Policy Tranches: Commissions', accounts => {
       await policy.payTranchPremium(0, 2000)
 
       await policy.getCommissionBalances().should.eventually.matchObj({
-        capitalProviderCommissionBalance_: 2, /* 0.1% of 2000 */
+        underwriterCommissionBalance_: 2, /* 0.1% of 2000 */
         brokerCommissionBalance_: 4, /* 0.2% of 2000 */
         naymsCommissionBalance_: 6, /* 0.3% of 2000 */
       })
@@ -182,7 +182,7 @@ contract('Policy Tranches: Commissions', accounts => {
       await policy.payTranchPremium(0, 3000)
 
       await policy.getCommissionBalances().should.eventually.matchObj({
-        capitalProviderCommissionBalance_: 5, /* 2 + 3 (=0.1% of 3000) */
+        underwriterCommissionBalance_: 5, /* 2 + 3 (=0.1% of 3000) */
         brokerCommissionBalance_: 10, /* 4 + 6 (=0.2% of 3000) */
         naymsCommissionBalance_: 15, /* 6 + 9 (=0.3% of 3000) */
       })
@@ -193,7 +193,7 @@ contract('Policy Tranches: Commissions', accounts => {
       await policy.payTranchPremium(0, 4000)
 
       await policy.getCommissionBalances().should.eventually.matchObj({
-        capitalProviderCommissionBalance_: 9, /* 5 + 4 (=0.1% of 4000) */
+        underwriterCommissionBalance_: 9, /* 5 + 4 (=0.1% of 4000) */
         brokerCommissionBalance_: 18, /* 10 + 8 (=0.2% of 4000) */
         naymsCommissionBalance_: 27, /* 15 + 12 (=0.3% of 4000) */
       })
@@ -209,7 +209,7 @@ contract('Policy Tranches: Commissions', accounts => {
       await policy.payTranchPremium(0, 4000)
 
       await policy.getCommissionBalances().should.eventually.matchObj({
-        capitalProviderCommissionBalance_: 4, /* 0.1% of 4000 */
+        underwriterCommissionBalance_: 4, /* 0.1% of 4000 */
         brokerCommissionBalance_: 8, /* 0.2% of 4000 */
         naymsCommissionBalance_: 12, /* 0.3% of 4000 */
       })
@@ -265,7 +265,7 @@ contract('Policy Tranches: Commissions', accounts => {
         const ret = await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6])
 
         expect(extractEventArgs(ret, events.PaidCommissions)).to.include({
-          capitalProviderEntity: entity.address,
+          underwriter:Entity: entity.address,
           brokerEntity: entity.address
         })
       })
@@ -288,7 +288,7 @@ contract('Policy Tranches: Commissions', accounts => {
       it('and updates internal balance values', async () => {
         await policy.payCommissions(entity.address, accounts[5], entity.address, accounts[6])
         await policy.getCommissionBalances().should.eventually.matchObj({
-          capitalProviderCommissionBalance_: 0,
+          underwriterCommissionBalance_: 0,
           brokerCommissionBalance_: 0,
           naymsCommissionBalance_: 0,
         })
@@ -307,7 +307,7 @@ contract('Policy Tranches: Commissions', accounts => {
         expect(naymsEntityBalance).to.eq(27)
 
         await policy.getCommissionBalances().should.eventually.matchObj({
-          capitalProviderCommissionBalance_: 0,
+          underwriterCommissionBalance_: 0,
           brokerCommissionBalance_: 0,
           naymsCommissionBalance_: 0,
         })

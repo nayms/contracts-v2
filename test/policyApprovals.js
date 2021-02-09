@@ -28,7 +28,7 @@ const IERC20 = artifacts.require("./base/IERC20")
 contract('Policy: Approvals', accounts => {
   const evmSnapshot = new EvmSnapshot()
 
-  const capitalProviderCommissionBP = 100
+  const underwriterCommissionBP = 100
   const brokerCommissionBP = 200
   const naymsCommissionBP = 300
 
@@ -50,7 +50,7 @@ contract('Policy: Approvals', accounts => {
   let policyOwnerAddress
 
   let insuredParty
-  let capitalProvider
+  let underwriter:
   let broker
 
   let POLICY_STATE_CREATED
@@ -104,7 +104,7 @@ contract('Policy: Approvals', accounts => {
     baseDate = parseInt((await settings.getTime()).toString(10))
 
     // roles
-    capitalProvider = accounts[5]
+    underwriter: = accounts[5]
     insuredParty = accounts[6]
     broker = accounts[7]
     await acl.assignRole(entityContext, insuredParty, ROLES.ENTITY_REP)
@@ -121,10 +121,10 @@ contract('Policy: Approvals', accounts => {
       maturationDate,
       premiumIntervalSeconds,
       unit: etherToken.address,
-      capitalProviderCommissionBP,
+      underwriterCommissionBP,
       brokerCommissionBP,
       naymsCommissionBP,
-      capitalProvider,
+      underwriter:,
       insuredParty,
       broker,
     }, { from: entityManagerAddress })
@@ -190,12 +190,12 @@ contract('Policy: Approvals', accounts => {
     })
 
     it('by capital provider', async () => {
-      await policy.approve({ from: capitalProvider })
+      await policy.approve({ from: underwriter: })
 
       await policy.getApprovalsInfo().should.eventually.matchObj({
         approved_: false,
         insuredPartyApproved_: false,
-        capitalProviderApproved_: true,
+        underwriterApproved_: true,
         brokerApproved_: false,
       })
 
@@ -205,13 +205,13 @@ contract('Policy: Approvals', accounts => {
     })
 
     it('and approvals are idempotent', async () => {
-      await policy.approve({ from: capitalProvider })
-      await policy.approve({ from: capitalProvider })
+      await policy.approve({ from: underwriter: })
+      await policy.approve({ from: underwriter: })
 
       await policy.getApprovalsInfo().should.eventually.matchObj({
         approved_: false,
         insuredPartyApproved_: false,
-        capitalProviderApproved_: true,
+        underwriterApproved_: true,
         brokerApproved_: false,
       })
 
@@ -221,10 +221,10 @@ contract('Policy: Approvals', accounts => {
     })
 
     it('and approvals emit an event', async () => {
-      const result = await policy.approve({ from: capitalProvider })
+      const result = await policy.approve({ from: underwriter: })
 
       const ev = extractEventArgs(result, events.Approved)
-      expect(ev.caller).to.eq(capitalProvider)
+      expect(ev.caller).to.eq(underwriter:)
       expect(ev.role).to.eq(ROLES.CAPITAL_PROVIDER)
     })
 
@@ -234,7 +234,7 @@ contract('Policy: Approvals', accounts => {
       await policy.getApprovalsInfo().should.eventually.matchObj({
         approved_: false,
         insuredPartyApproved_: false,
-        capitalProviderApproved_: false,
+        underwriterApproved_: false,
         brokerApproved_: true,
       })
 
@@ -249,7 +249,7 @@ contract('Policy: Approvals', accounts => {
       await policy.getApprovalsInfo().should.eventually.matchObj({
         approved_: false,
         insuredPartyApproved_: true,
-        capitalProviderApproved_: false,
+        underwriterApproved_: false,
         brokerApproved_: false,
       })
 
@@ -260,13 +260,13 @@ contract('Policy: Approvals', accounts => {
 
     it('by everyone and this then initiates it', async () => {
       await policy.approve({ from: insuredParty })
-      await policy.approve({ from: capitalProvider })
+      await policy.approve({ from: underwriter: })
       await policy.approve({ from: broker })
 
       await policy.getApprovalsInfo().should.eventually.matchObj({
         approved_: true,
         insuredPartyApproved_: true,
-        capitalProviderApproved_: true,
+        underwriterApproved_: true,
         brokerApproved_: true,
       })
 

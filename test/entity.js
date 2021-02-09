@@ -222,15 +222,7 @@ contract('Entity', accounts => {
       await acl.assignRole(entityContext, accounts[3], ROLES.ENTITY_REP)
     })
 
-    it('but not by entity admins', async () => {
-      await createPolicy(entity, {}, { from: accounts[1] }).should.be.rejectedWith('must be policy creator')
-    })
-
-    it('but not by entity reps', async () => {
-      await createPolicy(entity, {}, { from: accounts[3] }).should.be.rejectedWith('must be policy creator')
-    })
-
-    it('by entity managers', async () => {
+    it('by entity reps', async () => {
       const result = await createPolicy(entity, {}, { from: accounts[2] }).should.be.fulfilled
 
       const eventArgs = extractEventArgs(result, events.NewPolicy)
@@ -293,6 +285,8 @@ contract('Entity', accounts => {
 
       const premiumAmount = 50000000000
 
+      const entityRep = accounts[3]
+
       beforeEach(async () => {
         policyOwner = accounts[2]
 
@@ -315,17 +309,10 @@ contract('Entity', accounts => {
       })
 
       it('but not by anyone', async () => {
-        await entity.payTranchPremium(policy.address, 0, premiumAmount, { from: policyOwner }).should.be.rejectedWith('must be entity rep')
-      })
-
-      it('but not by entity rep who is not registered as a insured party on the policy', async () => {
-        const entityRep = accounts[3]
-        await entity.payTranchPremium(policy.address, 0, premiumAmount, { from: entityRep }).should.be.rejectedWith('must be insured party')
+        await entity.payTranchPremium(policy.address, 0, premiumAmount, { from: accounts[8] }).should.be.rejectedWith('must be entity rep')
       })
 
       it('but not by entity rep if we do not have enough tokens to pay with', async () => {
-        const entityRep = accounts[3]
-        await acl.assignRole(policyContext, entityRep, ROLES.INSURED_PARTY)
         await entity.payTranchPremium(policy.address, 0, premiumAmount, { from: entityRep }).should.be.rejectedWith('transfer amount exceeds balance')
       })
 
@@ -333,8 +320,6 @@ contract('Entity', accounts => {
         await etherToken.deposit({ value: premiumAmount })
         await etherToken.approve(entity.address, premiumAmount)
         await entity.deposit(etherToken.address, premiumAmount)
-        const entityRep = accounts[3]
-        await acl.assignRole(policyContext, entityRep, ROLES.INSURED_PARTY)
         await entity.payTranchPremium(policy.address, 0, premiumAmount, { from: entityRep }).should.be.fulfilled
       })
     })

@@ -38,6 +38,8 @@ contract('Entity', accounts => {
   let entityCoreAddress
   let entityContext
 
+  let entityAdmin
+
   let DOES_NOT_HAVE_ROLE
   let HAS_ROLE_CONTEXT
 
@@ -52,7 +54,9 @@ contract('Entity', accounts => {
     DOES_NOT_HAVE_ROLE = (await acl.DOES_NOT_HAVE_ROLE()).toNumber()
     HAS_ROLE_CONTEXT = (await acl.HAS_ROLE_CONTEXT()).toNumber()
 
-    entityProxy = await Entity.new(settings.address)
+    entityAdmin = accounts[9]
+
+    entityProxy = await Entity.new(settings.address, entityAdmin)
     // now let's speak to Entity contract using EntityImpl ABI
     entity = await IEntity.at(entityProxy.address)
     entityContext = await entityProxy.aclContext()
@@ -145,10 +149,8 @@ contract('Entity', accounts => {
       })
 
       it('by entity admin', async () => {
-        await acl.assignRole(entityContext, accounts[1], ROLES.ENTITY_ADMIN)
-        await entity.withdraw(etherToken.address, 10, { from: accounts[1] }).should.be.fulfilled
-        await etherToken.balanceOf(accounts[1]).should.eventually.eq(10)
-        await etherToken.balanceOf(accounts[0]).should.eventually.eq(0)
+        await entity.withdraw(etherToken.address, 10, { from: entityAdmin }).should.be.fulfilled
+        await etherToken.balanceOf(entityAdmin).should.eventually.eq(10)
       })
     })
 
@@ -216,19 +218,27 @@ contract('Entity', accounts => {
   })
 
   describe('policies can be created', () => {
+    const entityManager = accounts[2]
+    const entityRep = accounts[3]
+
     beforeEach(async () => {
-      await acl.assignRole(entityContext, accounts[1], ROLES.ENTITY_ADMIN)
-      await acl.assignRole(entityContext, accounts[2], ROLES.ENTITY_MANAGER)
-      await acl.assignRole(entityContext, accounts[3], ROLES.ENTITY_REP)
+      await acl.assignRole(entityContext, entityManager, ROLES.ENTITY_MANAGER)
+      await acl.assignRole(entityContext, entityRep, ROLES.ENTITY_REP)
     })
 
-    it('by entity reps', async () => {
-      const result = await createPolicy(entity, {}, { from: accounts[2] }).should.be.fulfilled
+    it('by entity admins, managers and reps', async () => {
+      await createPolicy(entity, {}, { from: entityAdmin }).should.be.fulfilled
+      await createPolicy(entity, {}, { from: entityManager }).should.be.fulfilled
+      await createPolicy(entity, {}, { from: entityRep }).should.be.fulfilled
+    })
+
+    it('and they exist', async () => {
+      const result = await createPolicy(entity, {}, { from: entityRep }).should.be.fulfilled
 
       const eventArgs = extractEventArgs(result, events.NewPolicy)
 
       expect(eventArgs).to.include({
-        deployer: accounts[2],
+        deployer: entityRep,
         entity: entityProxy.address,
       })
 
@@ -238,13 +248,13 @@ contract('Entity', accounts => {
     it('and the entity records get updated accordingly', async () => {
       await entity.getNumPolicies().should.eventually.eq(0)
 
-      const result = await createPolicy(entity, {}, { from: accounts[2] })
+      const result = await createPolicy(entity, {}, { from: entityRep })
       const eventArgs = extractEventArgs(result, events.NewPolicy)
 
       await entity.getNumPolicies().should.eventually.eq(1)
       await entity.getPolicy(0).should.eventually.eq(eventArgs.policy)
 
-      const result2 = await createPolicy(entity, {}, { from: accounts[2] })
+      const result2 = await createPolicy(entity, {}, { from: entityRep })
       const eventArgs2 = extractEventArgs(result2, events.NewPolicy)
 
       await entity.getNumPolicies().should.eventually.eq(2)
@@ -256,7 +266,7 @@ contract('Entity', accounts => {
 
       const result = await createPolicy(entity, {
         startDate,
-      }, { from: accounts[2] })
+      }, { from: entityRep })
 
       const eventArgs = extractEventArgs(result, events.NewPolicy)
 
@@ -267,7 +277,7 @@ contract('Entity', accounts => {
     })
 
     it('and have the original caller set as policy owner', async () => {
-      const result = await createPolicy(entity, {}, { from: accounts[2] })
+      const result = await createPolicy(entity, {}, { from: entityRep })
 
       const eventArgs = extractEventArgs(result, events.NewPolicy)
 
@@ -275,7 +285,7 @@ contract('Entity', accounts => {
 
       const policyContext = await policy.aclContext()
 
-      await acl.hasRole(policyContext, accounts[2], ROLES.POLICY_OWNER).should.eventually.eq(HAS_ROLE_CONTEXT)
+      await acl.hasRole(policyContext, entityRep, ROLES.POLICY_OWNER).should.eventually.eq(HAS_ROLE_CONTEXT)
     })
 
     describe('and policy tranch premiums can be paid', () => {
@@ -285,10 +295,8 @@ contract('Entity', accounts => {
 
       const premiumAmount = 50000000000
 
-      const entityRep = accounts[3]
-
       beforeEach(async () => {
-        policyOwner = accounts[2]
+        policyOwner = entityRep
 
         const blockTime = (await settings.getTime()).toNumber()
 

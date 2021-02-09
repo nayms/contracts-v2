@@ -3,7 +3,7 @@ const { deploy, defaultGetTxParams, execCall } = require('../utils')
 const { SETTINGS } = require('../../utils/constants')
 
 export const ensureEntityImplementationsAreDeployed = async (cfg) => {
-  const { deployer, artifacts, log: baseLog, settings, entityDeployer, getTxParams = defaultGetTxParams } = cfg
+  const { deployer, artifacts, log: baseLog, accounts, settings, entityDeployer, getTxParams = defaultGetTxParams } = cfg
   const log = createLog(baseLog)
 
   let addresses
@@ -36,7 +36,7 @@ export const ensureEntityImplementationsAreDeployed = async (cfg) => {
     const numEntities = await entityDeployer.getNumEntities()
     if (0 == numEntities) {
       await log.task(`Deploy Nayms entity`, async task => {
-        await entityDeployer.deploy(getTxParams())
+        await entityDeployer.deploy(accounts[0], getTxParams())
 
         naymsEntityAddress = await entityDeployer.getEntity(0)
 

@@ -37,7 +37,6 @@ import "./Policy.sol";
    * Constructor
    */
   constructor (address _settings) Controller(_settings) public {
-    // empty
   }
 
   // IDiamondFacet

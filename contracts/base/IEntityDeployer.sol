@@ -6,8 +6,10 @@ pragma solidity >=0.6.7;
 interface IEntityDeployer {
   /**
    * @dev Deploy a new entity.
+   *
+   * @param _entityAdmin Entity administrator.
    */
-  function deploy() external;
+  function deploy(address _entityAdmin) external;
   /**
    * @dev Get the no. of entities deployed.
    * @return The no. of entities deployed.

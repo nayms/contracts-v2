@@ -10,6 +10,7 @@ import {
   preSetupPolicy,
   EvmClock,
   EvmSnapshot,
+  createEntity,
 } from './utils'
 import { events } from '../'
 
@@ -29,6 +30,7 @@ const IEntity = artifacts.require('./base/IEntity')
 const Entity = artifacts.require('./Entity')
 const IDiamondProxy = artifacts.require('./base/IDiamondProxy')
 const IPolicyStates = artifacts.require("./base/IPolicyStates")
+const IPolicyClaimsFacet = artifacts.require("./base/IPolicyClaimsFacet")
 const Policy = artifacts.require("./Policy")
 const IPolicy = artifacts.require("./base/IPolicy")
 const TestPolicyFacet = artifacts.require("./test/TestPolicyFacet")
@@ -79,15 +81,23 @@ contract('Policy Tranches: Claims', accounts => {
   let policyProxy
   let policy
   let policyCoreAddress
+  let policyClaimsAddress
   let policyContext
-  let entityManagerAddress
   let policyOwnerAddress
   let market
   let etherToken
 
-  let underwriter
+  const entityAdminAddress = accounts[0]
+  const entityManagerAddress = accounts[1]
+  const insuredPartyRep = accounts[4]
+  const underwriterRep = accounts[5]
+  const brokerRep = accounts[6]
+  const claimsAdminRep = accounts[7]
+
   let insuredParty
+  let underwriter
   let broker
+  let claimsAdmin
 
   let POLICY_STATE_CREATED
   let POLICY_STATE_INITIATED
@@ -100,6 +110,12 @@ contract('Policy Tranches: Claims', accounts => {
   let TRANCH_STATE_CANCELLED
   let TRANCH_STATE_ACTIVE
   let TRANCH_STATE_MATURED
+
+  let CLAIM_STATE_CREATED
+  let CLAIM_STATE_DISPUTED
+  let CLAIM_STATE_APPROVED
+  let CLAIM_STATE_DECLINED
+  let CLAIM_STATE_PAID
 
   let approvePolicy
   let setupPolicyForClaims
@@ -129,19 +145,17 @@ contract('Policy Tranches: Claims', accounts => {
     await ensureEntityImplementationsAreDeployed({ artifacts, settings, entityDeployer })
 
     await acl.assignRole(systemContext, accounts[0], ROLES.SYSTEM_MANAGER)
-    const deployEntityTx = await entityDeployer.deploy()
-    const entityAddress = extractEventArgs(deployEntityTx, events.NewEntity).entity
+
+    const entityAddress = await createEntity(entityDeployer, entityAdminAddress)
 
     entityProxy = await Entity.at(entityAddress)
     entity = await IEntity.at(entityAddress)
     entityContext = await entityProxy.aclContext()
 
     // policy
-    await acl.assignRole(entityContext, accounts[1], ROLES.ENTITY_ADMIN)
-    await acl.assignRole(entityContext, accounts[2], ROLES.ENTITY_MANAGER)
-    entityManagerAddress = accounts[2]
+    await acl.assignRole(entityContext, entityManagerAddress, ROLES.ENTITY_MANAGER)
 
-    ;([ policyCoreAddress ] = await ensurePolicyImplementationsAreDeployed({ artifacts, settings }))
+    ;([ policyCoreAddress, , policyClaimsAddress ] = await ensurePolicyImplementationsAreDeployed({ artifacts, settings }))
 
     const policyStates = await IPolicyStates.at(policyCoreAddress)
     POLICY_STATE_CREATED = await policyStates.POLICY_STATE_CREATED()
@@ -155,6 +169,13 @@ contract('Policy Tranches: Claims', accounts => {
     TRANCH_STATE_CANCELLED = await policyStates.TRANCH_STATE_CANCELLED()
     TRANCH_STATE_ACTIVE = await policyStates.TRANCH_STATE_ACTIVE()
     TRANCH_STATE_MATURED = await policyStates.TRANCH_STATE_MATURED()
+
+    const claimsFacet = await IPolicyClaimsFacet.at(policyClaimsAddress)
+    CLAIM_STATE_CREATED = await claimsFacet.CLAIM_STATE_CREATED()
+    CLAIM_STATE_DISPUTED = await claimsFacet.CLAIM_STATE_DISPUTED()
+    CLAIM_STATE_APPROVED = await claimsFacet.CLAIM_STATE_APPROVED()
+    CLAIM_STATE_DECLINED = await claimsFacet.CLAIM_STATE_DECLINED()
+    CLAIM_STATE_PAID = await claimsFacet.CLAIM_STATE_PAID()
 
     const preSetupPolicyForClaims = async (ctx, attrs) => {
       await preSetupPolicy(ctx, attrs)
@@ -197,11 +218,12 @@ contract('Policy Tranches: Claims', accounts => {
       await policy.payTranchPremium(3, 8000)
     }
 
-    underwriter = accounts[6]
-    insuredParty = accounts[7]
-    broker = accounts[8]
+    underwriter = await createEntity(entityDeployer, underwriterRep)
+    insuredParty = await createEntity(entityDeployer, insuredPartyRep)
+    broker = await createEntity(entityDeployer, brokerRep)
+    claimsAdmin = await createEntity(entityDeployer, claimsAdminRep)
 
-    const approvers = { underwriter, insuredParty, broker }
+    const approvers = { underwriter, insuredParty, broker, claimsAdmin }
 
     Object.assign(POLICY_ATTRS_1, approvers)
     Object.assign(POLICY_ATTRS_2, approvers)
@@ -224,9 +246,10 @@ contract('Policy Tranches: Claims', accounts => {
 
       // approve policy
       if (!skipApprovals) {
-        await policy.approve({ from: underwriter })
-        await policy.approve({ from: insuredParty })
-        await policy.approve({ from: broker })
+        await policy.approve(ROLES.PENDING_UNDERWRITER, { from: underwriterRep })
+        await policy.approve(ROLES.PENDING_INSURED_PARTY, { from: insuredPartyRep })
+        await policy.approve(ROLES.PENDING_BROKER, { from: brokerRep })
+        await policy.approve(ROLES.PENDING_CLAIMS_ADMIN, { from: claimsAdminRep })
       }
 
       const { token_: tranch0Address } = await policy.getTranchInfo(0)
@@ -259,28 +282,28 @@ contract('Policy Tranches: Claims', accounts => {
     it('cannot be made in created state', async () => {
       await setupPolicyForClaims(POLICY_ATTRS_1, { skipApprovals: true })
       await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_CREATED })
-      await policy.makeClaim(0, entity.address, 1).should.be.rejectedWith('must be in active state')
+      await policy.makeClaim(0, 1).should.be.rejectedWith('must be in active state')
     })
 
     it('cannot be made in in-approval state', async () => {
       await setupPolicyForClaims(POLICY_ATTRS_1, { skipApprovals: true })
-      await policy.approve({ from: underwriter })
+      await policy.approve(ROLES.PENDING_UNDERWRITER, { from: underwriterRep })
       await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_IN_APPROVAL })
-      await policy.makeClaim(0, entity.address, 1).should.be.rejectedWith('must be in active state')
+      await policy.makeClaim(0, 1).should.be.rejectedWith('must be in active state')
+    })
+
+    it('cannot be made in approved state', async () => {
+      await setupPolicyForClaims(POLICY_ATTRS_1)
+      await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_APPROVED })
+      await policy.makeClaim(0, 1).should.be.rejectedWith('must be in active state')
     })
 
     it('cannot be made in initiated state', async () => {
-      await setupPolicyForClaims(POLICY_ATTRS_1)
-      await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_APPROVED })
-      await policy.makeClaim(0, entity.address, 1).should.be.rejectedWith('must be in active state')
-    })
-
-    it('cannot be made in selling state', async () => {
       await setupPolicyForClaims(POLICY_ATTRS_2)
       await evmClock.setRelativeTime(100)
       await policy.checkAndUpdateState()
       await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_INITIATED })
-      await policy.makeClaim(0, entity.address, 1).should.be.rejectedWith('must be in active state')
+      await policy.makeClaim(0, 1).should.be.rejectedWith('must be in active state')
     })
 
     it('can be made in active state', async () => {
@@ -297,11 +320,7 @@ contract('Policy Tranches: Claims', accounts => {
         state_: TRANCH_STATE_ACTIVE
       })
 
-      await acl.assignRole(policyContext, accounts[5], ROLES.INSURED_PARTY);
-      const insuredPartyAddress = accounts[5]
-      await acl.assignRole(entityContext, insuredPartyAddress, ROLES.ENTITY_REP)
-
-      await policy.makeClaim(0, entity.address, 1, { from: insuredPartyAddress }).should.be.fulfilled
+      await policy.makeClaim(0, 1, { from: insuredPartyRep }).should.be.fulfilled
     })
 
     it('cannot be made in matured state', async () => {
@@ -318,11 +337,7 @@ contract('Policy Tranches: Claims', accounts => {
         state_: TRANCH_STATE_MATURED
       })
 
-      await acl.assignRole(policyContext, accounts[5], ROLES.INSURED_PARTY);
-      const insuredPartyAddress = accounts[5]
-      await acl.assignRole(entityContext, insuredPartyAddress, ROLES.ENTITY_REP)
-
-      await policy.makeClaim(0, entity.address, 1, { from: insuredPartyAddress }).should.be.rejectedWith('must be in active state')
+      await policy.makeClaim(0, 1, { from: insuredPartyRep }).should.be.rejectedWith('must be in active state')
     })
 
     describe('when in active state', () => {
@@ -336,24 +351,13 @@ contract('Policy Tranches: Claims', accounts => {
         await buyAllTranchTokens()
         await policy.checkAndUpdateState()
         await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_ACTIVE })
-
-        await acl.assignRole(policyContext, accounts[5], ROLES.INSURED_PARTY);
-        insuredPartyAddress = accounts[5]
       })
 
       it('must be made by insured partys', async () => {
-        await policy.makeClaim(0, accounts[1], 1).should.be.rejectedWith('must be insured party')
+        await policy.makeClaim(0, 1).should.be.rejectedWith('not a rep of associated entity')
       })
 
-      it('must be supplied valid insured party entity', async () => {
-        await policy.makeClaim(0, entity.address, 1, { from: insuredPartyAddress }).should.be.rejectedWith('must have role in insured party entity')
-      })
-
-      describe('if valid insured party and entity provided', () => {
-        beforeEach(async () => {
-          await acl.assignRole(entityContext, insuredPartyAddress, ROLES.ENTITY_REP)
-        })
-
+      describe('if made by insured party', () => {
         it('claim must be against an active tranch (and it will call the heartbeat first to check)', async () => {
           await policy.getTranchInfo(3).should.eventually.matchObj({
             state_: TRANCH_STATE_ACTIVE
@@ -362,33 +366,33 @@ contract('Policy Tranches: Claims', accounts => {
           // past next premium payment interval
           await evmClock.setRelativeTime(4000)
 
-          await policy.makeClaim(3, entity.address, 1, { from: insuredPartyAddress }).should.be.rejectedWith('tranch must be active');
+          await policy.makeClaim(3, 1, { from: insuredPartyRep }).should.be.rejectedWith('tranch must be active');
         })
 
         it('claim must be against an active tranch', async () => {
           await policy.getTranchInfo(2).should.eventually.matchObj({
             state_: TRANCH_STATE_CANCELLED
           })
-          await policy.makeClaim(2, entity.address, 1, { from: insuredPartyAddress }).should.be.rejectedWith('tranch must be active');
+          await policy.makeClaim(2, 1, { from: insuredPartyRep }).should.be.rejectedWith('tranch must be active');
         })
 
         it('claim must be less than available balance', async () => {
           const tranchBalance = (await policy.getTranchInfo(0)).balance_.toNumber()
 
-          await policy.makeClaim(0, entity.address, tranchBalance + 1, { from: insuredPartyAddress }).should.be.rejectedWith('claim too high')
-          await policy.makeClaim(0, entity.address, tranchBalance, { from: insuredPartyAddress }).should.be.fulfilled
+          await policy.makeClaim(0, tranchBalance + 1, { from: insuredPartyRep }).should.be.rejectedWith('claim too high')
+          await policy.makeClaim(0, tranchBalance, { from: insuredPartyRep }).should.be.fulfilled
         })
 
         it('claim must be less than available balance, taking into account existing pending claims', async () => {
           const tranchBalance = (await policy.getTranchInfo(0)).balance_.toNumber()
 
-          await policy.makeClaim(0, entity.address, tranchBalance, { from: insuredPartyAddress }).should.be.fulfilled
-          await policy.makeClaim(0, entity.address, 1, { from: insuredPartyAddress }).should.be.rejectedWith('claim too high')
-          await policy.makeClaim(1, entity.address, 1, { from: insuredPartyAddress }).should.be.fulfilled
+          await policy.makeClaim(0, tranchBalance, { from: insuredPartyRep }).should.be.fulfilled
+          await policy.makeClaim(0, 1, { from: insuredPartyRep }).should.be.rejectedWith('claim too high')
+          await policy.makeClaim(1, 1, { from: insuredPartyRep }).should.be.fulfilled
         })
 
         it('emits an event', async () => {
-          const ret = await policy.makeClaim(0, entity.address, 4, { from: insuredPartyAddress })
+          const ret = await policy.makeClaim(0, 4, { from: insuredPartyRep })
 
           expect(extractEventArgs(ret, events.NewClaim)).to.include({
             tranchIndex: '0',
@@ -397,9 +401,9 @@ contract('Policy Tranches: Claims', accounts => {
         })
 
         it('claim updates internal stats', async () => {
-          await policy.makeClaim(0, entity.address, 4, { from: insuredPartyAddress }).should.be.fulfilled
-          await policy.makeClaim(1, entity.address, 1, { from: insuredPartyAddress }).should.be.fulfilled
-          await policy.makeClaim(1, entity.address, 5, { from: insuredPartyAddress }).should.be.fulfilled
+          await policy.makeClaim(0, 4, { from: insuredPartyRep }).should.be.fulfilled
+          await policy.makeClaim(1, 1, { from: insuredPartyRep }).should.be.fulfilled
+          await policy.makeClaim(1, 5, { from: insuredPartyRep }).should.be.fulfilled
 
           await policy.getClaimStats().should.eventually.matchObj({
             numClaims_: 3,
@@ -409,88 +413,71 @@ contract('Policy Tranches: Claims', accounts => {
           await policy.getClaimInfo(0).should.eventually.matchObj({
             amount_: 4,
             tranchIndex_: 0,
-            approved_: false,
-            declined_: false,
-            paid_: false,
-            cancelled_: false,
+            state_: CLAIM_STATE_CREATED,
           })
 
           await policy.getClaimInfo(1).should.eventually.matchObj({
             amount_: 1,
             tranchIndex_: 1,
-            approved_: false,
-            declined_: false,
-            paid_: false,
-            cancelled_: false,
+            state_: CLAIM_STATE_CREATED,
           })
 
           await policy.getClaimInfo(2).should.eventually.matchObj({
             amount_: 5,
             tranchIndex_: 1,
-            approved_: false,
-            declined_: false,
-            paid_: false,
-            cancelled_: false,
+            state_: CLAIM_STATE_CREATED,
           })
         })
 
         describe('and claims can be declined', async () => {
-          let underwriterAddress
-          let systemManagerAddress
-
           beforeEach(async () => {
-            await policy.makeClaim(0, entity.address, 4, { from: insuredPartyAddress }).should.be.fulfilled
-            await policy.makeClaim(1, entity.address, 1, { from: insuredPartyAddress }).should.be.fulfilled
-            await policy.makeClaim(1, entity.address, 5, { from: insuredPartyAddress }).should.be.fulfilled
-
-            await acl.assignRole(policyContext, accounts[9], ROLES.CAPITAL_PROVIDER)
-            underwriterAddress = accounts[9]
-
-            await acl.assignRole(policyContext, accounts[6], ROLES.SYSTEM_MANAGER)
-            systemManagerAddress = accounts[6]
+            await policy.makeClaim(0, 4, { from: insuredPartyRep }).should.be.fulfilled
+            await policy.makeClaim(1, 1, { from: insuredPartyRep }).should.be.fulfilled
+            await policy.makeClaim(1, 5, { from: insuredPartyRep }).should.be.fulfilled
           })
 
-          it('but not if not an capital provider', async () => {
-            await policy.declineClaim(0).should.be.rejectedWith('must be capital provider')
+          it('but not if not claims admin', async () => {
+            await policy.declineClaim(0).should.be.rejectedWith('not a rep of associated entity')
           })
 
           it('but not if claim is invalid', async () => {
-            await policy.declineClaim(5, { from: underwriterAddress }).should.be.rejectedWith('invalid claim')
+            await policy.declineClaim(5, { from: claimsAdminRep }).should.be.rejectedWith('invalid claim')
           })
 
           it('cannot decline twice', async () => {
-            await policy.declineClaim(0, { from: underwriterAddress }).should.be.fulfilled
-            await policy.declineClaim(0, { from: underwriterAddress }).should.be.rejectedWith('already declined')
+            await policy.declineClaim(0, { from: claimsAdminRep }).should.be.fulfilled
+            await policy.declineClaim(0, { from: claimsAdminRep }).should.be.rejectedWith('in wrong state')
           })
 
           it('cannot decline if already approved', async () => {
-            await policy.approveClaim(0, { from: underwriterAddress }).should.be.fulfilled
-            await policy.declineClaim(0, { from: underwriterAddress }).should.be.rejectedWith('already approved')
-          })
-
-          it('cannot decline if already cancelled', async () => {
-            await policy.cancelClaim(0, { from: systemManagerAddress })
-            await policy.declineClaim(0, { from: underwriterAddress }).should.be.rejectedWith('already cancelled')
+            await policy.approveClaim(0, { from: claimsAdminRep }).should.be.fulfilled
+            await policy.declineClaim(0, { from: claimsAdminRep }).should.be.rejectedWith('in wrong state')
           })
 
           it('and no longer counts towards pending balance', async () => {
             const tranchBalance = (await policy.getTranchInfo(0)).balance_.toNumber()
 
-            await policy.makeClaim(0, entity.address, tranchBalance, { from: insuredPartyAddress }).should.be.rejectedWith('claim too high')
-            await policy.declineClaim(0, { from: underwriterAddress })
-            await policy.makeClaim(0, entity.address, tranchBalance, { from: insuredPartyAddress }).should.be.fulfilled
+            await policy.makeClaim(0, tranchBalance, { from: insuredPartyRep }).should.be.rejectedWith('claim too high')
+            await policy.declineClaim(0, { from: claimsAdminRep })
+            await policy.makeClaim(0, tranchBalance, { from: insuredPartyRep }).should.be.fulfilled
+          })
+
+          it('can decline even if disputed', async () => {
+            await policy.disputeClaim(0, { from: underwriterRep })
+            await policy.declineClaim(0, { from: claimsAdminRep })
           })
 
           it('emits an event', async () => {
-            const ret = await policy.declineClaim(0, { from: underwriterAddress })
+            const ret = await policy.declineClaim(0, { from: claimsAdminRep })
 
-            expect(extractEventArgs(ret, events.ClaimDeclined)).to.include({
-              claimIndex: '0'
+            expect(extractEventArgs(ret, events.ClaimStateUpdated)).to.include({
+              claimIndex: '0',
+              newState: `${CLAIM_STATE_DECLINED}`,
             })
           })
 
           it('updates internal stats', async () => {
-            await policy.declineClaim(0, { from: underwriterAddress }).should.be.fulfilled
+            await policy.declineClaim(0, { from: claimsAdminRep }).should.be.fulfilled
 
             await policy.getClaimStats().should.eventually.matchObj({
               numClaims_: 3,
@@ -498,31 +485,22 @@ contract('Policy Tranches: Claims', accounts => {
             })
 
             await policy.getClaimInfo(0).should.eventually.matchObj({
-              approved_: false,
-              declined_: true,
-              paid_: false,
-              cancelled_: false,
+              state_: CLAIM_STATE_DECLINED,
             })
 
             await policy.getClaimInfo(1).should.eventually.matchObj({
-              approved_: false,
-              declined_: false,
-              paid_: false,
-              cancelled_: false,
+              state_: CLAIM_STATE_CREATED,
             })
 
             await policy.getClaimInfo(2).should.eventually.matchObj({
-              approved_: false,
-              declined_: false,
-              paid_: false,
-              cancelled_: false,
+              state_: CLAIM_STATE_CREATED,
             })
           })
 
           it('leaves tranch balance unchanged', async () => {
             const tranchBalance = ((await policy.getTranchInfo(0))).balance_.toNumber()
 
-            await policy.declineClaim(0, { from: underwriterAddress })
+            await policy.declineClaim(0, { from: claimsAdminRep })
 
             await policy.getTranchInfo(0).should.eventually.matchObj({
               balance_: tranchBalance
@@ -531,54 +509,46 @@ contract('Policy Tranches: Claims', accounts => {
         })
 
         describe('and claims can be approved', async () => {
-          let underwriterAddress
-          let systemManagerAddress
-
           beforeEach(async () => {
-            await policy.makeClaim(0, entity.address, 4, { from: insuredPartyAddress }).should.be.fulfilled
-            await policy.makeClaim(1, entity.address, 1, { from: insuredPartyAddress }).should.be.fulfilled
-            await policy.makeClaim(1, entity.address, 5, { from: insuredPartyAddress }).should.be.fulfilled
-
-            await acl.assignRole(policyContext, accounts[9], ROLES.CAPITAL_PROVIDER)
-            underwriterAddress = accounts[9]
-
-            await acl.assignRole(policyContext, accounts[6], ROLES.SYSTEM_MANAGER)
-            systemManagerAddress = accounts[6]
+            await policy.makeClaim(0, 4, { from: insuredPartyRep }).should.be.fulfilled
+            await policy.makeClaim(1, 1, { from: insuredPartyRep }).should.be.fulfilled
+            await policy.makeClaim(1, 5, { from: insuredPartyRep }).should.be.fulfilled
           })
 
-          it('but not if not an capital provider', async () => {
-            await policy.approveClaim(0).should.be.rejectedWith('must be capital provider')
+          it('but not if not a claims admin', async () => {
+            await policy.approveClaim(0).should.be.rejectedWith('not a rep of associated entity')
           })
 
           it('but not if claim is invalid', async () => {
-            await policy.approveClaim(5, { from: underwriterAddress }).should.be.rejectedWith('invalid claim')
+            await policy.approveClaim(5, { from: claimsAdminRep }).should.be.rejectedWith('invalid claim')
           })
 
           it('cannot approve twice', async () => {
-            await policy.approveClaim(0, { from: underwriterAddress }).should.be.fulfilled
-            await policy.approveClaim(0, { from: underwriterAddress }).should.be.rejectedWith('already approved')
-          })
-
-          it('cannot approve if already cancelled', async () => {
-            await policy.cancelClaim(0, { from: systemManagerAddress })
-            await policy.approveClaim(0, { from: underwriterAddress }).should.be.rejectedWith('already cancelled')
+            await policy.approveClaim(0, { from: claimsAdminRep }).should.be.fulfilled
+            await policy.approveClaim(0, { from: claimsAdminRep }).should.be.rejectedWith('in wrong state')
           })
 
           it('cannot approve if alrady declined', async () => {
-            await policy.declineClaim(0, { from: underwriterAddress }).should.be.fulfilled
-            await policy.approveClaim(0, { from: underwriterAddress }).should.be.rejectedWith('already declined')
+            await policy.declineClaim(0, { from: claimsAdminRep }).should.be.fulfilled
+            await policy.approveClaim(0, { from: claimsAdminRep }).should.be.rejectedWith('in wrong state')
+          })
+
+          it('can approve even if disputed', async () => {
+            await policy.disputeClaim(0, { from: underwriterRep })
+            await policy.approveClaim(0, { from: claimsAdminRep })
           })
 
           it('emits an event', async () => {
-            const ret = await policy.approveClaim(0, { from: underwriterAddress })
+            const ret = await policy.approveClaim(0, { from: claimsAdminRep })
 
-            expect(extractEventArgs(ret, events.ClaimApproved)).to.include({
-              claimIndex: '0'
+            expect(extractEventArgs(ret, events.ClaimStateUpdated)).to.include({
+              claimIndex: '0',
+              newState: `${CLAIM_STATE_APPROVED}`,
             })
           })
 
           it('updates internal stats', async () => {
-            await policy.approveClaim(0, { from: underwriterAddress }).should.be.fulfilled
+            await policy.approveClaim(0, { from: claimsAdminRep }).should.be.fulfilled
 
             await policy.getClaimStats().should.eventually.matchObj({
               numClaims_: 3,
@@ -586,31 +556,22 @@ contract('Policy Tranches: Claims', accounts => {
             })
 
             await policy.getClaimInfo(0).should.eventually.matchObj({
-              approved_: true,
-              declined_: false,
-              paid_: false,
-              cancelled_: false,
+              state_: CLAIM_STATE_APPROVED,
             })
 
             await policy.getClaimInfo(1).should.eventually.matchObj({
-              approved_: false,
-              declined_: false,
-              paid_: false,
-              cancelled_: false,
+              state_: CLAIM_STATE_CREATED,
             })
 
             await policy.getClaimInfo(2).should.eventually.matchObj({
-              approved_: false,
-              declined_: false,
-              paid_: false,
-              cancelled_: false,
+              state_: CLAIM_STATE_CREATED,
             })
           })
 
           it('updates tranch balance', async () => {
             const tranchBalance = (await policy.getTranchInfo(0)).balance_.toNumber()
 
-            await policy.approveClaim(0, { from: underwriterAddress })
+            await policy.approveClaim(0, { from: claimsAdminRep })
 
             await policy.getTranchInfo(0).should.eventually.matchObj({
               balance_: tranchBalance - 4
@@ -618,159 +579,136 @@ contract('Policy Tranches: Claims', accounts => {
           })
         })
 
-        describe('claims can be cancelled', () => {
-          let underwriterAddress
-          let systemManagerAddress
-
+        describe('claims can be disputed', () => {
           beforeEach(async () => {
-            await policy.makeClaim(0, entity.address, 4, { from: insuredPartyAddress })
-            await acl.assignRole(policyContext, accounts[9], ROLES.CAPITAL_PROVIDER)
-
-            await acl.assignRole(policyContext, accounts[6], ROLES.SYSTEM_MANAGER)
-            underwriterAddress = accounts[9]
-            systemManagerAddress = accounts[6]
+            await policy.makeClaim(0, 4, { from: insuredPartyRep })
           })
 
-          it('by system manager', async () => {
-            await policy.cancelClaim(0, { from: underwriterAddress }).should.be.rejectedWith('must be system manager')
-            await policy.cancelClaim(0, { from: insuredPartyAddress }).should.be.rejectedWith('must be system manager')
-            await policy.cancelClaim(0, { from: systemManagerAddress }).should.be.fulfilled
+          it('but not if not underwriter', async () => {
+            await policy.disputeClaim(0).should.be.rejectedWith('not a rep of associated entity')
           })
 
-          it('unless paid out already', async () => {
-            await policy.approveClaim(0, { from: underwriterAddress })
-            await policy.payClaim(0, { from: systemManagerAddress })
-            await policy.cancelClaim(0, { from: systemManagerAddress }).should.be.rejectedWith('already paid')
+          it('but not if claim is invalid', async () => {
+            await policy.disputeClaim(5, { from: underwriterRep }).should.be.rejectedWith('invalid claim')
           })
 
-          it('unless cancelled already', async () => {
-            await policy.approveClaim(0, { from: underwriterAddress })
-            await policy.cancelClaim(0, { from: systemManagerAddress })
-            await policy.cancelClaim(0, { from: systemManagerAddress }).should.be.rejectedWith('already cancelled')
+          it('cannot do twice', async () => {
+            await policy.disputeClaim(0, { from: underwriterRep }).should.be.fulfilled
+            await policy.disputeClaim(0, { from: underwriterRep }).should.be.rejectedWith('in wrong state')
           })
 
-          it('and emits event', async () => {
-            const ret = await policy.cancelClaim(0, { from: systemManagerAddress })
-
-            expect(extractEventArgs(ret, events.ClaimCancelled)).to.exist
+          it('cannot do if already approved', async () => {
+            await policy.approveClaim(0, { from: claimsAdminRep }).should.be.fulfilled
+            await policy.disputeClaim(0, { from: underwriterRep }).should.be.rejectedWith('in wrong state')
           })
 
-          it('and internal stats get updated', async () => {
-            await policy.approveClaim(0, { from: underwriterAddress })
-            await policy.cancelClaim(0, { from: systemManagerAddress })
+          it('cannot do if already declined', async () => {
+            await policy.declineClaim(0, { from: claimsAdminRep }).should.be.fulfilled
+            await policy.disputeClaim(0, { from: underwriterRep }).should.be.rejectedWith('in wrong state')
+          })
+
+          it('updates internal stats', async () => {
+            await policy.disputeClaim(0, { from: underwriterRep }).should.be.fulfilled
+
+            await policy.getClaimStats().should.eventually.matchObj({
+              numClaims_: 1,
+              numPendingClaims_: 1,
+            })
 
             await policy.getClaimInfo(0).should.eventually.matchObj({
-              approved_: true,
-              declined_: false,
-              paid_: false,
-              cancelled_: true,
+              state_: CLAIM_STATE_DISPUTED,
+            })
+
+            await policy.getClaimInfo(1).should.eventually.matchObj({
+              state_: CLAIM_STATE_CREATED,
+            })
+
+            await policy.getClaimInfo(2).should.eventually.matchObj({
+              state_: CLAIM_STATE_CREATED,
             })
           })
         })
 
         describe('and claims can be paid out once approved and/or declined', async () => {
-          let underwriterAddress
-          let systemManagerAddress
-
           beforeEach(async () => {
-            await policy.makeClaim(0, entity.address, 4, { from: insuredPartyAddress })
-            await policy.makeClaim(0, entity.address, 2, { from: insuredPartyAddress })
-            await policy.makeClaim(1, entity.address, 1, { from: insuredPartyAddress })
-            await policy.makeClaim(1, entity.address, 5, { from: insuredPartyAddress })
+            await policy.makeClaim(0, 4, { from: insuredPartyRep })
+            await policy.makeClaim(0, 2, { from: insuredPartyRep })
+            await policy.makeClaim(1, 1, { from: insuredPartyRep })
+            await policy.makeClaim(1, 5, { from: insuredPartyRep })
 
-            await acl.assignRole(policyContext, accounts[9], ROLES.CAPITAL_PROVIDER)
-            await acl.assignRole(policyContext, accounts[6], ROLES.SYSTEM_MANAGER)
-            underwriterAddress = accounts[9]
-            systemManagerAddress = accounts[6]
-
-            await policy.approveClaim(0, { from: underwriterAddress })
-            await policy.declineClaim(1, { from: underwriterAddress })
-            await policy.approveClaim(2, { from: underwriterAddress })
-
-            await policy.approveClaim(3, { from: underwriterAddress })
-            await policy.cancelClaim(3, { from: systemManagerAddress })
+            await policy.approveClaim(0, { from: claimsAdminRep })
+            await policy.declineClaim(1, { from: claimsAdminRep })
+            await policy.approveClaim(2, { from: claimsAdminRep })
+            await policy.disputeClaim(3, { from: underwriterRep })
           })
 
           it('but not just by anyone', async () => {
-            await policy.payClaim(0, { from: accounts[4] }).should.be.rejectedWith('must be system manager')
+            await policy.payClaim(0, { from: accounts[4] }).should.be.rejectedWith('not a rep of associated entity')
           })
 
-          it('by system manager', async () => {
-            await policy.payClaim(0, { from: systemManagerAddress }).should.be.fulfilled
+          it('by claims admin', async () => {
+            await policy.payClaim(0, { from: claimsAdminRep }).should.be.fulfilled
           })
 
           it('and an event gets emitted', async () => {
-            const ret = await policy.payClaim(0)
+            const ret = await policy.payClaim(0, { from: claimsAdminRep })
 
-            expect(extractEventArgs(ret, events.ClaimPaid)).to.exist
+            expect(extractEventArgs(ret, events.ClaimStateUpdated)).to.exist
           })
 
           it('and the payout goes to the insured party entities', async () => {
-            const preBalance = ((await etherToken.balanceOf(entity.address))).toNumber()
+            const preBalance = ((await etherToken.balanceOf(insuredParty))).toNumber()
 
-            await policy.payClaim(0)
+            await policy.payClaim(0, { from: claimsAdminRep })
 
-            const postBalance = ((await etherToken.balanceOf(entity.address))).toNumber()
+            const postBalance = ((await etherToken.balanceOf(insuredParty))).toNumber()
 
             expect(postBalance - preBalance).to.eq(4)
 
-            await policy.payClaim(2)
+            await policy.payClaim(2, { from: claimsAdminRep })
 
-            const postBalance2 = ((await etherToken.balanceOf(entity.address))).toNumber()
+            const postBalance2 = ((await etherToken.balanceOf(insuredParty))).toNumber()
 
             expect(postBalance2 - preBalance).to.eq(5)
           })
 
           it('and does not do payouts for un-approved claims', async () => {
-            await policy.payClaim(1).should.be.rejectedWith('not approved')
-            await policy.payClaim(3).should.be.rejectedWith('already cancelled')
+            await policy.payClaim(1, { from: claimsAdminRep }).should.be.rejectedWith('not approved')
           })
 
           it('and only does the payouts for approved claims', async () => {
-            const preBalance = ((await etherToken.balanceOf(entity.address))).toNumber()
+            const preBalance = ((await etherToken.balanceOf(insuredParty))).toNumber()
 
-            await policy.payClaim(0)
-            await policy.payClaim(2)
+            await policy.payClaim(0, { from: claimsAdminRep })
+            await policy.payClaim(2, { from: claimsAdminRep })
 
-            const postBalance = ((await etherToken.balanceOf(entity.address))).toNumber()
+            const postBalance = ((await etherToken.balanceOf(insuredParty))).toNumber()
 
             expect(postBalance - preBalance).to.eq(5)
           })
 
           it('and it updates the internal stats', async () => {
-            await policy.payClaim(0)
+            await policy.payClaim(0, { from: claimsAdminRep })
 
             await policy.getClaimStats().should.eventually.matchObj({
               numClaims_: 4,
-              // numPendingClaims_: 0,
+              numPendingClaims_: 1,
             })
 
             await policy.getClaimInfo(0).should.eventually.matchObj({
-              approved_: true,
-              declined_: false,
-              paid_: true,
-              cancelled_: false,
+              state_: CLAIM_STATE_PAID
             })
 
             await policy.getClaimInfo(1).should.eventually.matchObj({
-              approved_: false,
-              declined_: true,
-              paid_: false,
-              cancelled_: false,
+              state_: CLAIM_STATE_DECLINED
             })
 
             await policy.getClaimInfo(2).should.eventually.matchObj({
-              approved_: true,
-              declined_: false,
-              paid_: false,
-              cancelled_: false,
+              state_: CLAIM_STATE_APPROVED
             })
 
             await policy.getClaimInfo(3).should.eventually.matchObj({
-              approved_: true,
-              declined_: false,
-              paid_: false,
-              cancelled_: true,
+              state_: CLAIM_STATE_DISPUTED
             })
           })
         })

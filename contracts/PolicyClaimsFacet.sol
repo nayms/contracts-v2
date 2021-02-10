@@ -34,6 +34,7 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
     return abi.encodePacked(
       IPolicyClaimsFacet.makeClaim.selector,
       IPolicyClaimsFacet.approveClaim.selector,
+      IPolicyClaimsFacet.disputeClaim.selector,
       IPolicyClaimsFacet.declineClaim.selector,
       IPolicyClaimsFacet.payClaim.selector,
       IPolicyClaimsFacet.getClaimStats.selector,
@@ -94,6 +95,9 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
     override
     assertBelongsToEntityWithRole(msg.sender, ROLE_UNDERWRITER)
   {
+    require(0 < dataUint256[__i(_claimIndex, "claimAmount")], 'invalid claim');
+    uint256 state = dataUint256[__i(_claimIndex, "claimState")];
+    require(state == CLAIM_STATE_CREATED, "in wrong state");
     _setClaimState(_claimIndex, CLAIM_STATE_DISPUTED);
   }
 
@@ -144,7 +148,7 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
     // check claim
     require(0 < dataUint256[__i(_claimIndex, "claimAmount")], 'invalid claim');
     uint256 state = dataUint256[__i(_claimIndex, "claimState")];
-    require(state == CLAIM_STATE_APPROVED, 'in wrong state');
+    require(state == CLAIM_STATE_APPROVED, 'not approved');
 
     // transfer
     IERC20 tkn = IERC20(dataAddress["unit"]);

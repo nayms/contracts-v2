@@ -46,8 +46,15 @@ contract('Policy: Flow', accounts => {
   let maturationDate
   let market
   let etherToken
-  let entityManagerAddress
   let policyOwnerAddress
+
+  const systemManager = accounts[0]
+  const entityManagerAddress = accounts[1]
+  const entityAdminAddress = accounts[2]
+  const insuredPartyRep = accounts[4]
+  const underwriterRep = accounts[5]
+  const brokerRep = accounts[6]
+  const claimsAdminRep = accounts[7]
 
   let insuredParty
   let underwriter
@@ -86,17 +93,16 @@ contract('Policy: Flow', accounts => {
     entityDeployer = await ensureEntityDeployerIsDeployed({ artifacts, settings })
     await ensureEntityImplementationsAreDeployed({ artifacts, settings, entityDeployer })
 
-    await acl.assignRole(systemContext, accounts[0], ROLES.SYSTEM_MANAGER)
-    const deployEntityTx = await entityDeployer.deploy()
-    const entityAddress = extractEventArgs(deployEntityTx, events.NewEntity).entity
+    await acl.assignRole(systemContext, systemManager, ROLES.SYSTEM_MANAGER)
+
+    const entityAddress = await createEntity(entityDeployer, entityAdminAddress)
 
     const entityProxy = await Entity.at(entityAddress)
     entity = await IEntity.at(entityAddress)
     const entityContext = await entityProxy.aclContext()
 
     // entity manager
-    await acl.assignRole(entityContext, accounts[1], ROLES.ENTITY_MANAGER)
-    entityManagerAddress = accounts[1]
+    await acl.assignRole(entityContext, entityManagerAddress, ROLES.ENTITY_MANAGER)
 
     const [ policyCoreAddress ] = await ensurePolicyImplementationsAreDeployed({ artifacts, settings })
 
@@ -104,10 +110,10 @@ contract('Policy: Flow', accounts => {
     baseDate = parseInt((await settings.getTime()).toString(10))
 
     // roles
-    underwriter = accounts[5]
-    insuredParty = accounts[6]
-    broker = accounts[7]
-    await acl.assignRole(entityContext, insuredParty, ROLES.ENTITY_REP)
+    underwriter = await createEntity(entityDeployer, underwriterRep)
+    insuredParty = await createEntity(entityDeployer, insuredPartyRep)
+    broker = await createEntity(entityDeployer, brokerRep)
+    claimsAdmin = await createEntity(entityDeployer, claimsAdminRep)
 
     // initiation time is 20 seconds from now
     initiationDate = baseDate + 1000

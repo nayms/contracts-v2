@@ -232,6 +232,13 @@ contract('Policy: Approvals', accounts => {
       })
     })
 
+    it('and role gets flipped', async () => {
+      await policy.approve(ROLES.PENDING_UNDERWRITER, { from: underwriterRep })
+
+      await acl.getUsersForRole(policyContext, ROLES.PENDING_UNDERWRITER).should.eventually.eql([])
+      await acl.getUsersForRole(policyContext, ROLES.UNDERWRITER).should.eventually.eql([underwriter])
+    })
+
     it('and approvals are not idempotent', async () => {
       await policy.approve(ROLES.PENDING_UNDERWRITER, { from: underwriterRep })
       await policy.approve(ROLES.PENDING_UNDERWRITER, { from: underwriterRep }).should.be.rejectedWith('no entity with role')
@@ -310,6 +317,18 @@ contract('Policy: Approvals', accounts => {
       await policy.getInfo().should.eventually.matchObj({
         state_: POLICY_STATE_APPROVED
       })
+
+      await acl.getUsersForRole(policyContext, ROLES.PENDING_UNDERWRITER).should.eventually.eql([])
+      await acl.getUsersForRole(policyContext, ROLES.UNDERWRITER).should.eventually.eql([underwriter])
+
+      await acl.getUsersForRole(policyContext, ROLES.PENDING_BROKER).should.eventually.eql([])
+      await acl.getUsersForRole(policyContext, ROLES.BROKER).should.eventually.eql([broker])
+
+      await acl.getUsersForRole(policyContext, ROLES.PENDING_INSURED_PARTY).should.eventually.eql([])
+      await acl.getUsersForRole(policyContext, ROLES.INSURED_PARTY).should.eventually.eql([insuredParty])
+
+      await acl.getUsersForRole(policyContext, ROLES.PENDING_CLAIMS_ADMIN).should.eventually.eql([])
+      await acl.getUsersForRole(policyContext, ROLES.CLAIMS_ADMIN).should.eventually.eql([claimsAdmin])
     })
   })
 })

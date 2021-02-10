@@ -37,29 +37,29 @@ contract PolicyApprovalsFacet is EternalStorage, Controller, IDiamondFacet, IPol
     assertInApprovableState
     assertBelongsToEntityWithRole(msg.sender, _role)
   {
-    bytes32 role;
-
     address entity = _getEntityWithRole(_role);
 
-    if (hasRole(entity, ROLE_PENDING_UNDERWRITER)) {
-      role = ROLE_UNDERWRITER;
-      _switchRole(entity, ROLE_PENDING_UNDERWRITER, role);
+    bytes32 newRole;
+
+    // replace pending role with non-pending version
+    if (_role == ROLE_PENDING_UNDERWRITER) {
+      newRole = ROLE_UNDERWRITER;
       dataBool["underwriterApproved"] = true;
-    } else if (hasRole(entity, ROLE_PENDING_BROKER)) {
-      role = ROLE_BROKER;
-      _switchRole(entity, ROLE_PENDING_BROKER, role);
+    } else if (_role == ROLE_PENDING_BROKER) {
+      newRole = ROLE_BROKER;
       dataBool["brokerApproved"] = true;
-    } else if (hasRole(entity, ROLE_PENDING_INSURED_PARTY)) {
-      role = ROLE_INSURED_PARTY;
-      _switchRole(entity, ROLE_PENDING_INSURED_PARTY, role);
+    } else if (_role == ROLE_PENDING_INSURED_PARTY) {
+      newRole = ROLE_INSURED_PARTY;
       dataBool["insuredPartyApproved"] = true;
-    } else if (hasRole(entity, ROLE_PENDING_CLAIMS_ADMIN)) {
-      role = ROLE_CLAIMS_ADMIN;
-      _switchRole(entity, ROLE_PENDING_CLAIMS_ADMIN, role);
+    } else if (_role == ROLE_PENDING_CLAIMS_ADMIN) {
+      newRole = ROLE_CLAIMS_ADMIN;
       dataBool["claimsAdminApproved"] = true;
     } else {
-      revert('caller does not have right role');
+      revert('invalid role');
     }
+
+    acl().unassignRole(aclContext(), entity, _role);    
+    acl().assignRole(aclContext(), entity, newRole);    
 
     // update state
     if (_isFullyApproved()) {
@@ -68,7 +68,7 @@ contract PolicyApprovalsFacet is EternalStorage, Controller, IDiamondFacet, IPol
       _setPolicyState(POLICY_STATE_IN_APPROVAL);
     }
 
-    emit Approved(msg.sender, role);
+    emit Approved(msg.sender, newRole);
   }
 
 
@@ -94,10 +94,5 @@ contract PolicyApprovalsFacet is EternalStorage, Controller, IDiamondFacet, IPol
     numApprovals += dataBool["brokerApproved"] ? 1 : 0;
     numApprovals += dataBool["claimsAdminApproved"] ? 1 : 0;
     return numApprovals == 4;
-  }
-
-  function _switchRole (address _addr, bytes32 _oldRole, bytes32 _newRole) private {
-    acl().assignRole(aclContext(), _addr, _newRole);    
-    acl().unassignRole(aclContext(), _addr, _oldRole);    
   }
 }

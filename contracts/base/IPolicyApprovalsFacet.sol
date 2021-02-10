@@ -9,7 +9,7 @@ interface IPolicyApprovalsFacet {
    *
    * Caller must be a representative of given entity.
    *
-   * @param _role Role the entity of the caller has.
+   * @param _role Type of pending role the entity of the caller has.
    */
   function approve (bytes32 _role) external; 
 

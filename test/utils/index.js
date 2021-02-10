@@ -4,8 +4,8 @@ import chai from 'chai'
 import { parseLog } from 'ethereum-event-logs'
 import chaiAsPromised from 'chai-as-promised'
 
+import { events } from '../..'
 import packageJson from '../../package.json'
-import { extractEventsFromAbis } from '../../'
 import { toBN, isBN } from './web3'
 
 const MNEMONIC = (packageJson.scripts.devnet.match(/\'(.+)\'/))[1]
@@ -150,6 +150,11 @@ export const createTranch = (policy, attrs, ...callAttrs) => {
   )
 }
 
+export const createEntity = async (entityDeployer, adminAddress) => {
+  const deployEntityTx = await entityDeployer.deploy(adminAddress)
+  return extractEventArgs(deployEntityTx, events.NewEntity).entity
+}
+
 export const createPolicy = (entity, attrs, ...callAttrs) => {
   const currentTime = ~~(Date.now() / 1000)
 
@@ -191,6 +196,7 @@ export const preSetupPolicy = async (ctx, createPolicyArgs) => {
     underwriter,
     insuredParty,
     broker,
+    claimsAdmin,
   } = (createPolicyArgs || {})
 
   // get current evm time
@@ -209,6 +215,7 @@ export const preSetupPolicy = async (ctx, createPolicyArgs) => {
     underwriter,
     insuredParty,
     broker,
+    claimsAdmin,
   }
 
   const createPolicyTx = await createPolicy(ctx.entity, attrs, { from: ctx.entityManagerAddress })

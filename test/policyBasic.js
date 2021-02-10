@@ -61,7 +61,8 @@ contract('Policy: Basic', accounts => {
   let policy
   let policyCoreAddress
   let policyContext
-  let entityManagerAddress
+  const entityAdminAddress = accounts[1]
+  const entityManagerAddress = accounts[2]
   let policyOwnerAddress
   let market
   let etherToken
@@ -97,7 +98,7 @@ contract('Policy: Basic', accounts => {
     await ensureEntityImplementationsAreDeployed({ artifacts, settings, entityDeployer })
 
     await acl.assignRole(systemContext, accounts[0], ROLES.SYSTEM_MANAGER)
-    const deployEntityTx = await entityDeployer.deploy()
+    const deployEntityTx = await entityDeployer.deploy(entityAdminAddress)
     const entityAddress = extractEventArgs(deployEntityTx, events.NewEntity).entity
 
     entityProxy = await Entity.at(entityAddress)
@@ -105,9 +106,7 @@ contract('Policy: Basic', accounts => {
     entityContext = await entityProxy.aclContext()
 
     // policy
-    await acl.assignRole(entityContext, accounts[1], ROLES.ENTITY_ADMIN)
-    await acl.assignRole(entityContext, accounts[2], ROLES.ENTITY_MANAGER)
-    entityManagerAddress = accounts[2]
+    await acl.assignRole(entityContext, entityManagerAddress, ROLES.ENTITY_MANAGER, { from: entityAdminAddress })
 
     ;([ policyCoreAddress ] = await ensurePolicyImplementationsAreDeployed({ artifacts, settings }))
 
@@ -171,10 +170,6 @@ contract('Policy: Basic', accounts => {
 
     beforeEach(async () => {
       await setupPolicy(POLICY_ATTRS_1)
-
-      // assign roles
-      await acl.assignRole(policyContext, accounts[3], ROLES.CAPITAL_PROVIDER)
-      await acl.assignRole(policyContext, accounts[4], ROLES.INSURED_PARTY)
 
       // deploy new implementation
       testPolicyFacet = await TestPolicyFacet.new()

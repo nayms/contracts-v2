@@ -12,12 +12,13 @@ abstract contract PolicyFacetBase is EternalStorage, IPolicyStates, AccessContro
     address entity = _getEntityWithRole(_role);
     // check they are a rep
     bytes32 ctx = AccessControl(entity).aclContext();
-    require(hasRoleWithContext(ctx, _user, ROLE_ENTITY_REP), 'not a rep of associated entity');
+    require(inRoleGroupWithContext(ctx, _user, ROLEGROUP_ENTITY_REPS), 'not a rep of associated entity');
     _;
   }
 
   function _getEntityWithRole (bytes32 _role) internal view returns (address) {
     address[] memory entities = acl().getUsersForRole(aclContext(), _role);
+    require (entities.length > 0, 'no entity with role');
     return entities[0];
   }
 

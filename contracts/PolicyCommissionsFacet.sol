@@ -12,13 +12,9 @@ import "./base/IERC20.sol";
  * @dev Business-logic for Policy commissions
  */
 contract PolicyCommissionsFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCommissionsFacet, PolicyFacetBase {
-  modifier assertIsCapitalProvider (address _addr) {
-    require(inRoleGroup(_addr, ROLEGROUP_CAPITAL_PROVIDERS), 'must be capital provider');
-    _;
-  }
-
-  modifier assertIsBroker (address _addr) {
-    require(inRoleGroup(_addr, ROLEGROUP_BROKERS), 'must be broker');
+  modifier assertPolicyApproved () {
+    uint256 state = dataUint256["state"];
+    require(state != POLICY_STATE_IN_APPROVAL && state != POLICY_STATE_CREATED, 'must be approved');
     _;
   }
 
@@ -51,37 +47,34 @@ contract PolicyCommissionsFacet is EternalStorage, Controller, IDiamondFacet, IP
   }
 
 
-  function payCommissions (
-    address _capitalProviderEntity, address _capitalProvider,
-    address _brokerEntity, address _broker
-  )
+  function payCommissions ()
     public
     override
-    assertIsCapitalProvider(_capitalProvider)
-    assertIsBroker(_broker)
+    assertPolicyApproved
   {
-    bytes32 capitalProviderEntityContext = AccessControl(_capitalProviderEntity).aclContext();
-    require(acl().userSomeHasRoleInContext(capitalProviderEntityContext, _capitalProvider), 'must have role in capital provider entity');
-
-    // check broker
-    bytes32 brokerEntityContext = AccessControl(_brokerEntity).aclContext();
-    require(acl().userSomeHasRoleInContext(brokerEntityContext, _broker), 'must have role in broker entity');
-
+    address underwriter = _getEntityWithRole(ROLE_UNDERWRITER);
+    address broker = _getEntityWithRole(ROLE_BROKER);
     // get nayms entity
     address naymsEntity = settings().getRootAddress(SETTING_NAYMS_ENTITY);
 
     // do payouts and update balances
     IERC20 tkn = IERC20(dataAddress["unit"]);
 
-    tkn.transfer(_capitalProviderEntity, dataUint256["capitalProviderCommissionBalance"]);
-    dataUint256["capitalProviderCommissionBalance"] = 0;
+    if (dataUint256["capitalProviderCommissionBalance"] > 0) {
+      tkn.transfer(underwriter, dataUint256["capitalProviderCommissionBalance"]);
+      dataUint256["capitalProviderCommissionBalance"] = 0;
+    }
+  
+    if (dataUint256["brokerCommissionBalance"] > 0) {
+      tkn.transfer(broker, dataUint256["brokerCommissionBalance"]);
+      dataUint256["brokerCommissionBalance"] = 0;
+    }
 
-    tkn.transfer(_brokerEntity, dataUint256["brokerCommissionBalance"]);
-    dataUint256["brokerCommissionBalance"] = 0;
+    if (dataUint256["naymsCommissionBalance"] > 0) {
+      tkn.transfer(naymsEntity, dataUint256["naymsCommissionBalance"]);
+      dataUint256["naymsCommissionBalance"] = 0;
+    }
 
-    tkn.transfer(naymsEntity, dataUint256["naymsCommissionBalance"]);
-    dataUint256["naymsCommissionBalance"] = 0;
-
-    emit PaidCommissions(_capitalProviderEntity, _brokerEntity, msg.sender);
+    emit PaidCommissions(underwriter, broker, msg.sender);
   }
 }

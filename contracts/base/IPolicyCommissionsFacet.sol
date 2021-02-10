@@ -6,16 +6,8 @@ pragma solidity >=0.6.7;
 interface IPolicyCommissionsFacet {
   /**
    * @dev Payout commission balances.
-   *
-   * @param _capitalProviderEntity Entity that will receive the capital provider commission.
-   * @param _capitalProvider A valid capital provider.
-   * @param _brokerEntity Entity that will receive the broker commission.
-   * @param _broker A valid broker.
    */
-  function payCommissions (
-    address _capitalProviderEntity, address _capitalProvider,
-    address _brokerEntity, address _broker
-  ) external;
+  function payCommissions () external;
 
   /**
    * @dev Get accumulated commission balances.
@@ -37,9 +29,9 @@ interface IPolicyCommissionsFacet {
   /**
    * @dev Emitted when commission balances have been paid out.
    *
-   * @param capitalProviderEntity Entity that received the capital provider commission.
-   * @param brokerEntity Entity that received the broker commission.
+   * @param underwriter Entity that received the capital provider commission.
+   * @param broker Entity that received the broker commission.
    * @param caller The caller.
    */
-  event PaidCommissions(address indexed capitalProviderEntity, address indexed brokerEntity, address indexed caller);
+  event PaidCommissions(address indexed underwriter, address indexed broker, address indexed caller);
 }

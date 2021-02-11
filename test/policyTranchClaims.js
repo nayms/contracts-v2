@@ -100,12 +100,14 @@ contract('Policy Tranches: Claims', accounts => {
   let claimsAdmin
 
   let POLICY_STATE_CREATED
+  let POLICY_STATE_READY_FOR_APPROVAL
   let POLICY_STATE_INITIATED
   let POLICY_STATE_ACTIVE
   let POLICY_STATE_MATURED
   let POLICY_STATE_IN_APPROVAL
   let POLICY_STATE_APPROVED
   let POLICY_STATE_CANCELLED
+  let POLICY_STATE_BUYBACK
 
   let TRANCH_STATE_CANCELLED
   let TRANCH_STATE_ACTIVE
@@ -122,9 +124,6 @@ contract('Policy Tranches: Claims', accounts => {
   const policies = new Map()
 
   let buyAllTranchTokens
-
-  const tranchNumShares = 10
-  const tranchPricePerShare = 100
 
   before(async () => {
     // acl
@@ -159,12 +158,14 @@ contract('Policy Tranches: Claims', accounts => {
 
     const policyStates = await IPolicyStates.at(policyCoreAddress)
     POLICY_STATE_CREATED = await policyStates.POLICY_STATE_CREATED()
+    POLICY_STATE_READY_FOR_APPROVAL = await policyStates.POLICY_STATE_READY_FOR_APPROVAL()
     POLICY_STATE_INITIATED = await policyStates.POLICY_STATE_INITIATED()
     POLICY_STATE_ACTIVE = await policyStates.POLICY_STATE_ACTIVE()
     POLICY_STATE_MATURED = await policyStates.POLICY_STATE_MATURED()
     POLICY_STATE_CANCELLED = await policyStates.POLICY_STATE_CANCELLED()
     POLICY_STATE_IN_APPROVAL = await policyStates.POLICY_STATE_IN_APPROVAL()
     POLICY_STATE_APPROVED = await policyStates.POLICY_STATE_APPROVED()
+    POLICY_STATE_BUYBACK = await policyStates.POLICY_STATE_BUYBACK()
 
     TRANCH_STATE_CANCELLED = await policyStates.TRANCH_STATE_CANCELLED()
     TRANCH_STATE_ACTIVE = await policyStates.TRANCH_STATE_ACTIVE()
@@ -246,6 +247,7 @@ contract('Policy Tranches: Claims', accounts => {
 
       // approve policy
       if (!skipApprovals) {
+        await policy.markAsReadyForApproval({ from: policyOwnerAddress })
         await policy.approve(ROLES.PENDING_UNDERWRITER, { from: underwriterRep })
         await policy.approve(ROLES.PENDING_INSURED_PARTY, { from: insuredPartyRep })
         await policy.approve(ROLES.PENDING_BROKER, { from: brokerRep })
@@ -285,8 +287,16 @@ contract('Policy Tranches: Claims', accounts => {
       await policy.makeClaim(0, 1).should.be.rejectedWith('must be in active state')
     })
 
+    it('cannot be made in ready-for-approval state', async () => {
+      await setupPolicyForClaims(POLICY_ATTRS_1, { skipApprovals: true })
+      await policy.markAsReadyForApproval({ from: policyOwnerAddress })
+      await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_READY_FOR_APPROVAL })
+      await policy.makeClaim(0, 1).should.be.rejectedWith('must be in active state')
+    })
+
     it('cannot be made in in-approval state', async () => {
       await setupPolicyForClaims(POLICY_ATTRS_1, { skipApprovals: true })
+      await policy.markAsReadyForApproval({ from: policyOwnerAddress })
       await policy.approve(ROLES.PENDING_UNDERWRITER, { from: underwriterRep })
       await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_IN_APPROVAL })
       await policy.makeClaim(0, 1).should.be.rejectedWith('must be in active state')
@@ -332,7 +342,7 @@ contract('Policy Tranches: Claims', accounts => {
       await evmClock.setRelativeTime(1000)
       await policy.checkAndUpdateState()
 
-      await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_MATURED })
+      await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_BUYBACK })
       await policy.getTranchInfo(0).should.eventually.matchObj({
         state_: TRANCH_STATE_MATURED
       })

@@ -85,9 +85,6 @@ contract('Policy Tranches: Commissions', accounts => {
   let approvePolicy
   const policies = new Map()
 
-  const tranchNumShares = 10
-  const tranchPricePerShare = 100
-
   before(async () => {
     // acl
     acl = await ensureAclIsDeployed({ artifacts })
@@ -153,6 +150,7 @@ contract('Policy Tranches: Commissions', accounts => {
     }
 
     approvePolicy = async () => {
+      await policy.markAsReadyForApproval({ from: policyOwnerAddress })
       await policy.approve(ROLES.PENDING_UNDERWRITER, { from: underwriterRep })
       await policy.approve(ROLES.PENDING_INSURED_PARTY, { from: insuredPartyRep })
       await policy.approve(ROLES.PENDING_BROKER, { from: brokerRep })
@@ -246,6 +244,7 @@ contract('Policy Tranches: Commissions', accounts => {
       it('not if policy not yet approved', async () => {
         await policy.payCommissions().should.be.rejectedWith('must be approved')
 
+        await policy.markAsReadyForApproval({ from: policyOwnerAddress })
         await policy.approve(ROLES.PENDING_UNDERWRITER, { from: underwriterRep })
 
         await policy.payCommissions().should.be.rejectedWith('must be approved')

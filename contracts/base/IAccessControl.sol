@@ -19,14 +19,6 @@ interface IAccessControl {
   function inRoleGroup (address _addr, bytes32 _roleGroup) external view returns (bool);
 
   /**
-   * @dev Check if given address has given role in the current context.
-   * @param _addr Address to check.
-   * @param _role Role to check against.
-   * @return true if so
-   */
-  function hasRole (address _addr, bytes32 _role) external view returns (bool);
-
-  /**
    * @dev Check if given address has a role in the given rolegroup in the given context.
    * @param _ctx Context to check against.
    * @param _addr Address to check.
@@ -34,15 +26,6 @@ interface IAccessControl {
    * @return true if so
    */
   function inRoleGroupWithContext (bytes32 _ctx, address _addr, bytes32 _roleGroup) external view returns (bool);
-
-  /**
-   * @dev Check if given address has given role in the given context.
-   * @param _ctx Context to check against.
-   * @param _addr Address to check.
-   * @param _role Role to check against.
-   * @return true if so
-   */
-  function hasRoleWithContext (bytes32 _ctx, address _addr, bytes32 _role) external view returns (bool);
 
   /**
    * @dev Get ACL reference.

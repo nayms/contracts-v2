@@ -9,6 +9,7 @@ import {
   createTranch,
   preSetupPolicy,
   EvmClock,
+  createEntity,
   EvmSnapshot,
 } from './utils'
 import { events } from '../'
@@ -74,14 +75,21 @@ contract('Policy Tranches: Premiums', accounts => {
   let policy
   let policyCoreAddress
   let policyContext
-  let entityManagerAddress
   let policyOwnerAddress
   let market
   let etherToken
 
-  let underwriter
+  const entityAdminAddress = accounts[1]
+  const entityManagerAddress = accounts[2]
+  const insuredPartyRep = accounts[4]
+  const underwriterRep = accounts[5]
+  const brokerRep = accounts[6]
+  const claimsAdminRep = accounts[7]
+
   let insuredParty
+  let underwriter
   let broker
+  let claimsAdmin
 
   let POLICY_STATE_CREATED
   let POLICY_STATE_INITIATED
@@ -121,17 +129,14 @@ contract('Policy Tranches: Premiums', accounts => {
     await ensureEntityImplementationsAreDeployed({ artifacts, settings, entityDeployer })
 
     await acl.assignRole(systemContext, accounts[0], ROLES.SYSTEM_MANAGER)
-    const deployEntityTx = await entityDeployer.deploy()
-    const entityAddress = extractEventArgs(deployEntityTx, events.NewEntity).entity
+
+    const entityAddress = await createEntity(entityDeployer, entityAdminAddress)
 
     entityProxy = await Entity.at(entityAddress)
     entity = await IEntity.at(entityAddress)
     entityContext = await entityProxy.aclContext()
 
-    // policy
-    await acl.assignRole(entityContext, accounts[1], ROLES.ENTITY_ADMIN)
-    await acl.assignRole(entityContext, accounts[2], ROLES.ENTITY_MANAGER)
-    entityManagerAddress = accounts[2]
+    await acl.assignRole(entityContext, entityManagerAddress, ROLES.ENTITY_MANAGER)
 
     ;([ policyCoreAddress ] = await ensurePolicyImplementationsAreDeployed({ artifacts, settings }))
 
@@ -148,12 +153,15 @@ contract('Policy Tranches: Premiums', accounts => {
     TRANCH_STATE_ACTIVE = await policyStates.TRANCH_STATE_ACTIVE()
     TRANCH_STATE_MATURED = await policyStates.TRANCH_STATE_MATURED()
 
-    underwriter = accounts[6]
-    insuredParty = accounts[7]
-    broker = accounts[8]
-    Object.assign(POLICY_ATTRS_1, { underwriter, insuredParty, broker })
-    Object.assign(POLICY_ATTRS_2, { underwriter, insuredParty, broker })
-    Object.assign(POLICY_ATTRS_3, { underwriter, insuredParty, broker })
+    // roles
+    underwriter = await createEntity(entityDeployer, underwriterRep)
+    insuredParty = await createEntity(entityDeployer, insuredPartyRep)
+    broker = await createEntity(entityDeployer, brokerRep)
+    claimsAdmin = await createEntity(entityDeployer, claimsAdminRep)
+
+    Object.assign(POLICY_ATTRS_1, { underwriter, insuredParty, broker, claimsAdmin })
+    Object.assign(POLICY_ATTRS_2, { underwriter, insuredParty, broker, claimsAdmin })
+    Object.assign(POLICY_ATTRS_3, { underwriter, insuredParty, broker, claimsAdmin })
 
     const preSetupPolicyCtx = { policies, settings, events, etherToken, entity, entityManagerAddress }
     await Promise.all([
@@ -176,9 +184,10 @@ contract('Policy Tranches: Premiums', accounts => {
     }
 
     approvePolicy = async () => {
-      await policy.approve({ from: underwriter })
-      await policy.approve({ from: insuredParty })
-      await policy.approve({ from: broker })
+      await policy.approve(ROLES.PENDING_UNDERWRITER, { from: underwriterRep })
+      await policy.approve(ROLES.PENDING_INSURED_PARTY, { from: insuredPartyRep })
+      await policy.approve(ROLES.PENDING_BROKER, { from: brokerRep })
+      await policy.approve(ROLES.PENDING_CLAIMS_ADMIN, { from: claimsAdminRep })
     }
   })
 
@@ -603,7 +612,7 @@ contract('Policy Tranches: Premiums', accounts => {
 
     describe('before initiation date has passed', () => {
       let policyAttrs
-
+      
       beforeEach(async () => {
         policyAttrs = await setupPolicy(POLICY_ATTRS_2)
 

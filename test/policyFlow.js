@@ -3,6 +3,7 @@ import {
   parseEvents,
   createTranch,
   createPolicy,
+  createEntity,
   EvmClock,
   calcPremiumsMinusCommissions,
   EvmSnapshot,
@@ -59,6 +60,7 @@ contract('Policy: Flow', accounts => {
   let insuredParty
   let underwriter
   let broker
+  let claimsAdmin
 
   let POLICY_STATE_CREATED
   let POLICY_STATE_INITIATED
@@ -75,6 +77,7 @@ contract('Policy: Flow', accounts => {
   let TRANCH_STATE_CANCELLED
 
   let getTranchToken
+  let approvePolicy
 
   let evmClock
 
@@ -96,7 +99,6 @@ contract('Policy: Flow', accounts => {
     await acl.assignRole(systemContext, systemManager, ROLES.SYSTEM_MANAGER)
 
     const entityAddress = await createEntity(entityDeployer, entityAdminAddress)
-
     const entityProxy = await Entity.at(entityAddress)
     entity = await IEntity.at(entityAddress)
     const entityContext = await entityProxy.aclContext()
@@ -133,6 +135,7 @@ contract('Policy: Flow', accounts => {
       underwriter,
       insuredParty,
       broker,
+      claimsAdmin,
     }, { from: entityManagerAddress })
     const policyAddress = extractEventArgs(createPolicyTx, events.NewPolicy).policy
     policyOwnerAddress = entityManagerAddress
@@ -160,6 +163,15 @@ contract('Policy: Flow', accounts => {
     getTranchToken = async idx => {
       const { token_: tt } = await policy.getTranchInfo(idx)
       return await IERC20.at(tt)
+    }
+
+    approvePolicy = async () => {
+      await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_CREATED })
+      await policy.approve(ROLES.PENDING_UNDERWRITER, { from: underwriterRep })
+      await policy.approve(ROLES.PENDING_INSURED_PARTY, { from: insuredPartyRep })
+      await policy.approve(ROLES.PENDING_BROKER, { from: brokerRep })
+      await policy.approve(ROLES.PENDING_CLAIMS_ADMIN, { from: claimsAdminRep })
+      await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_APPROVED })
     }
 
     const policyStates = await IPolicyStates.at(policyCoreAddress)
@@ -204,10 +216,7 @@ contract('Policy: Flow', accounts => {
 
       describe('once policy has been approved', () => {
         beforeEach(async () => {
-          await policy.approve({ from: underwriter })
-          await policy.approve({ from: insuredParty })
-          await policy.approve({ from: broker })
-          await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_APPROVED })
+          await approvePolicy()
         })
 
         it('but not if tranch premiums have not been paid', async () => {
@@ -289,7 +298,7 @@ contract('Policy: Flow', accounts => {
           })
 
           it('claims cannot yet be made', async () => {
-            await policy.makeClaim(0, entity.address, 1, { from: insuredParty }).should.be.rejectedWith('must be in active state')
+            await policy.makeClaim(0, 1, { from: insuredParty }).should.be.rejectedWith('must be in active state')
           })
         })
       })
@@ -301,9 +310,7 @@ contract('Policy: Flow', accounts => {
     let marketOfferId
 
     beforeEach(async () => {
-      await policy.approve({ from: underwriter })
-      await policy.approve({ from: insuredParty })
-      await policy.approve({ from: broker })
+      await approvePolicy()
 
       await etherToken.deposit({ value: 100 })
       await etherToken.approve(policy.address, 100)
@@ -329,7 +336,7 @@ contract('Policy: Flow', accounts => {
     })
 
     it('claims cannot yet be made', async () => {
-      await policy.makeClaim(0, entity.address, 1, { from: insuredParty }).should.be.rejectedWith('must be in active state')
+      await policy.makeClaim(0, 1, { from: insuredPartyRep }).should.be.rejectedWith('must be in active state')
     })
 
     describe('another party can make an offer that does not match', () => {
@@ -503,9 +510,7 @@ contract('Policy: Flow', accounts => {
 
   describe('sale gets ended', async () => {
     beforeEach(async () => {
-      await policy.approve({ from: underwriter })
-      await policy.approve({ from: insuredParty })
-      await policy.approve({ from: broker })
+      await approvePolicy()
     })
 
     it('but not if start date has not passed', async () => {
@@ -724,10 +729,7 @@ contract('Policy: Flow', accounts => {
     let nextPremium
 
     beforeEach(async () => {
-      // approve policy
-      await policy.approve({ from: underwriter })
-      await policy.approve({ from: insuredParty })
-      await policy.approve({ from: broker })
+      await approvePolicy()
 
       // pay first premiums
       await etherToken.deposit({ value: 2000 })
@@ -820,31 +822,30 @@ contract('Policy: Flow', accounts => {
 
       describe('and once made', () => {
         beforeEach(async () => {
-          await policy.makeClaim(0, entity.address, 1, { from: insuredParty })
-          await policy.makeClaim(0, entity.address, 2, { from: insuredParty })
-          await policy.makeClaim(1, entity.address, 4, { from: insuredParty })
-          await policy.makeClaim(1, entity.address, 7, { from: insuredParty })
+          await policy.makeClaim(0, 1, { from: insuredPartyRep })
+          await policy.makeClaim(0, 2, { from: insuredPartyRep })
+          await policy.makeClaim(1, 4, { from: insuredPartyRep })
+          await policy.makeClaim(1, 7, { from: insuredPartyRep })
         })
 
         it('they can then be approved or declined', async () => {
-          await policy.declineClaim(0, { from: underwriter })
-          await policy.makeClaim(0, entity.address, 1, { from: insuredParty })
-          await policy.approveClaim(1, { from: underwriter })
+          await policy.declineClaim(0, { from: claimsAdminRep })
+          await policy.makeClaim(0, 1, { from: insuredPartyRep })
+          await policy.approveClaim(1, { from: claimsAdminRep })
         })
 
         it('and approved ones can be paid out', async () => {
-          await policy.declineClaim(0, { from: underwriter })
-          await policy.approveClaim(1, { from: underwriter })
-          await policy.approveClaim(3, { from: underwriter })
+          await policy.declineClaim(0, { from: claimsAdminRep })
+          await policy.approveClaim(1, { from: claimsAdminRep })
+          await policy.approveClaim(3, { from: claimsAdminRep })
 
-          const preBalance = ((await etherToken.balanceOf(entity.address)).toNumber())
+          const preBalance = ((await etherToken.balanceOf(insuredParty)).toNumber())
 
           const policyContext = await policy.aclContext()
-          await acl.assignRole(policyContext, accounts[1], ROLES.SYSTEM_MANAGER)
-          await policy.payClaim(1, { from: accounts[1] })
-          await policy.payClaim(3, { from: accounts[1] })
+          await policy.payClaim(1, { from: claimsAdminRep })
+          await policy.payClaim(3, { from: claimsAdminRep })
 
-          const postBalance = ((await etherToken.balanceOf(entity.address)).toNumber())
+          const postBalance = ((await etherToken.balanceOf(insuredParty)).toNumber())
 
           expect(postBalance - preBalance).to.eq(9)
         })
@@ -888,8 +889,8 @@ contract('Policy: Flow', accounts => {
         })
 
         it('unless there are pending claims', async () => {
-          await policy.makeClaim(0, entity.address, 1, { from: insuredParty })
-          await policy.makeClaim(0, entity.address, 2, { from: insuredParty })
+          await policy.makeClaim(0, 1, { from: insuredPartyRep })
+          await policy.makeClaim(0, 2, { from: insuredPartyRep })
 
           await evmClock.setAbsoluteTime(maturationDate)
           const ret = await policy.checkAndUpdateState()
@@ -908,8 +909,8 @@ contract('Policy: Flow', accounts => {
             finalBuybackofferId_: 0,
           })
 
-          await policy.declineClaim(0, { from: underwriter })
-          await policy.approveClaim(1, { from: underwriter })
+          await policy.declineClaim(0, { from: claimsAdminRep })
+          await policy.approveClaim(1, { from: claimsAdminRep })
 
           const ret2 = await policy.checkAndUpdateState()
           const postEvs = parseEvents(ret2, events.TranchStateUpdated)
@@ -952,7 +953,7 @@ contract('Policy: Flow', accounts => {
         it('and no more claims can be made', async () => {
           await evmClock.setAbsoluteTime(maturationDate)
           await policy.checkAndUpdateState()
-          await policy.makeClaim(0, entity.address, 1, { from: insuredParty }).should.be.rejectedWith('must be in active state')
+          await policy.makeClaim(0, 1, { from: insuredPartyRep }).should.be.rejectedWith('must be in active state')
         })
       })
 
@@ -1008,8 +1009,8 @@ contract('Policy: Flow', accounts => {
 
 
         it('unless there are pending claims', async () => {
-          await policy.makeClaim(0, entity.address, 1, { from: insuredParty })
-          await policy.makeClaim(0, entity.address, 2, { from: insuredParty })
+          await policy.makeClaim(0, 1, { from: insuredPartyRep })
+          await policy.makeClaim(0, 2, { from: insuredPartyRep })
 
           await evmClock.setAbsoluteTime(maturationDate)
           const ret = await policy.checkAndUpdateState()
@@ -1028,8 +1029,8 @@ contract('Policy: Flow', accounts => {
             finalBuybackofferId_: 0,
           })
 
-          await policy.declineClaim(0, { from: underwriter })
-          await policy.approveClaim(1, { from: underwriter })
+          await policy.declineClaim(0, { from: claimsAdminRep })
+          await policy.approveClaim(1, { from: claimsAdminRep })
 
           const ret2 = await policy.checkAndUpdateState()
 
@@ -1076,7 +1077,7 @@ contract('Policy: Flow', accounts => {
         it('and no more claims can be made', async () => {
           await evmClock.setAbsoluteTime(maturationDate)
           await policy.checkAndUpdateState()
-          await policy.makeClaim(0, entity.address, 1, { from: insuredParty }).should.be.rejectedWith('must be in active state')
+          await policy.makeClaim(0, 1, { from: insuredPartyRep }).should.be.rejectedWith('must be in active state')
         })
       })
 

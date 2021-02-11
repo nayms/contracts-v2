@@ -19,7 +19,7 @@ import "./Policy.sol";
   }
 
   modifier assertCanCreatePolicy () {
-    require(inRoleGroup(msg.sender, ROLEGROUP_POLICY_CREATORS), 'must be policy creator');
+    require(inRoleGroup(msg.sender, ROLEGROUP_ENTITY_REPS), 'must be entity rep');
     _;
   }
 
@@ -30,9 +30,6 @@ import "./Policy.sol";
 
   modifier assertCanPayTranchPremiums (address _policyAddress) {
     require(inRoleGroup(msg.sender, ROLEGROUP_ENTITY_REPS), 'must be entity rep');
-    AccessControl a = AccessControl(_policyAddress);
-    bytes32 ctx = a.aclContext();
-    require(inRoleGroupWithContext(ctx, msg.sender, ROLEGROUP_INSURED_PARTYS), 'must be insured party');
     _;
   }
 
@@ -40,7 +37,6 @@ import "./Policy.sol";
    * Constructor
    */
   constructor (address _settings) Controller(_settings) public {
-    // empty
   }
 
   // IDiamondFacet
@@ -72,12 +68,13 @@ import "./Policy.sol";
     override
     assertCanCreatePolicy
   {
-    address[] memory stakeholders = new address[](5);
+    address[] memory stakeholders = new address[](6);
     stakeholders[0] = address(this);
     stakeholders[1] = msg.sender;
     stakeholders[2] = _stakeholders[0];
     stakeholders[3] = _stakeholders[1];
     stakeholders[4] = _stakeholders[2];
+    stakeholders[5] = _stakeholders[3];
 
     Policy f = new Policy(
       address(settings()),

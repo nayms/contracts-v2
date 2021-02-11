@@ -2,12 +2,25 @@ pragma solidity >=0.6.7;
 
 import "./EternalStorage.sol";
 import "./IPolicyStates.sol";
+import "./AccessControl.sol";
 
 /**
  * @dev Policy facet base class
  */
-abstract contract PolicyFacetBase is EternalStorage, IPolicyStates {
-  // methods
+abstract contract PolicyFacetBase is EternalStorage, IPolicyStates, AccessControl {
+  modifier assertBelongsToEntityWithRole(address _user, bytes32 _role) {
+    address entity = _getEntityWithRole(_role);
+    // check they are a rep
+    bytes32 ctx = AccessControl(entity).aclContext();
+    require(inRoleGroupWithContext(ctx, _user, ROLEGROUP_ENTITY_REPS), 'not a rep of associated entity');
+    _;
+  }
+
+  function _getEntityWithRole (bytes32 _role) internal view returns (address) {
+    address[] memory entities = acl().getUsersForRole(aclContext(), _role);
+    require (entities.length > 0, 'no entity with role');
+    return entities[0];
+  }
 
   function _setPolicyState (uint256 _newState) internal {
     if (dataUint256["state"] != _newState) {

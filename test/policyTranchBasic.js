@@ -8,6 +8,7 @@ import {
   ADDRESS_ZERO,
   createTranch,
   preSetupPolicy,
+  createEntity,
   EvmSnapshot,
 } from './utils'
 import { events } from '../'
@@ -33,26 +34,7 @@ const IPolicy = artifacts.require("./base/IPolicy")
 const TestPolicyFacet = artifacts.require("./test/TestPolicyFacet")
 const FreezeUpgradesFacet = artifacts.require("./test/FreezeUpgradesFacet")
 
-const POLICY_ATTRS_1 = {
-  initiationDateDiff: 1000,
-  startDateDiff: 2000,
-  maturationDateDiff: 3000,
-  premiumIntervalSeconds: undefined,
-  capitalProviderCommissionBP: 0,
-  brokerCommissionBP: 0,
-  naymsCommissionBP: 0
-}
 
-const POLICY_ATTRS_2 = Object.assign({}, POLICY_ATTRS_1, {
-  initiationDateDiff: 0,
-})
-
-const POLICY_ATTRS_3 = Object.assign({}, POLICY_ATTRS_1, {
-  initiationDateDiff: 0,
-  startDateDiff: 0,
-  maturationDateDiff: 30,
-  premiumIntervalSeconds: 10,
-})
 
 contract('Policy Tranches: Basic', accounts => {
   const evmSnapshot = new EvmSnapshot()
@@ -68,22 +50,37 @@ contract('Policy Tranches: Basic', accounts => {
   let policy
   let policyCoreAddress
   let policyContext
-  let entityManagerAddress
   let policyOwnerAddress
   let market
   let etherToken
 
+  const entityAdminAddress = accounts[1]
+  const entityManagerAddress = accounts[2]
+  const insuredPartyRep = accounts[4]
+  const underwriterRep = accounts[5]
+  const brokerRep = accounts[6]
+  const claimsAdminRep = accounts[7]
+
+  let insuredParty
+  let underwriter
+  let broker
+  let claimsAdmin
+    
   let POLICY_STATE_CREATED
-  let POLICY_STATE_SELLING
+  let POLICY_STATE_INITIATED
   let POLICY_STATE_ACTIVE
   let POLICY_STATE_MATURED
   let POLICY_STATE_IN_APPROVAL
-  let POLICY_STATE_INITIATED
+  let POLICY_STATE_APPROVED
   let POLICY_STATE_CANCELLED
 
   let TRANCH_STATE_CANCELLED
   let TRANCH_STATE_ACTIVE
   let TRANCH_STATE_MATURED
+
+  let POLICY_ATTRS_1
+  let POLICY_ATTRS_2
+  let POLICY_ATTRS_3
 
   let setupPolicy
   const policies = new Map()
@@ -107,28 +104,54 @@ contract('Policy Tranches: Basic', accounts => {
     await ensureEntityImplementationsAreDeployed({ artifacts, settings, entityDeployer })
 
     await acl.assignRole(systemContext, accounts[0], ROLES.SYSTEM_MANAGER)
-    const deployEntityTx = await entityDeployer.deploy()
-    const entityAddress = extractEventArgs(deployEntityTx, events.NewEntity).entity
+
+    const entityAddress = await createEntity(entityDeployer, entityAdminAddress)
 
     entityProxy = await Entity.at(entityAddress)
     entity = await IEntity.at(entityAddress)
     entityContext = await entityProxy.aclContext()
 
+    // roles
+    underwriter = await createEntity(entityDeployer, underwriterRep)
+    insuredParty = await createEntity(entityDeployer, insuredPartyRep)
+    broker = await createEntity(entityDeployer, brokerRep)
+    claimsAdmin = await createEntity(entityDeployer, claimsAdminRep)
+
+    POLICY_ATTRS_1 = {
+      initiationDateDiff: 1000,
+      startDateDiff: 2000,
+      maturationDateDiff: 3000,
+      premiumIntervalSeconds: undefined,
+      underwriterCommissionBP: 0,
+      brokerCommissionBP: 0,
+      naymsCommissionBP: 0,
+      underwriter, insuredParty, broker, claimsAdmin,
+    }
+
+    POLICY_ATTRS_2 = Object.assign({}, POLICY_ATTRS_1, {
+      initiationDateDiff: 0,
+    })
+
+    POLICY_ATTRS_3 = Object.assign({}, POLICY_ATTRS_1, {
+      initiationDateDiff: 0,
+      startDateDiff: 0,
+      maturationDateDiff: 30,
+      premiumIntervalSeconds: 10,
+    })
+
     // policy
-    await acl.assignRole(entityContext, accounts[1], ROLES.ENTITY_ADMIN)
-    await acl.assignRole(entityContext, accounts[2], ROLES.ENTITY_MANAGER)
-    entityManagerAddress = accounts[2]
+    await acl.assignRole(entityContext, entityManagerAddress, ROLES.ENTITY_MANAGER)
 
     ;([ policyCoreAddress ] = await ensurePolicyImplementationsAreDeployed({ artifacts, settings }))
 
     const policyStates = await IPolicyStates.at(policyCoreAddress)
     POLICY_STATE_CREATED = await policyStates.POLICY_STATE_CREATED()
-    POLICY_STATE_SELLING = await policyStates.POLICY_STATE_SELLING()
+    POLICY_STATE_INITIATED = await policyStates.POLICY_STATE_INITIATED()
     POLICY_STATE_ACTIVE = await policyStates.POLICY_STATE_ACTIVE()
     POLICY_STATE_MATURED = await policyStates.POLICY_STATE_MATURED()
     POLICY_STATE_CANCELLED = await policyStates.POLICY_STATE_CANCELLED()
     POLICY_STATE_IN_APPROVAL = await policyStates.POLICY_STATE_IN_APPROVAL()
-    POLICY_STATE_INITIATED = await policyStates.POLICY_STATE_INITIATED()
+    POLICY_STATE_APPROVED = await policyStates.POLICY_STATE_APPROVED()
     
     TRANCH_STATE_CANCELLED = await policyStates.TRANCH_STATE_CANCELLED()
     TRANCH_STATE_ACTIVE = await policyStates.TRANCH_STATE_ACTIVE()
@@ -292,7 +315,7 @@ contract('Policy Tranches: Basic', accounts => {
       it('cannot be created once an approval has come in', async () => {
         await setupPolicy(POLICY_ATTRS_2)
         await acl.assignRole(policyContext, accounts[1], ROLES.CAPITAL_PROVIDER)
-        await policy.approve({ from: accounts[1] })
+        await policy.approve(ROLES.PENDING_BROKER, { from: brokerRep })
         await createTranch(policy, {}, { from: accounts[2] }).should.be.rejectedWith('must be in created state')
       })
     })

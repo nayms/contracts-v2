@@ -49,18 +49,18 @@ contract('EntityDeployer', accounts => {
 
   describe('can deploy an Entity', () => {
     it('but not by a non-authorized person', async () => {
-      await deployer.deploy({ from: accounts[1] }).should.be.rejectedWith('must be system manager')
+      await deployer.deploy(accounts[1], { from: accounts[1] }).should.be.rejectedWith('must be system manager')
     })
 
     it('by an admin', async () => {
-      await deployer.deploy().should.be.fulfilled
+      await deployer.deploy(accounts[1]).should.be.fulfilled
     })
 
     it('by a system manager', async () => {
       const context = await acl.systemContext()
       await acl.assignRole(context, accounts[1], ROLES.SYSTEM_MANAGER)
 
-      const result = await deployer.deploy({ from: accounts[1] })
+      const result = await deployer.deploy(accounts[1], { from: accounts[1] })
 
       const eventArgs = extractEventArgs(result, events.NewEntity)
 
@@ -77,13 +77,13 @@ contract('EntityDeployer', accounts => {
       const context = await deployer.aclContext()
       await acl.assignRole(context, accounts[1], ROLES.SYSTEM_MANAGER)
 
-      const result = await deployer.deploy({ from: accounts[1] })
+      const result = await deployer.deploy(accounts[1], { from: accounts[1] })
       const eventArgs = extractEventArgs(result, events.NewEntity)
 
       await deployer.getNumEntities().should.eventually.eq(1)
       await deployer.getEntity(0).should.eventually.eq(eventArgs.entity)
 
-      const result2 = await deployer.deploy({ from: accounts[1] })
+      const result2 = await deployer.deploy(accounts[1], { from: accounts[1] })
       const eventArgs2 = extractEventArgs(result2, events.NewEntity)
 
       await deployer.getNumEntities().should.eventually.eq(2)

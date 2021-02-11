@@ -27,8 +27,9 @@ contract Policy is Controller, DiamondProxy {
     dataUint256["naymsCommissionBP"] = _commmissionsBP[2];
     // set roles
     acl().assignRole(aclContext(), _stakeholders[1], ROLE_POLICY_OWNER);
-    acl().assignRole(aclContext(), _stakeholders[2], ROLE_CAPITAL_PROVIDER);
-    acl().assignRole(aclContext(), _stakeholders[3], ROLE_INSURED_PARTY);
-    acl().assignRole(aclContext(), _stakeholders[4], ROLE_BROKER);
+    acl().assignRole(aclContext(), _stakeholders[2], ROLE_PENDING_UNDERWRITER);
+    acl().assignRole(aclContext(), _stakeholders[3], ROLE_PENDING_INSURED_PARTY);
+    acl().assignRole(aclContext(), _stakeholders[4], ROLE_PENDING_BROKER);
+    acl().assignRole(aclContext(), _stakeholders[5], ROLE_PENDING_CLAIMS_ADMIN);
   }
 }

@@ -20,6 +20,11 @@ interface IPolicyCoreFacet {
   ) external;
 
   /**
+   * @dev Mark policy as ready for approval.
+   */
+  function markAsReadyForApproval () external;
+
+  /**
    * @dev Get policy info.
    *
    * @return creatorEntity_ The Entity which created this policy.

@@ -1,6 +1,4 @@
-import EthVal from 'ethval'
-import { extractEventArgs, ADDRESS_ZERO, EvmSnapshot } from './utils'
-import { events } from '../'
+import { EvmSnapshot } from './utils'
 import { ensureAclIsDeployed } from '../migrations/modules/acl'
 import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
 import { ROLES, ROLEGROUPS } from '../utils/constants'
@@ -30,16 +28,6 @@ contract('AccessControl', accounts => {
 
   afterEach(async () => {
     await evmSnapshot.restore()
-  })
-
-  it('hasRole', async () => {
-    await accessControl.hasRole(accounts[0], ROLES.SYSTEM_ADMIN).should.eventually.eq(true)
-    await accessControl.hasRole(accounts[0], ROLES.SYSTEM_MANAGER).should.eventually.eq(false)
-  })
-
-  it('hasRoleWithContext', async () => {
-    await accessControl.hasRoleWithContext(accessControlContext, accounts[0], ROLES.SYSTEM_ADMIN).should.eventually.eq(true)
-    await accessControl.hasRoleWithContext(otherContext, accounts[0], ROLES.SYSTEM_MANAGER).should.eventually.eq(false)
   })
 
   it('inRoleGroup', async () => {

@@ -83,16 +83,6 @@ contract AccessControl is EternalStorage, IAccessControl, IACLConstants {
   }
 
   /**
-   * @dev Check if given address has given role in the current context.
-   * @param _addr Address to check.
-   * @param _role Role to check against.
-   * @return true if so
-   */
-  function hasRole (address _addr, bytes32 _role) public view override returns (bool) {
-    return hasRoleWithContext(aclContext(), _addr, _role);
-  }
-
-  /**
    * @dev Check if given address has a role in the given rolegroup in the given context.
    * @param _ctx Context to check against.
    * @param _addr Address to check.
@@ -101,17 +91,6 @@ contract AccessControl is EternalStorage, IAccessControl, IACLConstants {
    */
   function inRoleGroupWithContext (bytes32 _ctx, address _addr, bytes32 _roleGroup) public view override returns (bool) {
     return acl().hasRoleInGroup(_ctx, _addr, _roleGroup);
-  }
-
-  /**
-   * @dev Check if given address has given role in the given context.
-   * @param _ctx Context to check against.
-   * @param _addr Address to check.
-   * @param _role Role to check against.
-   * @return true if so
-   */
-  function hasRoleWithContext (bytes32 _ctx, address _addr, bytes32 _role) public view override returns (bool) {
-    return acl().hasRole(_ctx, _addr, _role) != DOES_NOT_HAVE_ROLE;
   }
 
   /**

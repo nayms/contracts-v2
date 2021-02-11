@@ -312,10 +312,10 @@ contract('Policy Tranches: Basic', accounts => {
         expect(Object.keys(addresses).length).to.eq(2)
       })
 
-      it('cannot be created once an approval has come in', async () => {
+      it('cannot be created once marked as ready for approval', async () => {
         await setupPolicy(POLICY_ATTRS_2)
         await acl.assignRole(policyContext, accounts[1], ROLES.CAPITAL_PROVIDER)
-        await policy.approve(ROLES.PENDING_BROKER, { from: brokerRep })
+        await policy.markAsReadyForApproval({ from: policyOwnerAddress })
         await createTranch(policy, {}, { from: accounts[2] }).should.be.rejectedWith('must be in created state')
       })
     })

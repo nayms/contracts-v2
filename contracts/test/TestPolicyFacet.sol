@@ -17,6 +17,8 @@ contract TestPolicyFacet is IDiamondFacet, IPolicyCoreFacet {
     address _initialBalanceHolder
   ) external override {}
 
+  function markAsReadyForApproval () external override {}
+
   function getInfo () external view override  returns (
     address creatorEntity_,
     uint256 initiationDate_,

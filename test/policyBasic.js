@@ -61,11 +61,12 @@ contract('Policy: Basic', accounts => {
   let policy
   let policyCoreAddress
   let policyContext
-  const entityAdminAddress = accounts[1]
-  const entityManagerAddress = accounts[2]
   let policyOwnerAddress
   let market
   let etherToken
+
+  const entityAdminAddress = accounts[1]
+  const entityManagerAddress = accounts[2]
 
   let POLICY_STATE_CREATED
   let POLICY_STATE_INITIATED

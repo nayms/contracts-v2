@@ -107,9 +107,6 @@ contract('Policy Tranches: Premiums', accounts => {
   let setupPolicy
   const policies = new Map()
 
-  const tranchNumShares = 10
-  const tranchPricePerShare = 100
-
   before(async () => {
     // acl
     acl = await ensureAclIsDeployed({ artifacts })
@@ -184,6 +181,7 @@ contract('Policy Tranches: Premiums', accounts => {
     }
 
     approvePolicy = async () => {
+      await policy.markAsReadyForApproval({ from: policyOwnerAddress })
       await policy.approve(ROLES.PENDING_UNDERWRITER, { from: underwriterRep })
       await policy.approve(ROLES.PENDING_INSURED_PARTY, { from: insuredPartyRep })
       await policy.approve(ROLES.PENDING_BROKER, { from: brokerRep })

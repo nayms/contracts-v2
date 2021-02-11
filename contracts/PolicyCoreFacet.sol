@@ -22,7 +22,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
 
   // Modifiers //
 
-  modifier assertCanCreateTranch () {
+  modifier assertIsOwner () {
     require(inRoleGroup(msg.sender, ROLEGROUP_POLICY_OWNERS), 'must be policy owner');
     _;
   }
@@ -44,6 +44,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
   function getSelectors () public pure override returns (bytes memory) {
     return abi.encodePacked(
       IPolicyCoreFacet.createTranch.selector,
+      IPolicyCoreFacet.markAsReadyForApproval.selector,
       IPolicyCoreFacet.getInfo.selector,
       IPolicyCoreFacet.getTranchInfo.selector,
       IPolicyCoreFacet.calculateMaxNumOfPremiums.selector,
@@ -65,7 +66,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
   )
     public
     override
-    assertCanCreateTranch
+    assertIsOwner
     assertCreatedState
   {
     require(_numShares > 0, 'invalid num of shares');
@@ -120,6 +121,15 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     dataAddress[addressKey] = address(t);
 
     emit CreateTranch(address(t), dataAddress[initialHolderKey], i);
+  }
+
+  function markAsReadyForApproval() 
+    public 
+    override
+    assertCreatedState
+    assertIsOwner
+  {
+    _setPolicyState(POLICY_STATE_READY_FOR_APPROVAL);
   }
 
   function getInfo () public view override returns (

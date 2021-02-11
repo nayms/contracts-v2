@@ -9,6 +9,10 @@ abstract contract IPolicyStates {
    */
   uint256 constant public POLICY_STATE_CREATED = 0;
   /**
+   * @dev State: The policy has just been created.
+   */
+  uint256 constant public POLICY_STATE_READY_FOR_APPROVAL = 9;
+  /**
    * @dev State: The policy is undergoing approval.
    */
   uint256 constant public POLICY_STATE_IN_APPROVAL = 5;

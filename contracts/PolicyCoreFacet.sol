@@ -208,7 +208,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
 
         // if past the maturation date
         if (maturationDateHasPassed()) {
-          _closePolicy();
+          _maturePolicy();
         }
       }
       // not yet past start date
@@ -301,39 +301,46 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
   }
 
 
-  function _closePolicy () private {
-    _setPolicyState(POLICY_STATE_MATURED);
+  function _maturePolicy () private {
+    // if no pending claims
+    if (0 == dataUint256["claimsPendingCount"]) {
+      // if we haven't yet initiated tranch buyback
+      if (!dataBool["buybackInitiated"]) {
+        _setPolicyState(POLICY_STATE_BUYBACK);
 
-    // if no pending claims AND we haven't yet initiated tranch buyback
-    if (0 == dataUint256["claimsPendingCount"] && !dataBool["buybackInitiated"]) {
-      dataBool["buybackInitiated"] = true;
+        dataBool["buybackInitiated"] = true;
 
-      address marketAddress = settings().getRootAddress(SETTING_MARKET);
+        address marketAddress = settings().getRootAddress(SETTING_MARKET);
 
-      IMarket market = IMarket(marketAddress);
+        IMarket market = IMarket(marketAddress);
 
-      // buy back all tranch tokens
-      for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
-        if (dataUint256[__i(i, "state")] == TRANCH_STATE_ACTIVE) {
-          _setTranchState(i, TRANCH_STATE_MATURED);
+        // buy back all tranch tokens
+        for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
+          if (dataUint256[__i(i, "state")] == TRANCH_STATE_ACTIVE) {
+            _setTranchState(i, TRANCH_STATE_MATURED);
+          }
+
+          address unitAddress = dataAddress["unit"];
+          uint256 tranchBalance = dataUint256[__i(i, "balance")];
+
+          IERC20 tkn = IERC20(unitAddress);
+          tkn.approve(marketAddress, tranchBalance);
+
+          // buy back all sold tokens
+          dataUint256[__i(i, "finalBuybackOfferId")] = market.offer(
+            tranchBalance,
+            dataAddress["unit"],
+            dataUint256[__i(i, "sharesSold")],
+            dataAddress[__i(i, "address")],
+            0,
+            false
+          );
         }
-
-        address unitAddress = dataAddress["unit"];
-        uint256 tranchBalance = dataUint256[__i(i, "balance")];
-
-        IERC20 tkn = IERC20(unitAddress);
-        tkn.approve(marketAddress, tranchBalance);
-
-        // buy back all sold tokens
-        dataUint256[__i(i, "finalBuybackOfferId")] = market.offer(
-          tranchBalance,
-          dataAddress["unit"],
-          dataUint256[__i(i, "sharesSold")],
-          dataAddress[__i(i, "address")],
-          0,
-          false
-        );
       }
+    } 
+    // if there are pending claims
+    else {
+      _setPolicyState(POLICY_STATE_MATURED);
     }
   }
 

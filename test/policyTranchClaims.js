@@ -107,6 +107,7 @@ contract('Policy Tranches: Claims', accounts => {
   let POLICY_STATE_IN_APPROVAL
   let POLICY_STATE_APPROVED
   let POLICY_STATE_CANCELLED
+  let POLICY_STATE_BUYBACK
 
   let TRANCH_STATE_CANCELLED
   let TRANCH_STATE_ACTIVE
@@ -164,6 +165,7 @@ contract('Policy Tranches: Claims', accounts => {
     POLICY_STATE_CANCELLED = await policyStates.POLICY_STATE_CANCELLED()
     POLICY_STATE_IN_APPROVAL = await policyStates.POLICY_STATE_IN_APPROVAL()
     POLICY_STATE_APPROVED = await policyStates.POLICY_STATE_APPROVED()
+    POLICY_STATE_BUYBACK = await policyStates.POLICY_STATE_BUYBACK()
 
     TRANCH_STATE_CANCELLED = await policyStates.TRANCH_STATE_CANCELLED()
     TRANCH_STATE_ACTIVE = await policyStates.TRANCH_STATE_ACTIVE()
@@ -340,7 +342,7 @@ contract('Policy Tranches: Claims', accounts => {
       await evmClock.setRelativeTime(1000)
       await policy.checkAndUpdateState()
 
-      await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_MATURED })
+      await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_BUYBACK })
       await policy.getTranchInfo(0).should.eventually.matchObj({
         state_: TRANCH_STATE_MATURED
       })

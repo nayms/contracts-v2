@@ -69,6 +69,7 @@ contract('Policy: Flow', accounts => {
   let POLICY_STATE_IN_APPROVAL
   let POLICY_STATE_APPROVED
   let POLICY_STATE_CANCELLED
+  let POLICY_STATE_BUYBACK
   
   let TRANCH_STATE_CREATED
   let TRANCH_STATE_SELLING
@@ -183,6 +184,7 @@ contract('Policy: Flow', accounts => {
     POLICY_STATE_CANCELLED = await policyStates.POLICY_STATE_CANCELLED()
     POLICY_STATE_IN_APPROVAL = await policyStates.POLICY_STATE_IN_APPROVAL()
     POLICY_STATE_APPROVED = await policyStates.POLICY_STATE_APPROVED()
+    POLICY_STATE_BUYBACK = await policyStates.POLICY_STATE_BUYBACK()
 
     TRANCH_STATE_CREATED = await policyStates.TRANCH_STATE_CREATED()
     TRANCH_STATE_SELLING = await policyStates.TRANCH_STATE_SELLING()
@@ -853,18 +855,18 @@ contract('Policy: Flow', accounts => {
     })
 
     describe('once maturation date has passed', () => {
-      describe('if there are no pending claims and NOT all premium payments are up-to-date', () => {
+      describe('if NOT all premium payments are up-to-date', () => {
         beforeEach(async () => {
           await policy.payTranchPremium(0, nextPremium)
           await policy.payTranchPremium(1, nextPremium)
         })
 
-        it('closes the policy and tries to buys back all tranch tokens', async () => {
+        it('marks some tranches as cancelled and tries to buys back all tranch tokens', async () => {
           await evmClock.setAbsoluteTime(maturationDate)
           const ret = await policy.checkAndUpdateState()
 
           const ev = extractEventArgs(ret, events.PolicyStateUpdated)
-          expect(ev.state).to.eq(POLICY_STATE_MATURED.toString())
+          expect(ev.state).to.eq(POLICY_STATE_BUYBACK.toString())
 
           const evs = parseEvents(ret, events.TranchStateUpdated)
           expect(evs.length).to.eq(2)
@@ -873,7 +875,7 @@ contract('Policy: Flow', accounts => {
           expect(evs[1].args.tranchIndex).to.eq('1')
           expect(evs[1].args.state).to.eq(TRANCH_STATE_CANCELLED.toString())
 
-          await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_MATURED })
+          await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_BUYBACK })
           await policy.getTranchInfo(0).should.eventually.matchObj({
             state_: TRANCH_STATE_CANCELLED,
           })
@@ -888,39 +890,46 @@ contract('Policy: Flow', accounts => {
           })
         })
 
-        it('unless there are pending claims', async () => {
-          await policy.makeClaim(0, 1, { from: insuredPartyRep })
-          await policy.makeClaim(0, 2, { from: insuredPartyRep })
-
-          await evmClock.setAbsoluteTime(maturationDate)
-          const ret = await policy.checkAndUpdateState()
-
-          const ev = extractEventArgs(ret, events.PolicyStateUpdated)
-          expect(ev.state).to.eq(POLICY_STATE_MATURED.toString())
-          const preEvs = parseEvents(ret, events.TranchStateUpdated).filter(e => e.args.state === TRANCH_STATE_CANCELLED.toString())
-          expect(preEvs.length).to.eq(2)
-
-          await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_MATURED })
-
-          await policy.getTranchInfo(0).should.eventually.matchObj({
-            finalBuybackofferId_: 0,
-          })
-          await policy.getTranchInfo(1).should.eventually.matchObj({
-            finalBuybackofferId_: 0,
+        describe('but if there are pending claims', () => {
+          beforeEach(async () => {
+            await policy.makeClaim(0, 1, { from: insuredPartyRep })
+            await policy.makeClaim(0, 2, { from: insuredPartyRep })
           })
 
-          await policy.declineClaim(0, { from: claimsAdminRep })
-          await policy.approveClaim(1, { from: claimsAdminRep })
+          it('it does not do the buyback until the claims get handled', async () => {
+            await evmClock.setAbsoluteTime(maturationDate)
+            const ret = await policy.checkAndUpdateState()
 
-          const ret2 = await policy.checkAndUpdateState()
-          const postEvs = parseEvents(ret2, events.TranchStateUpdated)
-          expect(postEvs.length).to.eq(0) // tranches are already cancelled, and so stay that way
+            const ev = extractEventArgs(ret, events.PolicyStateUpdated)
+            expect(ev.state).to.eq(POLICY_STATE_MATURED.toString())
+            const preEvs = parseEvents(ret, events.TranchStateUpdated).filter(e => e.args.state === TRANCH_STATE_CANCELLED.toString())
+            expect(preEvs.length).to.eq(2)
 
-          await policy.getTranchInfo(0).should.eventually.not.matchObj({
-            finalBuybackofferId_: 0,
-          })
-          await policy.getTranchInfo(1).should.eventually.not.matchObj({
-            finalBuybackofferId_: 0,
+            await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_MATURED })
+
+            await policy.getTranchInfo(0).should.eventually.matchObj({
+              finalBuybackofferId_: 0,
+            })
+            await policy.getTranchInfo(1).should.eventually.matchObj({
+              finalBuybackofferId_: 0,
+            })
+
+            await policy.declineClaim(0, { from: claimsAdminRep })
+            await policy.approveClaim(1, { from: claimsAdminRep })
+
+            const ret2 = await policy.checkAndUpdateState()
+            const ev2 = extractEventArgs(ret2, events.PolicyStateUpdated)
+            expect(ev2.state).to.eq(POLICY_STATE_BUYBACK.toString())
+            await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_BUYBACK })
+            const postEvs = parseEvents(ret2, events.TranchStateUpdated)
+            expect(postEvs.length).to.eq(0) // tranches are already cancelled, and so stay that way
+
+            await policy.getTranchInfo(0).should.eventually.not.matchObj({
+              finalBuybackofferId_: 0,
+            })
+            await policy.getTranchInfo(1).should.eventually.not.matchObj({
+              finalBuybackofferId_: 0,
+            })
           })
         })
 
@@ -935,7 +944,7 @@ contract('Policy: Flow', accounts => {
 
           await policy.checkAndUpdateState()
 
-          await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_MATURED })
+          await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_BUYBACK })
           await policy.getTranchInfo(0).should.eventually.matchObj({
             state_: TRANCH_STATE_CANCELLED,
           })
@@ -957,7 +966,7 @@ contract('Policy: Flow', accounts => {
         })
       })
 
-      describe('if there are no pending claims and all premium payments are up-to-date', () => {
+      describe('if all premium payments are up-to-date', () => {
         beforeEach(async () => {
           const t0 = await policy.getTranchInfo(0)
           let nextPremiumAmount0 = t0.nextPremiumAmount_.toNumber()
@@ -982,17 +991,17 @@ contract('Policy: Flow', accounts => {
           await policy.payTranchPremium(1, toPay1)
         })
 
-        it('closes the policy and tries to buys back all tranch tokens', async () => {
+        it('tries to buys back all tranch tokens, and all tranches are matured', async () => {
           await evmClock.setAbsoluteTime(maturationDate)
           const ret = await policy.checkAndUpdateState()
 
           const ev = extractEventArgs(ret, events.PolicyStateUpdated)
-          expect(ev.state).to.eq(POLICY_STATE_MATURED.toString())
+          expect(ev.state).to.eq(POLICY_STATE_BUYBACK.toString())
 
           const tEvs = parseEvents(ret, events.TranchStateUpdated).filter(e => e.args.state === TRANCH_STATE_MATURED.toString())
           expect(tEvs.length).to.eq(2)
 
-          await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_MATURED })
+          await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_BUYBACK })
           await policy.getTranchInfo(0).should.eventually.matchObj({
             state_: TRANCH_STATE_MATURED,
           })
@@ -1007,44 +1016,50 @@ contract('Policy: Flow', accounts => {
           })
         })
 
-
-        it('unless there are pending claims', async () => {
-          await policy.makeClaim(0, 1, { from: insuredPartyRep })
-          await policy.makeClaim(0, 2, { from: insuredPartyRep })
-
-          await evmClock.setAbsoluteTime(maturationDate)
-          const ret = await policy.checkAndUpdateState()
-
-          const ev = extractEventArgs(ret, events.PolicyStateUpdated)
-          expect(ev.state).to.eq(POLICY_STATE_MATURED.toString())
-
-          const preEvs = parseEvents(ret, events.TranchStateUpdated)
-          expect(preEvs.length).to.eq(0)
-
-          await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_MATURED })
-          await policy.getTranchInfo(0).should.eventually.matchObj({
-            finalBuybackofferId_: 0,
-          })
-          await policy.getTranchInfo(1).should.eventually.matchObj({
-            finalBuybackofferId_: 0,
+        describe('but if there are pending claims', () => {
+          beforeEach(async () => {
+            await policy.makeClaim(0, 1, { from: insuredPartyRep })
+            await policy.makeClaim(0, 2, { from: insuredPartyRep })
           })
 
-          await policy.declineClaim(0, { from: claimsAdminRep })
-          await policy.approveClaim(1, { from: claimsAdminRep })
+          it('it does not do the buyback until the claims get handled', async () => {
+            await evmClock.setAbsoluteTime(maturationDate)
+            const ret = await policy.checkAndUpdateState()
 
-          const ret2 = await policy.checkAndUpdateState()
+            const ev = extractEventArgs(ret, events.PolicyStateUpdated)
+            expect(ev.state).to.eq(POLICY_STATE_MATURED.toString())
 
-          const postEvs = parseEvents(ret2, events.TranchStateUpdated)
-          expect(postEvs.length).to.eq(2)
-          const postEvStates = postEvs.map(e => e.args.state)
-          expect(postEvStates[0]).to.eq(TRANCH_STATE_MATURED.toString())
-          expect(postEvStates[1]).to.eq(TRANCH_STATE_MATURED.toString())
+            const preEvs = parseEvents(ret, events.TranchStateUpdated)
+            expect(preEvs.length).to.eq(0)
 
-          await policy.getTranchInfo(0).should.eventually.not.matchObj({
-            finalBuybackofferId_: 0,
-          })
-          await policy.getTranchInfo(1).should.eventually.not.matchObj({
-            finalBuybackofferId_: 0,
+            await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_MATURED })
+            await policy.getTranchInfo(0).should.eventually.matchObj({
+              finalBuybackofferId_: 0,
+            })
+            await policy.getTranchInfo(1).should.eventually.matchObj({
+              finalBuybackofferId_: 0,
+            })
+
+            await policy.declineClaim(0, { from: claimsAdminRep })
+            await policy.approveClaim(1, { from: claimsAdminRep })
+
+            const ret2 = await policy.checkAndUpdateState()
+            const ev2 = extractEventArgs(ret2, events.PolicyStateUpdated)
+            expect(ev2.state).to.eq(POLICY_STATE_BUYBACK.toString())
+            await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_BUYBACK })
+
+            const postEvs = parseEvents(ret2, events.TranchStateUpdated)
+            expect(postEvs.length).to.eq(2)
+            const postEvStates = postEvs.map(e => e.args.state)
+            expect(postEvStates[0]).to.eq(TRANCH_STATE_MATURED.toString())
+            expect(postEvStates[1]).to.eq(TRANCH_STATE_MATURED.toString())
+
+            await policy.getTranchInfo(0).should.eventually.not.matchObj({
+              finalBuybackofferId_: 0,
+            })
+            await policy.getTranchInfo(1).should.eventually.not.matchObj({
+              finalBuybackofferId_: 0,
+            })
           })
         })
 
@@ -1059,7 +1074,7 @@ contract('Policy: Flow', accounts => {
 
           await policy.checkAndUpdateState()
 
-          await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_MATURED })
+          await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_BUYBACK })
           await policy.getTranchInfo(0).should.eventually.matchObj({
             state_: TRANCH_STATE_MATURED,
           })
@@ -1107,6 +1122,8 @@ contract('Policy: Flow', accounts => {
 
           await evmClock.setAbsoluteTime(maturationDate)
           await policy.checkAndUpdateState()
+
+          await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_BUYBACK })
         })
 
         it('other people can trade their previously purchased tranch tokens in for (hopefully) profit ', async () => {

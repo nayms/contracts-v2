@@ -29,15 +29,15 @@ abstract contract IPolicyStates {
    */
   uint256 constant public POLICY_STATE_ACTIVE = 2;
   /**
-   * @dev State: The policy has matured.
+   * @dev State: The policy has matured, but there are pending claims.
    */
   uint256 constant public POLICY_STATE_MATURED = 3;
   /**
-   * @dev State: Policy has matured, claims have been settled, and shares are being bought back from the market.
+   * @dev State: Policy has matured, no pending claims, and shares are being bought back from the market.
    */
   uint256 constant public POLICY_STATE_BUYBACK = 7;
   /**
-   * @dev State: Policy has matured, claims have been settled, and all shares have been bought back.
+   * @dev State: Policy has matured, no pending blaims, and all shares have been bought back.
    */
   uint256 constant public POLICY_STATE_CLOSED = 8;
   /**

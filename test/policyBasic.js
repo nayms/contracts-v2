@@ -4,6 +4,7 @@ import {
   extractEventArgs,
   hdWallet,
   preSetupPolicy,
+  createEntity,
   EvmSnapshot,
 } from './utils'
 import { events } from '../'
@@ -65,8 +66,8 @@ contract('Policy: Basic', accounts => {
   let market
   let etherToken
 
-  const entityAdminAddress = accounts[1]
-  const entityManagerAddress = accounts[2]
+  const entityAdminAddress = accounts[0]
+  const entityManagerAddress = accounts[1]
 
   let POLICY_STATE_CREATED
   let POLICY_STATE_INITIATED
@@ -99,8 +100,7 @@ contract('Policy: Basic', accounts => {
     await ensureEntityImplementationsAreDeployed({ artifacts, settings, entityDeployer })
 
     await acl.assignRole(systemContext, accounts[0], ROLES.SYSTEM_MANAGER)
-    const deployEntityTx = await entityDeployer.deploy(entityAdminAddress)
-    const entityAddress = extractEventArgs(deployEntityTx, events.NewEntity).entity
+    const entityAddress = await createEntity(entityDeployer, entityAdminAddress)
 
     entityProxy = await Entity.at(entityAddress)
     entity = await IEntity.at(entityAddress)

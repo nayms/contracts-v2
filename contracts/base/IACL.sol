@@ -179,11 +179,12 @@ interface IACL {
    * @dev Get whether given address can assign given role within the given context.
 
    * @param _context Context name.
-   * @param _addr Address.
+   * @param _assigner Assigner address.
+   * @param _assignee Assignee address.
    * @param _role The role to assign.
-   * @return either `CANNOT_ASSIGN` or one of the `CAN_ASSIGN_...` constants
+   * @return one of the `CANNOT_ASSIGN...` or `CAN_ASSIGN_...` constants
    */
-  function canAssign(bytes32 _context, address _addr, bytes32 _role) external view returns (uint256);
+  function canAssign(bytes32 _context, address _assigner, address _assignee, bytes32 _role) external view returns (uint256);
 
   // utility methods
 

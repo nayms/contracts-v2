@@ -21,6 +21,7 @@ export const ensureAclIsDeployed = async ({ deployer, artifacts, log, getTxParam
 
   await log.task(`Ensure ACL role groups are setup`, async () => {
     await Promise.all([
+      acl.setRoleGroup(ROLEGROUPS.APPROVED_USERS, [ROLES.APPROVED_USER], getTxParams()),
       acl.setRoleGroup(ROLEGROUPS.CAPITAL_PROVIDERS, [ROLES.UNDERWRITER, ROLES.CAPITAL_PROVIDER], getTxParams()),
       acl.setRoleGroup(ROLEGROUPS.UNDERWRITERS, [ROLES.UNDERWRITER], getTxParams()),
       acl.setRoleGroup(ROLEGROUPS.BROKERS, [ROLES.BROKER], getTxParams()),
@@ -38,6 +39,7 @@ export const ensureAclIsDeployed = async ({ deployer, artifacts, log, getTxParam
 
   await log.task(`Ensure ACL role assigners are setup`, async () => {
     await Promise.all([
+      acl.addAssigner(ROLES.APPROVED_USER, ROLEGROUPS.SYSTEM_MANAGERS, getTxParams()),
       acl.addAssigner(ROLES.UNDERWRITER, ROLEGROUPS.POLICY_OWNERS, getTxParams()),
       acl.addAssigner(ROLES.CAPITAL_PROVIDER, ROLEGROUPS.POLICY_OWNERS, getTxParams()),
       acl.addAssigner(ROLES.BROKER, ROLEGROUPS.POLICY_OWNERS, getTxParams()),

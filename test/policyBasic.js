@@ -4,6 +4,7 @@ import {
   extractEventArgs,
   hdWallet,
   preSetupPolicy,
+  createEntity,
   EvmSnapshot,
 } from './utils'
 import { events } from '../'
@@ -99,14 +100,14 @@ contract('Policy: Basic', accounts => {
     await ensureEntityImplementationsAreDeployed({ artifacts, settings, entityDeployer })
 
     await acl.assignRole(systemContext, accounts[0], ROLES.SYSTEM_MANAGER)
-    const deployEntityTx = await entityDeployer.deploy(entityAdminAddress)
-    const entityAddress = extractEventArgs(deployEntityTx, events.NewEntity).entity
+    const entityAddress = await createEntity(entityDeployer, entityAdminAddress)
 
     entityProxy = await Entity.at(entityAddress)
     entity = await IEntity.at(entityAddress)
     entityContext = await entityProxy.aclContext()
 
     // policy
+    await acl.assignRole(systemContext, entityManagerAddress, ROLES.APPROVED_USER)
     await acl.assignRole(entityContext, entityManagerAddress, ROLES.ENTITY_MANAGER, { from: entityAdminAddress })
 
     ;([ policyCoreAddress ] = await ensurePolicyImplementationsAreDeployed({ artifacts, settings }))

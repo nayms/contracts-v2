@@ -321,8 +321,9 @@ contract ACL is IACL, IACLConstants {
     _;
   }
 
-  modifier assertIsAssigner (bytes32 _context, bytes32 _role) {
-    require(canAssign(_context, msg.sender, _role) != CANNOT_ASSIGN, 'unauthorized');
+  modifier assertIsAssigner (bytes32 _context, address _addr, bytes32 _role) {
+    uint256 ca = canAssign(_context, msg.sender, _addr, _role);
+    require(ca != CANNOT_ASSIGN && ca != CANNOT_ASSIGN_USER_NOT_APPROVED, 'unauthorized');
     _;
   }
 
@@ -454,7 +455,7 @@ contract ACL is IACL, IACLConstants {
   function assignRole(bytes32 _context, address _addr, bytes32 _role)
     public
     override
-    assertIsAssigner(_context, _role)
+    assertIsAssigner(_context, _addr, _role)
   {
     _assignRole(_context, _addr, _role);
   }
@@ -466,7 +467,7 @@ contract ACL is IACL, IACLConstants {
   function unassignRole(bytes32 _context, address _addr, bytes32 _role)
     public
     override
-    assertIsAssigner(_context, _role)
+    assertIsAssigner(_context, _addr, _role)
   {
     if (assignments[_context].hasRoleForUser(_role, _addr)) {
       assignments[_context].removeRoleForUser(_role, _addr);
@@ -519,19 +520,25 @@ contract ACL is IACL, IACLConstants {
     return assigners[_role].getAll();
   }
 
-  function canAssign(bytes32 _context, address _addr, bytes32 _role)
+  function canAssign(bytes32 _context, address _assigner, address _assignee, bytes32 _role)
     public
     view
     override
     returns (uint256)
   {
-    // if they are an admin or assigning in their own context
-    if (isAdmin(_addr)) {
+    // if they are an admin
+    if (isAdmin(_assigner)) {
       return CAN_ASSIGN_IS_ADMIN;
     }
 
-    if (_context == generateContextFromAddress(_addr)) {
+    // if they are assigning within their own context
+    if (_context == generateContextFromAddress(_assigner)) {
       return CAN_ASSIGN_IS_OWN_CONTEXT;
+    }
+
+    // at this point we need to confirm that the assignee is approved
+    if (hasRole(systemContext, _assignee, ROLE_APPROVED_USER) == DOES_NOT_HAVE_ROLE) {
+      return CANNOT_ASSIGN_USER_NOT_APPROVED;
     }
 
     // if they belong to an role group that can assign this role
@@ -540,7 +547,7 @@ contract ACL is IACL, IACLConstants {
     for (uint256 i = 0; i < roleGroups.length; i++) {
       bytes32[] memory roles = getRoleGroup(roleGroups[i]);
 
-      if (hasAnyRole(_context, _addr, roles)) {
+      if (hasAnyRole(_context, _assigner, roles)) {
         return CAN_ASSIGN_HAS_ROLE;
       }
     }
@@ -557,7 +564,7 @@ contract ACL is IACL, IACLConstants {
   /**
    * @dev assign a role to an address
    */
-  function _assignRole(bytes32 _context, address _addr, bytes32 _role) private {
+  function _assignRole(bytes32 _context, address _assignee, bytes32 _role) private {
     // record new context if necessary
     if (!isContext[_context]) {
       contexts[numContexts] = _context;
@@ -565,17 +572,17 @@ contract ACL is IACL, IACLConstants {
       numContexts++;
     }
 
-    assignments[_context].addRoleForUser(_role, _addr);
+    assignments[_context].addRoleForUser(_role, _assignee);
 
     // update user's context list
-    userContexts[_addr].add(_context);
+    userContexts[_assignee].add(_context);
 
     // only admin should be able to assign somebody in the system context
     if (_context == systemContext) {
       require(isAdmin(msg.sender), 'only admin can assign role in system context');
     }
 
-    emit RoleAssigned(_context, _addr, _role);
+    emit RoleAssigned(_context, _assignee, _role);
   }
 
   function _setRoleGroup(bytes32 _roleGroup, bytes32[] memory _roles) private {

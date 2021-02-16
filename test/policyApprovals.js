@@ -104,6 +104,7 @@ contract('Policy: Approvals', accounts => {
     const entityContext = await entityProxy.aclContext()
 
     // entity manager
+    await acl.assignRole(systemContext, entityManagerAddress, ROLES.APPROVED_USER)
     await acl.assignRole(entityContext, entityManagerAddress, ROLES.ENTITY_MANAGER, { from: entityAdminAddress })
     
     const [ policyCoreAddress ] = await ensurePolicyImplementationsAreDeployed({ artifacts, settings })

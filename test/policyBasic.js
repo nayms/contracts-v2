@@ -66,8 +66,8 @@ contract('Policy: Basic', accounts => {
   let market
   let etherToken
 
-  const entityAdminAddress = accounts[0]
-  const entityManagerAddress = accounts[1]
+  const entityAdminAddress = accounts[1]
+  const entityManagerAddress = accounts[2]
 
   let POLICY_STATE_CREATED
   let POLICY_STATE_INITIATED
@@ -107,6 +107,7 @@ contract('Policy: Basic', accounts => {
     entityContext = await entityProxy.aclContext()
 
     // policy
+    await acl.assignRole(systemContext, entityManagerAddress, ROLES.APPROVED_USER)
     await acl.assignRole(entityContext, entityManagerAddress, ROLES.ENTITY_MANAGER, { from: entityAdminAddress })
 
     ;([ policyCoreAddress ] = await ensurePolicyImplementationsAreDeployed({ artifacts, settings }))

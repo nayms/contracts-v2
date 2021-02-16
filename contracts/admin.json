@@ -607,6 +607,11 @@
               "contract": true
             }
           ]
+        },
+        {
+          "name": "entityAdmin",
+          "title": "Entity admin address",
+          "type": "address"
         }
       ],
       "execs": [
@@ -614,6 +619,9 @@
           "type": "send",
           "contract": "EntityDeployer",
           "method": "deploy",
+          "args": {
+            "_entityAdmin": "@input[entityAdmin]"
+          },
           "address": "@input[contractAddress]"
         }
       ]

@@ -11,7 +11,7 @@ import {
 
 import { events } from '../'
 import { ensureEtherTokenIsDeployed } from '../migrations/modules/etherToken'
-import { ROLES, ROLEGROUPS } from '../utils/constants'
+import { ROLES, ROLEGROUPS, SETTINGS } from '../utils/constants'
 import { ensureAclIsDeployed } from '../migrations/modules/acl'
 import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
 import { ensureMarketIsDeployed } from '../migrations/modules/market'
@@ -462,10 +462,11 @@ contract('Policy: Flow', accounts => {
 
     describe('if a tranch fully sells out', () => {
       let txResult
+      let tranchToken
 
       beforeEach(async () => {
         // make the offer on the market
-        const tranchToken = await getTranchToken(0)
+        tranchToken = await getTranchToken(0)
 
         // buy the whole tranch
         await etherToken.deposit({ from: accounts[2], value: 200 })
@@ -506,6 +507,45 @@ contract('Policy: Flow', accounts => {
           initialSaleOfferId_: marketOfferId,
         })
         await market.isActive(marketOfferId).should.eventually.eq(false)
+      })
+
+      describe('tranch tokens support ERC-20 operations', () => {
+        const tokenHolder = accounts[2]
+
+        it('but sending one\'s own tokens is not possible', async () => {
+          await tranchToken.transfer(accounts[3], 1, { from: tokenHolder }).should.be.rejectedWith('only nayms market is allowed to transfer')
+        })
+
+        it('but approving an address to send on one\'s behalf is not possible', async () => {
+          await tranchToken.approve(accounts[3], 1, { from: tokenHolder }).should.be.rejectedWith('only nayms market is allowed to transfer')
+        })
+
+        it('approving an address to send on one\'s behalf is possible if it is the market', async () => {
+          await tranchToken.approve(market.address, 1, { from: tokenHolder }).should.be.fulfilled
+        })
+
+        describe('such as market sending tokens on one\'s behalf', () => {
+          beforeEach(async () => {
+            await settings.setAddress(settings.address, SETTINGS.MARKET, accounts[3]).should.be.fulfilled
+          })
+
+          it('but not when owner does not have enough', async () => {
+            await tranchToken.transferFrom(tokenHolder, accounts[5], 100 + 1, { from: accounts[3] }).should.be.rejectedWith('not enough balance')
+          })
+
+          it('when the owner has enough', async () => {
+            const result = await tranchToken.transferFrom(tokenHolder, accounts[5], 100, { from: accounts[3] })
+
+            await tranchToken.balanceOf(tokenHolder).should.eventually.eq(0)
+            await tranchToken.balanceOf(accounts[5]).should.eventually.eq(100)
+
+            expect(extractEventArgs(result, events.Transfer)).to.include({
+              from: tokenHolder,
+              to: accounts[5],
+              value: `${100}`,
+            })
+          })
+        })
       })
     })
   })

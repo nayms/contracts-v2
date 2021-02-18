@@ -13,8 +13,7 @@ contract TestPolicyFacet is IDiamondFacet, IPolicyCoreFacet {
   function createTranch (
     uint256 _numShares,
     uint256 _pricePerShareAmount,
-    uint256[] calldata _premiums,
-    address _initialBalanceHolder
+    uint256[] calldata _premiums
   ) external override {}
 
   function markAsReadyForApproval () external override {}

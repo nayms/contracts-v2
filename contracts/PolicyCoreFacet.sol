@@ -61,8 +61,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
   function createTranch (
     uint256 _numShares,
     uint256 _pricePerShareAmount,
-    uint256[] memory _premiums,
-    address _initialBalanceHolder
+    uint256[] memory _premiums
   )
     public
     override
@@ -102,13 +101,8 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     // deploy token contract
     TranchToken t = new TranchToken(address(this), i);
 
-    // work out initial holder
-    // (NOTE: initial holder should only be set to an arbitrary address for testing purposes only, so that we can check erc20 mechanics)
-    address holder = _initialBalanceHolder;
-    if (holder == address(0)) {
-      // by default it's this conract
-      holder = address(this);
-    }
+    // initial holder
+    address holder = address(this);
     string memory initialHolderKey = __i(i, "initialHolder");
     dataAddress[initialHolderKey] = holder;
 

@@ -10,13 +10,11 @@ interface IPolicyCoreFacet {
    * @param _numShares No. of shares in this tranch.
    * @param _pricePerShareAmount Price of each share during the initial sale period.
    * @param _premiums Premium payment amounts in chronological order.
-   * @param _initialBalanceHolder For testing only. For normal use set to `0x`.
    */
   function createTranch (
     uint256 _numShares,
     uint256 _pricePerShareAmount,
-    uint256[] calldata _premiums,
-    address _initialBalanceHolder
+    uint256[] calldata _premiums
   ) external;
 
   /**

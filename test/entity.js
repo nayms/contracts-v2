@@ -6,6 +6,7 @@ import {
   hdWallet,
   ADDRESS_ZERO,
   createPolicy,
+  createTranch,
 } from './utils'
 
 import { events } from '../'
@@ -313,7 +314,11 @@ contract('Entity', accounts => {
         const accessControl = await AccessControl.at(policy.address)
         policyContext = await accessControl.aclContext()
 
-        await policy.createTranch(1, 1, [premiumAmount], ADDRESS_ZERO, { from: policyOwner })
+        await createTranch(policy, { 
+          numShares: 1,
+          pricePerShareAmount: 1,
+          premiums: [premiumAmount],
+        }, { from: policyOwner })
       })
 
       it('but not by anyone', async () => {

@@ -32,6 +32,7 @@ const IPolicyStates = artifacts.require("./base/IPolicyStates")
 const Policy = artifacts.require("./Policy")
 const IPolicy = artifacts.require("./base/IPolicy")
 const TestPolicyFacet = artifacts.require("./test/TestPolicyFacet")
+const TranchToken = artifacts.require("./TranchToken")
 const FreezeUpgradesFacet = artifacts.require("./test/FreezeUpgradesFacet")
 
 
@@ -227,7 +228,7 @@ contract('Policy Tranches: Basic', accounts => {
         })
       })
 
-      it('can be created and have initial balance auto-allocated to policy impl', async () => {
+      it('can be created and has initial supply allocated to policy itself', async () => {
         await setupPolicy(POLICY_ATTRS_1)
 
         const result = await createTranch(policy, {
@@ -249,29 +250,12 @@ contract('Policy Tranches: Basic', accounts => {
         await policy.getInfo().should.eventually.matchObj({ numTranches: 1 })
       })
 
-      it('can be created and have initial balance allocated to a specific address', async () => {
-        await setupPolicy(POLICY_ATTRS_1)
-
-        const result = await createTranch(policy, {
-          numShares: tranchNumShares,
-          pricePerShareAmount: tranchPricePerShare,
-          initialBalanceHolder: accounts[3],
-        }, {
-          from: accounts[2]
-        }).should.be.fulfilled
-
-        const [log] = parseEvents(result, events.CreateTranch)
-
-        expect(log.args.initialBalanceHolder).to.eq(accounts[3])
-      })
-
       it('can be created and will have state set to CREATED', async () => {
         await setupPolicy(POLICY_ATTRS_1)
 
         await createTranch(policy, {
           numShares: tranchNumShares,
           pricePerShareAmount: tranchPricePerShare,
-          initialBalanceHolder: accounts[3],
         }, {
           from: accounts[2]
         }).should.be.fulfilled
@@ -321,6 +305,8 @@ contract('Policy Tranches: Basic', accounts => {
     })
 
     describe('are ERC20 tokens', () => {
+      let tokens
+
       beforeEach(async () => {
         await setupPolicy(POLICY_ATTRS_1)
 
@@ -329,15 +315,14 @@ contract('Policy Tranches: Basic', accounts => {
         await createTranch(policy, {
           numShares: tranchNumShares,
           pricePerShareAmount: tranchPricePerShare,
-          initialBalanceHolder: accounts[0],
         }).should.be.fulfilled
 
         await createTranch(policy, {
           numShares: tranchNumShares,
           pricePerShareAmount: tranchPricePerShare,
-          initialBalanceHolder: accounts[0],
         }).should.be.fulfilled
       })
+
 
       it('which have basic details', async () => {
         let done = 0
@@ -360,64 +345,18 @@ contract('Policy Tranches: Basic', accounts => {
         expect(done).to.eq(2)
       })
 
-      it('which have all supply initially allocated to initial balance holder', async () => {
+      it('which have all supply initially allocated to the policy', async () => {
         let done = 0
 
         await Promise.all(_.range(0, 2).map(async i => {
           const tkn = await IERC20.at((await policy.getTranchInfo(i)).token_)
 
-          await tkn.balanceOf(accounts[0]).should.eventually.eq(await tkn.totalSupply())
+          await tkn.balanceOf(policy.address).should.eventually.eq(await tkn.totalSupply())
 
           done++
         }))
 
         expect(done).to.eq(2)
-      })
-
-      describe('which support operations', () => {
-        let firstTkn
-        let firstTknNumShares
-
-        beforeEach(async () => {
-          firstTkn = await IERC20.at((await policy.getTranchInfo(0)).token_)
-          firstTknNumShares = await firstTkn.totalSupply()
-        })
-
-        it('but sending one\'s own tokens is not possible', async () => {
-          await firstTkn.transfer(accounts[0], firstTknNumShares).should.be.rejectedWith('only nayms market is allowed to transfer')
-        })
-
-        it('but approving an address to send on one\'s behalf is not possible', async () => {
-          await firstTkn.approve(accounts[1], 2).should.be.rejectedWith('only nayms market is allowed to transfer')
-        })
-
-        it('approving an address to send on one\'s behalf is possible if it is the market', async () => {
-          await settings.setAddress(settings.address, SETTINGS.MARKET, accounts[3]).should.be.fulfilled
-          await firstTkn.approve(accounts[3], 2).should.be.fulfilled
-        })
-
-        describe('such as market sending tokens on one\' behalf', () => {
-          beforeEach(async () => {
-            await settings.setAddress(settings.address, SETTINGS.MARKET, accounts[3]).should.be.fulfilled
-          })
-
-          it('but not when owner does not have enough', async () => {
-            await firstTkn.transferFrom(accounts[0], accounts[2], firstTknNumShares + 1, { from: accounts[3] }).should.be.rejectedWith('not enough balance')
-          })
-
-          it('when the owner has enough', async () => {
-            const result = await firstTkn.transferFrom(accounts[0], accounts[2], firstTknNumShares, { from: accounts[3] })
-
-            await firstTkn.balanceOf(accounts[0]).should.eventually.eq(0)
-            await firstTkn.balanceOf(accounts[2]).should.eventually.eq(firstTknNumShares)
-
-            expect(extractEventArgs(result, events.Transfer)).to.include({
-              from: accounts[0],
-              to: accounts[2],
-              value: `${firstTknNumShares}`,
-            })
-          })
-        })
       })
     })
   })

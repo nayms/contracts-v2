@@ -35,14 +35,14 @@ const POLICY_ATTRS_1 = {
   startDateDiff: 2000,
   maturationDateDiff: 3000,
   premiumIntervalSeconds: undefined,
-  underwriterCommissionBP: 0,
+  claimsAdminCommissionBP: 0,
   brokerCommissionBP: 0,
   naymsCommissionBP: 0
 }
 
 const POLICY_ATTRS_2 = Object.assign({}, POLICY_ATTRS_1, {
   premiumIntervalSeconds: 5,
-  underwriterCommissionBP: 1,
+  claimsAdminCommissionBP: 1,
   brokerCommissionBP: 2,
   naymsCommissionBP: 3
 })
@@ -157,7 +157,7 @@ contract('Policy: Basic', accounts => {
         maturationDate_: attrs.maturationDate,
         unit_: attrs.unit,
         premiumIntervalSeconds_: 5,
-        underwriterCommissionBP_: 1,
+        claimsAdminCommissionBP_: 1,
         brokerCommissionBP_: 2,
         naymsCommissionBP_: 3,
         numTranches_: 0,

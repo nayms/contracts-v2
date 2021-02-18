@@ -36,7 +36,7 @@ const POLICY_ATTRS_1 = {
   startDateDiff: 2000,
   maturationDateDiff: 3000,
   premiumIntervalSeconds: 30,
-  underwriterCommissionBP: 1,
+  claimsAdminCommissionBP: 1,
   brokerCommissionBP: 2,
   naymsCommissionBP: 3
 }
@@ -259,18 +259,18 @@ contract('Policy Tranches: Commissions', accounts => {
           const ret = await policy.payCommissions()
 
           expect(extractEventArgs(ret, events.PaidCommissions)).to.include({
-            underwriter,
+            claimsAdmin,
             broker,
           })
         })
 
         it('and funds get transferred', async () => {
-          const preBalance1 = (await etherToken.balanceOf(underwriter)).toNumber()
+          const preBalance1 = (await etherToken.balanceOf(claimsAdmin)).toNumber()
           const preBalance2 = (await etherToken.balanceOf(broker)).toNumber()
 
           await policy.payCommissions()
 
-          const postBalance1 = (await etherToken.balanceOf(underwriter)).toNumber()
+          const postBalance1 = (await etherToken.balanceOf(claimsAdmin)).toNumber()
           const postBalance2 = (await etherToken.balanceOf(broker)).toNumber()
 
           expect(postBalance1 - preBalance1).to.eq(5)

@@ -38,11 +38,11 @@ contract PolicyCommissionsFacet is EternalStorage, Controller, IDiamondFacet, IP
 
   function getCommissionBalances() public view override returns (
     uint256 brokerCommissionBalance_,
-    uint256 capitalProviderCommissionBalance_,
+    uint256 claimsAdminCommissionBalance_,
     uint256 naymsCommissionBalance_
   ) {
     brokerCommissionBalance_ = dataUint256["brokerCommissionBalance"];
-    capitalProviderCommissionBalance_ = dataUint256["capitalProviderCommissionBalance"];
+    claimsAdminCommissionBalance_ = dataUint256["claimsAdminCommissionBalance"];
     naymsCommissionBalance_ = dataUint256["naymsCommissionBalance"];
   }
 
@@ -52,17 +52,16 @@ contract PolicyCommissionsFacet is EternalStorage, Controller, IDiamondFacet, IP
     override
     assertPolicyApproved
   {
-    address underwriter = _getEntityWithRole(ROLE_UNDERWRITER);
+    address claimsAdmin = _getEntityWithRole(ROLE_CLAIMS_ADMIN);
     address broker = _getEntityWithRole(ROLE_BROKER);
-    // get nayms entity
     address naymsEntity = settings().getRootAddress(SETTING_NAYMS_ENTITY);
 
     // do payouts and update balances
     IERC20 tkn = IERC20(dataAddress["unit"]);
 
-    if (dataUint256["capitalProviderCommissionBalance"] > 0) {
-      tkn.transfer(underwriter, dataUint256["capitalProviderCommissionBalance"]);
-      dataUint256["capitalProviderCommissionBalance"] = 0;
+    if (dataUint256["claimsAdminCommissionBalance"] > 0) {
+      tkn.transfer(claimsAdmin, dataUint256["claimsAdminCommissionBalance"]);
+      dataUint256["claimsAdminCommissionBalance"] = 0;
     }
   
     if (dataUint256["brokerCommissionBalance"] > 0) {
@@ -75,6 +74,6 @@ contract PolicyCommissionsFacet is EternalStorage, Controller, IDiamondFacet, IP
       dataUint256["naymsCommissionBalance"] = 0;
     }
 
-    emit PaidCommissions(underwriter, broker, msg.sender);
+    emit PaidCommissions(claimsAdmin, broker, msg.sender);
   }
 }

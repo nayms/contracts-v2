@@ -987,9 +987,9 @@
           "value": "@input[policyInfo][brokerCommissionBP_]"
         },
         {
-          "title": "Asset mgr commission basis-points",
+          "title": "Claims admin commission basis-points",
           "type": "int",
-          "value": "@input[policyInfo][capitalProviderCommissionBP_]"
+          "value": "@input[policyInfo][claimsAdminCommissionBP_]"
         },
         {
           "title": "Nayms commission basis-points",

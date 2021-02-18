@@ -29,7 +29,7 @@ const IERC20 = artifacts.require("./base/IERC20")
 contract('Policy: Approvals', accounts => {
   const evmSnapshot = new EvmSnapshot()
 
-  const underwriterCommissionBP = 100
+  const claimsAdminCommissionBP = 100
   const brokerCommissionBP = 200
   const naymsCommissionBP = 300
 
@@ -130,7 +130,7 @@ contract('Policy: Approvals', accounts => {
       maturationDate,
       premiumIntervalSeconds,
       unit: etherToken.address,
-      underwriterCommissionBP,
+      claimsAdminCommissionBP,
       brokerCommissionBP,
       naymsCommissionBP,
       underwriter,

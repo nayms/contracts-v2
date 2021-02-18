@@ -249,7 +249,7 @@ contract('End-to-end integration tests', accounts => {
         premiumIntervalSeconds: 5 * 60,
         /* basis points: 1 = 0.1% */
         brokerCommissionBP: 1,
-        underwriterCommissionBP: 2,
+        claimsAdminCommissionBP: 2,
         naymsCommissionBP: 3,
         // roles
         broker: policy1Broker,
@@ -392,7 +392,7 @@ contract('End-to-end integration tests', accounts => {
     // sanity check balances
     const policy1Tranch1ExpectedBalance = 100 + calcPremiumsMinusCommissions({
       premiums: [1000, 2000, 1000],
-      underwriterCommissionBP: 2,
+      claimsAdminCommissionBP: 2,
       brokerCommissionBP: 1,
       naymsCommissionBP: 3,
     })
@@ -402,7 +402,7 @@ contract('End-to-end integration tests', accounts => {
     })
     const expectedCommissions = calcCommissions({
       premiums: [1000, 2000, 1000],
-      underwriterCommissionBP: 2,
+      claimsAdminCommissionBP: 2,
       brokerCommissionBP: 1,
       naymsCommissionBP: 3,
     })
@@ -508,7 +508,7 @@ contract('End-to-end integration tests', accounts => {
         premiumIntervalSeconds: 5 * 60,
         /* basis points: 1 = 0.1% */
         brokerCommissionBP: 1,
-        underwriterCommissionBP: 2,
+        claimsAdminCommissionBP: 2,
         naymsCommissionBP: 3,
         // roles
         broker: policy2Broker,
@@ -636,7 +636,7 @@ contract('End-to-end integration tests', accounts => {
     const expectedCommissions = calcCommissions({
       premiums: [1000, 2000, 1000],
       brokerCommissionBP: 1,
-      underwriterCommissionBP: 2,
+      claimsAdminCommissionBP: 2,
       naymsCommissionBP: 3,
     })
     expect(expectedCommissions.underwriterCommission).to.eq(8)
@@ -651,7 +651,7 @@ contract('End-to-end integration tests', accounts => {
     const policy2Tranch1ExpectedBalanceMinusCommissions = 100 + calcPremiumsMinusCommissions({
       premiums: [1000, 2000, 1000],
       brokerCommissionBP: 1,
-      underwriterCommissionBP: 2,
+      claimsAdminCommissionBP: 2,
       naymsCommissionBP: 3,
     })
 

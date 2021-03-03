@@ -41,7 +41,7 @@ const POLICY_ATTRS_1 = {
   startDateDiff: 2000,
   maturationDateDiff: 3000,
   premiumIntervalSeconds: undefined,
-  underwriterCommissionBP: 0,
+  claimsAdminCommissionBP: 0,
   brokerCommissionBP: 0,
   naymsCommissionBP: 0,
 }

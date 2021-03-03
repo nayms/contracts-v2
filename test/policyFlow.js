@@ -29,7 +29,7 @@ const IERC20 = artifacts.require("./base/IERC20")
 contract('Policy: Flow', accounts => {
   const evmSnapshot = new EvmSnapshot()
 
-  const underwriterCommissionBP = 100
+  const claimsAdminCommissionBP = 100
   const brokerCommissionBP = 200
   const naymsCommissionBP = 300
 
@@ -130,7 +130,7 @@ contract('Policy: Flow', accounts => {
       maturationDate,
       premiumIntervalSeconds,
       unit: etherToken.address,
-      underwriterCommissionBP,
+      claimsAdminCommissionBP,
       brokerCommissionBP,
       naymsCommissionBP,
       underwriter,
@@ -374,7 +374,7 @@ contract('Policy: Flow', accounts => {
         const b = (await policy.getTranchInfo(0)).balance_
         expect(b.toNumber()).to.eq(calcPremiumsMinusCommissions({
           premiums: [10],
-          underwriterCommissionBP,
+          claimsAdminCommissionBP,
           brokerCommissionBP,
           naymsCommissionBP,
         }))
@@ -429,7 +429,7 @@ contract('Policy: Flow', accounts => {
         const b = (await policy.getTranchInfo(0)).balance_
         expect(b.toNumber()).to.eq(10 + calcPremiumsMinusCommissions({
           premiums: [10],
-          underwriterCommissionBP,
+          claimsAdminCommissionBP,
           brokerCommissionBP,
           naymsCommissionBP,
         }))
@@ -490,7 +490,7 @@ contract('Policy: Flow', accounts => {
         const b = (await policy.getTranchInfo(0)).balance_
         expect(b.toNumber()).to.eq(200 + calcPremiumsMinusCommissions({
           premiums: [10],
-          underwriterCommissionBP,
+          claimsAdminCommissionBP,
           brokerCommissionBP,
           naymsCommissionBP,
         }))
@@ -1182,7 +1182,7 @@ contract('Policy: Flow', accounts => {
 
           const expectedPremiumBalance = calcPremiumsMinusCommissions({
             premiums: [10, 20, 30, 40, 50, 60, 70],
-            underwriterCommissionBP,
+            claimsAdminCommissionBP,
             brokerCommissionBP,
             naymsCommissionBP,
           })

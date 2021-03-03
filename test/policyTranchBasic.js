@@ -123,7 +123,7 @@ contract('Policy Tranches: Basic', accounts => {
       startDateDiff: 2000,
       maturationDateDiff: 3000,
       premiumIntervalSeconds: undefined,
-      underwriterCommissionBP: 0,
+      claimsAdminCommissionBP: 0,
       brokerCommissionBP: 0,
       naymsCommissionBP: 0,
       underwriter, insuredParty, broker, claimsAdmin,

@@ -9,10 +9,6 @@ abstract contract IPolicyClaimsFacet {
    */
   uint256 constant public CLAIM_STATE_CREATED = 0;
   /**
-   * @dev State: The claim is under dispute.
-   */
-  uint256 constant public CLAIM_STATE_DISPUTED = 1;
-  /**
    * @dev State: The claim has been approved.
    */
   uint256 constant public CLAIM_STATE_APPROVED = 2;
@@ -45,6 +41,12 @@ abstract contract IPolicyClaimsFacet {
    */
   function disputeClaim (uint256 _claimIndex) virtual public;
   /**
+   * @dev Acknowledge a claim.
+   *
+   * @param _claimIndex Claim index.
+   */
+  function acknowledgeClaim (uint256 _claimIndex) virtual public;
+  /**
    * @dev Decline a claim.
    *
    * @param _claimIndex Claim index.
@@ -75,7 +77,9 @@ abstract contract IPolicyClaimsFacet {
   function getClaimInfo (uint256 _claimIndex) virtual public view returns (
     uint256 amount_,
     uint256 tranchIndex_,
-    uint256 state_
+    uint256 state_,
+    bool disputed_,
+    bool acknowledged_
   );
 
 
@@ -90,6 +94,20 @@ abstract contract IPolicyClaimsFacet {
    * @param caller The claim maker.
    */
   event NewClaim(uint256 indexed tranchIndex, uint256 indexed claimIndex, address indexed caller);
+  /**
+   * @dev Emitted when a claim has been disputed.
+   *
+   * @param claimIndex The claim index.
+   * @param caller The caller.
+   */
+  event ClaimDisputed(uint256 indexed claimIndex, address indexed caller);
+  /**
+   * @dev Emitted when a claim has been acknowledged.
+   *
+   * @param claimIndex The claim index.
+   * @param caller The caller.
+   */
+  event ClaimAcknowledged(uint256 indexed claimIndex, address indexed caller);
   /**
    * @dev Emitted when a claim state has been updated.
    *

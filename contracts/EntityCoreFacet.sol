@@ -18,11 +18,6 @@ import "./Policy.sol";
     _;
   }
 
-  modifier assertCanCreatePolicy () {
-    require(inRoleGroup(msg.sender, ROLEGROUP_ENTITY_REPS), 'must be entity rep');
-    _;
-  }
-
   modifier assertCanTradeTranchTokens () {
     require(inRoleGroup(msg.sender, ROLEGROUP_TRADERS), 'must be trader');
     _;
@@ -66,7 +61,6 @@ import "./Policy.sol";
   )
     public
     override
-    assertCanCreatePolicy
   {
     address[] memory stakeholders = new address[](6);
     stakeholders[0] = address(this);
@@ -75,6 +69,12 @@ import "./Policy.sol";
     stakeholders[3] = _stakeholders[1];
     stakeholders[4] = _stakeholders[2];
     stakeholders[5] = _stakeholders[3];
+
+    // check that I have same acl context as underwriter entity
+    // require(
+    //   IAccessControl(stakeholders[2]).aclContext() == aclContext(), 
+    //   'underwriter ACL context must match'
+    // );
 
     Policy f = new Policy(
       address(settings()),
@@ -86,10 +86,12 @@ import "./Policy.sol";
     );
 
     uint256 numPolicies = dataUint256["numPolicies"];
-    dataAddress[__i(numPolicies, "policy")] = address(f);
+    address pAddr = address(f);
+    dataAddress[__i(numPolicies, "policy")] = pAddr;
     dataUint256["numPolicies"] = numPolicies + 1;
+    dataBool[__a(pAddr, "isPolicy")] = true; // for _isPolicyCreatedByMe() to work
 
-    emit NewPolicy(address(f), address(this), msg.sender);
+    emit NewPolicy(pAddr, address(this), msg.sender);
   }
 
 
@@ -170,5 +172,11 @@ import "./Policy.sol";
     tok.approve(mktAddress, _sellAmount);
     // make the offer
     mkt.sellAllAmount(_sellUnit, _sellAmount, _buyUnit, _sellAmount);
+  }
+
+  // Internal methods
+
+  function _isPolicyCreatedByMe(address _policy) private returns (bool) {
+    return dataBool[__a(_policy, "isPolicy")];
   }
 }

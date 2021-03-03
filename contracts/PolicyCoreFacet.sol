@@ -127,7 +127,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
   }
 
   function getInfo () public view override returns (
-    address creatorEntity_,
+    address treasury_,
     uint256 initiationDate_,
     uint256 startDate_,
     uint256 maturationDate_,
@@ -139,7 +139,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     uint256 numTranches_,
     uint256 state_
   ) {
-    creatorEntity_ = dataAddress["creatorEntity"];
+    treasury_ = dataAddress["treasury"];
     initiationDate_ = dataUint256["initiationDate"];
     startDate_ = dataUint256["startDate"];
     maturationDate_ = dataUint256["maturationDate"];

@@ -227,10 +227,8 @@ contract('Entity', accounts => {
       await acl.assignRole(entityContext, entityRep, ROLES.ENTITY_REP)
     })
 
-    it('by entity admins, managers and reps', async () => {
-      await createPolicy(entity, {}, { from: entityAdmin }).should.be.fulfilled
-      await createPolicy(entity, {}, { from: entityManager }).should.be.fulfilled
-      await createPolicy(entity, {}, { from: entityRep }).should.be.fulfilled
+    it('by anyone', async () => {
+      await createPolicy(entity, {}, { from: accounts[9] }).should.be.fulfilled
     })
 
     it('and they exist', async () => {

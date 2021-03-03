@@ -35,6 +35,7 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
       IPolicyClaimsFacet.makeClaim.selector,
       IPolicyClaimsFacet.approveClaim.selector,
       IPolicyClaimsFacet.disputeClaim.selector,
+      IPolicyClaimsFacet.acknowledgeClaim.selector,
       IPolicyClaimsFacet.declineClaim.selector,
       IPolicyClaimsFacet.payClaim.selector,
       IPolicyClaimsFacet.getClaimStats.selector,
@@ -55,11 +56,15 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
   function getClaimInfo (uint256 _claimIndex) public view override returns (
     uint256 amount_,
     uint256 tranchIndex_,
-    uint256 state_
+    uint256 state_,
+    bool disputed_,
+    bool acknowledged_
   ) {
     tranchIndex_ = dataUint256[__i(_claimIndex, "claimTranch")];
     amount_ = dataUint256[__i(_claimIndex, "claimAmount")];
     state_ = dataUint256[__i(_claimIndex, "claimState")];
+    disputed_ = dataBool[__i(_claimIndex, "claimDisputed")];
+    acknowledged_ = dataBool[__i(_claimIndex, "claimAcknowledged")];
   }
 
   function makeClaim(uint256 _tranchIndex, uint256 _amount) public override 
@@ -97,8 +102,21 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
   {
     require(0 < dataUint256[__i(_claimIndex, "claimAmount")], 'invalid claim');
     uint256 state = dataUint256[__i(_claimIndex, "claimState")];
-    require(state == CLAIM_STATE_CREATED, "in wrong state");
-    _setClaimState(_claimIndex, CLAIM_STATE_DISPUTED);
+    require(state == CLAIM_STATE_CREATED, 'in wrong state');
+    dataBool[__i(_claimIndex, "claimDisputed")] = true;
+    emit ClaimDisputed(_claimIndex, msg.sender);
+  }
+
+  function acknowledgeClaim(uint256 _claimIndex) 
+    public 
+    override
+    assertBelongsToEntityWithRole(msg.sender, ROLE_UNDERWRITER)
+  {
+    require(0 < dataUint256[__i(_claimIndex, "claimAmount")], 'invalid claim');
+    uint256 state = dataUint256[__i(_claimIndex, "claimState")];
+    require(state == CLAIM_STATE_CREATED, 'in wrong state');
+    dataBool[__i(_claimIndex, "claimAcknowledged")] = true;
+    emit ClaimAcknowledged(_claimIndex, msg.sender);
   }
 
   function approveClaim(uint256 _claimIndex)
@@ -109,7 +127,7 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
     // check claim
     require(0 < dataUint256[__i(_claimIndex, "claimAmount")], 'invalid claim');
     uint256 state = dataUint256[__i(_claimIndex, "claimState")];
-    require(state == CLAIM_STATE_CREATED || state == CLAIM_STATE_DISPUTED, 'in wrong state');
+    require(state == CLAIM_STATE_CREATED, 'in wrong state');
 
     // remove from tranch balance
     uint256 claimAmount = dataUint256[__i(_claimIndex, "claimAmount")];
@@ -131,7 +149,7 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
     // check claim
     require(0 < dataUint256[__i(_claimIndex, "claimAmount")], 'invalid claim');
     uint256 state = dataUint256[__i(_claimIndex, "claimState")];
-    require(state == CLAIM_STATE_CREATED || state == CLAIM_STATE_DISPUTED, 'in wrong state');
+    require(state == CLAIM_STATE_CREATED, 'in wrong state');
 
     // update pending count
     dataUint256["claimsPendingCount"] -= 1;
@@ -171,7 +189,7 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
 
     for (uint256 i = 0; i < dataUint256["claimsCount"]; i += 1) {
       uint256 state = dataUint256[__i(i, "claimState")];
-      bool isPending = (state == CLAIM_STATE_CREATED || state == CLAIM_STATE_DISPUTED);
+      bool isPending = (state == CLAIM_STATE_CREATED);
       uint256 tranchNum = dataUint256[__i(i, "claimTranch")];
 
       if (tranchNum == _index && isPending) {

@@ -173,7 +173,6 @@ contract('Policy Tranches: Claims', accounts => {
 
     const claimsFacet = await IPolicyClaimsFacet.at(policyClaimsAddress)
     CLAIM_STATE_CREATED = await claimsFacet.CLAIM_STATE_CREATED()
-    CLAIM_STATE_DISPUTED = await claimsFacet.CLAIM_STATE_DISPUTED()
     CLAIM_STATE_APPROVED = await claimsFacet.CLAIM_STATE_APPROVED()
     CLAIM_STATE_DECLINED = await claimsFacet.CLAIM_STATE_DECLINED()
     CLAIM_STATE_PAID = await claimsFacet.CLAIM_STATE_PAID()
@@ -424,18 +423,24 @@ contract('Policy Tranches: Claims', accounts => {
             amount_: 4,
             tranchIndex_: 0,
             state_: CLAIM_STATE_CREATED,
+            disputed_: false,
+            acknowledged: false,
           })
 
           await policy.getClaimInfo(1).should.eventually.matchObj({
             amount_: 1,
             tranchIndex_: 1,
             state_: CLAIM_STATE_CREATED,
+            disputed_: false,
+            acknowledged: false,
           })
 
           await policy.getClaimInfo(2).should.eventually.matchObj({
             amount_: 5,
             tranchIndex_: 1,
             state_: CLAIM_STATE_CREATED,
+            disputed_: false,
+            acknowledged: false,
           })
         })
 
@@ -602,9 +607,14 @@ contract('Policy Tranches: Claims', accounts => {
             await policy.disputeClaim(5, { from: underwriterRep }).should.be.rejectedWith('invalid claim')
           })
 
-          it('cannot do twice', async () => {
+          it('can do twice', async () => {
             await policy.disputeClaim(0, { from: underwriterRep }).should.be.fulfilled
-            await policy.disputeClaim(0, { from: underwriterRep }).should.be.rejectedWith('in wrong state')
+            await policy.disputeClaim(0, { from: underwriterRep }).should.be.fulfilled
+          })
+
+          it('can do if already acknowledged', async () => {
+            await policy.acknowledgeClaim(0, { from: underwriterRep }).should.be.fulfilled
+            await policy.disputeClaim(0, { from: underwriterRep }).should.be.fulfilled
           })
 
           it('cannot do if already approved', async () => {
@@ -626,15 +636,82 @@ contract('Policy Tranches: Claims', accounts => {
             })
 
             await policy.getClaimInfo(0).should.eventually.matchObj({
-              state_: CLAIM_STATE_DISPUTED,
+              state_: CLAIM_STATE_CREATED,
+              disputed_: true,
+              acknowledged: false,
             })
 
             await policy.getClaimInfo(1).should.eventually.matchObj({
               state_: CLAIM_STATE_CREATED,
+              disputed_: false,
+              acknowledged: false,
             })
 
             await policy.getClaimInfo(2).should.eventually.matchObj({
               state_: CLAIM_STATE_CREATED,
+              disputed_: false,
+              acknowledged: false,
+            })
+          })
+        })
+
+        describe('claims can be acknowledged', () => {
+          beforeEach(async () => {
+            await policy.makeClaim(0, 4, { from: insuredPartyRep })
+          })
+
+          it('but not if not underwriter', async () => {
+            await policy.acknowledgeClaim(0).should.be.rejectedWith('not a rep of associated entity')
+          })
+
+          it('but not if claim is invalid', async () => {
+            await policy.acknowledgeClaim(5, { from: underwriterRep }).should.be.rejectedWith('invalid claim')
+          })
+
+          it('can do twice', async () => {
+            await policy.acknowledgeClaim(0, { from: underwriterRep }).should.be.fulfilled
+            await policy.acknowledgeClaim(0, { from: underwriterRep }).should.be.fulfilled
+          })
+
+          it('cannot do if already approved', async () => {
+            await policy.approveClaim(0, { from: claimsAdminRep }).should.be.fulfilled
+            await policy.acknowledgeClaim(0, { from: underwriterRep }).should.be.rejectedWith('in wrong state')
+          })
+
+          it('can do if already disputed', async () => {
+            await policy.disputeClaim(0, { from: underwriterRep }).should.be.fulfilled
+            await policy.acknowledgeClaim(0, { from: underwriterRep }).should.be.fulfilled
+          })
+
+          it('cannot do if already declined', async () => {
+            await policy.declineClaim(0, { from: claimsAdminRep }).should.be.fulfilled
+            await policy.acknowledgeClaim(0, { from: underwriterRep }).should.be.rejectedWith('in wrong state')
+          })
+
+          it('updates internal stats', async () => {
+            await policy.acknowledgeClaim(0, { from: underwriterRep }).should.be.fulfilled
+
+            await policy.getClaimStats().should.eventually.matchObj({
+              numClaims_: 1,
+              numPendingClaims_: 1,
+            })
+
+            await policy.getClaimInfo(0).should.eventually.matchObj({
+              state_: CLAIM_STATE_CREATED,
+              disputed_: false,
+              acknowledged: true,
+            })
+
+            await policy.getClaimInfo(1).should.eventually.matchObj({
+              state_: CLAIM_STATE_CREATED,
+              disputed_: false,
+              acknowledged: false,
+            })
+
+            await policy.getClaimInfo(2).should.eventually.matchObj({
+              state_: CLAIM_STATE_CREATED,
+              disputed_: false,
+              acknowledged: false,
             })
           })
         })

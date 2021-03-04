@@ -6,6 +6,7 @@ import { ensureEntityImplementationsAreDeployed } from '../migrations/modules/en
 import { ROLES } from '../utils/constants'
 
 const Entity = artifacts.require("./Entity")
+const IEntity = artifacts.require("./base/IEntity")
 const EntityDeployer = artifacts.require("./EntityDeployer")
 
 contract('EntityDeployer', accounts => {

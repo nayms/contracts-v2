@@ -10,3 +10,5 @@ contract Entity is Controller, DiamondProxy {
     acl().assignRole(aclContext(), _entityAdmin, ROLE_ENTITY_ADMIN);
   }
 }
+
+

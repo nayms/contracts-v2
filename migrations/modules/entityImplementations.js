@@ -1,6 +1,6 @@
 const { createLog } = require('../utils/log')
 const { deploy, defaultGetTxParams, execCall } = require('../utils')
-const { SETTINGS } = require('../../utils/constants')
+const { SETTINGS, BYTES32_ZERO } = require('../../utils/constants')
 
 export const ensureEntityImplementationsAreDeployed = async (cfg) => {
   const { deployer, artifacts, log: baseLog, accounts, settings, entityDeployer, getTxParams = defaultGetTxParams } = cfg
@@ -25,7 +25,7 @@ export const ensureEntityImplementationsAreDeployed = async (cfg) => {
     await execCall({
       task,
       contract: settings,
-      method: 'setAddresses',
+    method: 'setAddresses',
       args: [settings.address, SETTINGS.ENTITY_IMPL, addresses],
       cfg,
     })

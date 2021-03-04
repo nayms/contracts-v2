@@ -5,6 +5,7 @@ import {
   extractEventArgs,
   hdWallet,
   ADDRESS_ZERO,
+  BYTES32_ZERO,
   createPolicy,
   createTranch,
 } from './utils'
@@ -229,6 +230,18 @@ contract('Entity', accounts => {
 
     it('by anyone', async () => {
       await createPolicy(entity, {}, { from: accounts[9] }).should.be.fulfilled
+    })
+
+    it('and underwriter acl context must be same as creating entity', async () => {
+      await createPolicy(entity, {
+        underwriter: entity.address,
+      }, { from: accounts[9] }).should.be.fulfilled
+
+      const entity2 = await Entity.new(settings.address, entityAdmin)
+
+      await createPolicy(entity, {
+        underwriter: entity2.address,
+      }, { from: accounts[9] }).should.be.rejectedWith('underwriter ACL context must match')
     })
 
     it('and they exist', async () => {

@@ -2,6 +2,7 @@ pragma solidity >=0.6.7;
 
 import "./base/IACL.sol";
 import "./base/IACLConstants.sol";
+import "./base/IAccessControl.sol";
 import "./base/SafeMath.sol";
 
 /**

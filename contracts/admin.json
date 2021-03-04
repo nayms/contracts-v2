@@ -612,6 +612,11 @@
           "name": "entityAdmin",
           "title": "Entity admin address",
           "type": "address"
+        },
+        {
+          "name": "entityContext",
+          "title": "Entity context (optional)",
+          "type": "bytes32"
         }
       ],
       "execs": [
@@ -620,7 +625,8 @@
           "contract": "EntityDeployer",
           "method": "deploy",
           "args": {
-            "_entityAdmin": "@input[entityAdmin]"
+            "_entityAdmin": "@input[entityAdmin]",
+            "_entityContext": "@input[entityContext]"
           },
           "address": "@input[contractAddress]"
         }

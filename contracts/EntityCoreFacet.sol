@@ -70,11 +70,10 @@ import "./Policy.sol";
     stakeholders[4] = _stakeholders[2];
     stakeholders[5] = _stakeholders[3];
 
-    // check that I have same acl context as underwriter entity
-    // require(
-    //   IAccessControl(stakeholders[2]).aclContext() == aclContext(), 
-    //   'underwriter ACL context must match'
-    // );
+    require(
+      IAccessControl(stakeholders[2]).aclContext() == aclContext(), 
+      'underwriter ACL context must match'
+    );
 
     Policy f = new Policy(
       address(settings()),

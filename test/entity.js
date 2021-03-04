@@ -58,7 +58,7 @@ contract('Entity', accounts => {
 
     entityAdmin = accounts[9]
 
-    entityProxy = await Entity.new(settings.address, entityAdmin)
+    entityProxy = await Entity.new(settings.address, entityAdmin, BYTES32_ZERO)
     // now let's speak to Entity contract using EntityImpl ABI
     entity = await IEntity.at(entityProxy.address)
     entityContext = await entityProxy.aclContext()
@@ -237,11 +237,17 @@ contract('Entity', accounts => {
         underwriter: entity.address,
       }, { from: accounts[9] }).should.be.fulfilled
 
-      const entity2 = await Entity.new(settings.address, entityAdmin)
+      const entity2 = await Entity.new(settings.address, entityAdmin, BYTES32_ZERO)
 
       await createPolicy(entity, {
         underwriter: entity2.address,
       }, { from: accounts[9] }).should.be.rejectedWith('underwriter ACL context must match')
+
+      const entity3 = await Entity.new(settings.address, entityAdmin, entityContext)
+
+      await createPolicy(entity, {
+        underwriter: entity3.address,
+      }, { from: accounts[9] }).should.be.fulfilled
     })
 
     it('and they exist', async () => {

@@ -36,7 +36,7 @@ export const ensureEntityImplementationsAreDeployed = async (cfg) => {
     const numEntities = await entityDeployer.getNumEntities()
     if (0 == numEntities) {
       await log.task(`Deploy Nayms entity`, async task => {
-        await entityDeployer.deploy(entityDeployer.address, getTxParams())
+        await entityDeployer.deploy(entityDeployer.address, BYTES32_ZERO, getTxParams())
 
         naymsEntityAddress = await entityDeployer.getEntity(0)
 

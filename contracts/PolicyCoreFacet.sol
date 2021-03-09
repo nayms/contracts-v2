@@ -102,7 +102,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     TranchToken t = new TranchToken(address(this), i);
 
     // initial holder
-    address holder = address(this);
+    address holder = dataAddress["treasury"];
     string memory initialHolderKey = __i(i, "initialHolder");
     dataAddress[initialHolderKey] = holder;
 

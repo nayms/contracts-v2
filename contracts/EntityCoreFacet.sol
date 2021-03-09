@@ -105,9 +105,16 @@ import "./Policy.sol";
   function deposit(address _unit, uint256 _amount) public override {
     IERC20 tok = IERC20(_unit);
     tok.transferFrom(msg.sender, address(this), _amount);
+    dataUint256[__a(_unit, "balance")] += _amount;
   }
 
-  function withdraw(address _unit, uint256 _amount) public override assertCanWithdraw {
+  function withdraw(address _unit, uint256 _amount) 
+    public 
+    override 
+    assertCanWithdraw 
+  {
+    _assertHasEnoughBalance(_unit, _amount);
+
     IERC20 tok = IERC20(_unit);
     tok.transfer(msg.sender, _amount);
   }
@@ -118,7 +125,6 @@ import "./Policy.sol";
     assertCanPayTranchPremiums(_policy)
   {
     address policyUnitAddress;
-    uint256 nextPremiumAmount;
 
     IPolicy p = IPolicy(_policy);
 
@@ -127,18 +133,19 @@ import "./Policy.sol";
       uint256 i1;
       uint256 i2;
       uint256 i3;
-      uint256 i4;
       address a1;
 
       // policy's unit
       (a1, i1, i2, i3, policyUnitAddress, , , , , ,) = p.getInfo();
-      // next premium amount
-      (a1, i1, i2, i3, i4, nextPremiumAmount, , , , , ,) = p.getTranchInfo(_tranchIndex);
     }
     
+    // check balance
+    _assertHasEnoughBalance(policyUnitAddress, _amount);
+
     // approve transfer
     IERC20 tok = IERC20(policyUnitAddress);
-    tok.approve(_policy, nextPremiumAmount);
+    tok.approve(_policy, _amount);
+
     // do it
     p.payTranchPremium(_tranchIndex, _amount);
   }
@@ -148,6 +155,8 @@ import "./Policy.sol";
     override
     assertCanTradeTranchTokens
   {
+    // check balance
+    _assertHasEnoughBalance(_payUnit, _payAmount);
     // get mkt
     address mktAddress = settings().getRootAddress(SETTING_MARKET);
     IMarket mkt = IMarket(mktAddress);
@@ -163,6 +172,8 @@ import "./Policy.sol";
     override
     assertCanTradeTranchTokens
   {
+    // check balance
+    _assertHasEnoughBalance(_sellUnit, _sellAmount);
     // get mkt
     address mktAddress = settings().getRootAddress(SETTING_MARKET);
     IMarket mkt = IMarket(mktAddress);
@@ -174,6 +185,10 @@ import "./Policy.sol";
   }
 
   // Internal methods
+
+  function _assertHasEnoughBalance (address _unit, uint256 _amount) private {
+    require(dataUint256[__a(_unit, "balance")] >= _amount, 'exceeds entity balance');
+  }
 
   function _isPolicyCreatedByMe(address _policy) private returns (bool) {
     return dataBool[__a(_policy, "isPolicy")];

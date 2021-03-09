@@ -66,8 +66,10 @@ interface IEntityCoreFacet {
    * @param _payAmount Amount to sell.
    * @param _buyUnit Asset to buy.
    * @param _buyAmount Amount to buy.
+   *
+   * @return Market offer id.
    */
-  function trade(address _payUnit, uint256 _payAmount, address _buyUnit, uint256 _buyAmount) external;
+  function trade(address _payUnit, uint256 _payAmount, address _buyUnit, uint256 _buyAmount) external returns (uint256);
   /**
    * @dev Sell given asset at the best possible price.
    *
@@ -76,8 +78,10 @@ interface IEntityCoreFacet {
    * @param _sellUnit Asset to sell.
    * @param _sellAmount Amount to sell.
    * @param _buyUnit Asset to buy.
+   *
+   * @return Market offer id.
    */
-  function sellAtBestPrice(address _sellUnit, uint256 _sellAmount, address _buyUnit) external;
+  function sellAtBestPrice(address _sellUnit, uint256 _sellAmount, address _buyUnit) external returns (uint256);
 
   /**
    * @dev Emitted when a new policy has been created.

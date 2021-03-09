@@ -2,6 +2,7 @@ pragma solidity >=0.6.7;
 
 import "./base/Controller.sol";
 import "./base/EternalStorage.sol";
+import "./base/EntityFacetBase.sol";
 import "./base/IEntityCoreFacet.sol";
 import "./base/IDiamondFacet.sol";
 import "./base/IERC20.sol";
@@ -12,7 +13,7 @@ import "./Policy.sol";
 /**
  * @dev Business-logic for Entity
  */
- contract EntityCoreFacet is EternalStorage, Controller, IEntityCoreFacet, IDiamondFacet {
+ contract EntityCoreFacet is EternalStorage, Controller, EntityFacetBase, IEntityCoreFacet, IDiamondFacet {
   modifier assertCanWithdraw () {
     require(inRoleGroup(msg.sender, ROLEGROUP_ENTITY_ADMINS), 'must be entity admin');
     _;
@@ -154,43 +155,29 @@ import "./Policy.sol";
     public
     override
     assertCanTradeTranchTokens
+    returns (uint256)
   {
     // check balance
     _assertHasEnoughBalance(_payUnit, _payAmount);
-    // get mkt
-    address mktAddress = settings().getRootAddress(SETTING_MARKET);
-    IMarket mkt = IMarket(mktAddress);
-    // approve mkt to use my tokens
-    IERC20 tok = IERC20(_payUnit);
-    tok.approve(mktAddress, _payAmount);
-    // make the offer
-    mkt.offer(_payAmount, _payUnit, _buyAmount, _buyUnit, 0, false);
+    // do it
+    return _tradeOnMarket(_payUnit, _payAmount, _buyUnit, _buyAmount);
   }
 
   function sellAtBestPrice(address _sellUnit, uint256 _sellAmount, address _buyUnit)
     public
     override
     assertCanTradeTranchTokens
+    returns (uint256)
   {
     // check balance
     _assertHasEnoughBalance(_sellUnit, _sellAmount);
-    // get mkt
-    address mktAddress = settings().getRootAddress(SETTING_MARKET);
-    IMarket mkt = IMarket(mktAddress);
-    // approve mkt to use my tokens
-    IERC20 tok = IERC20(_sellUnit);
-    tok.approve(mktAddress, _sellAmount);
-    // make the offer
-    mkt.sellAllAmount(_sellUnit, _sellAmount, _buyUnit, _sellAmount);
+    // do it!
+    return _sellAtBestPriceOnMarket(_sellUnit, _sellAmount, _buyUnit);
   }
 
   // Internal methods
 
   function _assertHasEnoughBalance (address _unit, uint256 _amount) private {
     require(dataUint256[__a(_unit, "balance")] >= _amount, 'exceeds entity balance');
-  }
-
-  function _isPolicyCreatedByMe(address _policy) private returns (bool) {
-    return dataBool[__a(_policy, "isPolicy")];
   }
 }

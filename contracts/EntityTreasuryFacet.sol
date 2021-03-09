@@ -21,21 +21,19 @@ import "./base/IDiamondFacet.sol";
 
   function getSelectors () public pure override returns (bytes memory) {
     return abi.encodePacked(
-      IPolicyTreasury.sellTranchTokens.selector
+      IPolicyTreasury.tradeTokens.selector
     );
   }
 
 
   // IPolicyTreasury
 
-  function sellTranchTokens (address _token, uint256 _tokenAmount, address _priceUnit, uint256 _priceAmount) 
+  function tradeTokens (address _token, uint256 _tokenAmount, address _priceUnit, uint256 _priceAmount) 
     public 
     override
     assertIsPolicyCreatedByMe(msg.sender)
     returns (uint256)
   {
-    // TODO: rename to do initial sale
-    // TODO: auto-fetch tranch token amount and check that I own all of it
     return _tradeOnMarket(_token, _tokenAmount, _priceUnit, _priceAmount);
   }
 }

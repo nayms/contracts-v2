@@ -2,7 +2,8 @@ pragma solidity >=0.6.7;
 
 import "./EternalStorage.sol";
 import "./Controller.sol";
-import "./base/IMarket.sol";
+import "./IMarket.sol";
+import "./IERC20.sol";
 
 /**
  * @dev Entity facet base class
@@ -17,7 +18,7 @@ abstract contract EntityFacetBase is EternalStorage, Controller {
     return dataBool[__a(_policy, "isPolicy")];
   }
 
-  function _tradeOnMarket(address _payUnit, uint256 _payAmount, address _buyUnit, uint256 _buyAmount) returns (uint256) {
+  function _tradeOnMarket(address _payUnit, uint256 _payAmount, address _buyUnit, uint256 _buyAmount) internal returns (uint256) {
     // get mkt
     address mktAddress = settings().getRootAddress(SETTING_MARKET);
     IMarket mkt = IMarket(mktAddress);
@@ -28,7 +29,7 @@ abstract contract EntityFacetBase is EternalStorage, Controller {
     return mkt.offer(_payAmount, _payUnit, _buyAmount, _buyUnit, 0, false);
   }  
 
-  function _sellAtBestPriceOnMarket(address _sellUnit, uint256 _sellAmount, address _buyUnit) returns (uint256) {
+  function _sellAtBestPriceOnMarket(address _sellUnit, uint256 _sellAmount, address _buyUnit) internal returns (uint256) {
     // get mkt
     address mktAddress = settings().getRootAddress(SETTING_MARKET);
     IMarket mkt = IMarket(mktAddress);

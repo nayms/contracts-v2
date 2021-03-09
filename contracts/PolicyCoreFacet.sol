@@ -6,6 +6,7 @@ import "./base/EternalStorage.sol";
 import './base/IERC20.sol';
 import "./base/IDiamondFacet.sol";
 import "./base/AccessControl.sol";
+import "./base/IPolicyTreasury.sol";
 import "./base/IPolicyCoreFacet.sol";
 import "./base/IPolicyTranchTokensFacet.sol";
 import "./base/PolicyFacetBase.sol";
@@ -237,8 +238,6 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
 
   function _beginPolicySaleIfNotYetStarted() private {
     if (dataUint256["state"] == POLICY_STATE_APPROVED) {
-      IMarket market = IMarket(settings().getRootAddress(SETTING_MARKET));
-
       bool allReady = true;
       // check every tranch
       for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
@@ -261,8 +260,8 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
         // set tranch state
         _setTranchState(i, TRANCH_STATE_SELLING);
         // offer tokens in initial sale
-        dataUint256[__i(i, "initialSaleOfferId")] = market.offer(
-          totalSupply, tranchAddress, totalPrice, dataAddress["unit"], 0, false
+        dataUint256[__i(i, "initialSaleOfferId")] = IPolicyTreasury(dataAddress["treasury"]).tradeTokens(
+          tranchAddress, totalSupply, dataAddress["unit"], totalPrice
         );
       }
 

@@ -11,7 +11,7 @@ import {
   preSetupPolicy,
   EvmSnapshot,
 } from './utils'
-import { events } from '../'
+import { events } from '..'
 
 import { ROLES, ROLEGROUPS, SETTINGS } from '../utils/constants'
 
@@ -41,7 +41,7 @@ const POLICY_ATTRS_1 = {
   naymsCommissionBP: 3
 }
 
-contract('Policy Tranches: Commissions', accounts => {
+contract('Policy: Commissions', accounts => {
   const evmSnapshot = new EvmSnapshot()
 
   let acl

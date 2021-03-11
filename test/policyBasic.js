@@ -152,6 +152,7 @@ contract('Policy: Basic', accounts => {
       const attrs = await setupPolicy(POLICY_ATTRS_2)
 
       await policy.getInfo().should.eventually.matchObj({
+        treasury_: entity.address,
         initiationDate_: attrs.initiationDate,
         startDate_: attrs.startDate,
         maturationDate_: attrs.maturationDate,

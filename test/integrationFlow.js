@@ -9,7 +9,7 @@ import {
   EvmSnapshot,
 } from './utils'
 
-import { events } from '../'
+import { events } from '..'
 import { ensureEtherTokenIsDeployed } from '../migrations/modules/etherToken'
 import { ROLES, ROLEGROUPS, SETTINGS } from '../utils/constants'
 import { ensureAclIsDeployed } from '../migrations/modules/acl'
@@ -26,7 +26,7 @@ const Policy = artifacts.require("./Policy")
 const IPolicy = artifacts.require("./IPolicy")
 const IERC20 = artifacts.require("./base/IERC20")
 
-contract('Policy: Flow', accounts => {
+contract('Integration: Flow', accounts => {
   const evmSnapshot = new EvmSnapshot()
 
   const claimsAdminCommissionBP = 100

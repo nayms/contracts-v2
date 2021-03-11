@@ -4,6 +4,7 @@ import "./base/Controller.sol";
 import "./base/EternalStorage.sol";
 import "./base/EntityFacetBase.sol";
 import "./base/IPolicyTreasury.sol";
+import "./base/IPolicyCoreFacet.sol";
 import "./base/IERC20.sol";
 import "./base/IDiamondFacet.sol";
 
@@ -21,19 +22,48 @@ import "./base/IDiamondFacet.sol";
 
   function getSelectors () public pure override returns (bytes memory) {
     return abi.encodePacked(
-      IPolicyTreasury.tradeTokens.selector
+      IPolicyTreasury.createOrder.selector,
+      IPolicyTreasury.cancelOrder.selector
     );
   }
 
 
   // IPolicyTreasury
 
-  function tradeTokens (address _token, uint256 _tokenAmount, address _priceUnit, uint256 _priceAmount) 
+  function createOrder (address _sellUnit, uint256 _sellAmount, address _buyUnit, uint256 _buyAmount)
     public 
     override
-    assertIsPolicyCreatedByMe(msg.sender)
+    assertIsMyPolicy(msg.sender)
     returns (uint256)
   {
-    return _tradeOnMarket(_token, _tokenAmount, _priceUnit, _priceAmount);
+    return _tradeOnMarket(_sellUnit, _sellAmount, _buyUnit, _buyAmount);
+  }
+
+  function cancelOrder (uint256 _orderId) 
+    public 
+    override 
+    assertIsMyPolicy(msg.sender)
+  {
+    IMarket mkt = _getMarket();
+    if (mkt.isActive(_orderId)) {
+      mkt.cancel(_orderId);
+    }
+  }
+
+  function payClaim (address _recipient, uint256 _amount)
+    public
+    override
+    assertIsMyPolicy(msg.sender)
+  {
+    address policyUnitAddress;
+    {
+      uint256 i1;
+      uint256 i2;
+      uint256 i3;
+      address a1;
+      (a1, i1, i2, i3, policyUnitAddress, , , , , ,) = IPolicyCoreFacet(msg.sender).getInfo();
+    }
+
+    IERC20(policyUnitAddress).transfer(_recipient, _amount);
   }
 }

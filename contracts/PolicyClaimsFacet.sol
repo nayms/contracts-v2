@@ -169,8 +169,10 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
     require(state == CLAIM_STATE_APPROVED, 'not approved');
 
     // transfer
-    IERC20 tkn = IERC20(dataAddress["unit"]);
-    tkn.transfer(dataAddress[__i(_claimIndex, "claimEntity")], dataUint256[__i(_claimIndex, "claimAmount")]);
+    _getTreasury().payClaim(
+      dataAddress[__i(_claimIndex, "claimEntity")], 
+      dataUint256[__i(_claimIndex, "claimAmount")]
+    );
 
     _setClaimState(_claimIndex, CLAIM_STATE_PAID);
   }

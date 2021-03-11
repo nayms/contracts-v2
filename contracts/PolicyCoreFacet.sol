@@ -10,7 +10,6 @@ import "./base/IPolicyTreasury.sol";
 import "./base/IPolicyCoreFacet.sol";
 import "./base/IPolicyTranchTokensFacet.sol";
 import "./base/PolicyFacetBase.sol";
-import "./base/IMarket.sol";
 import "./base/SafeMath.sol";
 import "./TranchToken.sol";
 
@@ -220,13 +219,8 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
 
 
   function _cancelTranchMarketOffer(uint _index) private {
-    IMarket market = IMarket(settings().getRootAddress(SETTING_MARKET));
-
     uint256 initialSaleOfferId = dataUint256[__i(_index, "initialSaleOfferId")];
-
-    if (market.isActive(initialSaleOfferId)) {
-      market.cancel(initialSaleOfferId);
-    }
+    _getTreasury().cancelOrder(initialSaleOfferId);
   }
 
   function _cancelPolicyIfNotFullyApproved() private {
@@ -260,7 +254,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
         // set tranch state
         _setTranchState(i, TRANCH_STATE_SELLING);
         // offer tokens in initial sale
-        dataUint256[__i(i, "initialSaleOfferId")] = IPolicyTreasury(dataAddress["treasury"]).tradeTokens(
+        dataUint256[__i(i, "initialSaleOfferId")] = _getTreasury().createOrder(
           tranchAddress, totalSupply, dataAddress["unit"], totalPrice
         );
       }
@@ -303,10 +297,6 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
 
         dataBool["buybackInitiated"] = true;
 
-        address marketAddress = settings().getRootAddress(SETTING_MARKET);
-
-        IMarket market = IMarket(marketAddress);
-
         // buy back all tranch tokens
         for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
           if (dataUint256[__i(i, "state")] == TRANCH_STATE_ACTIVE) {
@@ -316,17 +306,12 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
           address unitAddress = dataAddress["unit"];
           uint256 tranchBalance = dataUint256[__i(i, "balance")];
 
-          IERC20 tkn = IERC20(unitAddress);
-          tkn.approve(marketAddress, tranchBalance);
-
           // buy back all sold tokens
-          dataUint256[__i(i, "finalBuybackOfferId")] = market.offer(
+          dataUint256[__i(i, "finalBuybackOfferId")] = _getTreasury().createOrder(
+            unitAddress,
             tranchBalance,
-            dataAddress["unit"],
-            dataUint256[__i(i, "sharesSold")],
             dataAddress[__i(i, "address")],
-            0,
-            false
+            dataUint256[__i(i, "sharesSold")]
           );
         }
       }

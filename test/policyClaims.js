@@ -12,7 +12,7 @@ import {
   EvmSnapshot,
   createEntity,
 } from './utils'
-import { events } from '../'
+import { events } from '..'
 
 import { ROLES, ROLEGROUPS, SETTINGS } from '../utils/constants'
 
@@ -67,7 +67,7 @@ const POLICY_ATTRS_4 = Object.assign({}, POLICY_ATTRS_1, {
   premiumIntervalSeconds: 1000,
 })
 
-contract('Policy Tranches: Claims', accounts => {
+contract('Policy: Claims', accounts => {
   const evmSnapshot = new EvmSnapshot()
   let evmClock
 

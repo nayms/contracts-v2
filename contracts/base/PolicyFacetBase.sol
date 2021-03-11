@@ -2,6 +2,7 @@ pragma solidity >=0.6.7;
 
 import "./EternalStorage.sol";
 import "./IPolicyStates.sol";
+import "./IPolicyTreasury.sol";
 import "./AccessControl.sol";
 
 /**
@@ -34,5 +35,9 @@ abstract contract PolicyFacetBase is EternalStorage, IPolicyStates, AccessContro
       dataUint256[__i(_tranchIndex, "state")] = _newState;
       emit TranchStateUpdated(_tranchIndex, _newState, msg.sender);
     }
+  }
+
+  function _getTreasury () internal view returns (IPolicyTreasury) {
+    return IPolicyTreasury(dataAddress["treasury"]);
   }
 }

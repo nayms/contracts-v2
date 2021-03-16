@@ -24,8 +24,8 @@ contract EntityDeployer is EternalStorage, Destructible, IEntityDeployer {
   /**
    * @dev Deploy a new Entity.
    */
-  function deploy(address _entityAdmin) public override assertCanCreateEntity {
-    Entity f = new Entity(address(settings()), _entityAdmin);
+  function deploy(address _entityAdmin, bytes32 _entityContext) public override assertCanCreateEntity {
+    Entity f = new Entity(address(settings()), _entityAdmin, _entityContext);
 
     uint256 numEntities = dataUint256["numEntities"];
     dataAddress[__i(numEntities, "entity")] = address(f);

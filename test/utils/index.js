@@ -7,6 +7,10 @@ import chaiAsPromised from 'chai-as-promised'
 import { events } from '../..'
 import packageJson from '../../package.json'
 import { toBN, isBN } from './web3'
+import { ADDRESS_ZERO, BYTES32_ZERO } from '../../utils/constants'
+import { ROLES } from '../../utils/constants'
+
+export { ADDRESS_ZERO, BYTES32_ZERO }
 
 const MNEMONIC = (packageJson.scripts.devnet.match(/\'(.+)\'/))[1]
 console.log(`Mnemonic: [ ${MNEMONIC} ]`)
@@ -97,10 +101,6 @@ chai.should()
 export const hdWallet = EthHdWallet.fromMnemonic(MNEMONIC)
 hdWallet.generateAddresses(10)
 
-export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000'
-export const BYTES32_ZERO = '0x0000000000000000000000000000000000000000000000000000000000000000'
-
-
 export const getBalance = async addr => toBN(await web3.eth.getBalance(addr))
 
 // mul + div by 1000 takes care of upto 3 decimal places (since toBN() doesn't support decimals)
@@ -148,9 +148,13 @@ export const createTranch = (policy, attrs, ...callAttrs) => {
   )
 }
 
-export const createEntity = async (entityDeployer, adminAddress) => {
-  const deployEntityTx = await entityDeployer.deploy(adminAddress)
-  return extractEventArgs(deployEntityTx, events.NewEntity).entity
+export const createEntity = async ({ acl, entityDeployer, adminAddress, entityContext = BYTES32_ZERO }) => {
+  const deployEntityTx = await entityDeployer.deploy(adminAddress, entityContext)
+  const { entity: entityAddress } = extractEventArgs(deployEntityTx, events.NewEntity)
+  if (entityContext != BYTES32_ZERO) {
+    await acl.assignRole(entityContext, adminAddress, ROLES.ENTITY_ADMIN)
+  }
+  return entityAddress
 }
 
 export const createPolicy = (entity, attrs, ...callAttrs) => {
@@ -165,7 +169,7 @@ export const createPolicy = (entity, attrs, ...callAttrs) => {
     brokerCommissionBP = 0,
     claimsAdminCommissionBP = 0,
     naymsCommissionBP = 0,
-    underwriter = ADDRESS_ZERO,
+    underwriter = entity.address,
     insuredParty = ADDRESS_ZERO,
     broker = ADDRESS_ZERO,
     claimsAdmin = ADDRESS_ZERO,

@@ -11,7 +11,7 @@ import {
   createEntity,
   EvmSnapshot,
 } from './utils'
-import { events } from '../'
+import { events } from '..'
 
 import { ROLES, ROLEGROUPS, SETTINGS } from '../utils/constants'
 
@@ -37,7 +37,7 @@ const FreezeUpgradesFacet = artifacts.require("./test/FreezeUpgradesFacet")
 
 
 
-contract('Policy Tranches: Basic', accounts => {
+contract('Policy: Tranches', accounts => {
   const evmSnapshot = new EvmSnapshot()
 
   let acl
@@ -106,17 +106,17 @@ contract('Policy Tranches: Basic', accounts => {
 
     await acl.assignRole(systemContext, accounts[0], ROLES.SYSTEM_MANAGER)
 
-    const entityAddress = await createEntity(entityDeployer, entityAdminAddress)
+    const entityAddress = await createEntity({ entityDeployer, adminAddress: entityAdminAddress })
 
     entityProxy = await Entity.at(entityAddress)
     entity = await IEntity.at(entityAddress)
     entityContext = await entityProxy.aclContext()
 
     // roles
-    underwriter = await createEntity(entityDeployer, underwriterRep)
-    insuredParty = await createEntity(entityDeployer, insuredPartyRep)
-    broker = await createEntity(entityDeployer, brokerRep)
-    claimsAdmin = await createEntity(entityDeployer, claimsAdminRep)
+    underwriter = await createEntity({ entityDeployer, adminAddress: underwriterRep, entityContext, acl })
+    insuredParty = await createEntity({ entityDeployer, adminAddress: insuredPartyRep })
+    broker = await createEntity({ entityDeployer, adminAddress: brokerRep })
+    claimsAdmin = await createEntity({ entityDeployer, adminAddress: claimsAdminRep })
 
     POLICY_ATTRS_1 = {
       initiationDateDiff: 1000,
@@ -228,7 +228,7 @@ contract('Policy Tranches: Basic', accounts => {
         })
       })
 
-      it('can be created and has initial supply allocated to policy itself', async () => {
+      it('can be created and has initial supply allocated to treasury', async () => {
         await setupPolicy(POLICY_ATTRS_1)
 
         const result = await createTranch(policy, {
@@ -244,7 +244,7 @@ contract('Policy Tranches: Basic', accounts => {
         expect(addr.length).to.eq(42)
 
         expect(log.args.token).to.eq(addr)
-        expect(log.args.initialBalanceHolder).to.eq(policy.address)
+        expect(log.args.initialBalanceHolder).to.eq(entity.address)
         expect(log.args.index).to.eq('0')
 
         await policy.getInfo().should.eventually.matchObj({ numTranches: 1 })
@@ -345,13 +345,13 @@ contract('Policy Tranches: Basic', accounts => {
         expect(done).to.eq(2)
       })
 
-      it('which have all supply initially allocated to the policy', async () => {
+      it('which have all supply initially allocated to the treasury', async () => {
         let done = 0
 
         await Promise.all(_.range(0, 2).map(async i => {
           const tkn = await IERC20.at((await policy.getTranchInfo(i)).token_)
 
-          await tkn.balanceOf(policy.address).should.eventually.eq(await tkn.totalSupply())
+          await tkn.balanceOf(entity.address).should.eventually.eq(await tkn.totalSupply())
 
           done++
         }))

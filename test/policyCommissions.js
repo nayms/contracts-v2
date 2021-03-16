@@ -11,7 +11,7 @@ import {
   preSetupPolicy,
   EvmSnapshot,
 } from './utils'
-import { events } from '../'
+import { events } from '..'
 
 import { ROLES, ROLEGROUPS, SETTINGS } from '../utils/constants'
 
@@ -41,7 +41,7 @@ const POLICY_ATTRS_1 = {
   naymsCommissionBP: 3
 }
 
-contract('Policy Tranches: Commissions', accounts => {
+contract('Policy: Commissions', accounts => {
   const evmSnapshot = new EvmSnapshot()
 
   let acl
@@ -105,7 +105,7 @@ contract('Policy Tranches: Commissions', accounts => {
 
     await acl.assignRole(systemContext, accounts[0], ROLES.SYSTEM_MANAGER)
 
-    const entityAddress = await createEntity(entityDeployer, entityAdminAddress)
+    const entityAddress = await createEntity({ entityDeployer, adminAddress: entityAdminAddress })
 
     entityProxy = await Entity.at(entityAddress)
     entity = await IEntity.at(entityAddress)
@@ -117,10 +117,10 @@ contract('Policy Tranches: Commissions', accounts => {
     ;([ policyCoreAddress ] = await ensurePolicyImplementationsAreDeployed({ artifacts, settings }))
 
     // roles
-    underwriter = await createEntity(entityDeployer, underwriterRep)
-    insuredParty = await createEntity(entityDeployer, insuredPartyRep)
-    broker = await createEntity(entityDeployer, brokerRep)
-    claimsAdmin = await createEntity(entityDeployer, claimsAdminRep)
+    underwriter = await createEntity({ entityDeployer, adminAddress: underwriterRep, entityContext, acl })
+    insuredParty = await createEntity({ entityDeployer, adminAddress: insuredPartyRep })
+    broker = await createEntity({ entityDeployer, adminAddress: brokerRep })
+    claimsAdmin = await createEntity({ entityDeployer, adminAddress: claimsAdminRep })
     Object.assign(POLICY_ATTRS_1, { underwriter, insuredParty, broker, claimsAdmin })
 
     const policyStates = await IPolicyStates.at(policyCoreAddress)
@@ -185,7 +185,7 @@ contract('Policy Tranches: Commissions', accounts => {
       await policy.payTranchPremium(0, 2000)
 
       await policy.getCommissionBalances().should.eventually.matchObj({
-        underwriterCommissionBalance_: 2, /* 0.1% of 2000 */
+        claimsAdminCommissionBalance_: 2, /* 0.1% of 2000 */
         brokerCommissionBalance_: 4, /* 0.2% of 2000 */
         naymsCommissionBalance_: 6, /* 0.3% of 2000 */
       })
@@ -197,7 +197,7 @@ contract('Policy Tranches: Commissions', accounts => {
       await policy.payTranchPremium(0, 3000)
 
       await policy.getCommissionBalances().should.eventually.matchObj({
-        underwriterCommissionBalance_: 5, /* 2 + 3 (=0.1% of 3000) */
+        claimsAdminCommissionBalance_: 5, /* 2 + 3 (=0.1% of 3000) */
         brokerCommissionBalance_: 10, /* 4 + 6 (=0.2% of 3000) */
         naymsCommissionBalance_: 15, /* 6 + 9 (=0.3% of 3000) */
       })
@@ -208,13 +208,17 @@ contract('Policy Tranches: Commissions', accounts => {
       await policy.payTranchPremium(0, 4000)
 
       await policy.getCommissionBalances().should.eventually.matchObj({
-        underwriterCommissionBalance_: 9, /* 5 + 4 (=0.1% of 4000) */
+        claimsAdminCommissionBalance_: 9, /* 5 + 4 (=0.1% of 4000) */
         brokerCommissionBalance_: 18, /* 10 + 8 (=0.2% of 4000) */
         naymsCommissionBalance_: 27, /* 15 + 12 (=0.3% of 4000) */
       })
       await policy.getTranchInfo(0).should.eventually.matchObj({
         balance_: 8946, /* 4970 + 4000 - (4 + 8 + 12) */
       })
+
+      // check balances
+      await etherToken.balanceOf(entity.address).should.eventually.eq(8946)
+      await etherToken.balanceOf(policy.address).should.eventually.eq(9 + 18 + 27)
     })
 
     it('updates the balances correctly for batch premium payments too', async () => {
@@ -224,7 +228,7 @@ contract('Policy Tranches: Commissions', accounts => {
       await policy.payTranchPremium(0, 4000)
 
       await policy.getCommissionBalances().should.eventually.matchObj({
-        underwriterCommissionBalance_: 4, /* 0.1% of 4000 */
+        claimsAdminCommissionBalance_: 4, /* 0.1% of 4000 */
         brokerCommissionBalance_: 8, /* 0.2% of 4000 */
         naymsCommissionBalance_: 12, /* 0.3% of 4000 */
       })
@@ -237,8 +241,7 @@ contract('Policy Tranches: Commissions', accounts => {
     describe('and the commissions can be paid out', async () => {
       beforeEach(async () => {
         await etherToken.deposit({ value: 10000 })
-        await etherToken.approve(policy.address, 10000)
-        await policy.payTranchPremium(0, 5000)
+        await etherToken.approve(policy.address, 10000)        
       })
 
       it('not if policy not yet approved', async () => {
@@ -265,6 +268,8 @@ contract('Policy Tranches: Commissions', accounts => {
         })
 
         it('and funds get transferred', async () => {
+          await policy.payTranchPremium(0, 5000)
+
           const preBalance1 = (await etherToken.balanceOf(claimsAdmin)).toNumber()
           const preBalance2 = (await etherToken.balanceOf(broker)).toNumber()
 
@@ -285,7 +290,7 @@ contract('Policy Tranches: Commissions', accounts => {
         it('and updates internal balance values', async () => {
           await policy.payCommissions()
           await policy.getCommissionBalances().should.eventually.matchObj({
-            underwriterCommissionBalance_: 0,
+            claimsAdminCommissionBalance_: 0,
             brokerCommissionBalance_: 0,
             naymsCommissionBalance_: 0,
           })
@@ -301,10 +306,10 @@ contract('Policy Tranches: Commissions', accounts => {
 
           const naymsEntityAddress = await settings.getRootAddress(SETTINGS.NAYMS_ENTITY)
           const naymsEntityBalance = (await etherToken.balanceOf(naymsEntityAddress)).toNumber()
-          expect(naymsEntityBalance).to.eq(27)
+          expect(naymsEntityBalance).to.eq(12)
 
           await policy.getCommissionBalances().should.eventually.matchObj({
-            underwriterCommissionBalance_: 0,
+            claimsAdminCommissionBalance_: 0,
             brokerCommissionBalance_: 0,
             naymsCommissionBalance_: 0,
           })

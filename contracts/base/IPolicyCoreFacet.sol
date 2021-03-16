@@ -1,5 +1,6 @@
 pragma solidity >=0.6.7;
 
+
 /**
  * @dev Policy core logic.
  */
@@ -25,7 +26,7 @@ interface IPolicyCoreFacet {
   /**
    * @dev Get policy info.
    *
-   * @return creatorEntity_ The Entity which created this policy.
+   * @return treasury_ The Entity which acts as this policy's treasury.
    * @return initiationDate_ Initiation date  (seconds since epoch).
    * @return startDate_ Start date  (seconds since epoch).
    * @return maturationDate_ Maturation date (seconds since epoch).
@@ -38,7 +39,7 @@ interface IPolicyCoreFacet {
    * @return state_ Current policy state.
    */
   function getInfo () external view returns (
-    address creatorEntity_,
+    address treasury_,
     uint256 initiationDate_,
     uint256 startDate_,
     uint256 maturationDate_,

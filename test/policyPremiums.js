@@ -12,7 +12,7 @@ import {
   createEntity,
   EvmSnapshot,
 } from './utils'
-import { events } from '../'
+import { events } from '..'
 
 import { ROLES, ROLEGROUPS, SETTINGS } from '../utils/constants'
 
@@ -60,7 +60,7 @@ const POLICY_ATTRS_3 = Object.assign({}, POLICY_ATTRS_1, {
   premiumIntervalSeconds: 5000,
 })
 
-contract('Policy Tranches: Premiums', accounts => {
+contract('Policy: Premiums', accounts => {
   const evmSnapshot = new EvmSnapshot()
   let evmClock
 
@@ -127,7 +127,7 @@ contract('Policy Tranches: Premiums', accounts => {
 
     await acl.assignRole(systemContext, accounts[0], ROLES.SYSTEM_MANAGER)
 
-    const entityAddress = await createEntity(entityDeployer, entityAdminAddress)
+    const entityAddress = await createEntity({ entityDeployer, adminAddress: entityAdminAddress })
 
     entityProxy = await Entity.at(entityAddress)
     entity = await IEntity.at(entityAddress)
@@ -151,10 +151,10 @@ contract('Policy Tranches: Premiums', accounts => {
     TRANCH_STATE_MATURED = await policyStates.TRANCH_STATE_MATURED()
 
     // roles
-    underwriter = await createEntity(entityDeployer, underwriterRep)
-    insuredParty = await createEntity(entityDeployer, insuredPartyRep)
-    broker = await createEntity(entityDeployer, brokerRep)
-    claimsAdmin = await createEntity(entityDeployer, claimsAdminRep)
+    underwriter = await createEntity({ entityDeployer, adminAddress: underwriterRep, entityContext, acl })
+    insuredParty = await createEntity({ entityDeployer, adminAddress: insuredPartyRep })
+    broker = await createEntity({ entityDeployer, adminAddress: brokerRep })
+    claimsAdmin = await createEntity({ entityDeployer, adminAddress: claimsAdminRep })
 
     Object.assign(POLICY_ATTRS_1, { underwriter, insuredParty, broker, claimsAdmin })
     Object.assign(POLICY_ATTRS_2, { underwriter, insuredParty, broker, claimsAdmin })
@@ -235,7 +235,7 @@ contract('Policy Tranches: Premiums', accounts => {
         })
       })
 
-      it('policy must have permission to receive premium payment token', async () => {
+      it('policy must have permission to transfer premium payment token', async () => {
         await createTranch(policy, {
           premiums: [2, 3, 4]
         }, { from: policyOwnerAddress })
@@ -252,6 +252,26 @@ contract('Policy Tranches: Premiums', accounts => {
         await etherToken.deposit({ value: 1 })
         await etherToken.approve(policy.address, 2)
         await policy.payTranchPremium(0, 2).should.be.rejectedWith('amount exceeds balance')
+      })
+
+      it('updates balances upon payment', async () => {
+        await createTranch(policy, {
+          premiums: [2, 3, 4]
+        }, { from: policyOwnerAddress })
+
+        await etherToken.deposit({ value: 2 })
+        await etherToken.approve(policy.address, 2)
+
+        const payerPreBalance = await etherToken.balanceOf(accounts[0])
+        const treasuryPreBalance = await etherToken.balanceOf(entity.address)
+
+        const ret = await policy.payTranchPremium(0, 2)
+
+        const payerPostBalance = await etherToken.balanceOf(accounts[0])
+        const treasuryPostBalance = await etherToken.balanceOf(entity.address)
+
+        expect(payerPreBalance.sub(payerPostBalance).toNumber()).to.eql(2)
+        expect(treasuryPostBalance.sub(treasuryPreBalance).toNumber()).to.eql(2)
       })
 
       it('emits an event upon payment', async () => {
@@ -446,7 +466,7 @@ contract('Policy Tranches: Premiums', accounts => {
           paidSoFar_: 4,
         })
 
-        await etherToken.balanceOf(policy.address).should.eventually.eq(9)
+        await etherToken.balanceOf(entity.address).should.eventually.eq(9)
       })
     })
 

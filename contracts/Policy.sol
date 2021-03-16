@@ -16,7 +16,7 @@ contract Policy is Controller, DiamondProxy {
     // set implementations
     _registerFacets(settings().getRootAddresses(SETTING_POLICY_IMPL));
     // set properties
-    dataAddress["creatorEntity"] = _stakeholders[0];
+    dataAddress["treasury"] = _stakeholders[0];
     dataUint256["initiationDate"] = _dates[0];
     dataUint256["startDate"] = _dates[1];
     dataUint256["maturationDate"] = _dates[2];

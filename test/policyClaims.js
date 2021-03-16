@@ -12,7 +12,7 @@ import {
   EvmSnapshot,
   createEntity,
 } from './utils'
-import { events } from '../'
+import { events } from '..'
 
 import { ROLES, ROLEGROUPS, SETTINGS } from '../utils/constants'
 
@@ -67,7 +67,7 @@ const POLICY_ATTRS_4 = Object.assign({}, POLICY_ATTRS_1, {
   premiumIntervalSeconds: 1000,
 })
 
-contract('Policy Tranches: Claims', accounts => {
+contract('Policy: Claims', accounts => {
   const evmSnapshot = new EvmSnapshot()
   let evmClock
 
@@ -145,7 +145,7 @@ contract('Policy Tranches: Claims', accounts => {
 
     await acl.assignRole(systemContext, accounts[0], ROLES.SYSTEM_MANAGER)
 
-    const entityAddress = await createEntity(entityDeployer, entityAdminAddress)
+    const entityAddress = await createEntity({ entityDeployer, adminAddress: entityAdminAddress })
 
     entityProxy = await Entity.at(entityAddress)
     entity = await IEntity.at(entityAddress)
@@ -218,10 +218,10 @@ contract('Policy Tranches: Claims', accounts => {
       await policy.payTranchPremium(3, 8000)
     }
 
-    underwriter = await createEntity(entityDeployer, underwriterRep)
-    insuredParty = await createEntity(entityDeployer, insuredPartyRep)
-    broker = await createEntity(entityDeployer, brokerRep)
-    claimsAdmin = await createEntity(entityDeployer, claimsAdminRep)
+    underwriter = await createEntity({ entityDeployer, adminAddress: underwriterRep, entityContext, acl })
+    insuredParty = await createEntity({ entityDeployer, adminAddress: insuredPartyRep })
+    broker = await createEntity({ entityDeployer, adminAddress: brokerRep })
+    claimsAdmin = await createEntity({ entityDeployer, adminAddress: claimsAdminRep })
 
     const approvers = { underwriter, insuredParty, broker, claimsAdmin }
 
@@ -600,7 +600,7 @@ contract('Policy Tranches: Claims', accounts => {
           })
 
           it('but not if not underwriter', async () => {
-            await policy.disputeClaim(0).should.be.rejectedWith('not a rep of associated entity')
+            await policy.disputeClaim(0, { from: insuredParty }).should.be.rejectedWith('not a rep of associated entity')
           })
 
           it('but not if claim is invalid', async () => {
@@ -661,7 +661,7 @@ contract('Policy Tranches: Claims', accounts => {
           })
 
           it('but not if not underwriter', async () => {
-            await policy.acknowledgeClaim(0).should.be.rejectedWith('not a rep of associated entity')
+            await policy.acknowledgeClaim(0, { from: insuredPartyRep }).should.be.rejectedWith('not a rep of associated entity')
           })
 
           it('but not if claim is invalid', async () => {
@@ -772,6 +772,17 @@ contract('Policy Tranches: Claims', accounts => {
             const postBalance = ((await etherToken.balanceOf(insuredParty))).toNumber()
 
             expect(postBalance - preBalance).to.eq(5)
+          })
+
+          it('and it updates the treasury balance', async () => {
+            const preBalance = ((await etherToken.balanceOf(entity.address))).toNumber()
+
+            await policy.payClaim(0, { from: claimsAdminRep })
+            await policy.payClaim(2, { from: claimsAdminRep })
+
+            const postBalance = ((await etherToken.balanceOf(entity.address))).toNumber()
+
+            expect(preBalance - postBalance).to.eq(5)
           })
 
           it('and it updates the internal stats', async () => {

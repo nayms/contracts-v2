@@ -6,10 +6,10 @@ import "./base/EternalStorage.sol";
 import './base/IERC20.sol';
 import "./base/IDiamondFacet.sol";
 import "./base/AccessControl.sol";
+import "./base/IPolicyTreasury.sol";
 import "./base/IPolicyCoreFacet.sol";
 import "./base/IPolicyTranchTokensFacet.sol";
 import "./base/PolicyFacetBase.sol";
-import "./base/IMarket.sol";
 import "./base/SafeMath.sol";
 import "./TranchToken.sol";
 
@@ -102,7 +102,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     TranchToken t = new TranchToken(address(this), i);
 
     // initial holder
-    address holder = address(this);
+    address holder = dataAddress["treasury"];
     string memory initialHolderKey = __i(i, "initialHolder");
     dataAddress[initialHolderKey] = holder;
 
@@ -127,7 +127,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
   }
 
   function getInfo () public view override returns (
-    address creatorEntity_,
+    address treasury_,
     uint256 initiationDate_,
     uint256 startDate_,
     uint256 maturationDate_,
@@ -139,7 +139,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     uint256 numTranches_,
     uint256 state_
   ) {
-    creatorEntity_ = dataAddress["creatorEntity"];
+    treasury_ = dataAddress["treasury"];
     initiationDate_ = dataUint256["initiationDate"];
     startDate_ = dataUint256["startDate"];
     maturationDate_ = dataUint256["maturationDate"];
@@ -219,13 +219,8 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
 
 
   function _cancelTranchMarketOffer(uint _index) private {
-    IMarket market = IMarket(settings().getRootAddress(SETTING_MARKET));
-
     uint256 initialSaleOfferId = dataUint256[__i(_index, "initialSaleOfferId")];
-
-    if (market.isActive(initialSaleOfferId)) {
-      market.cancel(initialSaleOfferId);
-    }
+    _getTreasury().cancelOrder(initialSaleOfferId);
   }
 
   function _cancelPolicyIfNotFullyApproved() private {
@@ -237,8 +232,6 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
 
   function _beginPolicySaleIfNotYetStarted() private {
     if (dataUint256["state"] == POLICY_STATE_APPROVED) {
-      IMarket market = IMarket(settings().getRootAddress(SETTING_MARKET));
-
       bool allReady = true;
       // check every tranch
       for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
@@ -261,8 +254,8 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
         // set tranch state
         _setTranchState(i, TRANCH_STATE_SELLING);
         // offer tokens in initial sale
-        dataUint256[__i(i, "initialSaleOfferId")] = market.offer(
-          totalSupply, tranchAddress, totalPrice, dataAddress["unit"], 0, false
+        dataUint256[__i(i, "initialSaleOfferId")] = _getTreasury().createOrder(
+          tranchAddress, totalSupply, dataAddress["unit"], totalPrice
         );
       }
 
@@ -304,10 +297,6 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
 
         dataBool["buybackInitiated"] = true;
 
-        address marketAddress = settings().getRootAddress(SETTING_MARKET);
-
-        IMarket market = IMarket(marketAddress);
-
         // buy back all tranch tokens
         for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
           if (dataUint256[__i(i, "state")] == TRANCH_STATE_ACTIVE) {
@@ -317,17 +306,12 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
           address unitAddress = dataAddress["unit"];
           uint256 tranchBalance = dataUint256[__i(i, "balance")];
 
-          IERC20 tkn = IERC20(unitAddress);
-          tkn.approve(marketAddress, tranchBalance);
-
           // buy back all sold tokens
-          dataUint256[__i(i, "finalBuybackOfferId")] = market.offer(
+          dataUint256[__i(i, "finalBuybackOfferId")] = _getTreasury().createOrder(
+            unitAddress,
             tranchBalance,
-            dataAddress["unit"],
-            dataUint256[__i(i, "sharesSold")],
             dataAddress[__i(i, "address")],
-            0,
-            false
+            dataUint256[__i(i, "sharesSold")]
           );
         }
       }

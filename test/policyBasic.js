@@ -100,7 +100,7 @@ contract('Policy: Basic', accounts => {
     await ensureEntityImplementationsAreDeployed({ artifacts, settings, entityDeployer })
 
     await acl.assignRole(systemContext, accounts[0], ROLES.SYSTEM_MANAGER)
-    const entityAddress = await createEntity(entityDeployer, entityAdminAddress)
+    const entityAddress = await createEntity({ entityDeployer, adminAddress: entityAdminAddress })
 
     entityProxy = await Entity.at(entityAddress)
     entity = await IEntity.at(entityAddress)
@@ -152,6 +152,7 @@ contract('Policy: Basic', accounts => {
       const attrs = await setupPolicy(POLICY_ATTRS_2)
 
       await policy.getInfo().should.eventually.matchObj({
+        treasury_: entity.address,
         initiationDate_: attrs.initiationDate,
         startDate_: attrs.startDate,
         maturationDate_: attrs.maturationDate,

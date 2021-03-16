@@ -1,6 +1,6 @@
 const { createLog } = require('../utils/log')
 const { deploy, defaultGetTxParams, execCall } = require('../utils')
-const { SETTINGS } = require('../../utils/constants')
+const { SETTINGS, BYTES32_ZERO } = require('../../utils/constants')
 
 export const ensureEntityImplementationsAreDeployed = async (cfg) => {
   const { deployer, artifacts, log: baseLog, accounts, settings, entityDeployer, getTxParams = defaultGetTxParams } = cfg
@@ -11,10 +11,12 @@ export const ensureEntityImplementationsAreDeployed = async (cfg) => {
   await log.task(`Deploy Entity implementations`, async task => {
     const EntityUpgradeFacet = artifacts.require('./EntityUpgradeFacet')
     const EntityCoreFacet = artifacts.require('./EntityCoreFacet')
+    const EntityTreasuryFacet = artifacts.require('./EntityTreasuryFacet')
 
     addresses = [
-      await deploy(deployer, getTxParams(), EntityCoreFacet, settings.address),
       await deploy(deployer, getTxParams(), EntityUpgradeFacet, settings.address),
+      await deploy(deployer, getTxParams(), EntityCoreFacet, settings.address),
+      await deploy(deployer, getTxParams(), EntityTreasuryFacet, settings.address),
     ].map(c => c.address)
 
     task.log(`Deployed at ${addresses.join(', ')}`)
@@ -25,7 +27,7 @@ export const ensureEntityImplementationsAreDeployed = async (cfg) => {
     await execCall({
       task,
       contract: settings,
-      method: 'setAddresses',
+    method: 'setAddresses',
       args: [settings.address, SETTINGS.ENTITY_IMPL, addresses],
       cfg,
     })
@@ -36,7 +38,7 @@ export const ensureEntityImplementationsAreDeployed = async (cfg) => {
     const numEntities = await entityDeployer.getNumEntities()
     if (0 == numEntities) {
       await log.task(`Deploy Nayms entity`, async task => {
-        await entityDeployer.deploy(entityDeployer.address, getTxParams())
+        await entityDeployer.deploy(entityDeployer.address, BYTES32_ZERO, getTxParams())
 
         naymsEntityAddress = await entityDeployer.getEntity(0)
 

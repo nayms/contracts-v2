@@ -113,7 +113,7 @@ contract('Policy: Tranches', accounts => {
     entityContext = await entityProxy.aclContext()
 
     // roles
-    underwriter = await createEntity({ entityDeployer, adminAddress: underwriterRep, entityContext })
+    underwriter = await createEntity({ entityDeployer, adminAddress: underwriterRep, entityContext, acl })
     insuredParty = await createEntity({ entityDeployer, adminAddress: insuredPartyRep })
     broker = await createEntity({ entityDeployer, adminAddress: brokerRep })
     claimsAdmin = await createEntity({ entityDeployer, adminAddress: claimsAdminRep })

@@ -61,6 +61,7 @@ contract PolicyPremiumsFacet is EternalStorage, Controller, IDiamondFacet, IPoli
 
   function _payTranchPremium (uint256 _index, uint256 _amount) private assertTranchPaymentAllowed(_index) {
     uint256 totalPaid;
+    uint256 netPremium;
 
     while (_amount > 0 && !_tranchPaymentsAllMade(_index)) {
       uint256 expectedAmount;
@@ -76,7 +77,7 @@ contract PolicyPremiumsFacet is EternalStorage, Controller, IDiamondFacet, IPoli
       uint256 numPremiumsPaid = dataUint256[__i(_index, "numPremiumsPaid")];
 
       if (_amount >= pending) {
-        _applyPremiumPaymentAmount(_index, pending);
+        netPremium += _applyPremiumPaymentAmount(_index, pending);
         totalPaid = totalPaid.add(pending);
         _amount = _amount.sub(pending);
 
@@ -84,7 +85,7 @@ contract PolicyPremiumsFacet is EternalStorage, Controller, IDiamondFacet, IPoli
         dataUint256[__ii(_index, numPremiumsPaid, "premiumPaidAt")] = now;
         dataUint256[__ii(_index, numPremiumsPaid, "premiumPaidSoFar")] = dataUint256[__ii(_index, numPremiumsPaid, "premiumAmount")];
       } else {
-        _applyPremiumPaymentAmount(_index, _amount);
+        netPremium += _applyPremiumPaymentAmount(_index, _amount);
         totalPaid = totalPaid.add(_amount);
         dataUint256[__ii(_index, numPremiumsPaid, "premiumPaidSoFar")] = dataUint256[__ii(_index, numPremiumsPaid, "premiumPaidSoFar")].add(_amount);
         _amount = 0;
@@ -93,13 +94,15 @@ contract PolicyPremiumsFacet is EternalStorage, Controller, IDiamondFacet, IPoli
 
     // do the actual transfer to the treasury
     IERC20 tkn = IERC20(dataAddress["unit"]);
-    tkn.transferFrom(msg.sender, dataAddress["treasury"], totalPaid);
+    uint256 totalCommissions = totalPaid - netPremium;
+    tkn.transferFrom(msg.sender, address(this), totalCommissions);
+    tkn.transferFrom(msg.sender, dataAddress["treasury"], netPremium);
     
     // event
     emit PremiumPayment(_index, totalPaid, msg.sender);
   }
 
-  function _applyPremiumPaymentAmount (uint256 _index, uint256 _amount) private {
+  function _applyPremiumPaymentAmount (uint256 _index, uint256 _amount) private returns (uint256) {
     // calculate commissions
     uint256 brokerCommission = dataUint256["brokerCommissionBP"].mul(_amount).div(1000);
     uint256 claimsAdminCommission = dataUint256["claimsAdminCommissionBP"].mul(_amount).div(1000);
@@ -113,6 +116,8 @@ contract PolicyPremiumsFacet is EternalStorage, Controller, IDiamondFacet, IPoli
     // add to tranch balance
     uint256 tranchBalanceDelta = _amount.sub(brokerCommission.add(claimsAdminCommission).add(naymsCommission));
     dataUint256[__i(_index, "balance")] = dataUint256[__i(_index, "balance")].add(tranchBalanceDelta);
+
+    return tranchBalanceDelta;
   }
 
   function _getNextTranchPremium (uint256 _index) private view returns (uint256, uint256, uint256) {

@@ -113,7 +113,7 @@ contract('Integration: Flow', accounts => {
     baseDate = parseInt((await settings.getTime()).toString(10))
 
     // roles
-    underwriter = await createEntity({ entityDeployer, adminAddress: underwriterRep, entityContext })
+    underwriter = await createEntity({ entityDeployer, adminAddress: underwriterRep, entityContext, acl })
     insuredParty = await createEntity({ entityDeployer, adminAddress: insuredPartyRep })
     broker = await createEntity({ entityDeployer, adminAddress: brokerRep })
     claimsAdmin = await createEntity({ entityDeployer, adminAddress: claimsAdminRep })
@@ -261,8 +261,8 @@ contract('Integration: Flow', accounts => {
             await tranchTokens[0].balanceOf(market.address).should.eventually.eq(0)
             await tranchTokens[1].balanceOf(market.address).should.eventually.eq(0)
 
-            await tranchTokens[0].balanceOf(policy.address).should.eventually.eq(100)
-            await tranchTokens[1].balanceOf(policy.address).should.eventually.eq(50)
+            await tranchTokens[0].balanceOf(entity.address).should.eventually.eq(100)
+            await tranchTokens[1].balanceOf(entity.address).should.eventually.eq(50)
 
             const result = await policy.checkAndUpdateState()
 
@@ -272,8 +272,8 @@ contract('Integration: Flow', accounts => {
             await tranchTokens[0].balanceOf(market.address).should.eventually.eq(100)
             await tranchTokens[1].balanceOf(market.address).should.eventually.eq(50)
 
-            await tranchTokens[0].balanceOf(policy.address).should.eventually.eq(0)
-            await tranchTokens[1].balanceOf(policy.address).should.eventually.eq(0)
+            await tranchTokens[0].balanceOf(entity.address).should.eventually.eq(0)
+            await tranchTokens[1].balanceOf(entity.address).should.eventually.eq(0)
 
             // check order ids are set
             await policy.getTranchInfo(0).should.eventually.not.matchObj({
@@ -345,10 +345,11 @@ contract('Integration: Flow', accounts => {
       beforeEach(async () => {
         // check initial balances
         await etherToken.balanceOf(accounts[2]).should.eventually.eq(25)
-        await etherToken.balanceOf(policy.address).should.eventually.eq(20) /* premium payments: 10 + 10 */
+        await etherToken.balanceOf(policy.address).should.eventually.eq(12) /* commissions from premium payments: 10 + 10 */
+        await etherToken.balanceOf(entity.address).should.eventually.eq(8) /* premium payments - minus commissions */
         await etherToken.balanceOf(market.address).should.eventually.eq(0)
         await tranchToken.balanceOf(accounts[2]).should.eventually.eq(0)
-        await tranchToken.balanceOf(policy.address).should.eventually.eq(0)
+        await tranchToken.balanceOf(entity.address).should.eventually.eq(0)
         await tranchToken.balanceOf(market.address).should.eventually.eq(100)
 
         // make the offer on the market
@@ -357,10 +358,11 @@ contract('Integration: Flow', accounts => {
 
         // check balances again
         await etherToken.balanceOf(accounts[2]).should.eventually.eq(15)
-        await etherToken.balanceOf(policy.address).should.eventually.eq(20)
+        await etherToken.balanceOf(policy.address).should.eventually.eq(12)
+        await etherToken.balanceOf(entity.address).should.eventually.eq(8)
         await etherToken.balanceOf(market.address).should.eventually.eq(10)
         await tranchToken.balanceOf(accounts[2]).should.eventually.eq(0)
-        await tranchToken.balanceOf(policy.address).should.eventually.eq(0)
+        await tranchToken.balanceOf(entity.address).should.eventually.eq(0)
         await tranchToken.balanceOf(market.address).should.eventually.eq(100)
       })
 
@@ -398,10 +400,11 @@ contract('Integration: Flow', accounts => {
       beforeEach(async () => {
         // check initial balances
         await etherToken.balanceOf(accounts[2]).should.eventually.eq(25)
-        await etherToken.balanceOf(policy.address).should.eventually.eq(20)  /* premium payments: 10 + 10 */
+        await etherToken.balanceOf(policy.address).should.eventually.eq(12) /* commissions from premium payments: 10 + 10 */
+        await etherToken.balanceOf(entity.address).should.eventually.eq(8) /* premium payments - minus commissions */
         await etherToken.balanceOf(market.address).should.eventually.eq(0)
         await tranchToken.balanceOf(accounts[2]).should.eventually.eq(0)
-        await tranchToken.balanceOf(policy.address).should.eventually.eq(0)
+        await tranchToken.balanceOf(entity.address).should.eventually.eq(0)
         await tranchToken.balanceOf(market.address).should.eventually.eq(100)
 
         // make some offers on the market
@@ -411,10 +414,11 @@ contract('Integration: Flow', accounts => {
 
         // check balances again
         await etherToken.balanceOf(accounts[2]).should.eventually.eq(15)
-        await etherToken.balanceOf(policy.address).should.eventually.eq(20 + 10)
+        await etherToken.balanceOf(policy.address).should.eventually.eq(12)
+        await etherToken.balanceOf(entity.address).should.eventually.eq(8 + 10)
         await etherToken.balanceOf(market.address).should.eventually.eq(0)
         await tranchToken.balanceOf(accounts[2]).should.eventually.eq(5)
-        await tranchToken.balanceOf(policy.address).should.eventually.eq(0)
+        await tranchToken.balanceOf(entity.address).should.eventually.eq(0)
         await tranchToken.balanceOf(market.address).should.eventually.eq(95)
       })
 

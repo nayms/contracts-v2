@@ -1171,6 +1171,10 @@ contract('Integration: Flow', accounts => {
         })
 
         it('other people can trade their previously purchased tranch tokens in for (hopefully) profit ', async () => {
+          const tranchTkn = await getTranchToken(0)
+
+          const treasuryPreBalance = (await tranchTkn.balanceOf(entity.address)).toNumber()
+
           const preBalance = (await etherToken.balanceOf(accounts[2])).toNumber()
 
           const { finalBuybackofferId_: buybackOfferId } = await policy.getTranchInfo(0)
@@ -1192,6 +1196,10 @@ contract('Integration: Flow', accounts => {
           })
 
           expect(postBalance - preBalance).to.eq(200 + expectedPremiumBalance) /* 200 = initial sold amount */
+
+          const treasuryPostBalance = (await tranchTkn.balanceOf(entity.address)).toNumber()
+
+          expect(treasuryPostBalance - treasuryPreBalance).to.eq(100)
         })
       })
     })

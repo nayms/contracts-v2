@@ -105,7 +105,7 @@ contract('Policy: Commissions', accounts => {
 
     await acl.assignRole(systemContext, accounts[0], ROLES.SYSTEM_MANAGER)
 
-    const entityAddress = await createEntity(entityDeployer, entityAdminAddress)
+    const entityAddress = await createEntity({ entityDeployer, adminAddress: entityAdminAddress })
 
     entityProxy = await Entity.at(entityAddress)
     entity = await IEntity.at(entityAddress)
@@ -117,10 +117,10 @@ contract('Policy: Commissions', accounts => {
     ;([ policyCoreAddress ] = await ensurePolicyImplementationsAreDeployed({ artifacts, settings }))
 
     // roles
-    underwriter = await createEntity(entityDeployer, underwriterRep)
-    insuredParty = await createEntity(entityDeployer, insuredPartyRep)
-    broker = await createEntity(entityDeployer, brokerRep)
-    claimsAdmin = await createEntity(entityDeployer, claimsAdminRep)
+    underwriter = await createEntity({ entityDeployer, adminAddress: underwriterRep, entityContext })
+    insuredParty = await createEntity({ entityDeployer, adminAddress: insuredPartyRep })
+    broker = await createEntity({ entityDeployer, adminAddress: brokerRep })
+    claimsAdmin = await createEntity({ entityDeployer, adminAddress: claimsAdminRep })
     Object.assign(POLICY_ATTRS_1, { underwriter, insuredParty, broker, claimsAdmin })
 
     const policyStates = await IPolicyStates.at(policyCoreAddress)

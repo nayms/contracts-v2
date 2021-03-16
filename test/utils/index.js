@@ -8,6 +8,7 @@ import { events } from '../..'
 import packageJson from '../../package.json'
 import { toBN, isBN } from './web3'
 import { ADDRESS_ZERO, BYTES32_ZERO } from '../../utils/constants'
+import { ROLES } from '../../utils/constants'
 
 export { ADDRESS_ZERO, BYTES32_ZERO }
 
@@ -147,9 +148,13 @@ export const createTranch = (policy, attrs, ...callAttrs) => {
   )
 }
 
-export const createEntity = async (entityDeployer, adminAddress, entityContext = BYTES32_ZERO) => {
+export const createEntity = async ({ acl, entityDeployer, adminAddress, entityContext = BYTES32_ZERO }) => {
   const deployEntityTx = await entityDeployer.deploy(adminAddress, entityContext)
-  return extractEventArgs(deployEntityTx, events.NewEntity).entity
+  const { entity: entityAddress } = extractEventArgs(deployEntityTx, events.NewEntity)
+  if (entityContext != BYTES32_ZERO) {
+    await acl.assignRole(entityContext, adminAddress, ROLES.ENTITY_ADMIN)
+  }
+  return entityAddress
 }
 
 export const createPolicy = (entity, attrs, ...callAttrs) => {

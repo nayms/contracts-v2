@@ -145,7 +145,7 @@ contract('Policy: Claims', accounts => {
 
     await acl.assignRole(systemContext, accounts[0], ROLES.SYSTEM_MANAGER)
 
-    const entityAddress = await createEntity(entityDeployer, entityAdminAddress)
+    const entityAddress = await createEntity({ entityDeployer, adminAddress: entityAdminAddress })
 
     entityProxy = await Entity.at(entityAddress)
     entity = await IEntity.at(entityAddress)
@@ -218,10 +218,10 @@ contract('Policy: Claims', accounts => {
       await policy.payTranchPremium(3, 8000)
     }
 
-    underwriter = await createEntity(entityDeployer, underwriterRep)
-    insuredParty = await createEntity(entityDeployer, insuredPartyRep)
-    broker = await createEntity(entityDeployer, brokerRep)
-    claimsAdmin = await createEntity(entityDeployer, claimsAdminRep)
+    underwriter = await createEntity({ entityDeployer, adminAddress: underwriterRep, entityContext })
+    insuredParty = await createEntity({ entityDeployer, adminAddress: insuredPartyRep })
+    broker = await createEntity({ entityDeployer, adminAddress: brokerRep })
+    claimsAdmin = await createEntity({ entityDeployer, adminAddress: claimsAdminRep })
 
     const approvers = { underwriter, insuredParty, broker, claimsAdmin }
 

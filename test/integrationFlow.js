@@ -99,7 +99,7 @@ contract('Integration: Flow', accounts => {
 
     await acl.assignRole(systemContext, systemManager, ROLES.SYSTEM_MANAGER)
 
-    const entityAddress = await createEntity(entityDeployer, entityAdminAddress)
+    const entityAddress = await createEntity({ entityDeployer, adminAddress: entityAdminAddress })
     const entityProxy = await Entity.at(entityAddress)
     entity = await IEntity.at(entityAddress)
     const entityContext = await entityProxy.aclContext()
@@ -113,10 +113,10 @@ contract('Integration: Flow', accounts => {
     baseDate = parseInt((await settings.getTime()).toString(10))
 
     // roles
-    underwriter = await createEntity(entityDeployer, underwriterRep)
-    insuredParty = await createEntity(entityDeployer, insuredPartyRep)
-    broker = await createEntity(entityDeployer, brokerRep)
-    claimsAdmin = await createEntity(entityDeployer, claimsAdminRep)
+    underwriter = await createEntity({ entityDeployer, adminAddress: underwriterRep, entityContext })
+    insuredParty = await createEntity({ entityDeployer, adminAddress: insuredPartyRep })
+    broker = await createEntity({ entityDeployer, adminAddress: brokerRep })
+    claimsAdmin = await createEntity({ entityDeployer, adminAddress: claimsAdminRep })
 
     // initiation time is 20 seconds from now
     initiationDate = baseDate + 1000

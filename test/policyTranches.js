@@ -106,17 +106,17 @@ contract('Policy: Tranches', accounts => {
 
     await acl.assignRole(systemContext, accounts[0], ROLES.SYSTEM_MANAGER)
 
-    const entityAddress = await createEntity(entityDeployer, entityAdminAddress)
+    const entityAddress = await createEntity({ entityDeployer, adminAddress: entityAdminAddress })
 
     entityProxy = await Entity.at(entityAddress)
     entity = await IEntity.at(entityAddress)
     entityContext = await entityProxy.aclContext()
 
     // roles
-    underwriter = await createEntity(entityDeployer, underwriterRep, entityContext)
-    insuredParty = await createEntity(entityDeployer, insuredPartyRep)
-    broker = await createEntity(entityDeployer, brokerRep)
-    claimsAdmin = await createEntity(entityDeployer, claimsAdminRep)
+    underwriter = await createEntity({ entityDeployer, adminAddress: underwriterRep, entityContext })
+    insuredParty = await createEntity({ entityDeployer, adminAddress: insuredPartyRep })
+    broker = await createEntity({ entityDeployer, adminAddress: brokerRep })
+    claimsAdmin = await createEntity({ entityDeployer, adminAddress: claimsAdminRep })
 
     POLICY_ATTRS_1 = {
       initiationDateDiff: 1000,

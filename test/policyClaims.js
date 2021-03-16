@@ -218,7 +218,7 @@ contract('Policy: Claims', accounts => {
       await policy.payTranchPremium(3, 8000)
     }
 
-    underwriter = await createEntity({ entityDeployer, adminAddress: underwriterRep, entityContext })
+    underwriter = await createEntity({ entityDeployer, adminAddress: underwriterRep, entityContext, acl })
     insuredParty = await createEntity({ entityDeployer, adminAddress: insuredPartyRep })
     broker = await createEntity({ entityDeployer, adminAddress: brokerRep })
     claimsAdmin = await createEntity({ entityDeployer, adminAddress: claimsAdminRep })
@@ -600,7 +600,7 @@ contract('Policy: Claims', accounts => {
           })
 
           it('but not if not underwriter', async () => {
-            await policy.disputeClaim(0).should.be.rejectedWith('not a rep of associated entity')
+            await policy.disputeClaim(0, { from: insuredParty }).should.be.rejectedWith('not a rep of associated entity')
           })
 
           it('but not if claim is invalid', async () => {
@@ -661,7 +661,7 @@ contract('Policy: Claims', accounts => {
           })
 
           it('but not if not underwriter', async () => {
-            await policy.acknowledgeClaim(0).should.be.rejectedWith('not a rep of associated entity')
+            await policy.acknowledgeClaim(0, { from: insuredPartyRep }).should.be.rejectedWith('not a rep of associated entity')
           })
 
           it('but not if claim is invalid', async () => {
@@ -772,6 +772,17 @@ contract('Policy: Claims', accounts => {
             const postBalance = ((await etherToken.balanceOf(insuredParty))).toNumber()
 
             expect(postBalance - preBalance).to.eq(5)
+          })
+
+          it('and it updates the treasury balance', async () => {
+            const preBalance = ((await etherToken.balanceOf(entity.address))).toNumber()
+
+            await policy.payClaim(0, { from: claimsAdminRep })
+            await policy.payClaim(2, { from: claimsAdminRep })
+
+            const postBalance = ((await etherToken.balanceOf(entity.address))).toNumber()
+
+            expect(preBalance - postBalance).to.eq(5)
           })
 
           it('and it updates the internal stats', async () => {

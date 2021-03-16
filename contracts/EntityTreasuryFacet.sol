@@ -23,7 +23,8 @@ import "./base/IDiamondFacet.sol";
   function getSelectors () public pure override returns (bytes memory) {
     return abi.encodePacked(
       IPolicyTreasury.createOrder.selector,
-      IPolicyTreasury.cancelOrder.selector
+      IPolicyTreasury.cancelOrder.selector,
+      IPolicyTreasury.payClaim.selector
     );
   }
 

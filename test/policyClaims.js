@@ -247,7 +247,6 @@ contract('Policy: Claims', accounts => {
       // approve policy
       if (!skipApprovals) {
         await policy.markAsReadyForApproval({ from: policyOwnerAddress })
-        await policy.approve(ROLES.PENDING_UNDERWRITER, { from: underwriterRep })
         await policy.approve(ROLES.PENDING_INSURED_PARTY, { from: insuredPartyRep })
         await policy.approve(ROLES.PENDING_BROKER, { from: brokerRep })
         await policy.approve(ROLES.PENDING_CLAIMS_ADMIN, { from: claimsAdminRep })
@@ -296,7 +295,7 @@ contract('Policy: Claims', accounts => {
     it('cannot be made in in-approval state', async () => {
       await setupPolicyForClaims(POLICY_ATTRS_1, { skipApprovals: true })
       await policy.markAsReadyForApproval({ from: policyOwnerAddress })
-      await policy.approve(ROLES.PENDING_UNDERWRITER, { from: underwriterRep })
+      await policy.approve(ROLES.PENDING_BROKER, { from: brokerRep })
       await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_IN_APPROVAL })
       await policy.makeClaim(0, 1).should.be.rejectedWith('must be in active state')
     })

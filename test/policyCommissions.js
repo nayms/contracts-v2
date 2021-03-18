@@ -247,7 +247,7 @@ contract('Policy: Commissions', accounts => {
         await policy.payCommissions().should.be.rejectedWith('must be approved')
 
         await policy.markAsReadyForApproval({ from: policyOwnerAddress })
-        await policy.approve(ROLES.PENDING_UNDERWRITER, { from: underwriterRep })
+        await policy.approve(ROLES.PENDING_BROKER, { from: brokerRep })
 
         await policy.payCommissions().should.be.rejectedWith('must be approved')
       })

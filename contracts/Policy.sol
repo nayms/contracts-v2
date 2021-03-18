@@ -3,8 +3,9 @@ pragma experimental ABIEncoderV2;
 
 import "./base/Controller.sol";
 import "./base/DiamondProxy.sol";
+import "./base/PolicyFacetBase.sol";
 
-contract Policy is Controller, DiamondProxy {
+contract Policy is Controller, DiamondProxy, PolicyFacetBase {
   constructor (
     address _settings,
     address[] memory _stakeholders,
@@ -27,9 +28,22 @@ contract Policy is Controller, DiamondProxy {
     dataUint256["naymsCommissionBP"] = _commmissionsBP[2];
     // set roles
     acl().assignRole(aclContext(), _stakeholders[1], ROLE_POLICY_OWNER);
-    acl().assignRole(aclContext(), _stakeholders[2], ROLE_PENDING_UNDERWRITER);
     acl().assignRole(aclContext(), _stakeholders[3], ROLE_PENDING_INSURED_PARTY);
-    acl().assignRole(aclContext(), _stakeholders[4], ROLE_PENDING_BROKER);
     acl().assignRole(aclContext(), _stakeholders[5], ROLE_PENDING_CLAIMS_ADMIN);
+    // created by underwriter rep?
+    if (_isRepOfEntity(_stakeholders[1], _stakeholders[2])) {
+      acl().assignRole(aclContext(), _stakeholders[2], ROLE_UNDERWRITER);
+      dataBool["underwriterApproved"] = true;
+      acl().assignRole(aclContext(), _stakeholders[4], ROLE_PENDING_BROKER);
+    } 
+    // created by broker rep?
+    else if (_isRepOfEntity(_stakeholders[1], _stakeholders[4])) {
+      acl().assignRole(aclContext(), _stakeholders[4], ROLE_BROKER);
+      dataBool["brokerApproved"] = true;
+      acl().assignRole(aclContext(), _stakeholders[2], ROLE_PENDING_UNDERWRITER);
+    } 
+    else {
+      revert("must be broker or underwriter");
+    }
   }
 }

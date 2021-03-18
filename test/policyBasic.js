@@ -5,6 +5,7 @@ import {
   hdWallet,
   preSetupPolicy,
   createEntity,
+  createPolicy,
   EvmSnapshot,
 } from './utils'
 import { events } from '../'
@@ -148,6 +149,29 @@ contract('Policy: Basic', accounts => {
   })
 
   describe('basic tests', () => {
+    it('must be created by broker or underwriter', async () => {
+      const underwriterRep = entityAdminAddress
+      const insuredPartyRep = accounts[7]
+      const brokerRep = accounts[8]
+      const claimsAdminRep = accounts[9]
+
+      const insuredParty = await createEntity({ entityDeployer, adminAddress: insuredPartyRep })
+      const broker = await createEntity({ entityDeployer, adminAddress: brokerRep })
+      const claimsAdmin = await createEntity({ entityDeployer, adminAddress: claimsAdminRep })
+
+      const attrs = Object.assign({}, POLICY_ATTRS_1, {
+        underwriter: entity.address, 
+        insuredParty, 
+        broker, 
+        claimsAdmin
+      })
+
+      await createPolicy(entity, attrs, { from: underwriterRep }).should.eventually.be.fulfilled
+      await createPolicy(entity, attrs, { from: brokerRep }).should.eventually.be.fulfilled
+      await createPolicy(entity, attrs, { from: claimsAdminRep }).should.be.rejectedWith('must be broker or underwriter')
+      await createPolicy(entity, attrs, { from: insuredPartyRep }).should.be.rejectedWith('must be broker or underwriter')
+    })
+
     it('can return its basic info', async () => {
       const attrs = await setupPolicy(POLICY_ATTRS_2)
 

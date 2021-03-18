@@ -193,18 +193,69 @@ contract('Policy: Approvals', accounts => {
     await evmSnapshot.restore()
   })
 
-  it('has default roles set', async () => {
-    await acl.getUsersForRole(policyContext, ROLES.PENDING_UNDERWRITER).should.eventually.eql([ underwriter ])
-    await acl.getUsersForRole(policyContext, ROLES.UNDERWRITER).should.eventually.eql([])
+  describe('has default roles set and is pre-approved by creator', () => {
+    it('when created by underwriter', async () => {
+      await acl.getUsersForRole(policyContext, ROLES.UNDERWRITER).should.eventually.eql([underwriter])
+      await acl.getUsersForRole(policyContext, ROLES.PENDING_UNDERWRITER).should.eventually.eql([])
 
-    await acl.getUsersForRole(policyContext, ROLES.PENDING_BROKER).should.eventually.eql([ broker ])
-    await acl.getUsersForRole(policyContext, ROLES.BROKER).should.eventually.eql([])
+      await acl.getUsersForRole(policyContext, ROLES.PENDING_BROKER).should.eventually.eql([broker])
+      await acl.getUsersForRole(policyContext, ROLES.BROKER).should.eventually.eql([])
 
-    await acl.getUsersForRole(policyContext, ROLES.PENDING_INSURED_PARTY).should.eventually.eql([ insuredParty ])
-    await acl.getUsersForRole(policyContext, ROLES.INSURED_PARTY).should.eventually.eql([])
+      await acl.getUsersForRole(policyContext, ROLES.PENDING_INSURED_PARTY).should.eventually.eql([insuredParty])
+      await acl.getUsersForRole(policyContext, ROLES.INSURED_PARTY).should.eventually.eql([])
 
-    await acl.getUsersForRole(policyContext, ROLES.PENDING_CLAIMS_ADMIN).should.eventually.eql([ claimsAdmin ])
-    await acl.getUsersForRole(policyContext, ROLES.CLAIMS_ADMIN).should.eventually.eql([])
+      await acl.getUsersForRole(policyContext, ROLES.PENDING_CLAIMS_ADMIN).should.eventually.eql([claimsAdmin])
+      await acl.getUsersForRole(policyContext, ROLES.CLAIMS_ADMIN).should.eventually.eql([])
+
+      await policy.getApprovalsInfo().should.eventually.matchObj({
+        approved_: false,
+        insuredPartyApproved_: false,
+        underwriterApproved_: true,
+        brokerApproved_: false,
+        claimsAdminApproved_: false,
+      })
+    })
+
+    it('when created by broker', async () => {
+      const tx = await createPolicy(entity, {
+        initiationDate,
+        startDate,
+        maturationDate,
+        premiumIntervalSeconds,
+        unit: etherToken.address,
+        claimsAdminCommissionBP,
+        brokerCommissionBP,
+        naymsCommissionBP,
+        underwriter,
+        insuredParty,
+        broker,
+        claimsAdmin,
+      }, { from: brokerRep }).should.eventually.be.fulfilled
+
+      const addr = extractEventArgs(tx, events.NewPolicy).policy
+      const pol = await IPolicy.at(addr)
+      const ctx = await pol.aclContext()
+
+      await acl.getUsersForRole(ctx, ROLES.BROKER).should.eventually.eql([broker])
+      await acl.getUsersForRole(ctx, ROLES.PENDING_BROKER).should.eventually.eql([])
+
+      await acl.getUsersForRole(ctx, ROLES.UNDERWRITER).should.eventually.eql([])
+      await acl.getUsersForRole(ctx, ROLES.PENDING_UNDERWRITER).should.eventually.eql([underwriter])
+
+      await acl.getUsersForRole(ctx, ROLES.PENDING_INSURED_PARTY).should.eventually.eql([insuredParty])
+      await acl.getUsersForRole(ctx, ROLES.INSURED_PARTY).should.eventually.eql([])
+
+      await acl.getUsersForRole(ctx, ROLES.PENDING_CLAIMS_ADMIN).should.eventually.eql([claimsAdmin])
+      await acl.getUsersForRole(ctx, ROLES.CLAIMS_ADMIN).should.eventually.eql([])
+
+      await pol.getApprovalsInfo().should.eventually.matchObj({
+        approved_: false,
+        insuredPartyApproved_: false,
+        underwriterApproved_: false,
+        brokerApproved_: true,
+        claimsAdminApproved_: false,
+      })
+    })
   })
 
   describe('marking as ready for approval', () => {
@@ -222,7 +273,7 @@ contract('Policy: Approvals', accounts => {
 
   describe('policy can be approved', () => {
     it('unless not yet marked as ready for approval', async () => {
-      await policy.approve(ROLES.PENDING_UNDERWRITER, { from: brokerRep }).should.be.rejectedWith('must be in approvable state')
+      await policy.approve(ROLES.PENDING_BROKER, { from: brokerRep }).should.be.rejectedWith('must be in approvable state')
     })
 
     describe('once marked as ready for approval', () => {
@@ -234,49 +285,13 @@ contract('Policy: Approvals', accounts => {
         await policy.approve(ROLES.PENDING_UNDERWRITER, { from: brokerRep }).should.be.rejected
       })
 
-      it('by underwriter', async () => {
-        await policy.approve(ROLES.PENDING_UNDERWRITER, { from: underwriterRep })
-
-        await policy.getApprovalsInfo().should.eventually.matchObj({
-          approved_: false,
-          insuredPartyApproved_: false,
-          underwriterApproved_: true,
-          brokerApproved_: false,
-          claimsAdminApproved_: false,
-        })
-
-        await policy.getInfo().should.eventually.matchObj({
-          state_: POLICY_STATE_IN_APPROVAL
-        })
-      })
-
-      it('and role gets flipped', async () => {
-        await policy.approve(ROLES.PENDING_UNDERWRITER, { from: underwriterRep })
-
-        await acl.getUsersForRole(policyContext, ROLES.PENDING_UNDERWRITER).should.eventually.eql([])
-        await acl.getUsersForRole(policyContext, ROLES.UNDERWRITER).should.eventually.eql([underwriter])
-      })
-
-      it('and approvals are not idempotent', async () => {
-        await policy.approve(ROLES.PENDING_UNDERWRITER, { from: underwriterRep })
-        await policy.approve(ROLES.PENDING_UNDERWRITER, { from: underwriterRep }).should.be.rejectedWith('no entity with role')
-      })
-
-      it('and approvals emit an event', async () => {
-        const result = await policy.approve(ROLES.PENDING_UNDERWRITER, { from: underwriterRep })
-
-        const ev = extractEventArgs(result, events.Approved)
-        expect(ev.caller).to.eq(underwriterRep)
-        expect(ev.role).to.eq(ROLES.UNDERWRITER)
-      })
-
       it('by broker', async () => {
         await policy.approve(ROLES.PENDING_BROKER, { from: brokerRep })
 
         await policy.getApprovalsInfo().should.eventually.matchObj({
           approved_: false,
           insuredPartyApproved_: false,
-          underwriterApproved_: false,
+          underwriterApproved_: true,
           brokerApproved_: true,
           claimsAdminApproved_: false,
         })
@@ -286,13 +301,26 @@ contract('Policy: Approvals', accounts => {
         })
       })
 
+      it('and approvals are not idempotent', async () => {
+        await policy.approve(ROLES.PENDING_BROKER, { from: brokerRep })
+        await policy.approve(ROLES.PENDING_BROKER, { from: brokerRep }).should.be.rejectedWith('no entity with role')
+      })
+
+      it('and approvals emit an event', async () => {
+        const result = await policy.approve(ROLES.PENDING_BROKER, { from: brokerRep })
+
+        const ev = extractEventArgs(result, events.Approved)
+        expect(ev.caller).to.eq(brokerRep)
+        expect(ev.role).to.eq(ROLES.BROKER)
+      })
+
       it('by insured party', async () => {
         await policy.approve(ROLES.PENDING_INSURED_PARTY, { from: insuredPartyRep })
 
         await policy.getApprovalsInfo().should.eventually.matchObj({
           approved_: false,
           insuredPartyApproved_: true,
-          underwriterApproved_: false,
+          underwriterApproved_: true,
           brokerApproved_: false,
           claimsAdminApproved_: false,
         })
@@ -308,7 +336,7 @@ contract('Policy: Approvals', accounts => {
         await policy.getApprovalsInfo().should.eventually.matchObj({
           approved_: false,
           insuredPartyApproved_: false,
-          underwriterApproved_: false,
+          underwriterApproved_: true,
           brokerApproved_: false,
           claimsAdminApproved_: true,
         })
@@ -320,7 +348,6 @@ contract('Policy: Approvals', accounts => {
 
       it('by everyone and this then initiates it', async () => {
         await policy.approve(ROLES.PENDING_INSURED_PARTY, { from: insuredPartyRep })
-        await policy.approve(ROLES.PENDING_UNDERWRITER, { from: underwriterRep })
         await policy.approve(ROLES.PENDING_BROKER, { from: brokerRep })
         await policy.approve(ROLES.PENDING_CLAIMS_ADMIN, { from: claimsAdminRep })
 

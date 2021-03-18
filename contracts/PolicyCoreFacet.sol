@@ -6,7 +6,7 @@ import "./base/EternalStorage.sol";
 import './base/IERC20.sol';
 import "./base/IDiamondFacet.sol";
 import "./base/AccessControl.sol";
-import "./base/IPolicyTreasury.sol";
+import "./base/IPolicyTreasuryConstants.sol";
 import "./base/IPolicyCoreFacet.sol";
 import "./base/IPolicyTranchTokensFacet.sol";
 import "./base/PolicyFacetBase.sol";
@@ -16,7 +16,7 @@ import "./TranchToken.sol";
 /**
  * @dev Core policy logic
  */
-contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCoreFacet, PolicyFacetBase {
+contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCoreFacet, PolicyFacetBase, IPolicyTreasuryConstants {
   using SafeMath for uint;
   using Address for address;
 
@@ -255,7 +255,11 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
         _setTranchState(i, TRANCH_STATE_SELLING);
         // offer tokens in initial sale
         dataUint256[__i(i, "initialSaleOfferId")] = _getTreasury().createOrder(
-          tranchAddress, totalSupply, dataAddress["unit"], totalPrice
+          ORDER_TYPE_TOKEN_SALE,
+          tranchAddress, 
+          totalSupply, 
+          dataAddress["unit"], 
+          totalPrice
         );
       }
 
@@ -308,6 +312,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
 
           // buy back all sold tokens
           dataUint256[__i(i, "finalBuybackOfferId")] = _getTreasury().createOrder(
+            ORDER_TYPE_TOKEN_BUYBACK,
             unitAddress,
             tranchBalance,
             dataAddress[__i(i, "address")],

@@ -4,6 +4,7 @@ import "./base/Controller.sol";
 import "./base/EternalStorage.sol";
 import "./base/EntityFacetBase.sol";
 import "./base/IPolicyTreasury.sol";
+import "./base/IPolicyTreasuryConstants.sol";
 import "./base/IPolicyCoreFacet.sol";
 import "./base/IERC20.sol";
 import "./base/IDiamondFacet.sol";
@@ -11,7 +12,7 @@ import "./base/IDiamondFacet.sol";
 /**
  * @dev Business-logic for policy treasuries
  */
- contract EntityTreasuryFacet is EternalStorage, Controller, EntityFacetBase, IPolicyTreasury, IDiamondFacet {
+ contract EntityTreasuryFacet is EternalStorage, Controller, EntityFacetBase, IPolicyTreasury, IPolicyTreasuryConstants, IDiamondFacet {
   /**
    * Constructor
    */
@@ -31,12 +32,13 @@ import "./base/IDiamondFacet.sol";
 
   // IPolicyTreasury
 
-  function createOrder (address _sellUnit, uint256 _sellAmount, address _buyUnit, uint256 _buyAmount)
+  function createOrder (bytes32 _type, address _sellUnit, uint256 _sellAmount, address _buyUnit, uint256 _buyAmount)
     public 
     override
     assertIsMyPolicy(msg.sender)
     returns (uint256)
   {
+    require(_type == ORDER_TYPE_TOKEN_BUYBACK || _type == ORDER_TYPE_TOKEN_SALE, 'unknown order type');
     return _tradeOnMarket(_sellUnit, _sellAmount, _buyUnit, _buyAmount);
   }
 

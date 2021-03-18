@@ -4,6 +4,7 @@ interface IPolicyTreasury {
   /**
    * @dev Create a market order.
    *
+   * @param _type Order type.
    * @param _sellUnit Unit to sell.
    * @param _sellAmount Amount to sell.
    * @param _buyUnit Unit to buy.
@@ -11,7 +12,7 @@ interface IPolicyTreasury {
    *
    * @return Market order id.
    */
-  function createOrder (address _sellUnit, uint256 _sellAmount, address _buyUnit, uint256 _buyAmount) external returns (uint256);
+  function createOrder (bytes32 _type, address _sellUnit, uint256 _sellAmount, address _buyUnit, uint256 _buyAmount) external returns (uint256);
   /**
    * @dev Cancel token sale order.
    *

@@ -109,6 +109,8 @@ contract PolicyTranchTokensFacet is EternalStorage, Controller, IDiamondFacet, I
       if (dataUint256[__i(_index, "sharesSold")] == dataUint256[__i(_index, "numShares")]) {
         // flip tranch state to ACTIVE
         _setTranchState(_index, TRANCH_STATE_ACTIVE);
+        // tell treasury to add tranch balance value to overall policy balance
+        // _getTreasury().addToPolicyBalance(dataUint256[__i(_index, "balance")]);
       }
     }
   }

@@ -139,6 +139,20 @@ contract('Entity', accounts => {
       await etherToken.balanceOf(entityProxy.address).should.eventually.eq(10)
     })
 
+    it('and emits an event', async () => {
+      await etherToken.deposit({ value: 10 })
+      await etherToken.approve(entityProxy.address, 10)
+      const result = await entity.deposit(etherToken.address, 10).should.be.fulfilled
+
+      const eventArgs = extractEventArgs(result, events.Deposit)
+
+      expect(eventArgs).to.include({
+        caller: accounts[0],
+        unit: etherToken.address,
+        amount: '10'
+      })
+    })
+
     describe('and enables subsequent withdrawals', () => {
       beforeEach(async () => {
         await etherToken.deposit({ value: 10 })
@@ -171,6 +185,23 @@ contract('Entity', accounts => {
 
         // this should work
         await entity.withdraw(etherToken.address, 20, { from: entityAdmin }).should.be.fulfilled
+      })
+
+      it('and emits an event upon withdrawal', async () => {
+        await etherToken.deposit({ value: 200 })
+        await etherToken.approve(entityProxy.address, 10)
+        await entity.deposit(etherToken.address, 10)
+        await etherToken.balanceOf(entity.address).should.eventually.eq(20)
+
+        const result = await entity.withdraw(etherToken.address, 20, { from: entityAdmin })
+
+        const eventArgs = extractEventArgs(result, events.Withdraw)
+
+        expect(eventArgs).to.include({
+          caller: entityAdmin,
+          unit: etherToken.address,
+          amount: '20'
+        })
       })
     })
 

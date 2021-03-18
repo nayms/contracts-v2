@@ -22,8 +22,27 @@ interface IPolicyTreasury {
   /**
    * Pay a claim.
    *
+   * Once paid the internal minimum collateral level required for the policy will be automatically reduced.
+   *
    * @param _recipient Recipient address.
    * @param _amount Amount to pay.
    */
   function payClaim (address _recipient, uint256 _amount) external;
+  /**
+   * Increase policy treasury balance.
+   *
+   * This should only be called by a policy to inform the treasury to update its 
+   * internal record of the policy's current balance, e.g. after premium payments are sent to the treasury.
+   *
+   * @param _amount Amount to increase by.
+   */
+   function incPolicyBalance (uint256 _amount) external;
+  /**
+   * Set minimum balance required to fully collateralize the policy.
+   *
+   * This can only be called once.
+   *
+   * @param _amount Amount to increase by.
+   */
+   function setMinPolicyCollateral (uint256 _amount) external;
 }

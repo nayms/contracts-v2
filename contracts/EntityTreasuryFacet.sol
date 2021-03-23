@@ -23,14 +23,25 @@ import "./base/IDiamondFacet.sol";
 
   function getSelectors () public pure override returns (bytes memory) {
     return abi.encodePacked(
+      IPolicyTreasury.getPolicyEconomics.selector,
       IPolicyTreasury.createOrder.selector,
       IPolicyTreasury.cancelOrder.selector,
-      IPolicyTreasury.payClaim.selector
+      IPolicyTreasury.payClaim.selector,
+      IPolicyTreasury.incPolicyBalance.selector,
+      IPolicyTreasury.setMinPolicyBalance.selector
     );
   }
 
 
   // IPolicyTreasury
+
+  function getPolicyEconomics (address _policy) public override returns (
+    uint256 balance_,
+    uint256 minBalance_
+  ) {
+    balance_ = dataUint256[__a(_policy, "policyBalance")];
+    minBalance_ = dataUint256[__a(_policy, "minPolicyBalance")];
+  }
 
   function createOrder (bytes32 _type, address _sellUnit, uint256 _sellAmount, address _buyUnit, uint256 _buyAmount)
     public 
@@ -68,5 +79,31 @@ import "./base/IDiamondFacet.sol";
     }
 
     IERC20(policyUnitAddress).transfer(_recipient, _amount);
+  }
+
+  function incPolicyBalance (uint256 _amount) 
+    public 
+    override
+    assertIsMyPolicy(msg.sender)
+  {
+    string memory key = __a(msg.sender, "policyBalance");
+
+    dataUint256[key] += uint256(_amount);
+
+    emit UpdatePolicyBalance(msg.sender, int256(_amount), dataUint256[key]);
+  }
+
+  function setMinPolicyBalance (uint256 _bal) 
+    public 
+    override
+    assertIsMyPolicy(msg.sender)
+  {
+    string memory key = __a(msg.sender, "minPolicyBalance");
+
+    require(dataUint256[key] == 0, 'already set');
+
+    dataUint256[key] = _bal;
+
+    emit SetMinPolicyBalance(msg.sender, _bal);
   }
 }

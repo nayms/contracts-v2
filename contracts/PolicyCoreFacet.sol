@@ -243,6 +243,8 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
         return;
       }
 
+      uint256 minPolicyCollateral;
+
       for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
         // tranch/token address
         address tranchAddress = dataAddress[__i(i, "address")];
@@ -261,7 +263,12 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
           dataAddress["unit"], 
           totalPrice
         );
+        // add to min. collateral
+        minPolicyCollateral += totalPrice;
       }
+
+      // set min. collateral balance to treasury
+      _getTreasury().setMinPolicyBalance(minPolicyCollateral);
 
       // set policy state to selling
       _setPolicyState(POLICY_STATE_INITIATED);
@@ -271,6 +278,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
   function _activatePolicyIfPending() private {
     // make policy active if necessary
     if (dataUint256["state"] == POLICY_STATE_INITIATED) {
+      // update state
       _setPolicyState(POLICY_STATE_ACTIVE);
     }
   }

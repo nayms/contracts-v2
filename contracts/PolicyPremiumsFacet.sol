@@ -97,6 +97,9 @@ contract PolicyPremiumsFacet is EternalStorage, Controller, IDiamondFacet, IPoli
     uint256 totalCommissions = totalPaid - netPremium;
     tkn.transferFrom(msg.sender, address(this), totalCommissions);
     tkn.transferFrom(msg.sender, dataAddress["treasury"], netPremium);
+
+    // tell treasury to update its balance for this policy
+    _getTreasury().incPolicyBalance(netPremium);
     
     // event
     emit PremiumPayment(_index, totalPaid, msg.sender);

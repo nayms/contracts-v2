@@ -1,6 +1,19 @@
 pragma solidity >=0.6.7;
 
 interface IPolicyTreasury {
+
+  /**
+   * @dev Get policy treasury economics info.
+   *
+   * @param _policy Policy address.
+   * @return balance_ Current balance.
+   * @return minBalance_ Min. requried balance to fully collateralize policy.
+   */
+  function getPolicyEconomics (address _policy) external returns (
+    uint256 balance_,
+    uint256 minBalance_
+  );
+
   /**
    * @dev Create a market order.
    *
@@ -34,9 +47,9 @@ interface IPolicyTreasury {
    * This should only be called by a policy to inform the treasury to update its 
    * internal record of the policy's current balance, e.g. after premium payments are sent to the treasury.
    *
-   * @param _amount Amount to increase by.
+   * @param _amount Amount to add or remove.
    */
-   function incPolicyBalance (uint256 _amount) external;
+  function incPolicyBalance (uint256 _amount) external;
   /**
    * Set minimum balance required to fully collateralize the policy.
    *
@@ -44,5 +57,29 @@ interface IPolicyTreasury {
    *
    * @param _amount Amount to increase by.
    */
-   function setMinPolicyCollateral (uint256 _amount) external;
+  function setMinPolicyBalance (uint256 _amount) external;
+
+  // Events
+
+  /**
+   * @dev Emitted when policy balance is updated.
+   * @param policy The policy address.
+   * @param amount Amount added or removed.
+   * @param newBalance The new balance.
+   */
+  event UpdatePolicyBalance(
+    address indexed policy,
+    int256 indexed amount,
+    uint256 indexed newBalance
+  );
+
+  /**
+   * @dev Emitted when the minimum expected policy balance gets set.
+   * @param policy The policy address.
+   * @param bal The balance.
+   */
+  event SetMinPolicyBalance(
+    address indexed policy,
+    uint256 indexed bal
+  );
 }

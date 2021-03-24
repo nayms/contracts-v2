@@ -91,9 +91,8 @@ yarn deploy:local
 
 **Requirements:**
 
-* Node.js 15.12.0
-* NPM 7.7.0
-* Yarn 1.22.10 (use `npm i -g yarn` once Node.js is installed)
+* Node.js 14.16.0+
+* Yarn 1.22.10+ (use `npm i -g yarn` once Node.js is installed)
 
 Install dependencies:
 

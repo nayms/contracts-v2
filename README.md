@@ -137,6 +137,24 @@ Now you can run the tests:
 yarn test
 ```
 
+You can use the admin dapp to interact with your locally deployed contracts. 
+
+First let's build it:
+
+```
+yarn build-admin-dapp
+```
+
+Then open [Metamask](https://metamask.io/) in your browser and configure it to use our [custom mnemonic](https://github.com/nayms/contracts/blob/master/package.json#L21) and pointing to `http://localhost:8545` as a _Custom RPC_ endpoint (Note: you may already have a "Localhost 8545" entry in your Metamask network list, in which ase you don't need to add a new one).
+
+Once done, start a lightweight HTTP server to serve up the admin dapp:
+
+```
+npx serve ./dapp
+```
+
+Visit the URL shown in the output and enjoy.
+
 ### Deployments
 
 Setup release config:

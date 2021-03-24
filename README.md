@@ -89,7 +89,10 @@ yarn deploy:local
 ```
 ## Development
 
-**Note: Requires Node 12+**
+**Requirements:**
+
+* Node.js 14.16.0+
+* Yarn 1.22.10+ (use `npm i -g yarn` once Node.js is installed)
 
 Install dependencies:
 

@@ -9,7 +9,7 @@ interface IPolicyTreasury {
    * @return balance_ Current balance.
    * @return minBalance_ Min. requried balance to fully collateralize policy.
    */
-  function getPolicyEconomics (address _policy) external returns (
+  function getPolicyEconomics (address _policy) external view returns (
     uint256 balance_,
     uint256 minBalance_
   );

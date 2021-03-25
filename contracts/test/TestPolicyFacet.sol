@@ -35,13 +35,9 @@ contract TestPolicyFacet is IDiamondFacet, IPolicyCoreFacet {
   function getTranchInfo (uint256 _index) external view override returns (
     address token_,
     uint256 state_,
+    uint256 numShares_,
+    uint256 initialPricePerShare_,
     uint256 balance_,
-    uint256 numPremiums_,
-    uint256 nextPremiumIndex_,
-    uint256 nextPremiumAmount_,
-    uint256 nextPremiumDueAt_,
-    uint256 premiumPaymentsMissed_,
-    uint256 numPremiumsPaid_,
     uint256 sharesSold_,
     uint256 initialSaleOfferId_,
     uint256 finalBuybackofferId_

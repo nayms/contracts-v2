@@ -33,12 +33,27 @@ contract PolicyPremiumsFacet is EternalStorage, Controller, IDiamondFacet, IPoli
 
   function getSelectors () public pure override returns (bytes memory) {
     return abi.encodePacked(
+      IPolicyPremiumsFacet.getTranchPremiumsInfo.selector,
       IPolicyPremiumsFacet.getTranchPremiumInfo.selector,
       IPolicyPremiumsFacet.payTranchPremium.selector
     );
   }
 
   // IPolicyPremiumsFacet
+
+  function getTranchPremiumsInfo (uint256 _tranchIndex) public view override returns (
+    uint256 numPremiums_,
+    uint256 nextPremiumAmount_,
+    uint256 nextPremiumDueAt_,
+    uint256 nextPremiumPaidSoFar_,
+    uint256 premiumPaymentsMissed_,
+    uint256 numPremiumsPaid_
+  ) {
+    numPremiums_ = dataUint256[__i(_tranchIndex, "numPremiums")];
+    (nextPremiumAmount_, nextPremiumDueAt_, nextPremiumPaidSoFar_) = _getNextTranchPremium(_tranchIndex);
+    premiumPaymentsMissed_ = _getNumberOfTranchPaymentsMissed(_tranchIndex);
+    numPremiumsPaid_ = dataUint256[__i(_tranchIndex, "numPremiumsPaid")];
+  }
 
   function getTranchPremiumInfo (uint256 _tranchIndex, uint256 _premiumIndex) public view override returns (
     uint256 amount_,

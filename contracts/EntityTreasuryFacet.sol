@@ -35,7 +35,7 @@ import "./base/IDiamondFacet.sol";
 
   // IPolicyTreasury
 
-  function getPolicyEconomics (address _policy) public override returns (
+  function getPolicyEconomics (address _policy) public view override returns (
     uint256 balance_,
     uint256 minBalance_
   ) {

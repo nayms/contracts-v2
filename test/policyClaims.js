@@ -33,7 +33,7 @@ const IPolicyStates = artifacts.require("./base/IPolicyStates")
 const IPolicyClaimsFacet = artifacts.require("./base/IPolicyClaimsFacet")
 const Policy = artifacts.require("./Policy")
 const IPolicy = artifacts.require("./base/IPolicy")
-const TestPolicyFacet = artifacts.require("./test/TestPolicyFacet")
+const DummyPolicyFacet = artifacts.require("./test/DummyPolicyFacet")
 const FreezeUpgradesFacet = artifacts.require("./test/FreezeUpgradesFacet")
 
 const POLICY_ATTRS_1 = {

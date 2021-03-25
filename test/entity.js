@@ -22,7 +22,7 @@ import { ensurePolicyImplementationsAreDeployed } from '../migrations/modules/po
 const IEntity = artifacts.require("./base/IEntity")
 const IDiamondProxy = artifacts.require('./base/IDiamondProxy')
 const AccessControl = artifacts.require('./base/AccessControl')
-const TestEntityFacet = artifacts.require("./test/TestEntityFacet")
+const DummyEntityFacet = artifacts.require("./test/DummyEntityFacet")
 const FreezeUpgradesFacet = artifacts.require("./test/FreezeUpgradesFacet")
 const Entity = artifacts.require("./Entity")
 const IPolicy = artifacts.require("./IPolicy")
@@ -81,11 +81,11 @@ contract('Entity', accounts => {
   })
 
   describe('it can be upgraded', () => {
-    let testEntityFacet
+    let dummyEntityTestFacet
     let freezeUpgradesFacet
 
     beforeEach(async () => {
-      testEntityFacet = await TestEntityFacet.new()
+      dummyEntityTestFacet = await DummyEntityFacet.new()
       freezeUpgradesFacet = await FreezeUpgradesFacet.new()
     })
 
@@ -97,7 +97,7 @@ contract('Entity', accounts => {
     })
 
     it('but not just by anyone', async () => {
-      await entity.upgrade([ testEntityFacet.address ], { from: accounts[1] }).should.be.rejectedWith('must be admin')
+      await entity.upgrade([ dummyEntityTestFacet.address ], { from: accounts[1] }).should.be.rejectedWith('must be admin')
     })
 
     it('but not to the existing implementation', async () => {
@@ -105,13 +105,13 @@ contract('Entity', accounts => {
     })
 
     it('and adds the new implementation as a facet', async () => {
-      await entity.upgrade([ testEntityFacet.address ]).should.be.fulfilled
+      await entity.upgrade([ dummyEntityTestFacet.address ]).should.be.fulfilled
       await entity.getNumPolicies().should.eventually.eq(666);
     })
 
     it('and can be frozen', async () => {
       await entity.upgrade([freezeUpgradesFacet.address]).should.be.fulfilled
-      await entity.upgrade([testEntityFacet.address]).should.be.rejectedWith('frozen')
+      await entity.upgrade([dummyEntityTestFacet.address]).should.be.rejectedWith('frozen')
     })
 
     it('and the internal upgrade function cannot be called directly', async () => {

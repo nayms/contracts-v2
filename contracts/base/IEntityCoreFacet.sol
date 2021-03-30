@@ -102,7 +102,7 @@ interface IEntityCoreFacet {
    * @param unit The token deposited.
    * @param amount The amount deposited.
    */
-  event Deposit(
+  event EntityDeposit (
     address indexed caller,
     address indexed unit,
     uint256 indexed amount
@@ -114,7 +114,7 @@ interface IEntityCoreFacet {
    * @param unit The token withdrawn.
    * @param amount The amount withdrawn.
    */
-  event Withdraw(
+  event EntityWithdraw(
     address indexed caller,
     address indexed unit,
     uint256 indexed amount

@@ -144,7 +144,7 @@ contract('Entity', accounts => {
       await etherToken.approve(entityProxy.address, 10)
       const result = await entity.deposit(etherToken.address, 10).should.be.fulfilled
 
-      const eventArgs = extractEventArgs(result, events.Deposit)
+      const eventArgs = extractEventArgs(result, events.EntityDeposit)
 
       expect(eventArgs).to.include({
         caller: accounts[0],
@@ -195,7 +195,7 @@ contract('Entity', accounts => {
 
         const result = await entity.withdraw(etherToken.address, 20, { from: entityAdmin })
 
-        const eventArgs = extractEventArgs(result, events.Withdraw)
+        const eventArgs = extractEventArgs(result, events.EntityWithdraw)
 
         expect(eventArgs).to.include({
           caller: entityAdmin,

@@ -108,7 +108,7 @@ import "./Policy.sol";
     tok.transferFrom(msg.sender, address(this), _amount);
     dataUint256[__a(_unit, "balance")] += _amount;
     
-    emit Deposit(msg.sender, _unit, _amount);
+    emit EntityDeposit(msg.sender, _unit, _amount);
   }
 
   function withdraw(address _unit, uint256 _amount) 
@@ -121,7 +121,7 @@ import "./Policy.sol";
     IERC20 tok = IERC20(_unit);
     tok.transfer(msg.sender, _amount);
 
-    emit Withdraw(msg.sender, _unit, _amount);
+    emit EntityWithdraw(msg.sender, _unit, _amount);
   }
 
   function payTranchPremium(address _policy, uint256 _tranchIndex, uint256 _amount)

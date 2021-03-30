@@ -24,8 +24,10 @@ const IDiamondProxy = artifacts.require('./base/IDiamondProxy')
 const AccessControl = artifacts.require('./base/AccessControl')
 const DummyEntityFacet = artifacts.require("./test/DummyEntityFacet")
 const EntityTreasuryTestFacet = artifacts.require("./test/EntityTreasuryTestFacet")
+const EntityTreasuryFacet = artifacts.require("./test/EntityTreasuryFacet")
 const IEntityTreasuryTestFacet = artifacts.require("./test/IEntityTreasuryTestFacet")
 const IPolicyTreasury = artifacts.require("./base/IPolicyTreasury")
+const IPolicyTreasuryConstants = artifacts.require("./base/IPolicyTreasuryConstants")
 const FreezeUpgradesFacet = artifacts.require("./test/FreezeUpgradesFacet")
 const Entity = artifacts.require("./Entity")
 const IPolicy = artifacts.require("./IPolicy")
@@ -51,11 +53,15 @@ contract('Treasury', accounts => {
   let DOES_NOT_HAVE_ROLE
   let HAS_ROLE_CONTEXT
 
+  let ORDER_TYPE_TOKEN_BUYBACK
+  let ORDER_TYPE_TOKEN_SALE
+
   before(async () => {
     acl = await ensureAclIsDeployed({ artifacts })
     settings = await ensureSettingsIsDeployed({ artifacts, acl })
     market = await ensureMarketIsDeployed({ artifacts, settings })
     etherToken = await ensureEtherTokenIsDeployed({ artifacts, settings })
+    etherToken2 = await deployNewEtherToken({ artifacts, settings })
     await ensurePolicyImplementationsAreDeployed({ artifacts, settings })
     await ensureEntityImplementationsAreDeployed({ artifacts, settings })
 
@@ -81,6 +87,11 @@ contract('Treasury', accounts => {
     dummyPolicy = accounts[9]
     const testFacet = await IEntityTreasuryTestFacet.at(entityProxy.address)
     await testFacet.setAsMyPolicy(dummyPolicy)
+
+    // constants
+    const cons = await EntityTreasuryFacet.new(settings.address)
+    ORDER_TYPE_TOKEN_BUYBACK = await cons.ORDER_TYPE_TOKEN_BUYBACK()
+    ORDER_TYPE_TOKEN_SALE = await cons.ORDER_TYPE_TOKEN_SALE()
   })
 
   beforeEach(async () => {
@@ -148,6 +159,60 @@ contract('Treasury', accounts => {
     it('only once', async () => {
       await treasury.setMinPolicyBalance(123, { from: dummyPolicy })
       await treasury.setMinPolicyBalance(123, { from: dummyPolicy }).should.be.rejectedWith('already set')
+    })
+  })
+
+  describe('can trade', () => {
+    beforeEach(async () => {
+      await etherToken.deposit({ value: 500 })
+      await etherToken.transfer(treasury.address, 500)
+    })
+
+    it('but not for a non-policy', async () => {
+      await treasury.createOrder(
+        ORDER_TYPE_TOKEN_SALE,
+        etherToken.address,
+        1,
+        etherToken2.address,
+        1,
+      ).should.be.rejectedWith('not my policy')
+    })
+
+    it('for a policy', async () => {
+      const orderId = await treasury.createOrder(
+        ORDER_TYPE_TOKEN_SALE,
+        etherToken.address,
+        1,
+        etherToken2.address,
+        5,
+        { from: dummyPolicy }
+      )
+
+      const offerId = await market.last_offer_id()
+      await market.isActive(offerId).should.eventually.eq(true)
+      const offer = await market.getOffer(offerId)
+
+      expect(offer[0].toNumber()).to.eq(1)
+      expect(offer[1]).to.eq(etherToken.address)
+      expect(offer[2].toNumber()).to.eq(5)
+      expect(offer[3]).to.eq(etherToken2.address)
+    })
+
+    it('and cancel a trade', async () => {
+      const orderId = await treasury.createOrder(
+        ORDER_TYPE_TOKEN_SALE,
+        etherToken.address,
+        1,
+        etherToken2.address,
+        5,
+        { from: dummyPolicy }
+      )
+
+      const offerId = await market.last_offer_id()
+
+      await treasury.cancelOrder(offerId).should.be.rejectedWith('not my policy')
+      await treasury.cancelOrder(offerId, { from: dummyPolicy })
+      await market.isActive(offerId).should.eventually.eq(false)
     })
   })
 })

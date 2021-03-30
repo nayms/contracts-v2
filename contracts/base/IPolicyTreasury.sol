@@ -65,12 +65,12 @@ interface IPolicyTreasury {
    * @dev Emitted when policy balance is updated.
    * @param policy The policy address.
    * @param amount Amount added or removed.
-   * @param newBalance The new balance.
+   * @param newBal The new balance.
    */
   event UpdatePolicyBalance(
     address indexed policy,
     int256 indexed amount,
-    uint256 indexed newBalance
+    uint256 indexed newBal
   );
 
   /**

@@ -3,6 +3,17 @@ pragma solidity >=0.6.7;
 interface IPolicyTreasury {
 
   /**
+   * @dev Get treasury global economics info.
+   *
+   * @return realBalance_ Current real balance.
+   * @return virtualBalance_ Current virtual balance (sum of all policy balances).
+   */
+  function getEconomics () external view returns (
+    uint256 realBalance_,
+    uint256 virtualBalance_
+  );
+
+  /**
    * @dev Get policy treasury economics info.
    *
    * @param _policy Policy address.

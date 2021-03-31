@@ -23,6 +23,7 @@ import "./base/IDiamondFacet.sol";
 
   function getSelectors () public pure override returns (bytes memory) {
     return abi.encodePacked(
+      IPolicyTreasury.getEconomics.selector,
       IPolicyTreasury.getPolicyEconomics.selector,
       IPolicyTreasury.createOrder.selector,
       IPolicyTreasury.cancelOrder.selector,
@@ -34,6 +35,14 @@ import "./base/IDiamondFacet.sol";
 
 
   // IPolicyTreasury
+
+  function getEconomics () public view override returns (
+    uint256 realBalance_,
+    uint256 virtualBalance_
+  ) {
+    realBalance_ = dataUint256["treasuryRealBalance"];
+    virtualBalance_ = dataUint256["treasuryVirtualBalance"];
+  }
 
   function getPolicyEconomics (address _policy) public view override returns (
     uint256 balance_,
@@ -89,6 +98,9 @@ import "./base/IDiamondFacet.sol";
     string memory key = __a(msg.sender, "policyBalance");
 
     dataUint256[key] += uint256(_amount);
+
+    dataUint256["treasuryRealBalance"] += _amount;
+    dataUint256["treasuryVirtualBalance"] += _amount;
 
     emit UpdatePolicyBalance(msg.sender, int256(_amount), dataUint256[key]);
   }

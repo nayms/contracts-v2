@@ -47,6 +47,7 @@ contract('Treasury', accounts => {
 
   let entityAdmin
 
+  let testFacet
   let treasury
   let dummyPolicy
 
@@ -74,7 +75,7 @@ contract('Treasury', accounts => {
     const testFacetImpl = await EntityTreasuryTestFacet.new()
     // add its address to list of entity impl facets
     const addrs = await settings.getAddresses(settings.address, SETTINGS.ENTITY_IMPL)
-    settings.setAddresses(settings.address, SETTINGS.ENTITY_IMPL, addrs.concat(testFacetImpl.address))
+    await settings.setAddresses(settings.address, SETTINGS.ENTITY_IMPL, addrs.concat(testFacetImpl.address))
 
     entityProxy = await Entity.new(settings.address, entityAdmin, BYTES32_ZERO)
     // now let's speak to Entity contract using EntityImpl ABI
@@ -85,7 +86,7 @@ contract('Treasury', accounts => {
     
     // set one of my accounts as a dummy policy
     dummyPolicy = accounts[9]
-    const testFacet = await IEntityTreasuryTestFacet.at(entityProxy.address)
+    testFacet = await IEntityTreasuryTestFacet.at(entityProxy.address)
     await testFacet.setAsMyPolicy(dummyPolicy)
 
     // constants
@@ -112,6 +113,11 @@ contract('Treasury', accounts => {
     })
 
     it('for a policy', async () => {
+      await treasury.getEconomics().should.eventually.matchObj({
+        realBalance_: 0,
+        virtualBalance_: 0,
+      })
+
       await treasury.getPolicyEconomics(dummyPolicy).should.eventually.matchObj({
         balance_: 0,
         minBalance_: 0,
@@ -129,6 +135,11 @@ contract('Treasury', accounts => {
         balance_: 123,
         minBalance_: 0,
       })
+
+      await treasury.getEconomics().should.eventually.matchObj({
+        realBalance_: 123,
+        virtualBalance_: 123,
+      })
     })
   })
 
@@ -138,6 +149,11 @@ contract('Treasury', accounts => {
     })
 
     it('for a policy', async () => {
+      await treasury.getEconomics().should.eventually.matchObj({
+        realBalance_: 0,
+        virtualBalance_: 0,
+      })
+
       await treasury.getPolicyEconomics(dummyPolicy).should.eventually.matchObj({
         balance_: 0,
         minBalance_: 0,
@@ -154,11 +170,39 @@ contract('Treasury', accounts => {
         balance_: 0,
         minBalance_: 123,
       })
+
+      await treasury.getEconomics().should.eventually.matchObj({
+        realBalance_: 0,
+        virtualBalance_: 0,
+      })
     })
 
     it('only once', async () => {
       await treasury.setMinPolicyBalance(123, { from: dummyPolicy })
       await treasury.setMinPolicyBalance(123, { from: dummyPolicy }).should.be.rejectedWith('already set')
+    })
+  })
+
+  describe('keeps track of its global economics', () => {
+    beforeEach(async () => {
+      await testFacet.setAsMyPolicy(accounts[7])
+      await testFacet.setAsMyPolicy(accounts[8])
+    })
+
+    it('when multiple policies deposit', async () => {
+      await treasury.getEconomics().should.eventually.matchObj({
+        realBalance_: 0,
+        virtualBalance_: 0,
+      })
+
+      await treasury.incPolicyBalance(12, { from: accounts[7 ]})
+      await treasury.incPolicyBalance(15, { from: accounts[7] })
+      await treasury.incPolicyBalance(3, { from: accounts[8] })
+
+      await treasury.getEconomics().should.eventually.matchObj({
+        realBalance_: 30,
+        virtualBalance_: 30,
+      })
     })
   })
 

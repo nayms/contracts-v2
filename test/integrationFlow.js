@@ -1146,7 +1146,7 @@ contract('Integration: Flow', accounts => {
 
       describe('once it tries to buy back all tokens', async () => {
         beforeEach(async () => {
-          const t0 = await policy.getTranchInfo(0)                
+          const t0 = await policy.getTranchPremiumsInfo(0)     
           const numPremiums0 = t0.numPremiums_.toNumber()
           let numPremiumsPaid0 = t0.numPremiumsPaid_.toNumber()
           let nextPremiumAmount0 = t0.nextPremiumAmount_.toNumber()
@@ -1157,7 +1157,7 @@ contract('Integration: Flow', accounts => {
           }
           await policy.payTranchPremium(0, toPay0)
 
-          const t1 = await policy.getTranchInfo(1)
+          const t1 = await policy.getTranchPremiumsInfo(1)
           let nextPremiumAmount1 = t1.nextPremiumAmount_.toNumber()
           const numPremiums1 = t1.numPremiums_.toNumber()
           const numPremiumsPaid1 = t1.numPremiumsPaid_.toNumber()

@@ -3,24 +3,27 @@ pragma solidity >=0.6.7;
 interface IPolicyTreasury {
 
   /**
-   * @dev Get treasury global economics info.
+   * @dev Get aggregate treasury info for given token.
    *
+   * @param _unit Token unit.
    * @return realBalance_ Current real balance.
    * @return virtualBalance_ Current virtual balance (sum of all policy balances).
    */
-  function getEconomics () external view returns (
+  function getEconomics (address _unit) external view returns (
     uint256 realBalance_,
     uint256 virtualBalance_
   );
 
   /**
-   * @dev Get policy treasury economics info.
+   * @dev Get treasury info for given policy.
    *
    * @param _policy Policy address.
+   * @return unit_ Token.
    * @return balance_ Current balance.
    * @return minBalance_ Min. requried balance to fully collateralize policy.
    */
   function getPolicyEconomics (address _policy) external view returns (
+    address unit_,
     uint256 balance_,
     uint256 minBalance_
   );

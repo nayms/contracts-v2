@@ -24,8 +24,10 @@ const IDiamondProxy = artifacts.require('./base/IDiamondProxy')
 const AccessControl = artifacts.require('./base/AccessControl')
 const DummyEntityFacet = artifacts.require("./test/DummyEntityFacet")
 const EntityTreasuryTestFacet = artifacts.require("./test/EntityTreasuryTestFacet")
-const EntityTreasuryFacet = artifacts.require("./test/EntityTreasuryFacet")
 const IEntityTreasuryTestFacet = artifacts.require("./test/IEntityTreasuryTestFacet")
+const PolicyTreasuryTestFacet = artifacts.require("./test/PolicyTreasuryTestFacet")
+const IPolicyTreasuryTestFacet = artifacts.require("./test/IPolicyTreasuryTestFacet")
+const EntityTreasuryFacet = artifacts.require("./test/EntityTreasuryFacet")
 const IPolicyTreasury = artifacts.require("./base/IPolicyTreasury")
 const IPolicyTreasuryConstants = artifacts.require("./base/IPolicyTreasuryConstants")
 const FreezeUpgradesFacet = artifacts.require("./test/FreezeUpgradesFacet")
@@ -71,11 +73,14 @@ contract('Treasury', accounts => {
 
     entityAdmin = accounts[9]
 
-    // deploy treasury test facet
-    const testFacetImpl = await EntityTreasuryTestFacet.new()
-    // add its address to list of entity impl facets
-    const addrs = await settings.getAddresses(settings.address, SETTINGS.ENTITY_IMPL)
-    await settings.setAddresses(settings.address, SETTINGS.ENTITY_IMPL, addrs.concat(testFacetImpl.address))
+    // deploy treasury entity test facets
+    const entityTreasuryTestFacetImpl = await EntityTreasuryTestFacet.new()
+    const entityAddrs = await settings.getAddresses(settings.address, SETTINGS.ENTITY_IMPL)
+    await settings.setAddresses(settings.address, SETTINGS.ENTITY_IMPL, entityAddrs.concat(entityTreasuryTestFacetImpl.address))
+    // deploy treasury policy test facets
+    const policyTreasuryTestFacetImpl = await PolicyTreasuryTestFacet.new(settings.address)
+    const policyAddrs = await settings.getAddresses(settings.address, SETTINGS.ENTITY_IMPL)
+    await settings.setAddresses(settings.address, SETTINGS.POLICY_IMPL, policyAddrs.concat(policyTreasuryTestFacetImpl.address))
 
     entityProxy = await Entity.new(settings.address, entityAdmin, BYTES32_ZERO)
     // now let's speak to Entity contract using EntityImpl ABI

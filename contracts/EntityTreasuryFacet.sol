@@ -36,18 +36,20 @@ import "./base/IDiamondFacet.sol";
 
   // IPolicyTreasury
 
-  function getEconomics () public view override returns (
+  function getEconomics (address _unit) public view override returns (
     uint256 realBalance_,
     uint256 virtualBalance_
   ) {
-    realBalance_ = dataUint256["treasuryRealBalance"];
-    virtualBalance_ = dataUint256["treasuryVirtualBalance"];
+    realBalance_ = dataUint256[__a(_unit, "treasuryRealBalance")];
+    virtualBalance_ = dataUint256[__a(_unit, "treasuryVirtualBalance")];
   }
 
   function getPolicyEconomics (address _policy) public view override returns (
+    address unit_,
     uint256 balance_,
     uint256 minBalance_
   ) {
+    unit_ = _getPolicyUnit(_policy);
     balance_ = dataUint256[__a(_policy, "policyBalance")];
     minBalance_ = dataUint256[__a(_policy, "minPolicyBalance")];
   }
@@ -78,16 +80,18 @@ import "./base/IDiamondFacet.sol";
     override
     assertIsMyPolicy(msg.sender)
   {
-    address policyUnitAddress;
-    {
-      uint256 i1;
-      uint256 i2;
-      uint256 i3;
-      address a1;
-      (a1, i1, i2, i3, policyUnitAddress, , , , , ,) = IPolicyCoreFacet(msg.sender).getInfo();
-    }
+    // check and update treasury balances
+    address unit = _getPolicyUnit(msg.sender);
+    uint256 realBal = dataUint256[__a(unit, "treasuryRealBalance")];
+    uint256 virtualBal = dataUint256[__a(unit, "treasuryVirtualBalance")];
+    
+    require(realBal >= _amount && virtualBal >= _amount);
 
-    IERC20(policyUnitAddress).transfer(_recipient, _amount);
+    dataUint256[__a(unit, "treasuryRealBalance")] -= _amount;
+    dataUint256[__a(unit, "treasuryVirtualBalance")] -= _amount;
+
+    // payout!
+    IERC20(unit).transfer(_recipient, _amount);
   }
 
   function incPolicyBalance (uint256 _amount) 
@@ -99,8 +103,9 @@ import "./base/IDiamondFacet.sol";
 
     dataUint256[key] += uint256(_amount);
 
-    dataUint256["treasuryRealBalance"] += _amount;
-    dataUint256["treasuryVirtualBalance"] += _amount;
+    address unit = _getPolicyUnit(msg.sender);
+    dataUint256[__a(unit, "treasuryRealBalance")] += _amount;
+    dataUint256[__a(unit, "treasuryVirtualBalance")] += _amount;
 
     emit UpdatePolicyBalance(msg.sender, int256(_amount), dataUint256[key]);
   }
@@ -117,5 +122,20 @@ import "./base/IDiamondFacet.sol";
     dataUint256[key] = _bal;
 
     emit SetMinPolicyBalance(msg.sender, _bal);
+  }
+
+  // Internal
+
+  function _getPolicyUnit (address _policy) internal view returns (address) {
+    address policyUnitAddress;
+    {
+      uint256 i1;
+      uint256 i2;
+      uint256 i3;
+      address a1;
+      (a1, i1, i2, i3, policyUnitAddress, , , , , ,) = IPolicyCoreFacet(_policy).getInfo();
+    }
+
+    return policyUnitAddress;
   }
 }

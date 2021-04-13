@@ -6,6 +6,7 @@ import {
   hdWallet,
   ADDRESS_ZERO,
   BYTES32_ZERO,
+  createEntity,
   createPolicy,
   createTranch,
 } from './utils'
@@ -13,6 +14,7 @@ import {
 import { events } from '..'
 import { ROLES, SETTINGS } from '../utils/constants'
 import { ensureEtherTokenIsDeployed, deployNewEtherToken } from '../migrations/modules/etherToken'
+import { ensureEntityDeployerIsDeployed } from '../migrations/modules/entityDeployer'
 import { ensureAclIsDeployed } from '../migrations/modules/acl'
 import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
 import { ensureMarketIsDeployed } from '../migrations/modules/market'
@@ -33,6 +35,7 @@ const IPolicyTreasuryConstants = artifacts.require("./base/IPolicyTreasuryConsta
 const FreezeUpgradesFacet = artifacts.require("./test/FreezeUpgradesFacet")
 const Entity = artifacts.require("./Entity")
 const IPolicy = artifacts.require("./IPolicy")
+const Policy = artifacts.require("./Policy")
 
 contract('Treasury', accounts => {
   const evmSnapshot = new EvmSnapshot()
@@ -42,16 +45,22 @@ contract('Treasury', accounts => {
   let etherToken
   let etherToken2
   let market
+  let systemContext
+  let entityDeployer
   let entityProxy
   let entity
   let entityCoreAddress
   let entityContext
 
-  let entityAdmin
+  const entityAdminAddress = accounts[0]
 
-  let testFacet
+  let entityAdmin
+  
   let treasury
-  let dummyPolicy
+  
+  let policies
+
+  let entityTreasuryTestFacet
 
   let DOES_NOT_HAVE_ROLE
   let HAS_ROLE_CONTEXT
@@ -63,6 +72,7 @@ contract('Treasury', accounts => {
     acl = await ensureAclIsDeployed({ artifacts })
     settings = await ensureSettingsIsDeployed({ artifacts, acl })
     market = await ensureMarketIsDeployed({ artifacts, settings })
+    entityDeployer = await ensureEntityDeployerIsDeployed({ artifacts, settings })
     etherToken = await ensureEtherTokenIsDeployed({ artifacts, settings })
     etherToken2 = await deployNewEtherToken({ artifacts, settings })
     await ensurePolicyImplementationsAreDeployed({ artifacts, settings })
@@ -71,7 +81,7 @@ contract('Treasury', accounts => {
     DOES_NOT_HAVE_ROLE = (await acl.DOES_NOT_HAVE_ROLE()).toNumber()
     HAS_ROLE_CONTEXT = (await acl.HAS_ROLE_CONTEXT()).toNumber()
 
-    entityAdmin = accounts[9]
+    systemContext = await acl.systemContext()
 
     // deploy treasury entity test facets
     const entityTreasuryTestFacetImpl = await EntityTreasuryTestFacet.new()
@@ -79,20 +89,37 @@ contract('Treasury', accounts => {
     await settings.setAddresses(settings.address, SETTINGS.ENTITY_IMPL, entityAddrs.concat(entityTreasuryTestFacetImpl.address))
     // deploy treasury policy test facets
     const policyTreasuryTestFacetImpl = await PolicyTreasuryTestFacet.new(settings.address)
-    const policyAddrs = await settings.getAddresses(settings.address, SETTINGS.ENTITY_IMPL)
+    const policyAddrs = await settings.getAddresses(settings.address, SETTINGS.POLICY_IMPL)
     await settings.setAddresses(settings.address, SETTINGS.POLICY_IMPL, policyAddrs.concat(policyTreasuryTestFacetImpl.address))
 
-    entityProxy = await Entity.new(settings.address, entityAdmin, BYTES32_ZERO)
-    // now let's speak to Entity contract using EntityImpl ABI
+    await acl.assignRole(systemContext, accounts[0], ROLES.SYSTEM_MANAGER)
+
+    // entity
+    const entityAddress = await createEntity({ entityDeployer, adminAddress: entityAdminAddress })
+    entityProxy = await Entity.at(entityAddress)
     entity = await IEntity.at(entityProxy.address)
     entityContext = await entityProxy.aclContext()
 
+    // policy
+    policies = []
+    for (let i = 0; 3 > i; i += 1) {
+      await createPolicy(entity, { unit: (i < 2 ? etherToken.address : etherToken2.address) })
+      const policyAddress = await entity.getPolicy(i)
+      const proxy = await Policy.at(policyAddress)
+      policies.push({
+        address: policyAddress,
+        policy: await IPolicy.at(policyAddress),
+        context: await proxy.aclContext(),
+        proxy,
+        testFacet: await IPolicyTreasuryTestFacet.at(policyAddress),
+      })
+    }
+
+    // test facets
+    entityTreasuryTestFacet = await IEntityTreasuryTestFacet.at(entity.address)
+
+    // treasury
     treasury = await IPolicyTreasury.at(entityProxy.address)
-    
-    // set one of my accounts as a dummy policy
-    dummyPolicy = accounts[9]
-    testFacet = await IEntityTreasuryTestFacet.at(entityProxy.address)
-    await testFacet.setAsMyPolicy(dummyPolicy)
 
     // constants
     const cons = await EntityTreasuryFacet.new(settings.address)
@@ -118,32 +145,59 @@ contract('Treasury', accounts => {
     })
 
     it('for a policy', async () => {
-      await treasury.getEconomics().should.eventually.matchObj({
+      await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
         realBalance_: 0,
         virtualBalance_: 0,
       })
 
-      await treasury.getPolicyEconomics(dummyPolicy).should.eventually.matchObj({
+      await treasury.getPolicyEconomics(policies[0].address).should.eventually.matchObj({
         balance_: 0,
         minBalance_: 0,
       })
 
-      const ret = await treasury.incPolicyBalance(123, { from: dummyPolicy })
+      const ret = await policies[0].testFacet.treasuryIncPolicyBalance(123)
 
       expect(extractEventArgs(ret, events.UpdatePolicyBalance)).to.include({
-        policy: dummyPolicy,
+        policy: policies[0].address,
         amount: '123',
         newBal: '123',
       })
 
-      await treasury.getPolicyEconomics(dummyPolicy).should.eventually.matchObj({
+      await treasury.getPolicyEconomics(policies[0].address).should.eventually.matchObj({
         balance_: 123,
         minBalance_: 0,
       })
 
-      await treasury.getEconomics().should.eventually.matchObj({
+      await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
         realBalance_: 123,
         virtualBalance_: 123,
+      })
+    })
+
+    it('when multiple policies deposit', async () => {
+      await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+        realBalance_: 0,
+        virtualBalance_: 0,
+      })
+
+      await treasury.getEconomics(etherToken2.address).should.eventually.matchObj({
+        realBalance_: 0,
+        virtualBalance_: 0,
+      })
+
+      await policies[0].testFacet.treasuryIncPolicyBalance(12)
+      await policies[0].testFacet.treasuryIncPolicyBalance(7)
+      await policies[1].testFacet.treasuryIncPolicyBalance(8)
+      await policies[2].testFacet.treasuryIncPolicyBalance(5)
+
+      await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+        realBalance_: 27,
+        virtualBalance_: 27,
+      })
+
+      await treasury.getEconomics(etherToken2.address).should.eventually.matchObj({
+        realBalance_: 5,
+        virtualBalance_: 5,
       })
     })
   })
@@ -154,60 +208,77 @@ contract('Treasury', accounts => {
     })
 
     it('for a policy', async () => {
-      await treasury.getEconomics().should.eventually.matchObj({
+      await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
         realBalance_: 0,
         virtualBalance_: 0,
       })
 
-      await treasury.getPolicyEconomics(dummyPolicy).should.eventually.matchObj({
+      await treasury.getPolicyEconomics(policies[0].address).should.eventually.matchObj({
         balance_: 0,
         minBalance_: 0,
       })
 
-      const ret = await treasury.setMinPolicyBalance(123, { from: dummyPolicy })
+      const ret = await policies[0].testFacet.treasurySetMinPolicyBalance(123)
 
       expect(extractEventArgs(ret, events.SetMinPolicyBalance)).to.include({
-        policy: dummyPolicy,
+        policy: policies[0].address,
         bal: '123',
       })
 
-      await treasury.getPolicyEconomics(dummyPolicy).should.eventually.matchObj({
+      await treasury.getPolicyEconomics(policies[0].address).should.eventually.matchObj({
         balance_: 0,
         minBalance_: 123,
       })
 
-      await treasury.getEconomics().should.eventually.matchObj({
+      await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
         realBalance_: 0,
         virtualBalance_: 0,
       })
     })
 
     it('only once', async () => {
-      await treasury.setMinPolicyBalance(123, { from: dummyPolicy })
-      await treasury.setMinPolicyBalance(123, { from: dummyPolicy }).should.be.rejectedWith('already set')
+      await policies[0].testFacet.treasurySetMinPolicyBalance(123)
+      await policies[0].testFacet.treasurySetMinPolicyBalance(123).should.be.rejectedWith('already set')
     })
   })
 
-  describe('keeps track of its global economics', () => {
-    beforeEach(async () => {
-      await testFacet.setAsMyPolicy(accounts[7])
-      await testFacet.setAsMyPolicy(accounts[8])
+  describe('can pay claims', () => {
+    it('but not for a non-policy', async () => {
+      await treasury.payClaim(accounts[0], 1).should.be.rejectedWith('not my policy')
     })
 
-    it('when multiple policies deposit', async () => {
-      await treasury.getEconomics().should.eventually.matchObj({
-        realBalance_: 0,
-        virtualBalance_: 0,
+    it.only('for a policy, if policy balance is enough', async () => {
+      await policies[0].testFacet.treasuryIncPolicyBalance(123)
+
+      await treasury.getPolicyEconomics(policies[0].address).should.eventually.matchObj({
+        balance_: 123,
+        minBalance_: 0,
       })
 
-      await treasury.incPolicyBalance(12, { from: accounts[7 ]})
-      await treasury.incPolicyBalance(15, { from: accounts[7] })
-      await treasury.incPolicyBalance(3, { from: accounts[8] })
-
-      await treasury.getEconomics().should.eventually.matchObj({
-        realBalance_: 30,
-        virtualBalance_: 30,
+      await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+        realBalance_: 123,
+        virtualBalance_: 123,
       })
+
+      const ret = await policies[0].testFacet.treasuryPayClaim(accounts[5], 5)
+      
+      // expect(extractEventArgs(ret, events.UpdatePolicyBalance)).to.include({
+      //   policy: policies[0].address,
+      //   amount: '-5',
+      //   newBal: '118',
+      // })
+
+      await treasury.getPolicyEconomics(policies[0].address).should.eventually.matchObj({
+        balance_: 118,
+        minBalance_: 0,
+      })
+
+      await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+        realBalance_: 118,
+        virtualBalance_: 118,
+      })
+
+      await etherToken.balanceOf(accounts[5]).should.eventually.eq(5)
     })
   })
 
@@ -225,19 +296,19 @@ contract('Treasury', accounts => {
         etherToken2.address,
         1,
       ).should.be.rejectedWith('not my policy')
+
+      await treasury.cancelOrder(0).should.be.rejectedWith('not my policy')
     })
 
     it('for a policy', async () => {
-      const orderId = await treasury.createOrder(
+      const offerId = await policies[0].testFacet.treasuryCreateOrder(
         ORDER_TYPE_TOKEN_SALE,
         etherToken.address,
         1,
         etherToken2.address,
         5,
-        { from: dummyPolicy }
       )
 
-      const offerId = await market.last_offer_id()
       await market.isActive(offerId).should.eventually.eq(true)
       const offer = await market.getOffer(offerId)
 
@@ -245,22 +316,9 @@ contract('Treasury', accounts => {
       expect(offer[1]).to.eq(etherToken.address)
       expect(offer[2].toNumber()).to.eq(5)
       expect(offer[3]).to.eq(etherToken2.address)
-    })
 
-    it('and cancel a trade', async () => {
-      const orderId = await treasury.createOrder(
-        ORDER_TYPE_TOKEN_SALE,
-        etherToken.address,
-        1,
-        etherToken2.address,
-        5,
-        { from: dummyPolicy }
-      )
+      await policies[0].treasuryCancelOrder(offerId)
 
-      const offerId = await market.last_offer_id()
-
-      await treasury.cancelOrder(offerId).should.be.rejectedWith('not my policy')
-      await treasury.cancelOrder(offerId, { from: dummyPolicy })
       await market.isActive(offerId).should.eventually.eq(false)
     })
   })

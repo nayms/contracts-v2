@@ -8,11 +8,14 @@ import "./base/IPolicyTreasuryConstants.sol";
 import "./base/IPolicyCoreFacet.sol";
 import "./base/IERC20.sol";
 import "./base/IDiamondFacet.sol";
+import "./base/SafeMath.sol";
 
 /**
  * @dev Business-logic for policy treasuries
  */
  contract EntityTreasuryFacet is EternalStorage, Controller, EntityFacetBase, IPolicyTreasury, IPolicyTreasuryConstants, IDiamondFacet {
+  using SafeMath for uint256;
+
   /**
    * Constructor
    */
@@ -82,16 +85,11 @@ import "./base/IDiamondFacet.sol";
   {
     // check and update treasury balances
     address unit = _getPolicyUnit(msg.sender);
-    uint256 realBal = dataUint256[__a(unit, "treasuryRealBalance")];
-    uint256 virtualBal = dataUint256[__a(unit, "treasuryVirtualBalance")];
-    
-    require(realBal >= _amount && virtualBal >= _amount);
 
-    dataUint256[__a(unit, "treasuryRealBalance")] -= _amount;
-    dataUint256[__a(unit, "treasuryVirtualBalance")] -= _amount;
+    _decPolicyBalance(msg.sender, _amount);
 
     // payout!
-    IERC20(unit).transfer(_recipient, _amount);
+    // IERC20(unit).transfer(_recipient, _amount);
   }
 
   function incPolicyBalance (uint256 _amount) 
@@ -99,15 +97,7 @@ import "./base/IDiamondFacet.sol";
     override
     assertIsMyPolicy(msg.sender)
   {
-    string memory key = __a(msg.sender, "policyBalance");
-
-    dataUint256[key] += uint256(_amount);
-
-    address unit = _getPolicyUnit(msg.sender);
-    dataUint256[__a(unit, "treasuryRealBalance")] += _amount;
-    dataUint256[__a(unit, "treasuryVirtualBalance")] += _amount;
-
-    emit UpdatePolicyBalance(msg.sender, int256(_amount), dataUint256[key]);
+    _incPolicyBalance(msg.sender, _amount);
   }
 
   function setMinPolicyBalance (uint256 _bal) 
@@ -137,5 +127,43 @@ import "./base/IDiamondFacet.sol";
     }
 
     return policyUnitAddress;
+  }
+
+  function _incPolicyBalance (address _policy, uint256 _amount) internal {
+    address unit = _getPolicyUnit(_policy);
+
+    string memory pbKey = __a(msg.sender, "policyBalance");
+    string memory trbKey = __a(unit, "treasuryRealBalance");
+    string memory tvbKey = __a(unit, "treasuryVirtualBalance");
+
+    dataUint256[trbKey] = dataUint256[trbKey].add(uint256(_amount));
+    dataUint256[tvbKey] = dataUint256[tvbKey].add(uint256(_amount));
+    dataUint256[pbKey] = dataUint256[pbKey].add(_amount);
+
+    emit UpdatePolicyBalance(msg.sender, dataUint256[pbKey]);
+  }
+
+  function _decPolicyBalance (address _policy, uint256 _amount) internal {
+    address unit = _getPolicyUnit(_policy);
+
+    string memory pbKey = __a(msg.sender, "policyBalance");
+    string memory trbKey = __a(unit, "treasuryRealBalance");
+    string memory tvbKey = __a(unit, "treasuryVirtualBalance");
+
+    require(
+      (dataUint256[trbKey] >= _amount && dataUint256[tvbKey] >= _amount), 
+      'not enough funds'
+    );
+
+    if (dataUint256[pbKey] >= _amount) {
+      dataUint256[pbKey] = dataUint256[pbKey].sub(_amount);
+    } else {
+      dataUint256[pbKey] = 0;
+    }
+
+    dataUint256[trbKey] = dataUint256[trbKey].sub(uint256(_amount));
+    dataUint256[tvbKey] = dataUint256[tvbKey].sub(uint256(_amount));
+
+    emit UpdatePolicyBalance(msg.sender, dataUint256[pbKey]);
   }
 }

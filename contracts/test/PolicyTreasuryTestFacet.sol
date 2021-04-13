@@ -9,6 +9,8 @@ interface IPolicyTreasuryTestFacet is IDiamondFacet {
   function treasuryIncPolicyBalance (uint256 _amount) external;
   function treasurySetMinPolicyBalance (uint256 _amount) external;
   function treasuryPayClaim (address _recipient, uint256 _amount) external;
+  function treasuryCreateOrder (bytes32 _type, address _sellUnit, uint256 _sellAmount, address _buyUnit, uint256 _buyAmount) external;
+  function treasuryCancelOrder (uint256 _orderId) external;
 }
 
 contract PolicyTreasuryTestFacet is EternalStorage, PolicyFacetBase, IPolicyTreasuryTestFacet, Controller {
@@ -34,5 +36,13 @@ contract PolicyTreasuryTestFacet is EternalStorage, PolicyFacetBase, IPolicyTrea
 
   function treasuryPayClaim (address _recipient, uint256 _amount) public override {
     _getTreasury().payClaim(_recipient, _amount);
+  }
+
+  function treasuryCreateOrder (bytes32 _type, address _sellUnit, uint256 _sellAmount, address _buyUnit, uint256 _buyAmount) public override {
+    _getTreasury().createOrder(_type, _sellUnit, _sellAmount, _buyUnit, _buyAmount);
+  }
+
+  function treasuryCancelOrder (uint256 _orderId) public override {
+    _getTreasury().cancelOrder(_orderId);
   }
 }

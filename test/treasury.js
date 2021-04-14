@@ -159,7 +159,6 @@ contract('Treasury', accounts => {
 
       expect(extractEventArgs(ret, events.UpdatePolicyBalance)).to.include({
         policy: policies[0].address,
-        amount: '123',
         newBal: '123',
       })
 
@@ -243,11 +242,16 @@ contract('Treasury', accounts => {
   })
 
   describe('can pay claims', () => {
+    beforeEach(async () => {
+      await etherToken.deposit({ value: 100 })
+      await etherToken.transfer(treasury.address, 100)
+    })
+
     it('but not for a non-policy', async () => {
       await treasury.payClaim(accounts[0], 1).should.be.rejectedWith('not my policy')
     })
 
-    it.only('for a policy, if policy balance is enough', async () => {
+    it('for a policy, if policy balance is enough', async () => {
       await policies[0].testFacet.treasuryIncPolicyBalance(123)
 
       await treasury.getPolicyEconomics(policies[0].address).should.eventually.matchObj({
@@ -262,11 +266,10 @@ contract('Treasury', accounts => {
 
       const ret = await policies[0].testFacet.treasuryPayClaim(accounts[5], 5)
       
-      // expect(extractEventArgs(ret, events.UpdatePolicyBalance)).to.include({
-      //   policy: policies[0].address,
-      //   amount: '-5',
-      //   newBal: '118',
-      // })
+      expect(extractEventArgs(ret, events.UpdatePolicyBalance)).to.include({
+        policy: policies[0].address,
+        newBal: '118',
+      })
 
       await treasury.getPolicyEconomics(policies[0].address).should.eventually.matchObj({
         balance_: 118,
@@ -276,6 +279,61 @@ contract('Treasury', accounts => {
       await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
         realBalance_: 118,
         virtualBalance_: 118,
+      })
+
+      await etherToken.balanceOf(accounts[5]).should.eventually.eq(5)
+    })
+
+    it('for a policy, if policy balance is not enough, and aggregate balance is not enough', async () => {
+      await policies[0].testFacet.treasuryIncPolicyBalance(2)
+
+      await treasury.getPolicyEconomics(policies[0].address).should.eventually.matchObj({
+        balance_: 2,
+        minBalance_: 0,
+      })
+
+      await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+        realBalance_: 2,
+        virtualBalance_: 2,
+      })
+
+      await policies[0].testFacet.treasuryPayClaim(accounts[5], 5).should.be.rejectedWith('not enough funds')
+    })
+
+    it('for a policy, if policy balance is not enough, but aggregate balance is enough', async () => {
+      await policies[0].testFacet.treasuryIncPolicyBalance(2)
+      await policies[1].testFacet.treasuryIncPolicyBalance(3)
+
+      await treasury.getPolicyEconomics(policies[0].address).should.eventually.matchObj({
+        balance_: 2,
+        minBalance_: 0,
+      })
+
+      await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+        realBalance_: 5,
+        virtualBalance_: 5,
+      })
+
+      const ret = await policies[0].testFacet.treasuryPayClaim(accounts[5], 5).should.be.fulfilled
+
+      expect(extractEventArgs(ret, events.UpdatePolicyBalance)).to.include({
+        policy: policies[0].address,
+        newBal: '0',
+      })
+
+      await treasury.getPolicyEconomics(policies[0].address).should.eventually.matchObj({
+        balance_: 0,
+        minBalance_: 0,
+      })
+
+      await treasury.getPolicyEconomics(policies[1].address).should.eventually.matchObj({
+        balance_: 3,
+        minBalance_: 0,
+      })
+
+      await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+        realBalance_: 0,
+        virtualBalance_: 0,
       })
 
       await etherToken.balanceOf(accounts[5]).should.eventually.eq(5)
@@ -301,7 +359,7 @@ contract('Treasury', accounts => {
     })
 
     it('for a policy', async () => {
-      const offerId = await policies[0].testFacet.treasuryCreateOrder(
+      await policies[0].testFacet.treasuryCreateOrder(
         ORDER_TYPE_TOKEN_SALE,
         etherToken.address,
         1,
@@ -309,6 +367,7 @@ contract('Treasury', accounts => {
         5,
       )
 
+      const offerId = (await market.last_offer_id()).toNumber()
       await market.isActive(offerId).should.eventually.eq(true)
       const offer = await market.getOffer(offerId)
 
@@ -317,7 +376,7 @@ contract('Treasury', accounts => {
       expect(offer[2].toNumber()).to.eq(5)
       expect(offer[3]).to.eq(etherToken2.address)
 
-      await policies[0].treasuryCancelOrder(offerId)
+      await policies[0].testFacet.treasuryCancelOrder(offerId)
 
       await market.isActive(offerId).should.eventually.eq(false)
     })

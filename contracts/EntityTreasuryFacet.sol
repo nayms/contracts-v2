@@ -89,7 +89,7 @@ import "./base/SafeMath.sol";
     _decPolicyBalance(msg.sender, _amount);
 
     // payout!
-    // IERC20(unit).transfer(_recipient, _amount);
+    IERC20(unit).transfer(_recipient, _amount);
   }
 
   function incPolicyBalance (uint256 _amount) 

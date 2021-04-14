@@ -22,7 +22,9 @@ contract PolicyTreasuryTestFacet is EternalStorage, PolicyFacetBase, IPolicyTrea
     return abi.encodePacked(
       IPolicyTreasuryTestFacet.treasuryIncPolicyBalance.selector,
       IPolicyTreasuryTestFacet.treasurySetMinPolicyBalance.selector,
-      IPolicyTreasuryTestFacet.treasuryPayClaim.selector
+      IPolicyTreasuryTestFacet.treasuryPayClaim.selector,
+      IPolicyTreasuryTestFacet.treasuryCreateOrder.selector,
+      IPolicyTreasuryTestFacet.treasuryCancelOrder.selector
     );
   }
 

@@ -29,6 +29,35 @@ interface IPolicyTreasury {
   );
 
   /**
+   * @dev Get total pending claims info.
+   *
+   * @param _unit Token unit.
+   * @return count_ No. of pending claims.
+   * @return totalAmount_ Total amount of all pending claims.
+   */
+  function getPendingClaims (address _unit) external view returns (
+    uint256 count_,
+    uint256 totalAmount_
+  );
+
+
+  /**
+   * @dev Get pending claim.
+   *
+   * @param _unit Token unit.
+   * @param _index 1-based claim index.
+   * @return policy_ The policy.
+   * @return recipient_ Claim recipient.
+   * @return amount_ Claim amount.
+   */
+  function getPendingClaim (address _unit, uint256 _index) external view returns (
+    address policy_,
+    address recipient_,
+    uint256 amount_
+  );
+
+
+  /**
    * @dev Create a market order.
    *
    * @param _type Order type.

@@ -28,6 +28,8 @@ import "./base/SafeMath.sol";
     return abi.encodePacked(
       IPolicyTreasury.getEconomics.selector,
       IPolicyTreasury.getPolicyEconomics.selector,
+      IPolicyTreasury.getPendingClaims.selector,
+      IPolicyTreasury.getPendingClaim.selector,
       IPolicyTreasury.createOrder.selector,
       IPolicyTreasury.cancelOrder.selector,
       IPolicyTreasury.payClaim.selector,
@@ -55,6 +57,24 @@ import "./base/SafeMath.sol";
     unit_ = _getPolicyUnit(_policy);
     balance_ = dataUint256[__a(_policy, "policyBalance")];
     minBalance_ = dataUint256[__a(_policy, "minPolicyBalance")];
+  }
+
+  function getPendingClaims (address _unit) public view override returns (
+    uint256 count_,
+    uint256 totalAmount_
+  ) {
+    count_ = dataUint256[__a(_unit, "pendingClaimsCount")];
+    totalAmount_ = dataUint256[__a(_unit, "pendingClaimsTotal")];
+  }
+
+  function getPendingClaim (address _unit, uint256 _index) public view override returns (
+    address policy_,
+    address recipient_,
+    uint256 amount_
+  ) {
+    policy_ = dataAddress[__ia(_index, _unit, "pendingClaimPolicy")];
+    recipient_ = dataAddress[__ia(_index, _unit, "pendingClaimRecipient")];
+    amount_ = dataUint256[__ia(_index, _unit, "pendingClaimAmount")];
   }
 
   function createOrder (bytes32 _type, address _sellUnit, uint256 _sellAmount, address _buyUnit, uint256 _buyAmount)
@@ -86,10 +106,24 @@ import "./base/SafeMath.sol";
     // check and update treasury balances
     address unit = _getPolicyUnit(msg.sender);
 
-    _decPolicyBalance(msg.sender, _amount);
+    string memory trbKey = __a(unit, "treasuryRealBalance");
 
-    // payout!
-    IERC20(unit).transfer(_recipient, _amount);
+    if (dataUint256[trbKey] < _amount) {
+      string memory pcak = __a(unit, "pendingClaimsTotal");
+      dataUint256[pcak] = dataUint256[pcak].add(_amount);
+
+      dataUint256[__a(unit, "pendingClaimsCount")] += 1;
+      uint256 idx = dataUint256[__a(unit, "pendingClaimsCount")];
+
+      dataAddress[__ia(idx, unit, "pendingClaimPolicy")] = msg.sender;
+      dataAddress[__ia(idx, unit, "pendingClaimRecipient")] = _recipient;
+      dataUint256[__ia(idx, unit, "pendingClaimAmount")] = _amount;
+    } else {
+      _decPolicyBalance(msg.sender, _amount);
+
+      // payout!
+      IERC20(unit).transfer(_recipient, _amount);
+    }
   }
 
   function incPolicyBalance (uint256 _amount) 
@@ -150,19 +184,15 @@ import "./base/SafeMath.sol";
     string memory trbKey = __a(unit, "treasuryRealBalance");
     string memory tvbKey = __a(unit, "treasuryVirtualBalance");
 
-    require(
-      (dataUint256[trbKey] >= _amount && dataUint256[tvbKey] >= _amount), 
-      'not enough funds'
-    );
-
-    if (dataUint256[pbKey] >= _amount) {
-      dataUint256[pbKey] = dataUint256[pbKey].sub(_amount);
-    } else {
+    if (dataUint256[pbKey] < _amount) {
+      dataUint256[tvbKey] = dataUint256[tvbKey].sub(dataUint256[pbKey]);
       dataUint256[pbKey] = 0;
+    } else {
+      dataUint256[pbKey] = dataUint256[pbKey].sub(uint256(_amount));
+      dataUint256[tvbKey] = dataUint256[tvbKey].sub(uint256(_amount));
     }
 
     dataUint256[trbKey] = dataUint256[trbKey].sub(uint256(_amount));
-    dataUint256[tvbKey] = dataUint256[tvbKey].sub(uint256(_amount));
 
     emit UpdatePolicyBalance(msg.sender, dataUint256[pbKey]);
   }

@@ -20,6 +20,7 @@ import { ensureEntityImplementationsAreDeployed } from '../migrations/modules/en
 import { ensurePolicyImplementationsAreDeployed } from '../migrations/modules/policyImplementations'
 
 const IEntity = artifacts.require('./base/IEntity')
+const IPolicyTreasury = artifacts.require('./base/IPolicyTreasury')
 const Entity = artifacts.require('./Entity')
 const IPolicyStates = artifacts.require("./base/IPolicyStates")
 const Policy = artifacts.require("./Policy")
@@ -61,6 +62,8 @@ contract('Integration: Flow', accounts => {
   let underwriter
   let broker
   let claimsAdmin
+
+  let treasury
 
   let POLICY_STATE_CREATED
   let POLICY_STATE_INITIATED
@@ -144,6 +147,8 @@ contract('Integration: Flow', accounts => {
     policyProxy = await Policy.at(policyAddress)
     policy = await IPolicy.at(policyAddress)
     const policyContext = await policyProxy.aclContext()
+
+    treasury = await IPolicyTreasury.at(entity.address)
 
     // get market address
     market = await ensureMarketIsDeployed({ artifacts, settings })
@@ -1011,7 +1016,7 @@ contract('Integration: Flow', accounts => {
 
       describe('if all premium payments are up-to-date', () => {
         beforeEach(async () => {
-          const t0 = await policy.getTranchInfo(0)
+          const t0 = await policy.getTranchPremiumsInfo(0)
           let nextPremiumAmount0 = t0.nextPremiumAmount_.toNumber()
           const numPremiums0 = t0.numPremiums_.toNumber()
           const numPremiumsPaid0 = t0.numPremiumsPaid_.toNumber()
@@ -1022,7 +1027,7 @@ contract('Integration: Flow', accounts => {
           }
           await policy.payTranchPremium(0, toPay0)
 
-          const t1 = await policy.getTranchInfo(1)
+          const t1 = await policy.getTranchPremiumsInfo(1)
           let nextPremiumAmount1 = t1.nextPremiumAmount_.toNumber()
           const numPremiums1 = t1.numPremiums_.toNumber()
           const numPremiumsPaid1 = t1.numPremiumsPaid_.toNumber()
@@ -1141,7 +1146,7 @@ contract('Integration: Flow', accounts => {
 
       describe('once it tries to buy back all tokens', async () => {
         beforeEach(async () => {
-          const t0 = await policy.getTranchInfo(0)                
+          const t0 = await policy.getTranchPremiumsInfo(0)     
           const numPremiums0 = t0.numPremiums_.toNumber()
           let numPremiumsPaid0 = t0.numPremiumsPaid_.toNumber()
           let nextPremiumAmount0 = t0.nextPremiumAmount_.toNumber()
@@ -1152,7 +1157,7 @@ contract('Integration: Flow', accounts => {
           }
           await policy.payTranchPremium(0, toPay0)
 
-          const t1 = await policy.getTranchInfo(1)
+          const t1 = await policy.getTranchPremiumsInfo(1)
           let nextPremiumAmount1 = t1.nextPremiumAmount_.toNumber()
           const numPremiums1 = t1.numPremiums_.toNumber()
           const numPremiumsPaid1 = t1.numPremiumsPaid_.toNumber()

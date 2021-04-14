@@ -26,13 +26,14 @@ import { ensureEntityImplementationsAreDeployed } from '../migrations/modules/en
 import { ensurePolicyImplementationsAreDeployed } from '../migrations/modules/policyImplementations'
 
 const IERC20 = artifacts.require("./base/IERC20")
+const IPolicyTreasury = artifacts.require('./base/IPolicyTreasury')
 const IEntity = artifacts.require('./base/IEntity')
 const Entity = artifacts.require('./Entity')
 const IDiamondProxy = artifacts.require('./base/IDiamondProxy')
 const IPolicyStates = artifacts.require("./base/IPolicyStates")
 const Policy = artifacts.require("./Policy")
 const IPolicy = artifacts.require("./base/IPolicy")
-const TestPolicyFacet = artifacts.require("./test/TestPolicyFacet")
+const DummyPolicyFacet = artifacts.require("./test/DummyPolicyFacet")
 const FreezeUpgradesFacet = artifacts.require("./test/FreezeUpgradesFacet")
 
 const premiumIntervalSeconds = 30
@@ -91,6 +92,8 @@ contract('Policy: Premiums', accounts => {
   let broker
   let claimsAdmin
 
+  let treasury
+
   let POLICY_STATE_CREATED
   let POLICY_STATE_INITIATED
   let POLICY_STATE_ACTIVE
@@ -132,6 +135,8 @@ contract('Policy: Premiums', accounts => {
     entityProxy = await Entity.at(entityAddress)
     entity = await IEntity.at(entityAddress)
     entityContext = await entityProxy.aclContext()
+
+    treasury = await IPolicyTreasury.at(entityAddress)
 
     await acl.assignRole(entityContext, entityManagerAddress, ROLES.ENTITY_MANAGER)
 
@@ -209,11 +214,11 @@ contract('Policy: Premiums', accounts => {
           premiums: []
         }, { from: policyOwnerAddress })
 
-        await policy.getTranchInfo(0).should.eventually.matchObj({
+        await policy.getTranchPremiumsInfo(0).should.eventually.matchObj({
           numPremiums_: 0,
-          nextPremiumIndex_: 0,
           nextPremiumAmount_: 0,
           nextPremiumDueAt_: 0,
+          nextPremiumPaidSoFar_: 0,
           premiumPaymentsMissed_: 0,
           numPremiumsPaid_: 0,
         })
@@ -224,11 +229,11 @@ contract('Policy: Premiums', accounts => {
           premiums: [2, 3, 4]
         }, { from: policyOwnerAddress })
 
-        await policy.getTranchInfo(0).should.eventually.matchObj({
+        await policy.getTranchPremiumsInfo(0).should.eventually.matchObj({
           numPremiums_: 3,
-          nextPremiumIndex_: 0,
           nextPremiumAmount_: 2,
           nextPremiumDueAt_: policyAttrs.initiationDate,
+          nextPremiumPaidSoFar_: 0,
           premiumPaymentsMissed_: 0,
           numPremiumsPaid_: 0,
         })
@@ -298,11 +303,14 @@ contract('Policy: Premiums', accounts => {
         await policy.payTranchPremium(0, 2).should.be.fulfilled
 
         await policy.getTranchInfo(0).should.eventually.matchObj({
-          nextPremiumIndex_: 1,
+          balance_: 2,
+        })
+
+        await policy.getTranchPremiumsInfo(0).should.eventually.matchObj({
           nextPremiumAmount_: 3,
+          nextPremiumPaidSoFar_: 0,
           premiumPaymentsMissed_: 0,
           numPremiumsPaid_: 1,
-          balance_: 2,
         })
 
         await policy.getTranchPremiumInfo(0, 0).should.eventually.matchObj({
@@ -310,9 +318,13 @@ contract('Policy: Premiums', accounts => {
           dueAt_: policyAttrs.initiationDate,
           paidSoFar_: 2,
         })
+
+        await treasury.getPolicyEconomics(policy.address).should.eventually.matchObj({
+          balance_: 2,
+        })
       })
 
-      it('updates the internal stats once subsequent payment is made', async () => {
+      it('updates the internal stats and treasury once subsequent payment is made', async () => {
         await createTranch(policy, {
           premiums: [2, 3, 4]
         }, { from: policyOwnerAddress })
@@ -323,17 +335,24 @@ contract('Policy: Premiums', accounts => {
         await policy.payTranchPremium(0, 3).should.be.fulfilled
 
         await policy.getTranchInfo(0).should.eventually.matchObj({
-          nextPremiumIndex_: 2,
+          balance_: 5,
+        })
+
+        await policy.getTranchPremiumsInfo(0).should.eventually.matchObj({
           nextPremiumAmount_: 4,
+          nextPremiumPaidSoFar_: 0,
           premiumPaymentsMissed_: 0,
           numPremiumsPaid_: 2,
-          balance_: 5,
         })
 
         await policy.getTranchPremiumInfo(0, 1).should.eventually.matchObj({
           amount_: 3,
           dueAt_: policyAttrs.initiationDate + 30,
           paidSoFar_: 3,
+        })
+
+        await treasury.getPolicyEconomics(policy.address).should.eventually.matchObj({
+          balance_: 5,
         })
       })
 
@@ -353,11 +372,14 @@ contract('Policy: Premiums', accounts => {
         })
 
         await policy.getTranchInfo(0).should.eventually.matchObj({
-          nextPremiumIndex_: 0,
+          balance_: 1,
+        })
+
+        await policy.getTranchPremiumsInfo(0).should.eventually.matchObj({
           nextPremiumAmount_: 2,
+          nextPremiumPaidSoFar_: 1,
           premiumPaymentsMissed_: 0,
           numPremiumsPaid_: 0,
-          balance_: 1,
         })
 
         await policy.getTranchPremiumInfo(0, 0).should.eventually.matchObj({
@@ -374,17 +396,24 @@ contract('Policy: Premiums', accounts => {
         })
 
         await policy.getTranchInfo(0).should.eventually.matchObj({
-          nextPremiumIndex_: 1,
+          balance_: 2,
+        })
+
+        await policy.getTranchPremiumsInfo(0).should.eventually.matchObj({
           nextPremiumAmount_: 3,
+          nextPremiumPaidSoFar_: 0,
           premiumPaymentsMissed_: 0,
           numPremiumsPaid_: 1,
-          balance_: 2,
         })
 
         await policy.getTranchPremiumInfo(0, 0).should.eventually.matchObj({
           amount_: 2,
           dueAt_: policyAttrs.initiationDate,
           paidSoFar_: 2,
+        })
+
+        await treasury.getPolicyEconomics(policy.address).should.eventually.matchObj({
+          balance_: 2,
         })
       })
 
@@ -404,11 +433,14 @@ contract('Policy: Premiums', accounts => {
         })
 
         await policy.getTranchInfo(0).should.eventually.matchObj({
-          nextPremiumIndex_: 1,
+          balance_: 3,
+        })
+
+        await policy.getTranchPremiumsInfo(0).should.eventually.matchObj({
           nextPremiumAmount_: 3,
+          nextPremiumPaidSoFar_: 1,
           premiumPaymentsMissed_: 0,
           numPremiumsPaid_: 1,
-          balance_: 3,
         })
 
         await policy.getTranchPremiumInfo(0, 0).should.eventually.matchObj({
@@ -421,6 +453,10 @@ contract('Policy: Premiums', accounts => {
           amount_: 3,
           dueAt_: policyAttrs.initiationDate + premiumIntervalSeconds,
           paidSoFar_: 1,
+        })
+
+        await treasury.getPolicyEconomics(policy.address).should.eventually.matchObj({
+          balance_: 3,
         })
       })
 
@@ -440,11 +476,14 @@ contract('Policy: Premiums', accounts => {
         })
 
         await policy.getTranchInfo(0).should.eventually.matchObj({
-          nextPremiumIndex_: 3,
+          balance_: 9,
+        })
+
+        await policy.getTranchPremiumsInfo(0).should.eventually.matchObj({
           nextPremiumAmount_: 0,
+          nextPremiumPaidSoFar_: 0,
           premiumPaymentsMissed_: 0,
           numPremiumsPaid_: 3,
-          balance_: 9,
         })
 
         await policy.getTranchPremiumInfo(0, 0).should.eventually.matchObj({
@@ -466,6 +505,9 @@ contract('Policy: Premiums', accounts => {
         })
 
         await etherToken.balanceOf(entity.address).should.eventually.eq(9)
+        await treasury.getPolicyEconomics(policy.address).should.eventually.matchObj({
+          balance_: 9,
+        })
       })
     })
 
@@ -481,11 +523,11 @@ contract('Policy: Premiums', accounts => {
           premiums: [0, 0, 0, 2, 3, 4]
         }, { from: policyOwnerAddress })
 
-        await policy.getTranchInfo(0).should.eventually.matchObj({
+        await policy.getTranchPremiumsInfo(0).should.eventually.matchObj({
           numPremiums_: 3,
-          nextPremiumIndex_: 0,
           nextPremiumAmount_: 2,
           nextPremiumDueAt_: policyAttrs.initiationDate + (30 * 3),
+          nextPremiumPaidSoFar_: 0,
           premiumPaymentsMissed_: 0,
           numPremiumsPaid_: 0,
         })
@@ -495,10 +537,17 @@ contract('Policy: Premiums', accounts => {
         await policy.payTranchPremium(0, 2)
 
         await policy.getTranchInfo(0).should.eventually.matchObj({
-          nextPremiumIndex_: 1,
+          balance_: 2,
+        })
+
+        await policy.getTranchPremiumsInfo(0).should.eventually.matchObj({
           nextPremiumAmount_: 3,
+          nextPremiumPaidSoFar_: 0,
           premiumPaymentsMissed_: 0,
           numPremiumsPaid_: 1,
+        })
+
+        await treasury.getPolicyEconomics(policy.address).should.eventually.matchObj({
           balance_: 2,
         })
       })
@@ -508,11 +557,11 @@ contract('Policy: Premiums', accounts => {
           premiums: [2, 3, 0, 4, 0, 0, 5, 0]
         }, { from: policyOwnerAddress })
 
-        await policy.getTranchInfo(0).should.eventually.matchObj({
+        await policy.getTranchPremiumsInfo(0).should.eventually.matchObj({
           numPremiums_: 4,
-          nextPremiumIndex_: 0,
           nextPremiumAmount_: 2,
           nextPremiumDueAt_: policyAttrs.initiationDate,
+          nextPremiumPaidSoFar_: 0,
           premiumPaymentsMissed_: 0,
           numPremiumsPaid_: 0,
         })
@@ -553,11 +602,11 @@ contract('Policy: Premiums', accounts => {
         await policy.payTranchPremium(0, 4)
         await policy.payTranchPremium(0, 5)
 
-        await policy.getTranchInfo(0).should.eventually.matchObj({
+        await policy.getTranchPremiumsInfo(0).should.eventually.matchObj({
           numPremiums_: 4,
-          nextPremiumIndex_: 4,
           nextPremiumAmount_: 0,
           nextPremiumDueAt_: 0,
+          nextPremiumPaidSoFar_: 0,
           premiumPaymentsMissed_: 0,
           numPremiumsPaid_: 4,
         })
@@ -568,11 +617,11 @@ contract('Policy: Premiums', accounts => {
           premiums: [2, 3, 0, 4, 0, 0, 5, 0]
         }, { from: policyOwnerAddress })
 
-        await policy.getTranchInfo(0).should.eventually.matchObj({
+        await policy.getTranchPremiumsInfo(0).should.eventually.matchObj({
           numPremiums_: 4,
-          nextPremiumIndex_: 0,
           nextPremiumAmount_: 2,
           nextPremiumDueAt_: policyAttrs.initiationDate,
+          nextPremiumPaidSoFar_: 0,
           premiumPaymentsMissed_: 0,
           numPremiumsPaid_: 0,
         })
@@ -610,11 +659,11 @@ contract('Policy: Premiums', accounts => {
         await etherToken.approve(policy.address, 40)
         await policy.payTranchPremium(0, 7)
 
-        await policy.getTranchInfo(0).should.eventually.matchObj({
+        await policy.getTranchPremiumsInfo(0).should.eventually.matchObj({
           numPremiums_: 4,
-          nextPremiumIndex_: 2,
           nextPremiumAmount_: 4,
           nextPremiumDueAt_: policyAttrs.initiationDate + (30 * 3),
+          nextPremiumPaidSoFar_: 2,
           premiumPaymentsMissed_: 0,
           numPremiumsPaid_: 2,
         })
@@ -641,10 +690,10 @@ contract('Policy: Premiums', accounts => {
       })
 
       it('it requires first payment to have been made', async () => {
-        await policy.getTranchInfo(0).should.eventually.matchObj({
+        await policy.getTranchPremiumsInfo(0).should.eventually.matchObj({
           premiumPaymentsMissed_: 1,
-          nextPremiumIndex_: 0,
           nextPremiumAmount_: 2,
+          nextPremiumPaidSoFar_: 0,
           numPremiumsPaid_: 0,
         })
 
@@ -669,11 +718,11 @@ contract('Policy: Premiums', accounts => {
       await policy.payTranchPremium(0, 3).should.be.fulfilled // 3
       await policy.payTranchPremium(0, 5).should.be.fulfilled // 5
 
-      await policy.getTranchInfo(0).should.eventually.matchObj({
+      await policy.getTranchPremiumsInfo(0).should.eventually.matchObj({
         premiumPaymentsMissed_: 0,
-        nextPremiumIndex_: 3,
         nextPremiumAmount_: 0,
         nextPremiumDueAt_: 0,
+        nextPremiumPaidSoFar_: 0,
         numPremiumsPaid_: 3,
       })
     })

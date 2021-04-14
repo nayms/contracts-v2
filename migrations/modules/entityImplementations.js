@@ -27,7 +27,7 @@ export const ensureEntityImplementationsAreDeployed = async (cfg) => {
     await execCall({
       task,
       contract: settings,
-    method: 'setAddresses',
+      method: 'setAddresses',
       args: [settings.address, SETTINGS.ENTITY_IMPL, addresses],
       cfg,
     })

@@ -22,7 +22,7 @@ import { ensurePolicyImplementationsAreDeployed } from '../migrations/modules/po
 const IEntity = artifacts.require("./base/IEntity")
 const IDiamondProxy = artifacts.require('./base/IDiamondProxy')
 const AccessControl = artifacts.require('./base/AccessControl')
-const TestEntityFacet = artifacts.require("./test/TestEntityFacet")
+const DummyEntityFacet = artifacts.require("./test/DummyEntityFacet")
 const FreezeUpgradesFacet = artifacts.require("./test/FreezeUpgradesFacet")
 const Entity = artifacts.require("./Entity")
 const IPolicy = artifacts.require("./IPolicy")
@@ -81,11 +81,11 @@ contract('Entity', accounts => {
   })
 
   describe('it can be upgraded', () => {
-    let testEntityFacet
+    let dummyEntityTestFacet
     let freezeUpgradesFacet
 
     beforeEach(async () => {
-      testEntityFacet = await TestEntityFacet.new()
+      dummyEntityTestFacet = await DummyEntityFacet.new()
       freezeUpgradesFacet = await FreezeUpgradesFacet.new()
     })
 
@@ -97,7 +97,7 @@ contract('Entity', accounts => {
     })
 
     it('but not just by anyone', async () => {
-      await entity.upgrade([ testEntityFacet.address ], { from: accounts[1] }).should.be.rejectedWith('must be admin')
+      await entity.upgrade([ dummyEntityTestFacet.address ], { from: accounts[1] }).should.be.rejectedWith('must be admin')
     })
 
     it('but not to the existing implementation', async () => {
@@ -105,13 +105,13 @@ contract('Entity', accounts => {
     })
 
     it('and adds the new implementation as a facet', async () => {
-      await entity.upgrade([ testEntityFacet.address ]).should.be.fulfilled
+      await entity.upgrade([ dummyEntityTestFacet.address ]).should.be.fulfilled
       await entity.getNumPolicies().should.eventually.eq(666);
     })
 
     it('and can be frozen', async () => {
       await entity.upgrade([freezeUpgradesFacet.address]).should.be.fulfilled
-      await entity.upgrade([testEntityFacet.address]).should.be.rejectedWith('frozen')
+      await entity.upgrade([dummyEntityTestFacet.address]).should.be.rejectedWith('frozen')
     })
 
     it('and the internal upgrade function cannot be called directly', async () => {
@@ -137,6 +137,20 @@ contract('Entity', accounts => {
       await etherToken.approve(entityProxy.address, 10)
       await entity.deposit(etherToken.address, 10).should.be.fulfilled
       await etherToken.balanceOf(entityProxy.address).should.eventually.eq(10)
+    })
+
+    it('and emits an event', async () => {
+      await etherToken.deposit({ value: 10 })
+      await etherToken.approve(entityProxy.address, 10)
+      const result = await entity.deposit(etherToken.address, 10).should.be.fulfilled
+
+      const eventArgs = extractEventArgs(result, events.EntityDeposit)
+
+      expect(eventArgs).to.include({
+        caller: accounts[0],
+        unit: etherToken.address,
+        amount: '10'
+      })
     })
 
     describe('and enables subsequent withdrawals', () => {
@@ -171,6 +185,23 @@ contract('Entity', accounts => {
 
         // this should work
         await entity.withdraw(etherToken.address, 20, { from: entityAdmin }).should.be.fulfilled
+      })
+
+      it('and emits an event upon withdrawal', async () => {
+        await etherToken.deposit({ value: 200 })
+        await etherToken.approve(entityProxy.address, 10)
+        await entity.deposit(etherToken.address, 10)
+        await etherToken.balanceOf(entity.address).should.eventually.eq(20)
+
+        const result = await entity.withdraw(etherToken.address, 20, { from: entityAdmin })
+
+        const eventArgs = extractEventArgs(result, events.EntityWithdraw)
+
+        expect(eventArgs).to.include({
+          caller: entityAdmin,
+          unit: etherToken.address,
+          amount: '20'
+        })
       })
     })
 

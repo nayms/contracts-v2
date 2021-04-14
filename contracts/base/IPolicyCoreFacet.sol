@@ -58,13 +58,9 @@ interface IPolicyCoreFacet {
    * @param _index Tranch index.
    * @return token_ Tranch ERC-20 token address.
    * @return state_ Current tranch state.
+   * @return numShares_ No. of shares.
+   * @return initialPricePerShare_ Initial price per share.
    * @return balance_ Current tranch balance (of the payment unit)
-   * @return numPremiums_ No. of premium payments required in total.
-   * @return nextPremiumIndex_ Index of next premium due.
-   * @return nextPremiumAmount_ Payment due by the next premium interval.
-   * @return nextPremiumDueAt_ When the next premium payment is due by (timestamp = seconds since epoch).
-   * @return premiumPaymentsMissed_ No. of premium payments that have been missed.
-   * @return numPremiumsPaid_ No. of premium payments made.
    * @return sharesSold_ No. of shared sold (during the initial sale period).
    * @return initialSaleOfferId_ Market offer id of the initial sale.
    * @return finalBuybackofferId_ Market offer id of the post-maturation/cancellation token buyback.
@@ -72,13 +68,9 @@ interface IPolicyCoreFacet {
   function getTranchInfo (uint256 _index) external view returns (
     address token_,
     uint256 state_,
+    uint256 numShares_,
+    uint256 initialPricePerShare_,
     uint256 balance_,
-    uint256 numPremiums_,
-    uint256 nextPremiumIndex_,
-    uint256 nextPremiumAmount_,
-    uint256 nextPremiumDueAt_,
-    uint256 premiumPaymentsMissed_,
-    uint256 numPremiumsPaid_,
     uint256 sharesSold_,
     uint256 initialSaleOfferId_,
     uint256 finalBuybackofferId_

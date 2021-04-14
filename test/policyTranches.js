@@ -31,7 +31,7 @@ const IDiamondProxy = artifacts.require('./base/IDiamondProxy')
 const IPolicyStates = artifacts.require("./base/IPolicyStates")
 const Policy = artifacts.require("./Policy")
 const IPolicy = artifacts.require("./base/IPolicy")
-const TestPolicyFacet = artifacts.require("./test/TestPolicyFacet")
+const DummyPolicyFacet = artifacts.require("./test/DummyPolicyFacet")
 const TranchToken = artifacts.require("./TranchToken")
 const FreezeUpgradesFacet = artifacts.require("./test/FreezeUpgradesFacet")
 

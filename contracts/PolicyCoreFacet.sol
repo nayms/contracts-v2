@@ -6,7 +6,7 @@ import "./base/EternalStorage.sol";
 import './base/IERC20.sol';
 import "./base/IDiamondFacet.sol";
 import "./base/AccessControl.sol";
-import "./base/IPolicyTreasury.sol";
+import "./base/IPolicyTreasuryConstants.sol";
 import "./base/IPolicyCoreFacet.sol";
 import "./base/IPolicyTranchTokensFacet.sol";
 import "./base/PolicyFacetBase.sol";
@@ -16,7 +16,7 @@ import "./TranchToken.sol";
 /**
  * @dev Core policy logic
  */
-contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCoreFacet, PolicyFacetBase {
+contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCoreFacet, PolicyFacetBase, IPolicyTreasuryConstants {
   using SafeMath for uint;
   using Address for address;
 
@@ -155,24 +155,18 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
   function getTranchInfo (uint256 _index) public view override returns (
     address token_,
     uint256 state_,
+    uint256 numShares_,
+    uint256 initialPricePerShare_,
     uint256 balance_,
-    uint256 numPremiums_,
-    uint256 nextPremiumIndex_,
-    uint256 nextPremiumAmount_,
-    uint256 nextPremiumDueAt_,
-    uint256 premiumPaymentsMissed_,
-    uint256 numPremiumsPaid_,
     uint256 sharesSold_,
     uint256 initialSaleOfferId_,
     uint256 finalBuybackofferId_
   ) {
     token_ = dataAddress[__i(_index, "address")];
     state_ = dataUint256[__i(_index, "state")];
+    numShares_ = dataUint256[__i(_index, "numShares")];
+    initialPricePerShare_ = dataUint256[__i(_index, "pricePerShareAmount")];
     balance_ = dataUint256[__i(_index, "balance")];
-    numPremiums_ = dataUint256[__i(_index, "numPremiums")];
-    (nextPremiumIndex_, nextPremiumAmount_, nextPremiumDueAt_) = _getNextTranchPremium(_index);
-    premiumPaymentsMissed_ = _getNumberOfTranchPaymentsMissed(_index);
-    numPremiumsPaid_ = dataUint256[__i(_index, "numPremiumsPaid")];
     sharesSold_ = dataUint256[__i(_index, "sharesSold")];
     initialSaleOfferId_ = dataUint256[__i(_index, "initialSaleOfferId")];
     finalBuybackofferId_ = dataUint256[__i(_index, "finalBuybackOfferId")];
@@ -255,7 +249,11 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
         _setTranchState(i, TRANCH_STATE_SELLING);
         // offer tokens in initial sale
         dataUint256[__i(i, "initialSaleOfferId")] = _getTreasury().createOrder(
-          tranchAddress, totalSupply, dataAddress["unit"], totalPrice
+          ORDER_TYPE_TOKEN_SALE,
+          tranchAddress, 
+          totalSupply, 
+          dataAddress["unit"], 
+          totalPrice
         );
       }
 
@@ -267,6 +265,17 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
   function _activatePolicyIfPending() private {
     // make policy active if necessary
     if (dataUint256["state"] == POLICY_STATE_INITIATED) {
+      // calculate total collateral requried
+      uint256 minPolicyCollateral = 0;
+      for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
+        if (dataUint256[__i(i, "state")] == TRANCH_STATE_ACTIVE) {
+          minPolicyCollateral += dataUint256[__i(i, "sharesSold")] * dataUint256[__i(i, "pricePerShareAmount")];
+        }
+      }
+      // set min. collateral balance to treasury
+      _getTreasury().setMinPolicyBalance(minPolicyCollateral);
+
+      // update policy state
       _setPolicyState(POLICY_STATE_ACTIVE);
     }
   }
@@ -308,6 +317,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
 
           // buy back all sold tokens
           dataUint256[__i(i, "finalBuybackOfferId")] = _getTreasury().createOrder(
+            ORDER_TYPE_TOKEN_BUYBACK,
             unitAddress,
             tranchBalance,
             dataAddress[__i(i, "address")],
@@ -319,37 +329,6 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     // if there are pending claims
     else {
       _setPolicyState(POLICY_STATE_MATURED);
-    }
-  }
-
-  function _getNextTranchPremium (uint256 _index) private view returns (uint256, uint256, uint256) {
-    uint256 numPremiumsPaid = dataUint256[__i(_index, "numPremiumsPaid")];
-
-    return (
-      numPremiumsPaid,
-      dataUint256[__ii(_index, numPremiumsPaid, "premiumAmount")],
-      dataUint256[__ii(_index, numPremiumsPaid, "premiumDueAt")]
-    );
-  }
-
-  function _getNumberOfTranchPaymentsMissed (uint256 _index) private view returns (uint256) {
-    uint256 numPremiums = dataUint256[__i(_index, "numPremiums")];
-    uint256 numPremiumsPaid = dataUint256[__i(_index, "numPremiumsPaid")];
-
-    uint256 expectedNumPremiumsPaid = 0;
-
-    for (uint256 i = 0; numPremiums > i; i += 1) {
-      uint256 dueAt = dataUint256[__ii(_index, i, "premiumDueAt")];
-
-      if (dueAt <= block.timestamp) {
-        expectedNumPremiumsPaid += 1;
-      }
-    }
-
-    if (expectedNumPremiumsPaid >= numPremiumsPaid) {
-      return expectedNumPremiumsPaid - numPremiumsPaid;
-    } else {
-      return 0;
     }
   }
 }

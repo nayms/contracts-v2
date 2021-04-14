@@ -157,7 +157,7 @@ export const createEntity = async ({ acl, entityDeployer, adminAddress, entityCo
   return entityAddress
 }
 
-export const createPolicy = (entity, attrs, ...callAttrs) => {
+export const createPolicy = async (entity, attrs = {}, ...callAttrs) => {
   const currentTime = ~~(Date.now() / 1000)
 
   const {

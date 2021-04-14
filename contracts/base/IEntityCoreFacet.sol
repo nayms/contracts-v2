@@ -40,6 +40,7 @@ interface IEntityCoreFacet {
    * @param _amount Amount to deposit.
    */
   function deposit(address _unit, uint256 _amount) external;
+
   /**
    * @dev Withdraw assets.
    *
@@ -93,5 +94,29 @@ interface IEntityCoreFacet {
     address indexed policy,
     address indexed entity,
     address indexed deployer
+  );
+
+  /**
+   * @dev Emitted when a deposit is made.
+   * @param caller The caller.
+   * @param unit The token deposited.
+   * @param amount The amount deposited.
+   */
+  event EntityDeposit (
+    address indexed caller,
+    address indexed unit,
+    uint256 indexed amount
+  );
+
+  /**
+   * @dev Emitted when a withdrawal is made.
+   * @param caller The caller.
+   * @param unit The token withdrawn.
+   * @param amount The amount withdrawn.
+   */
+  event EntityWithdraw(
+    address indexed caller,
+    address indexed unit,
+    uint256 indexed amount
   );
 }

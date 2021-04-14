@@ -10,6 +10,10 @@ contract DummyEntityFacet is IDiamondFacet, IEntityCoreFacet {
     );
   }
 
+  function getBalance(address _unit) public view override returns (uint256) {
+    return 0;
+  }
+
   function getNumPolicies() public view override returns (uint256) {
     return 666;
   }

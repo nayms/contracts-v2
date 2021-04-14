@@ -21,6 +21,13 @@ interface IEntityCoreFacet {
   ) external;
 
   /**
+   * @dev Get balance.
+   *
+   * @param _unit Asset.
+   */
+  function getBalance(address _unit) external view returns (uint256);
+
+  /**
    * @dev Get no. of policies created.
    * @return Total no. of policies created.
    */

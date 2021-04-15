@@ -187,10 +187,4 @@ import "./Policy.sol";
     // do it!
     return _sellAtBestPriceOnMarket(_sellUnit, _sellAmount, _buyUnit);
   }
-
-  // Internal methods
-
-  function _assertHasEnoughBalance (address _unit, uint256 _amount) private {
-    require(dataUint256[__a(_unit, "balance")] >= _amount, 'exceeds entity balance');
-  }
 }

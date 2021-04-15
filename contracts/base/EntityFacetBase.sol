@@ -14,6 +14,10 @@ abstract contract EntityFacetBase is EternalStorage, Controller {
     _;
   }
 
+  function _assertHasEnoughBalance (address _unit, uint256 _amount) internal view {
+    require(dataUint256[__a(_unit, "balance")] >= _amount, 'exceeds entity balance');
+  }
+
   function _isPolicyCreatedByMe(address _policy) internal view returns (bool) {
     return dataBool[__a(_policy, "isPolicy")];
   }

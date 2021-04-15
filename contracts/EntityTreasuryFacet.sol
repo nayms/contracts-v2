@@ -5,6 +5,7 @@ import "./base/EternalStorage.sol";
 import "./base/EntityFacetBase.sol";
 import "./base/IPolicyTreasury.sol";
 import "./base/IPolicyTreasuryConstants.sol";
+import "./base/IEntityTreasuryFacet.sol";
 import "./base/IPolicyCoreFacet.sol";
 import "./base/IERC20.sol";
 import "./base/IDiamondFacet.sol";
@@ -13,7 +14,7 @@ import "./base/SafeMath.sol";
 /**
  * @dev Business-logic for policy treasuries
  */
- contract EntityTreasuryFacet is EternalStorage, Controller, EntityFacetBase, IPolicyTreasury, IPolicyTreasuryConstants, IDiamondFacet {
+ contract EntityTreasuryFacet is EternalStorage, Controller, EntityFacetBase, IPolicyTreasury, IPolicyTreasuryConstants, IEntityTreasuryFacet, IDiamondFacet {
   using SafeMath for uint256;
 
   /**
@@ -34,7 +35,9 @@ import "./base/SafeMath.sol";
       IPolicyTreasury.cancelOrder.selector,
       IPolicyTreasury.payClaim.selector,
       IPolicyTreasury.incPolicyBalance.selector,
-      IPolicyTreasury.setMinPolicyBalance.selector
+      IPolicyTreasury.setMinPolicyBalance.selector,
+      IEntityTreasuryFacet.transferFromTreasury.selector,
+      IEntityTreasuryFacet.transferToTreasury.selector
     );
   }
 
@@ -148,6 +151,25 @@ import "./base/SafeMath.sol";
     emit SetMinPolicyBalance(msg.sender, _bal);
   }
 
+  // IEntityTreasuryFacet
+
+  function transferToTreasury(address _unit, uint256 _amount) public override {
+    _assertHasEnoughBalance(_unit, _amount);
+    dataUint256[__a(_unit, "balance")] = dataUint256[__a(_unit, "balance")].sub(_amount);
+    string memory trbKey = __a(_unit, "treasuryRealBalance");
+    dataUint256[trbKey] = dataUint256[trbKey].add(_amount);
+    _resolvePendingClaims();
+    emit TransferToTreasury(msg.sender, _unit, _amount);
+  }
+
+  function transferFromTreasury(address _unit, uint256 _amount) public override {
+    string memory trbKey = __a(_unit, "treasuryRealBalance");
+    require(dataUint256[trbKey] >= _amount, "exceeds treasury balance");
+    dataUint256[trbKey] = dataUint256[trbKey].sub(_amount);
+    dataUint256[__a(_unit, "balance")] = dataUint256[__a(_unit, "balance")].add(_amount);
+    emit TransferFromTreasury(msg.sender, _unit, _amount);
+  }
+
   // Internal
 
   function _getPolicyUnit (address _policy) internal view returns (address) {
@@ -170,8 +192,8 @@ import "./base/SafeMath.sol";
     string memory trbKey = __a(unit, "treasuryRealBalance");
     string memory tvbKey = __a(unit, "treasuryVirtualBalance");
 
-    dataUint256[trbKey] = dataUint256[trbKey].add(uint256(_amount));
-    dataUint256[tvbKey] = dataUint256[tvbKey].add(uint256(_amount));
+    dataUint256[trbKey] = dataUint256[trbKey].add(_amount);
+    dataUint256[tvbKey] = dataUint256[tvbKey].add(_amount);
     dataUint256[pbKey] = dataUint256[pbKey].add(_amount);
 
     emit UpdatePolicyBalance(msg.sender, dataUint256[pbKey]);
@@ -188,12 +210,16 @@ import "./base/SafeMath.sol";
       dataUint256[tvbKey] = dataUint256[tvbKey].sub(dataUint256[pbKey]);
       dataUint256[pbKey] = 0;
     } else {
-      dataUint256[pbKey] = dataUint256[pbKey].sub(uint256(_amount));
-      dataUint256[tvbKey] = dataUint256[tvbKey].sub(uint256(_amount));
+      dataUint256[pbKey] = dataUint256[pbKey].sub(_amount);
+      dataUint256[tvbKey] = dataUint256[tvbKey].sub(_amount);
     }
 
-    dataUint256[trbKey] = dataUint256[trbKey].sub(uint256(_amount));
+    dataUint256[trbKey] = dataUint256[trbKey].sub(_amount);
 
     emit UpdatePolicyBalance(msg.sender, dataUint256[pbKey]);
+  }
+
+  function _resolvePendingClaims () internal {
+
   }
 }

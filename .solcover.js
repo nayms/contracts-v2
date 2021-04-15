@@ -23,7 +23,11 @@ module.exports = {
     "base/ECDSA.sol",
     "base/SafeMath.sol",
     /* testcode */,
-    "test/*.sol",
+    "test/DummyEntityFacet.sol",
+    "test/DummyPolicyFacet.sol",
+    "test/EntityTreasuryTestFacet.sol",
+    "test/PolicyTreasuryTestFacet.sol",
+    "test/FreezeUpgradesFacet.sol",
     /* build-related stuff */
     "VersionInfo.sol",
     "Migrations.sol",

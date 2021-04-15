@@ -29,13 +29,14 @@ import "./base/SafeMath.sol";
     return abi.encodePacked(
       IPolicyTreasury.getEconomics.selector,
       IPolicyTreasury.getPolicyEconomics.selector,
-      IPolicyTreasury.getPendingClaims.selector,
-      IPolicyTreasury.getPendingClaim.selector,
+      IPolicyTreasury.getClaims.selector,
+      IPolicyTreasury.getClaim.selector,
       IPolicyTreasury.createOrder.selector,
       IPolicyTreasury.cancelOrder.selector,
       IPolicyTreasury.payClaim.selector,
       IPolicyTreasury.incPolicyBalance.selector,
       IPolicyTreasury.setMinPolicyBalance.selector,
+      IPolicyTreasury.resolveClaims.selector,
       IEntityTreasuryFacet.transferFromTreasury.selector,
       IEntityTreasuryFacet.transferToTreasury.selector
     );
@@ -62,22 +63,26 @@ import "./base/SafeMath.sol";
     minBalance_ = dataUint256[__a(_policy, "minPolicyBalance")];
   }
 
-  function getPendingClaims (address _unit) public view override returns (
+  function getClaims (address _unit) public view override returns (
     uint256 count_,
-    uint256 totalAmount_
+    uint256 unpaidCount_,
+    uint256 unpaidTotalAmount_
   ) {
-    count_ = dataUint256[__a(_unit, "pendingClaimsCount")];
-    totalAmount_ = dataUint256[__a(_unit, "pendingClaimsTotal")];
+    count_ = dataUint256[__a(_unit, "claimsCount")];
+    unpaidCount_ = dataUint256[__a(_unit, "claimsUnpaidCount")];
+    unpaidTotalAmount_ = dataUint256[__a(_unit, "claimsUnpaidTotalAmount")];
   }
 
-  function getPendingClaim (address _unit, uint256 _index) public view override returns (
+  function getClaim (address _unit, uint256 _index) public view override returns (
     address policy_,
     address recipient_,
-    uint256 amount_
+    uint256 amount_,
+    bool paid_
   ) {
-    policy_ = dataAddress[__ia(_index, _unit, "pendingClaimPolicy")];
-    recipient_ = dataAddress[__ia(_index, _unit, "pendingClaimRecipient")];
-    amount_ = dataUint256[__ia(_index, _unit, "pendingClaimAmount")];
+    policy_ = dataAddress[__ia(_index, _unit, "claimPolicy")];
+    recipient_ = dataAddress[__ia(_index, _unit, "claimRecipient")];
+    amount_ = dataUint256[__ia(_index, _unit, "claimAmount")];
+    paid_ = dataBool[__ia(_index, _unit, "claimPaid")];
   }
 
   function createOrder (bytes32 _type, address _sellUnit, uint256 _sellAmount, address _buyUnit, uint256 _buyAmount)
@@ -112,15 +117,16 @@ import "./base/SafeMath.sol";
     string memory trbKey = __a(unit, "treasuryRealBalance");
 
     if (dataUint256[trbKey] < _amount) {
-      string memory pcak = __a(unit, "pendingClaimsTotal");
+      string memory pcak = __a(unit, "claimsUnpaidTotalAmount");
       dataUint256[pcak] = dataUint256[pcak].add(_amount);
 
-      dataUint256[__a(unit, "pendingClaimsCount")] += 1;
-      uint256 idx = dataUint256[__a(unit, "pendingClaimsCount")];
+      dataUint256[__a(unit, "claimsCount")] += 1;
+      dataUint256[__a(unit, "claimsUnpaidCount")] += 1;
+      uint256 idx = dataUint256[__a(unit, "claimsCount")];
 
-      dataAddress[__ia(idx, unit, "pendingClaimPolicy")] = msg.sender;
-      dataAddress[__ia(idx, unit, "pendingClaimRecipient")] = _recipient;
-      dataUint256[__ia(idx, unit, "pendingClaimAmount")] = _amount;
+      dataAddress[__ia(idx, unit, "claimPolicy")] = msg.sender;
+      dataAddress[__ia(idx, unit, "claimRecipient")] = _recipient;
+      dataUint256[__ia(idx, unit, "claimAmount")] = _amount;
     } else {
       _decPolicyBalance(msg.sender, _amount);
 
@@ -158,7 +164,7 @@ import "./base/SafeMath.sol";
     dataUint256[__a(_unit, "balance")] = dataUint256[__a(_unit, "balance")].sub(_amount);
     string memory trbKey = __a(_unit, "treasuryRealBalance");
     dataUint256[trbKey] = dataUint256[trbKey].add(_amount);
-    _resolvePendingClaims();
+    resolveClaims(_unit);
     emit TransferToTreasury(msg.sender, _unit, _amount);
   }
 
@@ -168,6 +174,33 @@ import "./base/SafeMath.sol";
     dataUint256[trbKey] = dataUint256[trbKey].sub(_amount);
     dataUint256[__a(_unit, "balance")] = dataUint256[__a(_unit, "balance")].add(_amount);
     emit TransferFromTreasury(msg.sender, _unit, _amount);
+  }
+
+  function resolveClaims (address _unit) public override {
+    uint256 cnt = dataUint256[__a(_unit, "claimsCount")];
+
+    uint256 startIndex = cnt - dataUint256[__a(_unit, "claimsUnpaidCount")] + 1;
+    uint256 endIndex = cnt;
+
+    for (uint256 i = startIndex; i <= endIndex; i += 1) {
+      if (!dataBool[__ia(i, _unit, "claimPaid")]) {
+        // get amt
+        uint256 amt = dataUint256[__ia(i, _unit, "claimAmount")];
+
+        // if we have enough funds
+        if (amt <= dataUint256[__a(_unit, "treasuryRealBalance")]) {
+          // update internals
+          _decPolicyBalance(
+            dataAddress[__ia(i, _unit, "claimPolicy")], 
+            amt
+          );
+          // payout
+          IERC20(_unit).transfer(dataAddress[__ia(i, _unit, "claimRecipient")], amt);
+          // mark as paid
+          dataBool[__ia(i, _unit, "claimPaid")] = true;
+        }
+      }
+    }
   }
 
   // Internal
@@ -217,9 +250,5 @@ import "./base/SafeMath.sol";
     dataUint256[trbKey] = dataUint256[trbKey].sub(_amount);
 
     emit UpdatePolicyBalance(msg.sender, dataUint256[pbKey]);
-  }
-
-  function _resolvePendingClaims () internal {
-
   }
 }

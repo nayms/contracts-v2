@@ -114,6 +114,9 @@ import "./base/SafeMath.sol";
     // check and update treasury balances
     address unit = _getPolicyUnit(msg.sender);
 
+    // check policy virtual balance
+    require(dataUint256[__a(msg.sender, "policyBalance")] >= _amount, "exceeds policy balance");
+
     string memory trbKey = __a(unit, "treasuryRealBalance");
 
     if (dataUint256[trbKey] < _amount) {
@@ -198,6 +201,9 @@ import "./base/SafeMath.sol";
           IERC20(_unit).transfer(dataAddress[__ia(i, _unit, "claimRecipient")], amt);
           // mark as paid
           dataBool[__ia(i, _unit, "claimPaid")] = true;
+          dataUint256[__a(_unit, "claimsUnpaidCount")] -= 1;
+          string memory cutaKey = __a(_unit, "claimsUnpaidTotalAmount");
+          dataUint256[cutaKey] = dataUint256[cutaKey].sub(amt);
         }
       }
     }
@@ -221,7 +227,7 @@ import "./base/SafeMath.sol";
   function _incPolicyBalance (address _policy, uint256 _amount) internal {
     address unit = _getPolicyUnit(_policy);
 
-    string memory pbKey = __a(msg.sender, "policyBalance");
+    string memory pbKey = __a(_policy, "policyBalance");
     string memory trbKey = __a(unit, "treasuryRealBalance");
     string memory tvbKey = __a(unit, "treasuryVirtualBalance");
 
@@ -229,26 +235,20 @@ import "./base/SafeMath.sol";
     dataUint256[tvbKey] = dataUint256[tvbKey].add(_amount);
     dataUint256[pbKey] = dataUint256[pbKey].add(_amount);
 
-    emit UpdatePolicyBalance(msg.sender, dataUint256[pbKey]);
+    emit UpdatePolicyBalance(_policy, dataUint256[pbKey]);
   }
 
   function _decPolicyBalance (address _policy, uint256 _amount) internal {
     address unit = _getPolicyUnit(_policy);
 
-    string memory pbKey = __a(msg.sender, "policyBalance");
+    string memory pbKey = __a(_policy, "policyBalance");
     string memory trbKey = __a(unit, "treasuryRealBalance");
     string memory tvbKey = __a(unit, "treasuryVirtualBalance");
 
-    if (dataUint256[pbKey] < _amount) {
-      dataUint256[tvbKey] = dataUint256[tvbKey].sub(dataUint256[pbKey]);
-      dataUint256[pbKey] = 0;
-    } else {
-      dataUint256[pbKey] = dataUint256[pbKey].sub(_amount);
-      dataUint256[tvbKey] = dataUint256[tvbKey].sub(_amount);
-    }
-
     dataUint256[trbKey] = dataUint256[trbKey].sub(_amount);
+    dataUint256[tvbKey] = dataUint256[tvbKey].sub(_amount);
+    dataUint256[pbKey] = dataUint256[pbKey].sub(_amount);
 
-    emit UpdatePolicyBalance(msg.sender, dataUint256[pbKey]);
+    emit UpdatePolicyBalance(_policy, dataUint256[pbKey]);
   }
 }

@@ -8,10 +8,12 @@ interface IPolicyTreasury {
    * @param _unit Token unit.
    * @return realBalance_ Current real balance.
    * @return virtualBalance_ Current virtual balance (sum of all policy balances).
+   * @return minBalance_ Current minimum balance needed (sum of all policy minimum balances).
    */
   function getEconomics (address _unit) external view returns (
     uint256 realBalance_,
-    uint256 virtualBalance_
+    uint256 virtualBalance_,
+    uint256 minBalance_
   );
 
   /**

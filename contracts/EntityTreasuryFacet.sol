@@ -38,7 +38,9 @@ import "./base/SafeMath.sol";
       IPolicyTreasury.setMinPolicyBalance.selector,
       IPolicyTreasury.resolveClaims.selector,
       IEntityTreasuryFacet.transferFromTreasury.selector,
-      IEntityTreasuryFacet.transferToTreasury.selector
+      IEntityTreasuryFacet.transferToTreasury.selector,
+      IEntityTreasuryFacet.getCollateralRatio.selector,
+      IEntityTreasuryFacet.setCollateralRatio.selector
     );
   }
 
@@ -47,10 +49,12 @@ import "./base/SafeMath.sol";
 
   function getEconomics (address _unit) public view override returns (
     uint256 realBalance_,
-    uint256 virtualBalance_
+    uint256 virtualBalance_,
+    uint256 minBalance_
   ) {
     realBalance_ = dataUint256[__a(_unit, "treasuryRealBalance")];
     virtualBalance_ = dataUint256[__a(_unit, "treasuryVirtualBalance")];
+    minBalance_ = dataUint256[__a(_unit, "treasuryMinBalance")];
   }
 
   function getPolicyEconomics (address _policy) public view override returns (
@@ -151,16 +155,31 @@ import "./base/SafeMath.sol";
     override
     assertIsMyPolicy(msg.sender)
   {
+    address unit = _getPolicyUnit(msg.sender);
+
     string memory key = __a(msg.sender, "minPolicyBalance");
+    string memory tmbKey = __a(unit, "treasuryMinBalance");
 
     require(dataUint256[key] == 0, 'already set');
 
     dataUint256[key] = _bal;
+    dataUint256[tmbKey] = dataUint256[tmbKey].add(_bal);
 
     emit SetMinPolicyBalance(msg.sender, _bal);
   }
 
   // IEntityTreasuryFacet
+
+  function getCollateralRatio() public view override returns (
+    uint256 treasuryCollRatioBP_
+  ) {
+    treasuryCollRatioBP_ = dataUint256["treasuryCollRatioBP"];
+  }
+
+  function setCollateralRatio(uint256 _treasuryCollRatioBP) external override assertIsEntityAdmin(msg.sender) {
+    require(_treasuryCollRatioBP > 0, "cannot be 0");
+    dataUint256["treasuryCollRatioBP"] = _treasuryCollRatioBP;
+  }
 
   function transferToTreasury(address _unit, uint256 _amount) public override {
     _assertHasEnoughBalance(_unit, _amount);
@@ -172,8 +191,15 @@ import "./base/SafeMath.sol";
   }
 
   function transferFromTreasury(address _unit, uint256 _amount) public override {
+    // check if we have enough balance
     string memory trbKey = __a(_unit, "treasuryRealBalance");
+    string memory tmbKey = __a(_unit, "treasuryMinBalance");
     require(dataUint256[trbKey] >= _amount, "exceeds treasury balance");
+
+    // check if minimum coll ratio is maintained
+    uint256 collBal = dataUint256[tmbKey].mul(10000 * dataUint256["treasuryCollRatioBP"]).div(10000 * 10000);
+    require(dataUint256[trbKey].sub(_amount) >= collBal, "collateral too low");
+
     dataUint256[trbKey] = dataUint256[trbKey].sub(_amount);
     dataUint256[__a(_unit, "balance")] = dataUint256[__a(_unit, "balance")].add(_amount);
     emit TransferFromTreasury(msg.sender, _unit, _amount);

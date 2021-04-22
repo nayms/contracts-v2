@@ -17,11 +17,6 @@ import "./Policy.sol";
  contract EntityCoreFacet is EternalStorage, Controller, EntityFacetBase, IEntityCoreFacet, IDiamondFacet {
   using SafeMath for uint256;
 
-  modifier assertCanWithdraw () {
-    require(inRoleGroup(msg.sender, ROLEGROUP_ENTITY_ADMINS), 'must be entity admin');
-    _;
-  }
-
   modifier assertCanTradeTranchTokens () {
     require(inRoleGroup(msg.sender, ROLEGROUP_TRADERS), 'must be trader');
     _;
@@ -121,7 +116,7 @@ import "./Policy.sol";
   function withdraw(address _unit, uint256 _amount) 
     public 
     override 
-    assertCanWithdraw 
+    assertIsEntityAdmin(msg.sender)
   {
     _assertHasEnoughBalance(_unit, _amount);
 

@@ -54,8 +54,6 @@ contract('Treasury', accounts => {
 
   const entityAdminAddress = accounts[0]
 
-  let entityAdmin
-  
   let treasury
   
   let policies
@@ -137,6 +135,25 @@ contract('Treasury', accounts => {
 
   it('can be deployed', async () => {
     expect(entityProxy.address).to.exist
+  })
+
+  describe('has a collateralization ratio', () => {
+    it('with default as 100', async () => {
+      await entity.getCollateralRatio().should.eventually.eq(10000)
+    })
+
+    it('which can be set, but not just by anyone', async () => {
+      await entity.setCollateralRatio(500, { from: accounts[2] }).should.be.rejectedWith('must be entity admin')
+    })
+
+    it('which can be set', async () => {
+      await entity.setCollateralRatio(500, { from: entityAdminAddress })
+      await entity.getCollateralRatio().should.eventually.eq(500)
+    })
+
+    it('which cannot be set to 0', async () => {
+      await entity.setCollateralRatio(0, { from: entityAdminAddress }).should.be.rejectedWith('cannot be 0')
+    })
   })
 
   describe('can have policy balance updated', async () => {
@@ -238,6 +255,24 @@ contract('Treasury', accounts => {
     it('only once', async () => {
       await policies[0].testFacet.treasurySetMinPolicyBalance(123)
       await policies[0].testFacet.treasurySetMinPolicyBalance(123).should.be.rejectedWith('already set')
+    })
+
+    it('and aggregates across policies', async () => {
+      await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+        minBalance_: 0
+      })
+
+      await policies[0].testFacet.treasurySetMinPolicyBalance(123)
+
+      await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+        minBalance_: 123
+      })
+
+      await policies[1].testFacet.treasurySetMinPolicyBalance(51)
+
+      await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+        minBalance_: 174
+      })
     })
   })
 
@@ -561,39 +596,119 @@ contract('Treasury', accounts => {
       await entity.transferToTreasury(etherToken.address, 124).should.be.rejectedWith('exceeds entity balance');
     })
 
-    it('from treasury to entity when funds are enough', async () => {
-      await policies[0].testFacet.treasuryIncPolicyBalance(2)
-      await policies[1].testFacet.treasuryIncPolicyBalance(3)
+    describe('from treasury to entity', () => {
+      it('when funds are enough', async () => {
+        await policies[0].testFacet.treasuryIncPolicyBalance(2)
+        await policies[1].testFacet.treasuryIncPolicyBalance(3)
 
-      await entity.getBalance(etherToken.address).should.eventually.eq(0)
+        await entity.getBalance(etherToken.address).should.eventually.eq(0)
 
-      await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
-        realBalance_: 5,
-        virtualBalance_: 5,
+        await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+          realBalance_: 5,
+          virtualBalance_: 5,
+        })
+
+        await entity.transferFromTreasury(etherToken.address, 5)
+
+        await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+          realBalance_: 0,
+          virtualBalance_: 5,
+        })
+
+        await entity.getBalance(etherToken.address).should.eventually.eq(5)
       })
 
-      await entity.transferFromTreasury(etherToken.address, 5)
+      it('when funds are NOT enough', async () => {
+        await policies[0].testFacet.treasuryIncPolicyBalance(2)
+        await policies[1].testFacet.treasuryIncPolicyBalance(3)
 
-      await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
-        realBalance_: 0,
-        virtualBalance_: 5,
+        await entity.getBalance(etherToken.address).should.eventually.eq(0)
+
+        await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+          realBalance_: 5,
+          virtualBalance_: 5,
+        })
+
+        await entity.transferFromTreasury(etherToken.address, 6).should.be.rejectedWith('exceeds treasury balance')
       })
 
-      await entity.getBalance(etherToken.address).should.eventually.eq(5)
-    })
+      describe('and takes into account collateralization ratio', async () => {
+        beforeEach(async () => {
+          await policies[0].testFacet.treasuryIncPolicyBalance(4)
+          await policies[0].testFacet.treasurySetMinPolicyBalance(3)
 
-    it('from treasury to entity when funds are NOT enough', async () => {
-      await policies[0].testFacet.treasuryIncPolicyBalance(2)
-      await policies[1].testFacet.treasuryIncPolicyBalance(3)
+          await policies[1].testFacet.treasuryIncPolicyBalance(7)
+          await policies[1].testFacet.treasurySetMinPolicyBalance(6)
 
-      await entity.getBalance(etherToken.address).should.eventually.eq(0)
+          await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+            realBalance_: 11,
+            virtualBalance_: 11,
+            minBalance_: 9,
+          })
 
-      await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
-        realBalance_: 5,
-        virtualBalance_: 5,
+          await entity.getBalance(etherToken.address).should.eventually.eq(0)
+        })
+
+        it('when at 100%', async () => {
+          await entity.setCollateralRatio(10000)
+
+          await entity.transferFromTreasury(etherToken.address, 3).should.be.rejectedWith("collateral too low")
+          
+          await entity.transferFromTreasury(etherToken.address, 2).should.be.fulfilled
+
+          await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+            realBalance_: 9,
+            virtualBalance_: 11,
+            minBalance_: 9,
+          })
+
+          await entity.getBalance(etherToken.address).should.eventually.eq(2)
+        })
+
+        it('when at 0.1%', async () => {
+          await entity.setCollateralRatio(1)
+
+          await entity.transferFromTreasury(etherToken.address, 11).should.be.fulfilled
+
+          await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+            realBalance_: 0,
+            virtualBalance_: 11,
+            minBalance_: 9,
+          })
+
+          await entity.getBalance(etherToken.address).should.eventually.eq(11)
+        })
+
+        it('when at 1%', async () => {
+          await entity.setCollateralRatio(100)
+
+          await entity.transferFromTreasury(etherToken.address, 11).should.be.fulfilled
+
+          await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+            realBalance_: 0,
+            virtualBalance_: 11,
+            minBalance_: 9,
+          })
+
+          await entity.getBalance(etherToken.address).should.eventually.eq(11)
+        })
+
+        it('when at 12%', async () => {
+          await entity.setCollateralRatio(1200)
+
+          await entity.transferFromTreasury(etherToken.address, 11).should.be.rejectedWith('collateral too low')
+
+          await entity.transferFromTreasury(etherToken.address, 10).should.be.fulfilled
+
+          await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+            realBalance_: 1,
+            virtualBalance_: 11,
+            minBalance_: 9,
+          })
+
+          await entity.getBalance(etherToken.address).should.eventually.eq(10)
+        })
       })
-
-      await entity.transferFromTreasury(etherToken.address, 6).should.be.rejectedWith('exceeds treasury balance')
     })
   })
 

@@ -4,7 +4,7 @@ import "./base/EternalStorage.sol";
 import "./base/Controller.sol";
 import "./base/IDiamondFacet.sol";
 import "./base/IPolicyApprovalsFacet.sol";
-import "./base/PolicyFacetBase.sol";
+import ".//PolicyFacetBase.sol";
 
 /**
  * @dev Business-logic for Policy approvals

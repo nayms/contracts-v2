@@ -12,11 +12,13 @@ export const ensureEntityImplementationsAreDeployed = async (cfg) => {
     const EntityUpgradeFacet = artifacts.require('./EntityUpgradeFacet')
     const EntityCoreFacet = artifacts.require('./EntityCoreFacet')
     const EntityTreasuryFacet = artifacts.require('./EntityTreasuryFacet')
+    const EntityTreasuryBridgeFacet = artifacts.require('./EntityTreasuryBridgeFacet')
 
     addresses = [
       await deploy(deployer, getTxParams(), EntityUpgradeFacet, settings.address),
       await deploy(deployer, getTxParams(), EntityCoreFacet, settings.address),
       await deploy(deployer, getTxParams(), EntityTreasuryFacet, settings.address),
+      await deploy(deployer, getTxParams(), EntityTreasuryBridgeFacet, settings.address),
     ].map(c => c.address)
 
     task.log(`Deployed at ${addresses.join(', ')}`)

@@ -120,26 +120,4 @@ interface IPolicyTreasury {
    * @param _unit Token unit.
    */
   function resolveClaims (address _unit) external;
-
-  // Events
-
-  /**
-   * @dev Emitted when policy balance is updated.
-   * @param policy The policy address.
-   * @param newBal The new balance.
-   */
-  event UpdatePolicyBalance(
-    address indexed policy,
-    uint256 indexed newBal
-  );
-
-  /**
-   * @dev Emitted when the minimum expected policy balance gets set.
-   * @param policy The policy address.
-   * @param bal The balance.
-   */
-  event SetMinPolicyBalance(
-    address indexed policy,
-    uint256 indexed bal
-  );
 }

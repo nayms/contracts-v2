@@ -2,7 +2,7 @@ pragma solidity >=0.6.7;
 
 import "./base/Controller.sol";
 import "./base/EternalStorage.sol";
-import "./base/EntityFacetBase.sol";
+import "./EntityFacetBase.sol";
 import "./base/IEntityCoreFacet.sol";
 import "./base/IDiamondFacet.sol";
 import "./base/IERC20.sol";

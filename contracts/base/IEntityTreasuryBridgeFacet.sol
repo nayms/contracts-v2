@@ -1,9 +1,9 @@
 pragma solidity >=0.6.7;
 
 /**
- * @dev Entity treasury facet logic.
+ * @dev Entity treasury helper facet logic.
  */
-interface IEntityTreasuryFacet {
+interface IEntityTreasuryBridgeFacet {
   /**
    * @dev Get treasury collaterlization ratio.
    *

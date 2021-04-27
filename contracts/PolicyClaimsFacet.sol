@@ -6,7 +6,7 @@ import "./base/Controller.sol";
 import "./base/IDiamondFacet.sol";
 import "./base/IPolicyClaimsFacet.sol";
 import "./base/IPolicyCoreFacet.sol";
-import "./base/PolicyFacetBase.sol";
+import ".//PolicyFacetBase.sol";
 import "./base/AccessControl.sol";
 import "./base/IERC20.sol";
 

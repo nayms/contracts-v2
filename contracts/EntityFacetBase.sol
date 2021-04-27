@@ -1,9 +1,9 @@
 pragma solidity >=0.6.7;
 
-import "./EternalStorage.sol";
-import "./Controller.sol";
-import "./IMarket.sol";
-import "./IERC20.sol";
+import "./base/EternalStorage.sol";
+import "./base/Controller.sol";
+import "./base/IMarket.sol";
+import "./base/IERC20.sol";
 
 /**
  * @dev Entity facet base class

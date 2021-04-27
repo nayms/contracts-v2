@@ -9,7 +9,7 @@ import "./base/AccessControl.sol";
 import "./base/IPolicyTreasuryConstants.sol";
 import "./base/IPolicyCoreFacet.sol";
 import "./base/IPolicyTranchTokensFacet.sol";
-import "./base/PolicyFacetBase.sol";
+import ".//PolicyFacetBase.sol";
 import "./base/SafeMath.sol";
 import "./TranchToken.sol";
 

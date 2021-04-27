@@ -1,9 +1,9 @@
 pragma solidity >=0.6.7;
 
-import "./EternalStorage.sol";
-import "./IPolicyStates.sol";
-import "./IPolicyTreasury.sol";
-import "./AccessControl.sol";
+import "./base/EternalStorage.sol";
+import "./base/IPolicyStates.sol";
+import "./base/IPolicyTreasury.sol";
+import "./base/AccessControl.sol";
 
 /**
  * @dev Policy facet base class

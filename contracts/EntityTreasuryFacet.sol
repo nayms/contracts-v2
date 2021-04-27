@@ -37,6 +37,7 @@ import "./base/SafeMath.sol";
       IPolicyTreasury.incPolicyBalance.selector,
       IPolicyTreasury.setMinPolicyBalance.selector,
       IPolicyTreasury.resolveClaims.selector,
+      // IPolicyTreasury.isPolicyCollateralized.selector,
       IEntityTreasuryFacet.transferFromTreasury.selector,
       IEntityTreasuryFacet.transferToTreasury.selector,
       IEntityTreasuryFacet.getCollateralRatio.selector,
@@ -60,11 +61,13 @@ import "./base/SafeMath.sol";
   function getPolicyEconomics (address _policy) public view override returns (
     address unit_,
     uint256 balance_,
-    uint256 minBalance_
+    uint256 minBalance_,
+    uint256 claimsUnpaidTotalAmount_
   ) {
     unit_ = _getPolicyUnit(_policy);
     balance_ = dataUint256[__a(_policy, "policyBalance")];
     minBalance_ = dataUint256[__a(_policy, "minPolicyBalance")];
+    claimsUnpaidTotalAmount_ = dataUint256[__a(_policy, "policyClaimsUnpaidTotalAmount")];
   }
 
   function getClaims (address _unit) public view override returns (
@@ -124,8 +127,11 @@ import "./base/SafeMath.sol";
     string memory trbKey = __a(unit, "treasuryRealBalance");
 
     if (dataUint256[trbKey] < _amount) {
-      string memory pcak = __a(unit, "claimsUnpaidTotalAmount");
-      dataUint256[pcak] = dataUint256[pcak].add(_amount);
+      string memory cutaKey = __a(unit, "claimsUnpaidTotalAmount");
+      dataUint256[cutaKey] = dataUint256[cutaKey].add(_amount);
+
+      string memory pcutaKey = __a(msg.sender, "policyClaimsUnpaidTotalAmount");
+      dataUint256[pcutaKey] = dataUint256[pcutaKey].add(_amount);
 
       dataUint256[__a(unit, "claimsCount")] += 1;
       dataUint256[__a(unit, "claimsUnpaidCount")] += 1;
@@ -167,6 +173,21 @@ import "./base/SafeMath.sol";
 
     emit SetMinPolicyBalance(msg.sender, _bal);
   }
+
+  // function isPolicyCollateralized (address _policy) public override returns (bool) {
+  //   address unit = _getPolicyUnit(_policy);
+
+  //   string memory pbKey = __a(msg.sender, "policyBalance");
+  //   string memory trbKey = __a(unit, "treasuryRealBalance");
+
+  //   if (dataUint256[trbKey] < dataUint256[pbKey]) {
+  //     return false;
+  //   }
+
+  //   // TODO: check for pending claims
+
+  //   return true;
+  // }
 
   // IEntityTreasuryFacet
 
@@ -211,25 +232,30 @@ import "./base/SafeMath.sol";
     uint256 startIndex = cnt - dataUint256[__a(_unit, "claimsUnpaidCount")] + 1;
     uint256 endIndex = cnt;
 
+    string memory trbKey = __a(_unit, "treasuryRealBalance");
+    string memory cutaKey = __a(_unit, "claimsUnpaidTotalAmount");
+
     for (uint256 i = startIndex; i <= endIndex; i += 1) {
       if (!dataBool[__ia(i, _unit, "claimPaid")]) {
         // get amt
         uint256 amt = dataUint256[__ia(i, _unit, "claimAmount")];
 
         // if we have enough funds
-        if (amt <= dataUint256[__a(_unit, "treasuryRealBalance")]) {
+        if (amt <= dataUint256[trbKey]) {
           // update internals
-          _decPolicyBalance(
-            dataAddress[__ia(i, _unit, "claimPolicy")], 
-            amt
-          );
+          address pol = dataAddress[__ia(i, _unit, "claimPolicy")];
+          string memory pcutaKey = __a(pol, "policyClaimsUnpaidTotalAmount");
+          dataUint256[pcutaKey] = dataUint256[pcutaKey].sub(amt);
+          _decPolicyBalance(pol, amt);
           // payout
           IERC20(_unit).transfer(dataAddress[__ia(i, _unit, "claimRecipient")], amt);
           // mark as paid
           dataBool[__ia(i, _unit, "claimPaid")] = true;
           dataUint256[__a(_unit, "claimsUnpaidCount")] -= 1;
-          string memory cutaKey = __a(_unit, "claimsUnpaidTotalAmount");
           dataUint256[cutaKey] = dataUint256[cutaKey].sub(amt);
+        } else {
+          // stop looping once we hit a claim we can't process
+          break;
         }
       }
     }

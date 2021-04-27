@@ -23,11 +23,13 @@ interface IPolicyTreasury {
    * @return unit_ Token.
    * @return balance_ Current balance.
    * @return minBalance_ Min. requried balance to fully collateralize policy.
+   * @return claimsUnpaidTotalAmount_ Total amount unpaid across all claims for policy.
    */
   function getPolicyEconomics (address _policy) external view returns (
     address unit_,
     uint256 balance_,
-    uint256 minBalance_
+    uint256 minBalance_,
+    uint256 claimsUnpaidTotalAmount_
   );
 
   /**
@@ -82,7 +84,7 @@ interface IPolicyTreasury {
    */
   function cancelOrder (uint256 _orderId) external;
   /**
-   * Pay a claim.
+   * Pay a claim for the callig policy.
    *
    * Once paid the internal minimum collateral level required for the policy will be automatically reduced.
    *
@@ -91,7 +93,7 @@ interface IPolicyTreasury {
    */
   function payClaim (address _recipient, uint256 _amount) external;
   /**
-   * Increase policy treasury balance.
+   * Increase calling policy treasury balance.
    *
    * This should only be called by a policy to inform the treasury to update its 
    * internal record of the policy's current balance, e.g. after premium payments are sent to the treasury.
@@ -100,13 +102,17 @@ interface IPolicyTreasury {
    */
   function incPolicyBalance (uint256 _amount) external;
   /**
-   * Set minimum balance required to fully collateralize the policy.
+   * Set minimum balance required to fully collateralize the calling policy.
    *
    * This can only be called once.
    *
    * @param _amount Amount to increase by.
    */
   function setMinPolicyBalance (uint256 _amount) external;
+  /**
+   * Get whether the given policy is fully collaterlized without any "debt" (e.g. pending claims that are yet to be paid out).
+   */
+  // function isPolicyCollateralized (address _policy) external returns (bool);
 
   /**
    * Resolve all unpaid claims with available treasury funds.

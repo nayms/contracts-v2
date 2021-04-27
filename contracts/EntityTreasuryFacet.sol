@@ -33,8 +33,8 @@ import "./base/SafeMath.sol";
       IPolicyTreasury.payClaim.selector,
       IPolicyTreasury.incPolicyBalance.selector,
       IPolicyTreasury.setMinPolicyBalance.selector,
-      IPolicyTreasury.resolveClaims.selector
-      // IPolicyTreasury.isPolicyCollateralized.selector,
+      IPolicyTreasury.resolveClaims.selector,
+      IPolicyTreasury.isPolicyCollateralized.selector
     );
   }
 
@@ -170,20 +170,16 @@ import "./base/SafeMath.sol";
     _resolveClaims(_unit);
   }
 
-  // function isPolicyCollateralized (address _policy) public override returns (bool) {
-  //   address unit = _getPolicyUnit(_policy);
+  function isPolicyCollateralized (address _policy) public view override returns (bool) {
+    address unit = _getPolicyUnit(_policy);
 
-  //   string memory pbKey = __a(msg.sender, "policyBalance");
-  //   string memory trbKey = __a(unit, "treasuryRealBalance");
+    string memory pbKey = __a(_policy, "policyBalance");
+    string memory pcutaKey = __a(_policy, "policyClaimsUnpaidTotalAmount");
+    string memory trbKey = __a(unit, "treasuryRealBalance");
 
-  //   if (dataUint256[trbKey] < dataUint256[pbKey]) {
-  //     return false;
-  //   }
-
-  //   // TODO: check for pending claims
-
-  //   return true;
-  // }
+    // need no unpaid claims AND enough real balance
+    return (dataUint256[pcutaKey] == 0) && (dataUint256[trbKey] >= dataUint256[pbKey]);
+  }
 
   // Internal
 

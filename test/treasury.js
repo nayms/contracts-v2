@@ -747,6 +747,49 @@ contract('Treasury', accounts => {
     })
   })
 
+  describe('policy is fully collateralized', () => {
+    beforeEach(async () => {
+      await policies[0].testFacet.treasuryIncPolicyBalance(5)
+
+      await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+        realBalance_: 5,
+        virtualBalance_: 5,
+      })
+
+      await treasury.getPolicyEconomics(policies[0].address).should.eventually.matchObj({
+        balance_: 5,
+        claimsUnpaidTotalAmount_: 0,
+      })
+    })
+    
+    it('if real balance is enough to cover it', async () => {
+      await treasury.isPolicyCollateralized(policies[0].address).should.eventually.eq(true)
+      
+      await entityTreasuryTestFacet.setRealBalance(etherToken.address, 6)
+
+      await treasury.isPolicyCollateralized(policies[0].address).should.eventually.eq(true)
+
+      await entityTreasuryTestFacet.setRealBalance(etherToken.address, 4)
+
+      await treasury.isPolicyCollateralized(policies[0].address).should.eventually.eq(false)
+    })
+
+    it('and if there are no pending claims', async () => {
+      // queue up a claim on second policy that's larger than first policy's balance
+      await policies[1].testFacet.treasuryIncPolicyBalance(15)
+      await entityTreasuryTestFacet.setRealBalance(etherToken.address, 0)
+      await policies[1].testFacet.treasuryPayClaim(accounts[5], 11)
+
+      // now add claim on first policy
+      await policies[0].testFacet.treasuryPayClaim(accounts[5], 1)
+
+      // now update treasury real balance - policy 1 claim can't yet be paid because policy 2 has an earlier pending claim
+      await entityTreasuryTestFacet.setRealBalance(etherToken.address, 5)
+
+      await treasury.isPolicyCollateralized(policies[0].address).should.eventually.eq(false)
+    })
+  })
+
   describe('can trade', () => {
     beforeEach(async () => {
       await etherToken.deposit({ value: 500 })

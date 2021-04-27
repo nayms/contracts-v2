@@ -112,7 +112,7 @@ interface IPolicyTreasury {
   /**
    * Get whether the given policy is fully collaterlized without any "debt" (e.g. pending claims that are yet to be paid out).
    */
-  // function isPolicyCollateralized (address _policy) external returns (bool);
+  function isPolicyCollateralized (address _policy) external view returns (bool);
 
   /**
    * Resolve all unpaid claims with available treasury funds.

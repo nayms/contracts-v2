@@ -2,22 +2,20 @@ pragma solidity >=0.6.7;
 
 import "./base/Controller.sol";
 import "./base/EternalStorage.sol";
-import "./base/EntityFacetBase.sol";
+import "./EntityFacetBase.sol";
 import "./base/IEntityCoreFacet.sol";
 import "./base/IDiamondFacet.sol";
 import "./base/IERC20.sol";
 import "./base/IMarket.sol";
 import "./base/IPolicy.sol";
+import "./base/SafeMath.sol";
 import "./Policy.sol";
 
 /**
  * @dev Business-logic for Entity
  */
  contract EntityCoreFacet is EternalStorage, Controller, EntityFacetBase, IEntityCoreFacet, IDiamondFacet {
-  modifier assertCanWithdraw () {
-    require(inRoleGroup(msg.sender, ROLEGROUP_ENTITY_ADMINS), 'must be entity admin');
-    _;
-  }
+  using SafeMath for uint256;
 
   modifier assertCanTradeTranchTokens () {
     require(inRoleGroup(msg.sender, ROLEGROUP_TRADERS), 'must be trader');
@@ -40,6 +38,7 @@ import "./Policy.sol";
   function getSelectors () public pure override returns (bytes memory) {
     return abi.encodePacked(
       IEntityCoreFacet.createPolicy.selector,
+      IEntityCoreFacet.getBalance.selector,
       IEntityCoreFacet.getNumPolicies.selector,
       IEntityCoreFacet.getPolicy.selector,
       IEntityCoreFacet.deposit.selector,
@@ -94,6 +93,9 @@ import "./Policy.sol";
     emit NewPolicy(pAddr, address(this), msg.sender);
   }
 
+  function getBalance(address _unit) public view override returns (uint256) {
+    return dataUint256[__a(_unit, "balance")];
+  }
 
   function getNumPolicies() public view override returns (uint256) {
     return dataUint256["numPolicies"];
@@ -106,7 +108,7 @@ import "./Policy.sol";
   function deposit(address _unit, uint256 _amount) public override {
     IERC20 tok = IERC20(_unit);
     tok.transferFrom(msg.sender, address(this), _amount);
-    dataUint256[__a(_unit, "balance")] += _amount;
+    dataUint256[__a(_unit, "balance")] = dataUint256[__a(_unit, "balance")].add(_amount);
     
     emit EntityDeposit(msg.sender, _unit, _amount);
   }
@@ -114,9 +116,11 @@ import "./Policy.sol";
   function withdraw(address _unit, uint256 _amount) 
     public 
     override 
-    assertCanWithdraw 
+    assertIsEntityAdmin(msg.sender)
   {
     _assertHasEnoughBalance(_unit, _amount);
+
+    dataUint256[__a(_unit, "balance")] = dataUint256[__a(_unit, "balance")].sub(_amount);
 
     IERC20 tok = IERC20(_unit);
     tok.transfer(msg.sender, _amount);
@@ -177,11 +181,5 @@ import "./Policy.sol";
     _assertHasEnoughBalance(_sellUnit, _sellAmount);
     // do it!
     return _sellAtBestPriceOnMarket(_sellUnit, _sellAmount, _buyUnit);
-  }
-
-  // Internal methods
-
-  function _assertHasEnoughBalance (address _unit, uint256 _amount) private {
-    require(dataUint256[__a(_unit, "balance")] >= _amount, 'exceeds entity balance');
   }
 }

@@ -4,7 +4,7 @@ import "./base/EternalStorage.sol";
 import "./base/Controller.sol";
 import "./base/IDiamondFacet.sol";
 import "./base/IPolicyTranchTokensFacet.sol";
-import "./base/PolicyFacetBase.sol";
+import ".//PolicyFacetBase.sol";
 import "./base/AccessControl.sol";
 import "./base/SafeMath.sol";
 import "./base/Address.sol";

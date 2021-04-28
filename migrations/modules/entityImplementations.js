@@ -3,7 +3,7 @@ const { deploy, defaultGetTxParams, execCall } = require('../utils')
 const { SETTINGS, BYTES32_ZERO } = require('../../utils/constants')
 
 export const ensureEntityImplementationsAreDeployed = async (cfg) => {
-  const { deployer, artifacts, log: baseLog, accounts, settings, entityDeployer, getTxParams = defaultGetTxParams } = cfg
+  const { deployer, artifacts, log: baseLog, accounts, settings, entityDeployer, getTxParams = defaultGetTxParams, extraFacets = [] } = cfg
   const log = createLog(baseLog)
 
   let addresses
@@ -12,12 +12,20 @@ export const ensureEntityImplementationsAreDeployed = async (cfg) => {
     const EntityUpgradeFacet = artifacts.require('./EntityUpgradeFacet')
     const EntityCoreFacet = artifacts.require('./EntityCoreFacet')
     const EntityTreasuryFacet = artifacts.require('./EntityTreasuryFacet')
+    const EntityTreasuryBridgeFacet = artifacts.require('./EntityTreasuryBridgeFacet')
 
     addresses = [
       await deploy(deployer, getTxParams(), EntityUpgradeFacet, settings.address),
       await deploy(deployer, getTxParams(), EntityCoreFacet, settings.address),
       await deploy(deployer, getTxParams(), EntityTreasuryFacet, settings.address),
-    ].map(c => c.address)
+      await deploy(deployer, getTxParams(), EntityTreasuryBridgeFacet, settings.address),
+    ]
+    
+    for (let f of extraFacets) {
+      addresses.push(await deploy(deployer, getTxParams(), f, settings.address))
+    }
+
+    addresses = addresses.map(c => c.address)
 
     task.log(`Deployed at ${addresses.join(', ')}`)
   })

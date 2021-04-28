@@ -18,6 +18,7 @@
     "LICENSE.md"
   ],
   "scripts": {
+    "prepare": "husky install",
     "devnet": "ganache-cli --gasLimit 8000000 -a 50 -e 1000000 -i 5777 -m 'funny door sample enrich female wedding stereo crane setup shop dwarf dismiss'",
     "devnet-ci": "yarn devnet >ganache.log 2>&1 &",
     "truffle": "babel-node node_modules/.bin/truffle",
@@ -42,6 +43,8 @@
   "author": "Ramesh Nair <ram@hiddentao.com>",
   "license": "MIT",
   "devDependencies": {
+    "@commitlint/cli": "^12.1.1",
+    "@commitlint/config-conventional": "^12.1.1",
     "@gnosis.pm/safe-contracts": "^1.2.0",
     "@solui/cli": "^1.21.3",
     "argv": "0.0.2",
@@ -51,6 +54,8 @@
     "chai-as-promised": "^7.1.1",
     "chalk": "^2.4.2",
     "commander": "^2.18.0",
+    "commitlint-config-jira": "^1.5.1",
+    "commitlint-plugin-jira-rules": "^1.5.1",
     "coveralls": "^3.0.6",
     "delay": "^4.3.0",
     "eth-gas-reporter": "^0.1.9",
@@ -68,7 +73,7 @@
     "git-last-commit": "^1.0.0",
     "glob": "^7.1.6",
     "got": "^11.1.4",
-    "husky": "^3.0.3",
+    "husky": "^6.0.0",
     "lodash": "^4.17.11",
     "moment": "^2.18.1",
     "prompt": "^1.0.0",
@@ -83,6 +88,11 @@
     "web3": "1.2.2",
     "web3-eth-abi": "^1.0.0-beta.55",
     "yargs": "^9.0.1"
+  },
+  "husky": {
+    "hooks": {
+      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
+    }
   },
   "dependencies": {
     "ethereumjs-util": "^7.0.7",

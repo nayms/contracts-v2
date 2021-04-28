@@ -8,10 +8,12 @@ interface IPolicyTreasury {
    * @param _unit Token unit.
    * @return realBalance_ Current real balance.
    * @return virtualBalance_ Current virtual balance (sum of all policy balances).
+   * @return minBalance_ Current minimum balance needed (sum of all policy minimum balances).
    */
   function getEconomics (address _unit) external view returns (
     uint256 realBalance_,
-    uint256 virtualBalance_
+    uint256 virtualBalance_,
+    uint256 minBalance_
   );
 
   /**
@@ -21,39 +23,45 @@ interface IPolicyTreasury {
    * @return unit_ Token.
    * @return balance_ Current balance.
    * @return minBalance_ Min. requried balance to fully collateralize policy.
+   * @return claimsUnpaidTotalAmount_ Total amount unpaid across all claims for policy.
    */
   function getPolicyEconomics (address _policy) external view returns (
     address unit_,
     uint256 balance_,
-    uint256 minBalance_
+    uint256 minBalance_,
+    uint256 claimsUnpaidTotalAmount_
   );
 
   /**
-   * @dev Get total pending claims info.
+   * @dev Get claim queue info.
    *
    * @param _unit Token unit.
-   * @return count_ No. of pending claims.
-   * @return totalAmount_ Total amount of all pending claims.
+   * @return count_ No. of pending claims (both paid and unpaid).
+   * @return unpaidCount_ No. of unpaid pending claims.
+   * @return unpaidTotalAmount_ Total amount unpaid across all claims.
    */
-  function getPendingClaims (address _unit) external view returns (
+  function getClaims (address _unit) external view returns (
     uint256 count_,
-    uint256 totalAmount_
+    uint256 unpaidCount_,
+    uint256 unpaidTotalAmount_
   );
 
 
   /**
-   * @dev Get pending claim.
+   * @dev Get queued claim.
    *
    * @param _unit Token unit.
    * @param _index 1-based claim index.
    * @return policy_ The policy.
    * @return recipient_ Claim recipient.
    * @return amount_ Claim amount.
+   * @return paid_ Whether claim has been paid yet.
    */
-  function getPendingClaim (address _unit, uint256 _index) external view returns (
+  function getClaim (address _unit, uint256 _index) external view returns (
     address policy_,
     address recipient_,
-    uint256 amount_
+    uint256 amount_,
+    bool paid_
   );
 
 
@@ -76,7 +84,7 @@ interface IPolicyTreasury {
    */
   function cancelOrder (uint256 _orderId) external;
   /**
-   * Pay a claim.
+   * Pay a claim for the callig policy.
    *
    * Once paid the internal minimum collateral level required for the policy will be automatically reduced.
    *
@@ -85,7 +93,7 @@ interface IPolicyTreasury {
    */
   function payClaim (address _recipient, uint256 _amount) external;
   /**
-   * Increase policy treasury balance.
+   * Increase calling policy treasury balance.
    *
    * This should only be called by a policy to inform the treasury to update its 
    * internal record of the policy's current balance, e.g. after premium payments are sent to the treasury.
@@ -94,33 +102,22 @@ interface IPolicyTreasury {
    */
   function incPolicyBalance (uint256 _amount) external;
   /**
-   * Set minimum balance required to fully collateralize the policy.
+   * Set minimum balance required to fully collateralize the calling policy.
    *
    * This can only be called once.
    *
    * @param _amount Amount to increase by.
    */
   function setMinPolicyBalance (uint256 _amount) external;
-
-  // Events
+  /**
+   * Get whether the given policy is fully collaterlized without any "debt" (e.g. pending claims that are yet to be paid out).
+   */
+  function isPolicyCollateralized (address _policy) external view returns (bool);
 
   /**
-   * @dev Emitted when policy balance is updated.
-   * @param policy The policy address.
-   * @param newBal The new balance.
+   * Resolve all unpaid claims with available treasury funds.
+   *
+   * @param _unit Token unit.
    */
-  event UpdatePolicyBalance(
-    address indexed policy,
-    uint256 indexed newBal
-  );
-
-  /**
-   * @dev Emitted when the minimum expected policy balance gets set.
-   * @param policy The policy address.
-   * @param bal The balance.
-   */
-  event SetMinPolicyBalance(
-    address indexed policy,
-    uint256 indexed bal
-  );
+  function resolveClaims (address _unit) external;
 }

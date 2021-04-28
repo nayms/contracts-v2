@@ -9,7 +9,7 @@ import "./base/AccessControl.sol";
 import "./base/IPolicyTreasuryConstants.sol";
 import "./base/IPolicyCoreFacet.sol";
 import "./base/IPolicyTranchTokensFacet.sol";
-import "./base/PolicyFacetBase.sol";
+import ".//PolicyFacetBase.sol";
 import "./base/SafeMath.sol";
 import "./TranchToken.sol";
 
@@ -299,7 +299,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
 
   function _maturePolicy () private {
     // if no pending claims
-    if (0 == dataUint256["claimsPendingCount"]) {
+    if (0 == dataUint256["claimsPendingCount"] && _getTreasury().isPolicyCollateralized(address(this))) {
       // if we haven't yet initiated tranch buyback
       if (!dataBool["buybackInitiated"]) {
         _setPolicyState(POLICY_STATE_BUYBACK);

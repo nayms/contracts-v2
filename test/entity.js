@@ -137,6 +137,7 @@ contract('Entity', accounts => {
       await etherToken.approve(entityProxy.address, 10)
       await entity.deposit(etherToken.address, 10).should.be.fulfilled
       await etherToken.balanceOf(entityProxy.address).should.eventually.eq(10)
+      await entity.getBalance(etherToken.address).should.eventually.eq(10)
     })
 
     it('and emits an event', async () => {
@@ -174,17 +175,20 @@ contract('Entity', accounts => {
         
         // direct transfer 100
         await etherToken.transfer(entity.address, 100)
-
+        
         // explicitly deposit 10 more
         await etherToken.approve(entityProxy.address, 10)
         await entity.deposit(etherToken.address, 10)
         await etherToken.balanceOf(entity.address).should.eventually.eq(120)
+        await entity.getBalance(etherToken.address).should.eventually.eq(20)
 
         // withdrawing this should fail
         await entity.withdraw(etherToken.address, 21, { from: entityAdmin }).should.be.rejectedWith('exceeds entity balance')
 
         // this should work
         await entity.withdraw(etherToken.address, 20, { from: entityAdmin }).should.be.fulfilled
+
+        await entity.getBalance(etherToken.address).should.eventually.eq(0)
       })
 
       it('and emits an event upon withdrawal', async () => {
@@ -202,6 +206,13 @@ contract('Entity', accounts => {
           unit: etherToken.address,
           amount: '20'
         })
+      })
+
+      it('and updates balance upon withdrawal, which affets subsequent withdrawals', async () => {
+        await etherToken.balanceOf(entity.address).should.eventually.eq(10)
+
+        await entity.withdraw(etherToken.address, 10, { from: entityAdmin })
+        await entity.withdraw(etherToken.address, 1, { from: entityAdmin }).should.be.rejectedWith('exceeds entity balance')
       })
     })
 

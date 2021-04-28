@@ -1,17 +1,26 @@
 pragma solidity >=0.6.7;
 
-import "./EternalStorage.sol";
-import "./Controller.sol";
-import "./IMarket.sol";
-import "./IERC20.sol";
+import "./base/EternalStorage.sol";
+import "./base/Controller.sol";
+import "./base/IMarket.sol";
+import "./base/IERC20.sol";
 
 /**
  * @dev Entity facet base class
  */
 abstract contract EntityFacetBase is EternalStorage, Controller {
+  modifier assertIsEntityAdmin (address _addr) {
+    require(inRoleGroup(_addr, ROLEGROUP_ENTITY_ADMINS), 'must be entity admin');
+    _;
+  }
+
   modifier assertIsMyPolicy(address _addr) {
     require(_isPolicyCreatedByMe(_addr), 'not my policy');
     _;
+  }
+
+  function _assertHasEnoughBalance (address _unit, uint256 _amount) internal view {
+    require(dataUint256[__a(_unit, "balance")] >= _amount, 'exceeds entity balance');
   }
 
   function _isPolicyCreatedByMe(address _policy) internal view returns (bool) {

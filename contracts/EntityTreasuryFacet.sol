@@ -2,18 +2,16 @@ pragma solidity >=0.6.7;
 
 import "./base/Controller.sol";
 import "./base/EternalStorage.sol";
-import "./base/EntityFacetBase.sol";
+import "./EntityTreasuryFacetBase.sol";
 import "./base/IPolicyTreasury.sol";
-import "./base/IPolicyTreasuryConstants.sol";
-import "./base/IPolicyCoreFacet.sol";
 import "./base/IERC20.sol";
 import "./base/IDiamondFacet.sol";
 import "./base/SafeMath.sol";
 
 /**
- * @dev Business-logic for policy treasuries
+ * @dev Business-logic for policy treasuries inside entities
  */
- contract EntityTreasuryFacet is EternalStorage, Controller, EntityFacetBase, IPolicyTreasury, IPolicyTreasuryConstants, IDiamondFacet {
+ contract EntityTreasuryFacet is EternalStorage, Controller, EntityTreasuryFacetBase, IPolicyTreasury, IDiamondFacet {
   using SafeMath for uint256;
 
   /**
@@ -28,53 +26,62 @@ import "./base/SafeMath.sol";
     return abi.encodePacked(
       IPolicyTreasury.getEconomics.selector,
       IPolicyTreasury.getPolicyEconomics.selector,
-      IPolicyTreasury.getPendingClaims.selector,
-      IPolicyTreasury.getPendingClaim.selector,
+      IPolicyTreasury.getClaims.selector,
+      IPolicyTreasury.getClaim.selector,
       IPolicyTreasury.createOrder.selector,
       IPolicyTreasury.cancelOrder.selector,
       IPolicyTreasury.payClaim.selector,
       IPolicyTreasury.incPolicyBalance.selector,
-      IPolicyTreasury.setMinPolicyBalance.selector
+      IPolicyTreasury.setMinPolicyBalance.selector,
+      IPolicyTreasury.resolveClaims.selector,
+      IPolicyTreasury.isPolicyCollateralized.selector
     );
   }
-
 
   // IPolicyTreasury
 
   function getEconomics (address _unit) public view override returns (
     uint256 realBalance_,
-    uint256 virtualBalance_
+    uint256 virtualBalance_,
+    uint256 minBalance_
   ) {
     realBalance_ = dataUint256[__a(_unit, "treasuryRealBalance")];
     virtualBalance_ = dataUint256[__a(_unit, "treasuryVirtualBalance")];
+    minBalance_ = dataUint256[__a(_unit, "treasuryMinBalance")];
   }
 
   function getPolicyEconomics (address _policy) public view override returns (
     address unit_,
     uint256 balance_,
-    uint256 minBalance_
+    uint256 minBalance_,
+    uint256 claimsUnpaidTotalAmount_
   ) {
     unit_ = _getPolicyUnit(_policy);
     balance_ = dataUint256[__a(_policy, "policyBalance")];
     minBalance_ = dataUint256[__a(_policy, "minPolicyBalance")];
+    claimsUnpaidTotalAmount_ = dataUint256[__a(_policy, "policyClaimsUnpaidTotalAmount")];
   }
 
-  function getPendingClaims (address _unit) public view override returns (
+  function getClaims (address _unit) public view override returns (
     uint256 count_,
-    uint256 totalAmount_
+    uint256 unpaidCount_,
+    uint256 unpaidTotalAmount_
   ) {
-    count_ = dataUint256[__a(_unit, "pendingClaimsCount")];
-    totalAmount_ = dataUint256[__a(_unit, "pendingClaimsTotal")];
+    count_ = dataUint256[__a(_unit, "claimsCount")];
+    unpaidCount_ = dataUint256[__a(_unit, "claimsUnpaidCount")];
+    unpaidTotalAmount_ = dataUint256[__a(_unit, "claimsUnpaidTotalAmount")];
   }
 
-  function getPendingClaim (address _unit, uint256 _index) public view override returns (
+  function getClaim (address _unit, uint256 _index) public view override returns (
     address policy_,
     address recipient_,
-    uint256 amount_
+    uint256 amount_,
+    bool paid_
   ) {
-    policy_ = dataAddress[__ia(_index, _unit, "pendingClaimPolicy")];
-    recipient_ = dataAddress[__ia(_index, _unit, "pendingClaimRecipient")];
-    amount_ = dataUint256[__ia(_index, _unit, "pendingClaimAmount")];
+    policy_ = dataAddress[__ia(_index, _unit, "claimPolicy")];
+    recipient_ = dataAddress[__ia(_index, _unit, "claimRecipient")];
+    amount_ = dataUint256[__ia(_index, _unit, "claimAmount")];
+    paid_ = dataBool[__ia(_index, _unit, "claimPaid")];
   }
 
   function createOrder (bytes32 _type, address _sellUnit, uint256 _sellAmount, address _buyUnit, uint256 _buyAmount)
@@ -106,18 +113,25 @@ import "./base/SafeMath.sol";
     // check and update treasury balances
     address unit = _getPolicyUnit(msg.sender);
 
+    // check policy virtual balance
+    require(dataUint256[__a(msg.sender, "policyBalance")] >= _amount, "exceeds policy balance");
+
     string memory trbKey = __a(unit, "treasuryRealBalance");
 
     if (dataUint256[trbKey] < _amount) {
-      string memory pcak = __a(unit, "pendingClaimsTotal");
-      dataUint256[pcak] = dataUint256[pcak].add(_amount);
+      string memory cutaKey = __a(unit, "claimsUnpaidTotalAmount");
+      dataUint256[cutaKey] = dataUint256[cutaKey].add(_amount);
 
-      dataUint256[__a(unit, "pendingClaimsCount")] += 1;
-      uint256 idx = dataUint256[__a(unit, "pendingClaimsCount")];
+      string memory pcutaKey = __a(msg.sender, "policyClaimsUnpaidTotalAmount");
+      dataUint256[pcutaKey] = dataUint256[pcutaKey].add(_amount);
 
-      dataAddress[__ia(idx, unit, "pendingClaimPolicy")] = msg.sender;
-      dataAddress[__ia(idx, unit, "pendingClaimRecipient")] = _recipient;
-      dataUint256[__ia(idx, unit, "pendingClaimAmount")] = _amount;
+      dataUint256[__a(unit, "claimsCount")] += 1;
+      dataUint256[__a(unit, "claimsUnpaidCount")] += 1;
+      uint256 idx = dataUint256[__a(unit, "claimsCount")];
+
+      dataAddress[__ia(idx, unit, "claimPolicy")] = msg.sender;
+      dataAddress[__ia(idx, unit, "claimRecipient")] = _recipient;
+      dataUint256[__ia(idx, unit, "claimAmount")] = _amount;
     } else {
       _decPolicyBalance(msg.sender, _amount);
 
@@ -139,61 +153,47 @@ import "./base/SafeMath.sol";
     override
     assertIsMyPolicy(msg.sender)
   {
+    address unit = _getPolicyUnit(msg.sender);
+
     string memory key = __a(msg.sender, "minPolicyBalance");
+    string memory tmbKey = __a(unit, "treasuryMinBalance");
 
     require(dataUint256[key] == 0, 'already set');
 
     dataUint256[key] = _bal;
+    dataUint256[tmbKey] = dataUint256[tmbKey].add(_bal);
 
     emit SetMinPolicyBalance(msg.sender, _bal);
   }
 
-  // Internal
-
-  function _getPolicyUnit (address _policy) internal view returns (address) {
-    address policyUnitAddress;
-    {
-      uint256 i1;
-      uint256 i2;
-      uint256 i3;
-      address a1;
-      (a1, i1, i2, i3, policyUnitAddress, , , , , ,) = IPolicyCoreFacet(_policy).getInfo();
-    }
-
-    return policyUnitAddress;
+  function resolveClaims (address _unit) public override {
+    _resolveClaims(_unit);
   }
+
+  function isPolicyCollateralized (address _policy) public view override returns (bool) {
+    address unit = _getPolicyUnit(_policy);
+
+    string memory pbKey = __a(_policy, "policyBalance");
+    string memory pcutaKey = __a(_policy, "policyClaimsUnpaidTotalAmount");
+    string memory trbKey = __a(unit, "treasuryRealBalance");
+
+    // need no unpaid claims AND enough real balance
+    return (dataUint256[pcutaKey] == 0) && (dataUint256[trbKey] >= dataUint256[pbKey]);
+  }
+
+  // Internal
 
   function _incPolicyBalance (address _policy, uint256 _amount) internal {
     address unit = _getPolicyUnit(_policy);
 
-    string memory pbKey = __a(msg.sender, "policyBalance");
+    string memory pbKey = __a(_policy, "policyBalance");
     string memory trbKey = __a(unit, "treasuryRealBalance");
     string memory tvbKey = __a(unit, "treasuryVirtualBalance");
 
-    dataUint256[trbKey] = dataUint256[trbKey].add(uint256(_amount));
-    dataUint256[tvbKey] = dataUint256[tvbKey].add(uint256(_amount));
+    dataUint256[trbKey] = dataUint256[trbKey].add(_amount);
+    dataUint256[tvbKey] = dataUint256[tvbKey].add(_amount);
     dataUint256[pbKey] = dataUint256[pbKey].add(_amount);
 
-    emit UpdatePolicyBalance(msg.sender, dataUint256[pbKey]);
-  }
-
-  function _decPolicyBalance (address _policy, uint256 _amount) internal {
-    address unit = _getPolicyUnit(_policy);
-
-    string memory pbKey = __a(msg.sender, "policyBalance");
-    string memory trbKey = __a(unit, "treasuryRealBalance");
-    string memory tvbKey = __a(unit, "treasuryVirtualBalance");
-
-    if (dataUint256[pbKey] < _amount) {
-      dataUint256[tvbKey] = dataUint256[tvbKey].sub(dataUint256[pbKey]);
-      dataUint256[pbKey] = 0;
-    } else {
-      dataUint256[pbKey] = dataUint256[pbKey].sub(uint256(_amount));
-      dataUint256[tvbKey] = dataUint256[tvbKey].sub(uint256(_amount));
-    }
-
-    dataUint256[trbKey] = dataUint256[trbKey].sub(uint256(_amount));
-
-    emit UpdatePolicyBalance(msg.sender, dataUint256[pbKey]);
+    emit UpdatePolicyBalance(_policy, dataUint256[pbKey]);
   }
 }

@@ -3,7 +3,7 @@ pragma experimental ABIEncoderV2;
 
 import "./base/Controller.sol";
 import "./base/DiamondProxy.sol";
-import "./base/PolicyFacetBase.sol";
+import ".//PolicyFacetBase.sol";
 
 contract Policy is Controller, DiamondProxy, PolicyFacetBase {
   constructor (

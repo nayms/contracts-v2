@@ -19,6 +19,8 @@ import { ensureEntityDeployerIsDeployed } from '../migrations/modules/entityDepl
 import { ensureEntityImplementationsAreDeployed } from '../migrations/modules/entityImplementations'
 import { ensurePolicyImplementationsAreDeployed } from '../migrations/modules/policyImplementations'
 
+const EntityTreasuryTestFacet = artifacts.require("./test/EntityTreasuryTestFacet")
+const IEntityTreasuryTestFacet = artifacts.require("./test/IEntityTreasuryTestFacet")
 const IEntity = artifacts.require('./base/IEntity')
 const IPolicyTreasury = artifacts.require('./base/IPolicyTreasury')
 const Entity = artifacts.require('./Entity')
@@ -64,6 +66,7 @@ contract('Integration: Flow', accounts => {
   let claimsAdmin
 
   let treasury
+  let entityTreasuryTestFacet
 
   let POLICY_STATE_CREATED
   let POLICY_STATE_INITIATED
@@ -98,14 +101,17 @@ contract('Integration: Flow', accounts => {
 
     // entity
     entityDeployer = await ensureEntityDeployerIsDeployed({ artifacts, settings })
-    await ensureEntityImplementationsAreDeployed({ artifacts, settings, entityDeployer })
-
+    await ensureEntityImplementationsAreDeployed({ artifacts, settings, entityDeployer, extraFacets: [ EntityTreasuryTestFacet ] })
+    
     await acl.assignRole(systemContext, systemManager, ROLES.SYSTEM_MANAGER)
 
     const entityAddress = await createEntity({ entityDeployer, adminAddress: entityAdminAddress })
     const entityProxy = await Entity.at(entityAddress)
     entity = await IEntity.at(entityAddress)
     const entityContext = await entityProxy.aclContext()
+
+    // entity test facet
+    entityTreasuryTestFacet = await IEntityTreasuryTestFacet.at(entityAddress)
 
     // entity manager
     await acl.assignRole(entityContext, entityManagerAddress, ROLES.ENTITY_MANAGER)
@@ -981,6 +987,40 @@ contract('Integration: Flow', accounts => {
           })
         })
 
+        describe('but if the policy is not fully collateralized in the treasury', () => {
+          beforeEach(async () => {
+            await entityTreasuryTestFacet.setRealBalance(etherToken.address, 0)
+          })
+
+          it('it does not do the buyback until policy becomes collateralized again', async () => {
+            await evmClock.setAbsoluteTime(maturationDate)
+            const ret = await policy.checkAndUpdateState()
+
+            await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_MATURED })
+
+            await policy.getTranchInfo(0).should.eventually.matchObj({
+              finalBuybackofferId_: 0,
+            })
+            await policy.getTranchInfo(1).should.eventually.matchObj({
+              finalBuybackofferId_: 0,
+            })
+
+            await entityTreasuryTestFacet.setRealBalance(etherToken.address, 100000)
+
+            const ret2 = await policy.checkAndUpdateState()
+            const ev2 = extractEventArgs(ret2, events.PolicyStateUpdated)
+            expect(ev2.state).to.eq(POLICY_STATE_BUYBACK.toString())
+            await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_BUYBACK })
+
+            await policy.getTranchInfo(0).should.eventually.not.matchObj({
+              finalBuybackofferId_: 0,
+            })
+            await policy.getTranchInfo(1).should.eventually.not.matchObj({
+              finalBuybackofferId_: 0,
+            })
+          })
+        })
+
         it('and subsequent calls have no effect', async () => {
           await evmClock.setAbsoluteTime(maturationDate)
           await policy.checkAndUpdateState()
@@ -1101,6 +1141,40 @@ contract('Integration: Flow', accounts => {
             const postEvStates = postEvs.map(e => e.args.state)
             expect(postEvStates[0]).to.eq(TRANCH_STATE_MATURED.toString())
             expect(postEvStates[1]).to.eq(TRANCH_STATE_MATURED.toString())
+
+            await policy.getTranchInfo(0).should.eventually.not.matchObj({
+              finalBuybackofferId_: 0,
+            })
+            await policy.getTranchInfo(1).should.eventually.not.matchObj({
+              finalBuybackofferId_: 0,
+            })
+          })
+        })
+
+        describe('but if the policy is not fully collateralized in the treasury', () => {
+          beforeEach(async () => {
+            await entityTreasuryTestFacet.setRealBalance(etherToken.address, 0)
+          })
+
+          it('it does not do the buyback until policy becomes collateralized again', async () => {
+            await evmClock.setAbsoluteTime(maturationDate)
+            const ret = await policy.checkAndUpdateState()
+
+            await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_MATURED })
+
+            await policy.getTranchInfo(0).should.eventually.matchObj({
+              finalBuybackofferId_: 0,
+            })
+            await policy.getTranchInfo(1).should.eventually.matchObj({
+              finalBuybackofferId_: 0,
+            })
+
+            await entityTreasuryTestFacet.setRealBalance(etherToken.address, 100000)
+
+            const ret2 = await policy.checkAndUpdateState()
+            const ev2 = extractEventArgs(ret2, events.PolicyStateUpdated)
+            expect(ev2.state).to.eq(POLICY_STATE_BUYBACK.toString())
+            await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_BUYBACK })
 
             await policy.getTranchInfo(0).should.eventually.not.matchObj({
               finalBuybackofferId_: 0,

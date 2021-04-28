@@ -2,7 +2,7 @@ pragma solidity >=0.6.7;
 
 import "../base/EternalStorage.sol";
 import "../base/IDiamondFacet.sol";
-import "../base/PolicyFacetBase.sol";
+import "..//PolicyFacetBase.sol";
 import "../base/Controller.sol";
 
 interface IPolicyTreasuryTestFacet is IDiamondFacet {

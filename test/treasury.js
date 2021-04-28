@@ -73,22 +73,13 @@ contract('Treasury', accounts => {
     entityDeployer = await ensureEntityDeployerIsDeployed({ artifacts, settings })
     etherToken = await ensureEtherTokenIsDeployed({ artifacts, settings })
     etherToken2 = await deployNewEtherToken({ artifacts, settings })
-    await ensurePolicyImplementationsAreDeployed({ artifacts, settings })
-    await ensureEntityImplementationsAreDeployed({ artifacts, settings })
+    await ensurePolicyImplementationsAreDeployed({ artifacts, settings, extraFacets: [ PolicyTreasuryTestFacet ] })
+    await ensureEntityImplementationsAreDeployed({ artifacts, settings, extraFacets: [ EntityTreasuryTestFacet ] })
 
     DOES_NOT_HAVE_ROLE = (await acl.DOES_NOT_HAVE_ROLE()).toNumber()
     HAS_ROLE_CONTEXT = (await acl.HAS_ROLE_CONTEXT()).toNumber()
 
     systemContext = await acl.systemContext()
-
-    // deploy treasury entity test facets
-    const entityTreasuryTestFacetImpl = await EntityTreasuryTestFacet.new()
-    const entityAddrs = await settings.getAddresses(settings.address, SETTINGS.ENTITY_IMPL)
-    await settings.setAddresses(settings.address, SETTINGS.ENTITY_IMPL, entityAddrs.concat(entityTreasuryTestFacetImpl.address))
-    // deploy treasury policy test facets
-    const policyTreasuryTestFacetImpl = await PolicyTreasuryTestFacet.new(settings.address)
-    const policyAddrs = await settings.getAddresses(settings.address, SETTINGS.POLICY_IMPL)
-    await settings.setAddresses(settings.address, SETTINGS.POLICY_IMPL, policyAddrs.concat(policyTreasuryTestFacetImpl.address))
 
     await acl.assignRole(systemContext, accounts[0], ROLES.SYSTEM_MANAGER)
 

@@ -3,7 +3,7 @@ const { deploy, defaultGetTxParams, execCall } = require('../utils')
 const { SETTINGS, BYTES32_ZERO } = require('../../utils/constants')
 
 export const ensureEntityImplementationsAreDeployed = async (cfg) => {
-  const { deployer, artifacts, log: baseLog, accounts, settings, entityDeployer, getTxParams = defaultGetTxParams } = cfg
+  const { deployer, artifacts, log: baseLog, accounts, settings, entityDeployer, getTxParams = defaultGetTxParams, extraFacets = [] } = cfg
   const log = createLog(baseLog)
 
   let addresses
@@ -19,7 +19,13 @@ export const ensureEntityImplementationsAreDeployed = async (cfg) => {
       await deploy(deployer, getTxParams(), EntityCoreFacet, settings.address),
       await deploy(deployer, getTxParams(), EntityTreasuryFacet, settings.address),
       await deploy(deployer, getTxParams(), EntityTreasuryBridgeFacet, settings.address),
-    ].map(c => c.address)
+    ]
+    
+    for (let f of extraFacets) {
+      addresses.push(await deploy(deployer, getTxParams(), f, settings.address))
+    }
+
+    addresses = addresses.map(c => c.address)
 
     task.log(`Deployed at ${addresses.join(', ')}`)
   })

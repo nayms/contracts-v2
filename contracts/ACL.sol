@@ -1,4 +1,4 @@
-pragma solidity >=0.6.7;
+pragma solidity 0.6.12;
 
 import "./base/IACL.sol";
 import "./base/IACLConstants.sol";

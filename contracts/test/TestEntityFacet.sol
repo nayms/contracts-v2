@@ -1,4 +1,4 @@
-pragma solidity >=0.6.7;
+pragma solidity 0.6.12;
 
 import '../base/IDiamondFacet.sol';
 import '../base/IEntityCoreFacet.sol';

@@ -1,4 +1,4 @@
-pragma solidity >=0.6.7;
+pragma solidity 0.6.12;
 
 import "./IDiamondUpgradeFacet.sol";
 import "./IAccessControl.sol";

@@ -1,4 +1,4 @@
-pragma solidity >=0.6.7;
+pragma solidity 0.6.12;
 
 /******************************************************************************\
 Forked from https://github.com/mudgen/Diamond/blob/master/contracts/DiamondStorageContract.sol

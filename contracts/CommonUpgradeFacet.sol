@@ -1,4 +1,4 @@
-pragma solidity >=0.6.7;
+pragma solidity 0.6.12;
 
 import "./base/Controller.sol";
 import "./base/IDiamondUpgradeFacet.sol";

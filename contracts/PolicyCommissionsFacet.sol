@@ -6,12 +6,13 @@ import "./base/IDiamondFacet.sol";
 import "./base/IPolicyCommissionsFacet.sol";
 import "./base/PolicyFacetBase.sol";
 import "./base/AccessControl.sol";
+import "./base/ReentrancyGuard.sol";
 import "./base/IERC20.sol";
 
 /**
  * @dev Business-logic for Policy commissions
  */
-contract PolicyCommissionsFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCommissionsFacet, PolicyFacetBase {
+contract PolicyCommissionsFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCommissionsFacet, PolicyFacetBase, ReentrancyGuard {
   modifier assertIsCapitalProvider (address _addr) {
     require(inRoleGroup(_addr, ROLEGROUP_CAPITAL_PROVIDERS), 'must be capital provider');
     _;
@@ -59,6 +60,7 @@ contract PolicyCommissionsFacet is EternalStorage, Controller, IDiamondFacet, IP
     override
     assertIsCapitalProvider(_capitalProvider)
     assertIsBroker(_broker)
+    nonReentrant
   {
     bytes32 capitalProviderEntityContext = AccessControl(_capitalProviderEntity).aclContext();
     require(acl().userSomeHasRoleInContext(capitalProviderEntityContext, _capitalProvider), 'must have role in capital provider entity');
@@ -73,13 +75,13 @@ contract PolicyCommissionsFacet is EternalStorage, Controller, IDiamondFacet, IP
     // do payouts and update balances
     IERC20 tkn = IERC20(dataAddress["unit"]);
 
-    tkn.transfer(_capitalProviderEntity, dataUint256["capitalProviderCommissionBalance"]);
+    require(tkn.transfer(_capitalProviderEntity, dataUint256["capitalProviderCommissionBalance"]), "capital provider commission transfer failed");
     dataUint256["capitalProviderCommissionBalance"] = 0;
 
-    tkn.transfer(_brokerEntity, dataUint256["brokerCommissionBalance"]);
+    require(tkn.transfer(_brokerEntity, dataUint256["brokerCommissionBalance"]), "broker commission transfer failed");
     dataUint256["brokerCommissionBalance"] = 0;
 
-    tkn.transfer(naymsEntity, dataUint256["naymsCommissionBalance"]);
+    require(tkn.transfer(naymsEntity, dataUint256["naymsCommissionBalance"]), "nayms commission transfer failed");
     dataUint256["naymsCommissionBalance"] = 0;
 
     emit PaidCommissions(_capitalProviderEntity, _brokerEntity, msg.sender);

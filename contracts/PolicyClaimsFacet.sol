@@ -8,12 +8,13 @@ import "./base/IPolicyClaimsFacet.sol";
 import "./base/IPolicyCoreFacet.sol";
 import "./base/PolicyFacetBase.sol";
 import "./base/AccessControl.sol";
+import "./base/ReentrancyGuard.sol";
 import "./base/IERC20.sol";
 
 /**
  * @dev Business-logic for Policy claims
  */
-contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicyClaimsFacet, PolicyFacetBase {
+contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicyClaimsFacet, PolicyFacetBase, ReentrancyGuard {
   using SafeMath for uint;
 
   modifier assertActiveState () {
@@ -159,6 +160,7 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
     public
     override
     assertIsSystemManager(msg.sender)
+    nonReentrant
   {
     // check claim
     require(0 < dataUint256[__i(_claimIndex, "claimAmount")], 'invalid claim');
@@ -168,7 +170,7 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
 
     IERC20 tkn = IERC20(dataAddress["unit"]);
 
-    tkn.transfer(dataAddress[__i(_claimIndex, "claimEntity")], dataUint256[__i(_claimIndex, "claimAmount")]);
+    require(tkn.transfer(dataAddress[__i(_claimIndex, "claimEntity")], dataUint256[__i(_claimIndex, "claimAmount")]), "claim payment failed");
     dataBool[__i(_claimIndex, "claimPaid")] = true;
 
     emit ClaimPaid(_claimIndex, msg.sender);

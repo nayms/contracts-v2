@@ -93,7 +93,7 @@ contract PolicyPremiumsFacet is EternalStorage, Controller, IDiamondFacet, IPoli
 
     // do the actual transfer
     IERC20 tkn = IERC20(dataAddress["unit"]);
-    tkn.transferFrom(msg.sender, address(this), totalPaid);
+    require(tkn.transferFrom(msg.sender, address(this), totalPaid), "premium transfer failed");
     
     // event
     emit PremiumPayment(_index, totalPaid, msg.sender);

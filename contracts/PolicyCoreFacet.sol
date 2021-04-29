@@ -11,12 +11,13 @@ import "./base/IPolicyTranchTokensFacet.sol";
 import "./base/PolicyFacetBase.sol";
 import "./base/IMarket.sol";
 import "./base/SafeMath.sol";
+import "./base/ReentrancyGuard.sol";
 import "./TranchToken.sol";
 
 /**
  * @dev Core policy logic
  */
-contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCoreFacet, PolicyFacetBase {
+contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCoreFacet, PolicyFacetBase, ReentrancyGuard {
   using SafeMath for uint;
   using Address for address;
 
@@ -187,7 +188,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
   }
 
   // heartbeat function!
-  function checkAndUpdateState() public override {
+  function checkAndUpdateState() public override nonReentrant {
     // past the initiation date
     if (initiationDateHasPassed()) {
       // past the start date
@@ -218,7 +219,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     uint256 initialSaleOfferId = dataUint256[__i(_index, "initialSaleOfferId")];
 
     if (market.isActive(initialSaleOfferId)) {
-      market.cancel(initialSaleOfferId);
+      require(market.cancel(initialSaleOfferId), "order cancellation failed");
     }
   }
 
@@ -307,7 +308,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
         uint256 tranchBalance = dataUint256[__i(i, "balance")];
 
         IERC20 tkn = IERC20(unitAddress);
-        tkn.approve(marketAddress, tranchBalance);
+        require(tkn.approve(marketAddress, tranchBalance), "token approval failed");
 
         // buy back all sold tokens
         dataUint256[__i(i, "finalBuybackOfferId")] = market.offer(

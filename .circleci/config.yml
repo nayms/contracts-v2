@@ -67,7 +67,7 @@ jobs:
           at: ~/repo
       - run:
           name: Setup release config
-          command: yarn setup-release-config
+          command: yarn setup-release-config-for-rinkeby
       - run:
           name: Deploy to Rinkeby
           command: yarn deploy:rinkeby

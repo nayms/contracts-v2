@@ -20,9 +20,9 @@ exports.defaultGetTxParams = (txParamsOverride = {}) => Object.assign({
 let safeNonce // keep track of ongoing nonce
 
 exports.execCall = async ({ task, contract, method, args, cfg }) => {
-  const { web3, artifacts, accounts, getTxParams = exports.defaultGetTxParams, networkInfo, multisig, hdWallet } = cfg
+  const { web3, artifacts, accounts, getTxParams = exports.defaultGetTxParams, networkInfo, multisig, hdWallet, onlyDeployingUpgrades } = cfg
 
-  if (multisig) {
+  if (multisig && onlyDeployingUpgrades) {
     await task.log(`   QUEUE: ${method}() on ${contract.address} (multisig: ${multisig})`, 'green')
 
     let baseUrl 

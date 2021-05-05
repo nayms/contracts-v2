@@ -1,4 +1,4 @@
-pragma solidity 0.6.12;
+pragma solidity >=0.6.7;
 
 import "./base/Controller.sol";
 import "./base/IDiamondUpgradeFacet.sol";
@@ -14,8 +14,8 @@ contract CommonUpgradeFacet is Controller, IDiamondUpgradeFacet {
   }
 
   function getVersionInfo () public override pure returns (string memory num_, uint256 date_, string memory hash_) {
-    num_ = "1.0.0-local.1609859649436";
-    date_ = 1609859649;
-    hash_ = "e253d6cdb196abd5107e7a2b3a9b474d33a2afbe";
+    num_ = "1.0.0-build.local";
+    date_ = 1620209737;
+    hash_ = "97866cd557cd3d2c0c5d2d1cf9f26d8d069a9e96";
   }
 }

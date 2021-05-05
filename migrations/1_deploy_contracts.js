@@ -5,7 +5,7 @@ const { EthHdWallet } = require('eth-hd-wallet')
 
 const { createLog } = require('./utils/log')
 const { getMatchingNetwork, defaultGetTxParams, ADDRESS_ZERO, execCall } = require('./utils')
-const { getCurrentAcl, ensureAclIsDeployed } = require('./modules/acl')
+const { getCurrentAcl, ensureAclIsDeployed, setAclAdminToMultisigAddress } = require('./modules/acl')
 const { getCurrentSettings, ensureSettingsIsDeployed } = require('./modules/settings')
 const { getCurrentMarket, ensureMarketIsDeployed } = require('./modules/market')
 const { getCurrentEtherToken, ensureEtherTokenIsDeployed } = require('./modules/etherToken')
@@ -153,5 +153,11 @@ module.exports = async (deployer, network, accounts) => {
 
   if (releaseConfig.extractDeployedAddresses) {
     await updateDeployedAddressesJson(cfg)
+  }
+
+
+  if (releaseConfig.freshDeployment && releaseConfig.multisig) {
+    await setAclAdminToMultisigAddress(cfg, releaseConfig.multisig)
+    // upgrades following this fresh deployment should use the multisig!
   }
 }

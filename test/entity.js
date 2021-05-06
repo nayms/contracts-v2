@@ -5,7 +5,9 @@ import {
   extractEventArgs,
   hdWallet,
   ADDRESS_ZERO,
+  BYTES32_ZERO,
   createPolicy,
+  createTranch,
 } from './utils'
 
 import { events } from '../'
@@ -20,7 +22,7 @@ import { ensurePolicyImplementationsAreDeployed } from '../migrations/modules/po
 const IEntity = artifacts.require("./base/IEntity")
 const IDiamondProxy = artifacts.require('./base/IDiamondProxy')
 const AccessControl = artifacts.require('./base/AccessControl')
-const TestEntityFacet = artifacts.require("./test/TestEntityFacet")
+const DummyEntityFacet = artifacts.require("./test/DummyEntityFacet")
 const FreezeUpgradesFacet = artifacts.require("./test/FreezeUpgradesFacet")
 const Entity = artifacts.require("./Entity")
 const IPolicy = artifacts.require("./IPolicy")
@@ -38,6 +40,8 @@ contract('Entity', accounts => {
   let entityCoreAddress
   let entityContext
 
+  let entityAdmin
+
   let DOES_NOT_HAVE_ROLE
   let HAS_ROLE_CONTEXT
 
@@ -52,7 +56,9 @@ contract('Entity', accounts => {
     DOES_NOT_HAVE_ROLE = (await acl.DOES_NOT_HAVE_ROLE()).toNumber()
     HAS_ROLE_CONTEXT = (await acl.HAS_ROLE_CONTEXT()).toNumber()
 
-    entityProxy = await Entity.new(settings.address)
+    entityAdmin = accounts[9]
+
+    entityProxy = await Entity.new(settings.address, entityAdmin, BYTES32_ZERO)
     // now let's speak to Entity contract using EntityImpl ABI
     entity = await IEntity.at(entityProxy.address)
     entityContext = await entityProxy.aclContext()
@@ -75,11 +81,11 @@ contract('Entity', accounts => {
   })
 
   describe('it can be upgraded', () => {
-    let testEntityFacet
+    let dummyEntityTestFacet
     let freezeUpgradesFacet
 
     beforeEach(async () => {
-      testEntityFacet = await TestEntityFacet.new()
+      dummyEntityTestFacet = await DummyEntityFacet.new()
       freezeUpgradesFacet = await FreezeUpgradesFacet.new()
     })
 
@@ -91,7 +97,7 @@ contract('Entity', accounts => {
     })
 
     it('but not just by anyone', async () => {
-      await entity.upgrade([ testEntityFacet.address ], { from: accounts[1] }).should.be.rejectedWith('must be admin')
+      await entity.upgrade([ dummyEntityTestFacet.address ], { from: accounts[1] }).should.be.rejectedWith('must be admin')
     })
 
     it('but not to the existing implementation', async () => {
@@ -99,13 +105,13 @@ contract('Entity', accounts => {
     })
 
     it('and adds the new implementation as a facet', async () => {
-      await entity.upgrade([ testEntityFacet.address ]).should.be.fulfilled
+      await entity.upgrade([ dummyEntityTestFacet.address ]).should.be.fulfilled
       await entity.getNumPolicies().should.eventually.eq(666);
     })
 
     it('and can be frozen', async () => {
       await entity.upgrade([freezeUpgradesFacet.address]).should.be.fulfilled
-      await entity.upgrade([testEntityFacet.address]).should.be.rejectedWith('frozen')
+      await entity.upgrade([dummyEntityTestFacet.address]).should.be.rejectedWith('frozen')
     })
 
     it('and the internal upgrade function cannot be called directly', async () => {
@@ -131,6 +137,21 @@ contract('Entity', accounts => {
       await etherToken.approve(entityProxy.address, 10)
       await entity.deposit(etherToken.address, 10).should.be.fulfilled
       await etherToken.balanceOf(entityProxy.address).should.eventually.eq(10)
+      await entity.getBalance(etherToken.address).should.eventually.eq(10)
+    })
+
+    it('and emits an event', async () => {
+      await etherToken.deposit({ value: 10 })
+      await etherToken.approve(entityProxy.address, 10)
+      const result = await entity.deposit(etherToken.address, 10).should.be.fulfilled
+
+      const eventArgs = extractEventArgs(result, events.EntityDeposit)
+
+      expect(eventArgs).to.include({
+        caller: accounts[0],
+        unit: etherToken.address,
+        amount: '10'
+      })
     })
 
     describe('and enables subsequent withdrawals', () => {
@@ -145,10 +166,53 @@ contract('Entity', accounts => {
       })
 
       it('by entity admin', async () => {
-        await acl.assignRole(entityContext, accounts[1], ROLES.ENTITY_ADMIN)
-        await entity.withdraw(etherToken.address, 10, { from: accounts[1] }).should.be.fulfilled
-        await etherToken.balanceOf(accounts[1]).should.eventually.eq(10)
-        await etherToken.balanceOf(accounts[0]).should.eventually.eq(0)
+        await entity.withdraw(etherToken.address, 10, { from: entityAdmin }).should.be.fulfilled
+        await etherToken.balanceOf(entityAdmin).should.eventually.eq(10)
+      })
+
+      it('and only upto the amount that was explicitly deposited, i.e. excluding accidental sends', async () =>{
+        await etherToken.deposit({ value: 200 })
+        
+        // direct transfer 100
+        await etherToken.transfer(entity.address, 100)
+        
+        // explicitly deposit 10 more
+        await etherToken.approve(entityProxy.address, 10)
+        await entity.deposit(etherToken.address, 10)
+        await etherToken.balanceOf(entity.address).should.eventually.eq(120)
+        await entity.getBalance(etherToken.address).should.eventually.eq(20)
+
+        // withdrawing this should fail
+        await entity.withdraw(etherToken.address, 21, { from: entityAdmin }).should.be.rejectedWith('exceeds entity balance')
+
+        // this should work
+        await entity.withdraw(etherToken.address, 20, { from: entityAdmin }).should.be.fulfilled
+
+        await entity.getBalance(etherToken.address).should.eventually.eq(0)
+      })
+
+      it('and emits an event upon withdrawal', async () => {
+        await etherToken.deposit({ value: 200 })
+        await etherToken.approve(entityProxy.address, 10)
+        await entity.deposit(etherToken.address, 10)
+        await etherToken.balanceOf(entity.address).should.eventually.eq(20)
+
+        const result = await entity.withdraw(etherToken.address, 20, { from: entityAdmin })
+
+        const eventArgs = extractEventArgs(result, events.EntityWithdraw)
+
+        expect(eventArgs).to.include({
+          caller: entityAdmin,
+          unit: etherToken.address,
+          amount: '20'
+        })
+      })
+
+      it('and updates balance upon withdrawal, which affets subsequent withdrawals', async () => {
+        await etherToken.balanceOf(entity.address).should.eventually.eq(10)
+
+        await entity.withdraw(etherToken.address, 10, { from: entityAdmin })
+        await entity.withdraw(etherToken.address, 1, { from: entityAdmin }).should.be.rejectedWith('exceeds entity balance')
       })
     })
 
@@ -163,22 +227,42 @@ contract('Entity', accounts => {
         await entity.trade(etherToken.address, 1, etherToken2.address, 1).should.be.rejectedWith('must be trader')
       })
 
-      it('by a trader', async () => {
-        await acl.assignRole(entityContext, accounts[3], ROLES.ENTITY_REP)
+      describe('by a trader', () => {
+        beforeEach(async () => {
+          await acl.assignRole(entityContext, accounts[3], ROLES.ENTITY_REP)
+        })
 
-        await entity.trade(etherToken.address, 1, etherToken2.address, 1, { from: accounts[3] })
+        it('works', async () => {
+          await entity.trade(etherToken.address, 1, etherToken2.address, 1, { from: accounts[3] })
 
-        // pre-check
-        await etherToken.balanceOf(accounts[5]).should.eventually.eq(0)
+          // pre-check
+          await etherToken.balanceOf(accounts[5]).should.eventually.eq(0)
 
-        // now match the trade
-        await etherToken2.deposit({ value: 1, from: accounts[5] })
-        await etherToken2.approve(market.address, 1, { from: accounts[5] })
-        const offerId = await market.last_offer_id()
-        await market.buy(offerId, 1, { from: accounts[5] })
+          // now match the trade
+          await etherToken2.deposit({ value: 1, from: accounts[5] })
+          await etherToken2.approve(market.address, 1, { from: accounts[5] })
+          const offerId = await market.last_offer_id()
+          await market.buy(offerId, 1, { from: accounts[5] })
 
-        // post-check
-        await etherToken.balanceOf(accounts[5]).should.eventually.eq(1)
+          // post-check
+          await etherToken.balanceOf(accounts[5]).should.eventually.eq(1)
+        })
+
+        it('and can only use upto the amount that was explicitly deposited, i.e. excluding accidental sends', async () => {
+          await etherToken.deposit({ value: 200 })
+
+          // direct transfer 100
+          await etherToken.transfer(entity.address, 100)
+
+          // check balance
+          await etherToken.balanceOf(entity.address).should.eventually.eq(110)
+
+          // trading more than is explicitly deposited should fail
+          await entity.trade(etherToken.address, 11, etherToken2.address, 1, { from: accounts[3] }).should.be.rejectedWith('exceeds entity balance')
+
+          // trading the max possible amount is ok
+          await entity.trade(etherToken.address, 10, etherToken2.address, 1, { from: accounts[3] }).should.be.fulfilled
+        })
       })
     })
 
@@ -193,50 +277,92 @@ contract('Entity', accounts => {
         await entity.sellAtBestPrice(etherToken.address, 1, etherToken2.address).should.be.rejectedWith('must be trader')
       })
 
-      it('by a trader, and only matches offers until full amount sold', async () => {
-        // setup offers on market
-        await etherToken2.deposit({ value: 100, from: accounts[7] })
-        await etherToken2.approve(market.address, 100, { from: accounts[7] })
-        await market.offer(100, etherToken2.address, 3, etherToken.address, 0, false, { from: accounts[7] }); // best price, but only buying 3
+      describe('by a trader', () => {
+        beforeEach(async () => {
+          await acl.assignRole(entityContext, accounts[3], ROLES.ENTITY_REP)
+        })
 
-        await etherToken2.deposit({ value: 50, from: accounts[8] })
-        await etherToken2.approve(market.address, 50, { from: accounts[8] })
-        await market.offer(50, etherToken2.address, 5, etherToken.address, 0, false, { from: accounts[8] }); // worse price, but able to buy all
+        it('works', async () => {
+          // setup offers on market
+          await etherToken2.deposit({ value: 100, from: accounts[7] })
+          await etherToken2.approve(market.address, 100, { from: accounts[7] })
+          await market.offer(100, etherToken2.address, 3, etherToken.address, 0, false, { from: accounts[7] }); // best price, but only buying 3
 
-        // now sell from the other direction
-        await acl.assignRole(entityContext, accounts[3], ROLES.ENTITY_REP)
-        await entity.sellAtBestPrice(etherToken.address, 5, etherToken2.address, { from: accounts[3] })
+          await etherToken2.deposit({ value: 50, from: accounts[8] })
+          await etherToken2.approve(market.address, 50, { from: accounts[8] })
+          await market.offer(50, etherToken2.address, 5, etherToken.address, 0, false, { from: accounts[8] }); // worse price, but able to buy all
 
-        // check balances
-        await etherToken2.balanceOf(entity.address).should.eventually.eq(100 + 20)  // all of 1st offer + 2 from second
-        await etherToken.balanceOf(accounts[7]).should.eventually.eq(3)
-        await etherToken.balanceOf(accounts[8]).should.eventually.eq(2)
+          // now sell from the other direction
+          await entity.sellAtBestPrice(etherToken.address, 5, etherToken2.address, { from: accounts[3] })
+
+          // check balances
+          await etherToken2.balanceOf(entity.address).should.eventually.eq(100 + 20)  // all of 1st offer + 2 from second
+          await etherToken.balanceOf(accounts[7]).should.eventually.eq(3)
+          await etherToken.balanceOf(accounts[8]).should.eventually.eq(2)
+        })
+
+        it('and can only sell upto the amount that was explicitly deposited, i.e. excluding accidental sends', async () => {
+          await etherToken.deposit({ value: 200 })
+
+          // direct transfer 100
+          await etherToken.transfer(entity.address, 100)
+
+          // check balance
+          await etherToken.balanceOf(entity.address).should.eventually.eq(110)
+
+          // setup matching offer
+          await etherToken2.deposit({ value: 50, from: accounts[8] })
+          await etherToken2.approve(market.address, 50, { from: accounts[8] })
+          await market.offer(50, etherToken2.address, 10, etherToken.address, 0, false, { from: accounts[8] });
+
+          // trading more than is explicitly deposited should fail
+          await entity.sellAtBestPrice(etherToken.address, 11, etherToken2.address, { from: accounts[3] }).should.be.rejectedWith('exceeds entity balance')
+
+          // trading the max possible amount is ok
+          await entity.sellAtBestPrice(etherToken.address, 10, etherToken2.address, { from: accounts[3] }).should.be.fulfilled
+        })
       })
     })
   })
 
   describe('policies can be created', () => {
+    const entityManager = accounts[2]
+    const entityRep = accounts[3]
+
     beforeEach(async () => {
-      await acl.assignRole(entityContext, accounts[1], ROLES.ENTITY_ADMIN)
-      await acl.assignRole(entityContext, accounts[2], ROLES.ENTITY_MANAGER)
-      await acl.assignRole(entityContext, accounts[3], ROLES.ENTITY_REP)
+      await acl.assignRole(entityContext, entityManager, ROLES.ENTITY_MANAGER)
+      await acl.assignRole(entityContext, entityRep, ROLES.ENTITY_REP)
     })
 
-    it('but not by entity admins', async () => {
-      await createPolicy(entity, {}, { from: accounts[1] }).should.be.rejectedWith('must be policy creator')
+    it('by anyone', async () => {
+      await createPolicy(entity, {}, { from: accounts[9] }).should.be.fulfilled
     })
 
-    it('but not by entity reps', async () => {
-      await createPolicy(entity, {}, { from: accounts[3] }).should.be.rejectedWith('must be policy creator')
+    it('and underwriter acl context must be same as creating entity', async () => {
+      await createPolicy(entity, {
+        underwriter: entity.address,
+      }, { from: accounts[9] }).should.be.fulfilled
+
+      const entity2 = await Entity.new(settings.address, entityAdmin, BYTES32_ZERO)
+
+      await createPolicy(entity, {
+        underwriter: entity2.address,
+      }, { from: accounts[9] }).should.be.rejectedWith('underwriter ACL context must match')
+
+      const entity3 = await Entity.new(settings.address, entityAdmin, entityContext)
+
+      await createPolicy(entity, {
+        underwriter: entity3.address,
+      }, { from: accounts[9] }).should.be.fulfilled
     })
 
-    it('by entity managers', async () => {
-      const result = await createPolicy(entity, {}, { from: accounts[2] }).should.be.fulfilled
+    it('and they exist', async () => {
+      const result = await createPolicy(entity, {}, { from: entityRep }).should.be.fulfilled
 
       const eventArgs = extractEventArgs(result, events.NewPolicy)
 
       expect(eventArgs).to.include({
-        deployer: accounts[2],
+        deployer: entityRep,
         entity: entityProxy.address,
       })
 
@@ -246,13 +372,13 @@ contract('Entity', accounts => {
     it('and the entity records get updated accordingly', async () => {
       await entity.getNumPolicies().should.eventually.eq(0)
 
-      const result = await createPolicy(entity, {}, { from: accounts[2] })
+      const result = await createPolicy(entity, {}, { from: entityRep })
       const eventArgs = extractEventArgs(result, events.NewPolicy)
 
       await entity.getNumPolicies().should.eventually.eq(1)
       await entity.getPolicy(0).should.eventually.eq(eventArgs.policy)
 
-      const result2 = await createPolicy(entity, {}, { from: accounts[2] })
+      const result2 = await createPolicy(entity, {}, { from: entityRep })
       const eventArgs2 = extractEventArgs(result2, events.NewPolicy)
 
       await entity.getNumPolicies().should.eventually.eq(2)
@@ -264,7 +390,7 @@ contract('Entity', accounts => {
 
       const result = await createPolicy(entity, {
         startDate,
-      }, { from: accounts[2] })
+      }, { from: entityRep })
 
       const eventArgs = extractEventArgs(result, events.NewPolicy)
 
@@ -275,7 +401,7 @@ contract('Entity', accounts => {
     })
 
     it('and have the original caller set as policy owner', async () => {
-      const result = await createPolicy(entity, {}, { from: accounts[2] })
+      const result = await createPolicy(entity, {}, { from: entityRep })
 
       const eventArgs = extractEventArgs(result, events.NewPolicy)
 
@@ -283,7 +409,7 @@ contract('Entity', accounts => {
 
       const policyContext = await policy.aclContext()
 
-      await acl.hasRole(policyContext, accounts[2], ROLES.POLICY_OWNER).should.eventually.eq(HAS_ROLE_CONTEXT)
+      await acl.hasRole(policyContext, entityRep, ROLES.POLICY_OWNER).should.eventually.eq(HAS_ROLE_CONTEXT)
     })
 
     describe('and policy tranch premiums can be paid', () => {
@@ -294,7 +420,7 @@ contract('Entity', accounts => {
       const premiumAmount = 50000000000
 
       beforeEach(async () => {
-        policyOwner = accounts[2]
+        policyOwner = entityRep
 
         const blockTime = (await settings.getTime()).toNumber()
 
@@ -311,31 +437,32 @@ contract('Entity', accounts => {
         const accessControl = await AccessControl.at(policy.address)
         policyContext = await accessControl.aclContext()
 
-        await policy.createTranch(1, 1, [premiumAmount], ADDRESS_ZERO, { from: policyOwner })
+        await createTranch(policy, { 
+          numShares: 1,
+          pricePerShareAmount: 1,
+          premiums: [premiumAmount],
+        }, { from: policyOwner })
       })
 
       it('but not by anyone', async () => {
-        await entity.payTranchPremium(policy.address, 0, premiumAmount, { from: policyOwner }).should.be.rejectedWith('must be entity rep')
-      })
-
-      it('but not by entity rep who is not registered as a insured party on the policy', async () => {
-        const entityRep = accounts[3]
-        await entity.payTranchPremium(policy.address, 0, premiumAmount, { from: entityRep }).should.be.rejectedWith('must be insured party')
+        await entity.payTranchPremium(policy.address, 0, premiumAmount, { from: accounts[8] }).should.be.rejectedWith('must be entity rep')
       })
 
       it('but not by entity rep if we do not have enough tokens to pay with', async () => {
-        const entityRep = accounts[3]
-        await acl.assignRole(policyContext, entityRep, ROLES.INSURED_PARTY)
-        await entity.payTranchPremium(policy.address, 0, premiumAmount, { from: entityRep }).should.be.rejectedWith('transfer amount exceeds balance')
+        await entity.payTranchPremium(policy.address, 0, premiumAmount, { from: entityRep }).should.be.rejectedWith('exceeds entity balance')
       })
 
       it('by entity rep if we have enough tokens to pay with', async () => {
         await etherToken.deposit({ value: premiumAmount })
         await etherToken.approve(entity.address, premiumAmount)
         await entity.deposit(etherToken.address, premiumAmount)
-        const entityRep = accounts[3]
-        await acl.assignRole(policyContext, entityRep, ROLES.INSURED_PARTY)
         await entity.payTranchPremium(policy.address, 0, premiumAmount, { from: entityRep }).should.be.fulfilled
+      })
+
+      it('by entity rep if we have enough tokens to pay with, excluding tokens directly sent to entity', async () => {
+        await etherToken.deposit({ value: premiumAmount })
+        await etherToken.transfer(entity.address, premiumAmount)
+        await entity.payTranchPremium(policy.address, 0, premiumAmount, { from: entityRep }).should.be.rejectedWith('exceeds entity balance')
       })
     })
   })

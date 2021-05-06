@@ -6,7 +6,7 @@ import "./base/Controller.sol";
 import "./base/IDiamondFacet.sol";
 import "./base/IPolicyCoreFacet.sol";
 import "./base/IPolicyPremiumsFacet.sol";
-import "./base/PolicyFacetBase.sol";
+import ".//PolicyFacetBase.sol";
 import "./base/AccessControl.sol";
 import "./base/IERC20.sol";
 
@@ -33,12 +33,27 @@ contract PolicyPremiumsFacet is EternalStorage, Controller, IDiamondFacet, IPoli
 
   function getSelectors () public pure override returns (bytes memory) {
     return abi.encodePacked(
+      IPolicyPremiumsFacet.getTranchPremiumsInfo.selector,
       IPolicyPremiumsFacet.getTranchPremiumInfo.selector,
       IPolicyPremiumsFacet.payTranchPremium.selector
     );
   }
 
   // IPolicyPremiumsFacet
+
+  function getTranchPremiumsInfo (uint256 _tranchIndex) public view override returns (
+    uint256 numPremiums_,
+    uint256 nextPremiumAmount_,
+    uint256 nextPremiumDueAt_,
+    uint256 nextPremiumPaidSoFar_,
+    uint256 premiumPaymentsMissed_,
+    uint256 numPremiumsPaid_
+  ) {
+    numPremiums_ = dataUint256[__i(_tranchIndex, "numPremiums")];
+    (nextPremiumAmount_, nextPremiumDueAt_, nextPremiumPaidSoFar_) = _getNextTranchPremium(_tranchIndex);
+    premiumPaymentsMissed_ = _getNumberOfTranchPaymentsMissed(_tranchIndex);
+    numPremiumsPaid_ = dataUint256[__i(_tranchIndex, "numPremiumsPaid")];
+  }
 
   function getTranchPremiumInfo (uint256 _tranchIndex, uint256 _premiumIndex) public view override returns (
     uint256 amount_,
@@ -61,6 +76,7 @@ contract PolicyPremiumsFacet is EternalStorage, Controller, IDiamondFacet, IPoli
 
   function _payTranchPremium (uint256 _index, uint256 _amount) private assertTranchPaymentAllowed(_index) {
     uint256 totalPaid;
+    uint256 netPremium;
 
     while (_amount > 0 && !_tranchPaymentsAllMade(_index)) {
       uint256 expectedAmount;
@@ -76,7 +92,7 @@ contract PolicyPremiumsFacet is EternalStorage, Controller, IDiamondFacet, IPoli
       uint256 numPremiumsPaid = dataUint256[__i(_index, "numPremiumsPaid")];
 
       if (_amount >= pending) {
-        _applyPremiumPaymentAmount(_index, pending);
+        netPremium += _applyPremiumPaymentAmount(_index, pending);
         totalPaid = totalPaid.add(pending);
         _amount = _amount.sub(pending);
 
@@ -84,35 +100,42 @@ contract PolicyPremiumsFacet is EternalStorage, Controller, IDiamondFacet, IPoli
         dataUint256[__ii(_index, numPremiumsPaid, "premiumPaidAt")] = now;
         dataUint256[__ii(_index, numPremiumsPaid, "premiumPaidSoFar")] = dataUint256[__ii(_index, numPremiumsPaid, "premiumAmount")];
       } else {
-        _applyPremiumPaymentAmount(_index, _amount);
+        netPremium += _applyPremiumPaymentAmount(_index, _amount);
         totalPaid = totalPaid.add(_amount);
         dataUint256[__ii(_index, numPremiumsPaid, "premiumPaidSoFar")] = dataUint256[__ii(_index, numPremiumsPaid, "premiumPaidSoFar")].add(_amount);
         _amount = 0;
       }
     }
 
-    // do the actual transfer
+    // do the actual transfer to the treasury
     IERC20 tkn = IERC20(dataAddress["unit"]);
-    tkn.transferFrom(msg.sender, address(this), totalPaid);
+    uint256 totalCommissions = totalPaid - netPremium;
+    tkn.transferFrom(msg.sender, address(this), totalCommissions);
+    tkn.transferFrom(msg.sender, dataAddress["treasury"], netPremium);
+
+    // tell treasury to update its balance for this policy
+    _getTreasury().incPolicyBalance(netPremium);
     
     // event
     emit PremiumPayment(_index, totalPaid, msg.sender);
   }
 
-  function _applyPremiumPaymentAmount (uint256 _index, uint256 _amount) private {
+  function _applyPremiumPaymentAmount (uint256 _index, uint256 _amount) private returns (uint256) {
     // calculate commissions
     uint256 brokerCommission = dataUint256["brokerCommissionBP"].mul(_amount).div(1000);
-    uint256 capitalProviderCommission = dataUint256["capitalProviderCommissionBP"].mul(_amount).div(1000);
+    uint256 claimsAdminCommission = dataUint256["claimsAdminCommissionBP"].mul(_amount).div(1000);
     uint256 naymsCommission = dataUint256["naymsCommissionBP"].mul(_amount).div(1000);
 
     // add to commission balances
     dataUint256["brokerCommissionBalance"] = dataUint256["brokerCommissionBalance"].add(brokerCommission);
-    dataUint256["capitalProviderCommissionBalance"] = dataUint256["capitalProviderCommissionBalance"].add(capitalProviderCommission);
+    dataUint256["claimsAdminCommissionBalance"] = dataUint256["claimsAdminCommissionBalance"].add(claimsAdminCommission);
     dataUint256["naymsCommissionBalance"] = dataUint256["naymsCommissionBalance"].add(naymsCommission);
 
     // add to tranch balance
-    uint256 tranchBalanceDelta = _amount.sub(brokerCommission.add(capitalProviderCommission).add(naymsCommission));
+    uint256 tranchBalanceDelta = _amount.sub(brokerCommission.add(claimsAdminCommission).add(naymsCommission));
     dataUint256[__i(_index, "balance")] = dataUint256[__i(_index, "balance")].add(tranchBalanceDelta);
+
+    return tranchBalanceDelta;
   }
 
   function _getNextTranchPremium (uint256 _index) private view returns (uint256, uint256, uint256) {

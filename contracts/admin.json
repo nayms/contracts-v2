@@ -607,6 +607,16 @@
               "contract": true
             }
           ]
+        },
+        {
+          "name": "entityAdmin",
+          "title": "Entity admin address",
+          "type": "address"
+        },
+        {
+          "name": "entityContext",
+          "title": "Entity context (optional)",
+          "type": "bytes32"
         }
       ],
       "execs": [
@@ -614,6 +624,10 @@
           "type": "send",
           "contract": "EntityDeployer",
           "method": "deploy",
+          "args": {
+            "_entityAdmin": "@input[entityAdmin]",
+            "_entityContext": "@input[entityContext]"
+          },
           "address": "@input[contractAddress]"
         }
       ]
@@ -979,9 +993,9 @@
           "value": "@input[policyInfo][brokerCommissionBP_]"
         },
         {
-          "title": "Asset mgr commission basis-points",
+          "title": "Claims admin commission basis-points",
           "type": "int",
-          "value": "@input[policyInfo][capitalProviderCommissionBP_]"
+          "value": "@input[policyInfo][claimsAdminCommissionBP_]"
         },
         {
           "title": "Nayms commission basis-points",

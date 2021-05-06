@@ -3,14 +3,13 @@ const got = require('got')
 const ethUtil = require('ethereumjs-util')
 
 const { keccak256 } = require('../../utils/functions')
+const { ADDRESS_ZERO, BYTES32_ZERO } = require('../../utils/constants')
 const { createLog } = require('./log')
 const { networks } = require('../../truffle-config.js')
 const addresses = require('../../deployedAddresses.json')
 const packageJson = require('../../package.json')
 
 const MNEMONIC = (packageJson.scripts.devnet.match(/\'(.+)\'/))[1]
-
-export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000'
 
 exports.defaultGetTxParams = (txParamsOverride = {}) => Object.assign({
   gasPrice: 1 * 1000000000, // 1 GWEI
@@ -20,9 +19,9 @@ exports.defaultGetTxParams = (txParamsOverride = {}) => Object.assign({
 let safeNonce // keep track of ongoing nonce
 
 exports.execCall = async ({ task, contract, method, args, cfg }) => {
-  const { web3, artifacts, accounts, getTxParams = exports.defaultGetTxParams, networkInfo, multisig, hdWallet } = cfg
+  const { web3, artifacts, accounts, getTxParams = exports.defaultGetTxParams, networkInfo, multisig, hdWallet, onlyDeployingUpgrades } = cfg
 
-  if (multisig) {
+  if (multisig && onlyDeployingUpgrades) {
     await task.log(`   QUEUE: ${method}() on ${contract.address} (multisig: ${multisig})`, 'green')
 
     let baseUrl 

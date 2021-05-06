@@ -21,6 +21,9 @@ contract EternalStorage {
   function __i (uint256 i1, string memory s) internal pure returns (string memory) {
     return string(abi.encodePacked(i1, s));
   }
+  function __a (address a1, string memory s) internal pure returns (string memory) {
+    return string(abi.encodePacked(a1, s));
+  }
   function __ii (uint256 i1, uint256 i2, string memory s) internal pure returns (string memory) {
     return string(abi.encodePacked(i1, i2, s));
   }

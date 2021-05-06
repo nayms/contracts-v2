@@ -4,6 +4,8 @@ import {
   extractEventArgs,
   hdWallet,
   preSetupPolicy,
+  createEntity,
+  createPolicy,
   EvmSnapshot,
 } from './utils'
 import { events } from '../'
@@ -26,7 +28,7 @@ const IDiamondProxy = artifacts.require('./base/IDiamondProxy')
 const IPolicyStates = artifacts.require("./base/IPolicyStates")
 const Policy = artifacts.require("./Policy")
 const IPolicy = artifacts.require("./base/IPolicy")
-const TestPolicyFacet = artifacts.require("./test/TestPolicyFacet")
+const DummyPolicyFacet = artifacts.require("./test/DummyPolicyFacet")
 const FreezeUpgradesFacet = artifacts.require("./test/FreezeUpgradesFacet")
 
 const POLICY_ATTRS_1 = {
@@ -34,14 +36,14 @@ const POLICY_ATTRS_1 = {
   startDateDiff: 2000,
   maturationDateDiff: 3000,
   premiumIntervalSeconds: undefined,
-  capitalProviderCommissionBP: 0,
+  claimsAdminCommissionBP: 0,
   brokerCommissionBP: 0,
   naymsCommissionBP: 0
 }
 
 const POLICY_ATTRS_2 = Object.assign({}, POLICY_ATTRS_1, {
   premiumIntervalSeconds: 5,
-  capitalProviderCommissionBP: 1,
+  claimsAdminCommissionBP: 1,
   brokerCommissionBP: 2,
   naymsCommissionBP: 3
 })
@@ -61,13 +63,15 @@ contract('Policy: Basic', accounts => {
   let policy
   let policyCoreAddress
   let policyContext
-  let entityManagerAddress
   let policyOwnerAddress
   let market
   let etherToken
 
+  const entityAdminAddress = accounts[1]
+  const entityManagerAddress = accounts[2]
+
   let POLICY_STATE_CREATED
-  let POLICY_STATE_SELLING
+  let POLICY_STATE_INITIATED
   let POLICY_STATE_ACTIVE
   let POLICY_STATE_MATURED
 
@@ -97,23 +101,21 @@ contract('Policy: Basic', accounts => {
     await ensureEntityImplementationsAreDeployed({ artifacts, settings, entityDeployer })
 
     await acl.assignRole(systemContext, accounts[0], ROLES.SYSTEM_MANAGER)
-    const deployEntityTx = await entityDeployer.deploy()
-    const entityAddress = extractEventArgs(deployEntityTx, events.NewEntity).entity
+    const entityAddress = await createEntity({ entityDeployer, adminAddress: entityAdminAddress })
 
     entityProxy = await Entity.at(entityAddress)
     entity = await IEntity.at(entityAddress)
     entityContext = await entityProxy.aclContext()
 
     // policy
-    await acl.assignRole(entityContext, accounts[1], ROLES.ENTITY_ADMIN)
-    await acl.assignRole(entityContext, accounts[2], ROLES.ENTITY_MANAGER)
-    entityManagerAddress = accounts[2]
+    await acl.assignRole(systemContext, entityManagerAddress, ROLES.APPROVED_USER)
+    await acl.assignRole(entityContext, entityManagerAddress, ROLES.ENTITY_MANAGER, { from: entityAdminAddress })
 
     ;([ policyCoreAddress ] = await ensurePolicyImplementationsAreDeployed({ artifacts, settings }))
 
     const policyStates = await IPolicyStates.at(policyCoreAddress)
     POLICY_STATE_CREATED = await policyStates.POLICY_STATE_CREATED()
-    POLICY_STATE_SELLING = await policyStates.POLICY_STATE_SELLING()
+    POLICY_STATE_INITIATED = await policyStates.POLICY_STATE_INITIATED()
     POLICY_STATE_ACTIVE = await policyStates.POLICY_STATE_ACTIVE()
     POLICY_STATE_MATURED = await policyStates.POLICY_STATE_MATURED()
     TRANCH_STATE_CANCELLED = await policyStates.TRANCH_STATE_CANCELLED()
@@ -147,16 +149,40 @@ contract('Policy: Basic', accounts => {
   })
 
   describe('basic tests', () => {
+    it('must be created by broker or underwriter', async () => {
+      const underwriterRep = entityAdminAddress
+      const insuredPartyRep = accounts[7]
+      const brokerRep = accounts[8]
+      const claimsAdminRep = accounts[9]
+
+      const insuredParty = await createEntity({ entityDeployer, adminAddress: insuredPartyRep })
+      const broker = await createEntity({ entityDeployer, adminAddress: brokerRep })
+      const claimsAdmin = await createEntity({ entityDeployer, adminAddress: claimsAdminRep })
+
+      const attrs = Object.assign({}, POLICY_ATTRS_1, {
+        underwriter: entity.address, 
+        insuredParty, 
+        broker, 
+        claimsAdmin
+      })
+
+      await createPolicy(entity, attrs, { from: underwriterRep }).should.eventually.be.fulfilled
+      await createPolicy(entity, attrs, { from: brokerRep }).should.eventually.be.fulfilled
+      await createPolicy(entity, attrs, { from: claimsAdminRep }).should.be.rejectedWith('must be broker or underwriter')
+      await createPolicy(entity, attrs, { from: insuredPartyRep }).should.be.rejectedWith('must be broker or underwriter')
+    })
+
     it('can return its basic info', async () => {
       const attrs = await setupPolicy(POLICY_ATTRS_2)
 
       await policy.getInfo().should.eventually.matchObj({
+        treasury_: entity.address,
         initiationDate_: attrs.initiationDate,
         startDate_: attrs.startDate,
         maturationDate_: attrs.maturationDate,
         unit_: attrs.unit,
         premiumIntervalSeconds_: 5,
-        capitalProviderCommissionBP_: 1,
+        claimsAdminCommissionBP_: 1,
         brokerCommissionBP_: 2,
         naymsCommissionBP_: 3,
         numTranches_: 0,
@@ -166,18 +192,14 @@ contract('Policy: Basic', accounts => {
   })
 
   describe('it can be upgraded', async () => {
-    let testPolicyFacet
+    let dummyPolicyFacet
     let freezeUpgradesFacet
 
     beforeEach(async () => {
       await setupPolicy(POLICY_ATTRS_1)
 
-      // assign roles
-      await acl.assignRole(policyContext, accounts[3], ROLES.CAPITAL_PROVIDER)
-      await acl.assignRole(policyContext, accounts[4], ROLES.INSURED_PARTY)
-
       // deploy new implementation
-      testPolicyFacet = await TestPolicyFacet.new()
+      dummyPolicyFacet = await DummyPolicyFacet.new()
       freezeUpgradesFacet = await FreezeUpgradesFacet.new()
     })
 
@@ -189,7 +211,7 @@ contract('Policy: Basic', accounts => {
     })
 
     it('but not just by anyone', async () => {
-      await policy.upgrade([ testPolicyFacet.address ], { from: accounts[1] }).should.be.rejectedWith('must be admin')
+      await policy.upgrade([ dummyPolicyFacet.address ], { from: accounts[1] }).should.be.rejectedWith('must be admin')
     })
 
     it('but not to the existing implementation', async () => {
@@ -197,13 +219,13 @@ contract('Policy: Basic', accounts => {
     })
 
     it('and points to the new implementation', async () => {
-      await policy.upgrade([testPolicyFacet.address]).should.be.fulfilled
+      await policy.upgrade([dummyPolicyFacet.address]).should.be.fulfilled
       await policy.calculateMaxNumOfPremiums().should.eventually.eq(666);
     })
 
     it('and can be frozen', async () => {
       await policy.upgrade([freezeUpgradesFacet.address]).should.be.fulfilled
-      await policy.upgrade([testPolicyFacet.address]).should.be.rejectedWith('frozen')
+      await policy.upgrade([dummyPolicyFacet.address]).should.be.rejectedWith('frozen')
     })
 
     it('and the internal upgrade function cannot be called directly', async () => {

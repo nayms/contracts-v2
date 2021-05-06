@@ -3,7 +3,7 @@ const { deploy, defaultGetTxParams, execCall } = require('../utils')
 const { SETTINGS } = require('../../utils/constants')
 
 export const ensurePolicyImplementationsAreDeployed = async (cfg) => {
-  const { deployer, artifacts, log: baseLog, settings, getTxParams = defaultGetTxParams } = cfg
+  const { deployer, artifacts, log: baseLog, settings, getTxParams = defaultGetTxParams, extraFacets = [] } = cfg
   const log = createLog(baseLog)
 
   let addresses
@@ -25,7 +25,13 @@ export const ensurePolicyImplementationsAreDeployed = async (cfg) => {
       await deploy(deployer, getTxParams(), PolicyPremiumsFacet, settings.address),
       await deploy(deployer, getTxParams(), PolicyTranchTokensFacet, settings.address),
       await deploy(deployer, getTxParams(), PolicyApprovalsFacet, settings.address),
-    ].map(c => c.address)
+    ]
+    
+    for (let f of extraFacets) {
+      addresses.push(await deploy(deployer, getTxParams(), f, settings.address))
+    }
+
+    addresses = addresses.map(c => c.address)
 
     task.log(`Deployed at ${addresses.join(', ')}`)
   })

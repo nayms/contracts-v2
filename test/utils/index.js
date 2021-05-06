@@ -4,9 +4,13 @@ import chai from 'chai'
 import { parseLog } from 'ethereum-event-logs'
 import chaiAsPromised from 'chai-as-promised'
 
+import { events } from '../..'
 import packageJson from '../../package.json'
-import { extractEventsFromAbis } from '../../'
 import { toBN, isBN } from './web3'
+import { ADDRESS_ZERO, BYTES32_ZERO } from '../../utils/constants'
+import { ROLES } from '../../utils/constants'
+
+export { ADDRESS_ZERO, BYTES32_ZERO }
 
 const MNEMONIC = (packageJson.scripts.devnet.match(/\'(.+)\'/))[1]
 console.log(`Mnemonic: [ ${MNEMONIC} ]`)
@@ -97,10 +101,6 @@ chai.should()
 export const hdWallet = EthHdWallet.fromMnemonic(MNEMONIC)
 hdWallet.generateAddresses(10)
 
-export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000'
-export const BYTES32_ZERO = '0x0000000000000000000000000000000000000000000000000000000000000000'
-
-
 export const getBalance = async addr => toBN(await web3.eth.getBalance(addr))
 
 // mul + div by 1000 takes care of upto 3 decimal places (since toBN() doesn't support decimals)
@@ -138,19 +138,26 @@ export const createTranch = (policy, attrs, ...callAttrs) => {
     numShares = 10,
     pricePerShareAmount = 1,
     premiums = [],
-    initialBalanceHolder = ADDRESS_ZERO,
   } = attrs
 
   return policy.createTranch(
     numShares,
     pricePerShareAmount,
     premiums,
-    initialBalanceHolder,
     ...callAttrs,
   )
 }
 
-export const createPolicy = (entity, attrs, ...callAttrs) => {
+export const createEntity = async ({ acl, entityDeployer, adminAddress, entityContext = BYTES32_ZERO }) => {
+  const deployEntityTx = await entityDeployer.deploy(adminAddress, entityContext)
+  const { entity: entityAddress } = extractEventArgs(deployEntityTx, events.NewEntity)
+  if (entityContext != BYTES32_ZERO) {
+    await acl.assignRole(entityContext, adminAddress, ROLES.ENTITY_ADMIN)
+  }
+  return entityAddress
+}
+
+export const createPolicy = async (entity, attrs = {}, ...callAttrs) => {
   const currentTime = ~~(Date.now() / 1000)
 
   const {
@@ -160,19 +167,20 @@ export const createPolicy = (entity, attrs, ...callAttrs) => {
     unit = ADDRESS_ZERO,
     premiumIntervalSeconds = 30,
     brokerCommissionBP = 0,
-    capitalProviderCommissionBP = 0,
+    claimsAdminCommissionBP = 0,
     naymsCommissionBP = 0,
-    capitalProvider = ADDRESS_ZERO,
+    underwriter = entity.address,
     insuredParty = ADDRESS_ZERO,
     broker = ADDRESS_ZERO,
+    claimsAdmin = ADDRESS_ZERO,
   } = attrs
 
   return entity.createPolicy(
     [initiationDate, startDate, maturationDate],
     unit,
     premiumIntervalSeconds,
-    [brokerCommissionBP, capitalProviderCommissionBP, naymsCommissionBP],
-    [capitalProvider, insuredParty, broker],
+    [brokerCommissionBP, claimsAdminCommissionBP, naymsCommissionBP],
+    [underwriter, insuredParty, broker, claimsAdmin],
     ...callAttrs,
   )
 }
@@ -185,11 +193,12 @@ export const preSetupPolicy = async (ctx, createPolicyArgs) => {
     maturationDateDiff,
     premiumIntervalSeconds,
     brokerCommissionBP,
-    capitalProviderCommissionBP,
+    claimsAdminCommissionBP,
     naymsCommissionBP,
-    capitalProvider,
+    underwriter,
     insuredParty,
     broker,
+    claimsAdmin,
   } = (createPolicyArgs || {})
 
   // get current evm time
@@ -203,11 +212,12 @@ export const preSetupPolicy = async (ctx, createPolicyArgs) => {
     unit: ctx.etherToken.address,
     premiumIntervalSeconds,
     brokerCommissionBP,
-    capitalProviderCommissionBP,
+    claimsAdminCommissionBP,
     naymsCommissionBP,
-    capitalProvider,
+    underwriter,
     insuredParty,
     broker,
+    claimsAdmin,
   }
 
   const createPolicyTx = await createPolicy(ctx.entity, attrs, { from: ctx.entityManagerAddress })
@@ -216,22 +226,22 @@ export const preSetupPolicy = async (ctx, createPolicyArgs) => {
   ctx.policies.set(createPolicyArgs, { attrs, baseTime: currentBlockTime, policyAddress })
 }
 
-export const calcPremiumsMinusCommissions = ({ premiums, capitalProviderCommissionBP, brokerCommissionBP, naymsCommissionBP }) => (
+export const calcPremiumsMinusCommissions = ({ premiums, claimsAdminCommissionBP, brokerCommissionBP, naymsCommissionBP }) => (
   premiums.reduce((m, v) => (
-    m + v - (v * capitalProviderCommissionBP / 1000) - (v * brokerCommissionBP / 1000) - (v * naymsCommissionBP / 1000)
+    m + v - (v * claimsAdminCommissionBP / 1000) - (v * brokerCommissionBP / 1000) - (v * naymsCommissionBP / 1000)
   ), 0)
 )
 
 
-export const calcCommissions = ({ premiums, capitalProviderCommissionBP, brokerCommissionBP, naymsCommissionBP }) => {
+export const calcCommissions = ({ premiums, claimsAdminCommissionBP, brokerCommissionBP, naymsCommissionBP }) => {
   const ret = {
-    capitalProviderCommission: 0,
+    underwriterCommission: 0,
     brokerCommission: 0,
     naymsCommission: 0,
   }
 
   premiums.forEach(v => {
-    ret.capitalProviderCommission += (v * capitalProviderCommissionBP / 1000)
+    ret.underwriterCommission += (v * claimsAdminCommissionBP / 1000)
     ret.brokerCommission += (v * brokerCommissionBP / 1000)
     ret.naymsCommission += (v * naymsCommissionBP / 1000)
   })

@@ -6,7 +6,7 @@ import "./base/Controller.sol";
 import "./base/IDiamondFacet.sol";
 import "./base/IPolicyClaimsFacet.sol";
 import "./base/IPolicyCoreFacet.sol";
-import "./base/PolicyFacetBase.sol";
+import ".//PolicyFacetBase.sol";
 import "./base/AccessControl.sol";
 import "./base/IERC20.sol";
 
@@ -18,21 +18,6 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
 
   modifier assertActiveState () {
     require(dataUint256["state"] == POLICY_STATE_ACTIVE, 'must be in active state');
-    _;
-  }
-
-  modifier assertIsInsuredParty (address _addr) {
-    require(inRoleGroup(_addr, ROLEGROUP_INSURED_PARTYS), 'must be insured party');
-    _;
-  }
-
-  modifier assertIsCapitalProvider (address _addr) {
-    require(inRoleGroup(_addr, ROLEGROUP_CAPITAL_PROVIDERS), 'must be capital provider');
-    _;
-  }
-
-  modifier assertIsSystemManager (address _addr) {
-    require(inRoleGroup(_addr, ROLEGROUP_SYSTEM_MANAGERS), 'must be system manager');
     _;
   }
 
@@ -49,8 +34,9 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
     return abi.encodePacked(
       IPolicyClaimsFacet.makeClaim.selector,
       IPolicyClaimsFacet.approveClaim.selector,
+      IPolicyClaimsFacet.disputeClaim.selector,
+      IPolicyClaimsFacet.acknowledgeClaim.selector,
       IPolicyClaimsFacet.declineClaim.selector,
-      IPolicyClaimsFacet.cancelClaim.selector,
       IPolicyClaimsFacet.payClaim.selector,
       IPolicyClaimsFacet.getClaimStats.selector,
       IPolicyClaimsFacet.getClaimInfo.selector
@@ -70,149 +56,145 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
   function getClaimInfo (uint256 _claimIndex) public view override returns (
     uint256 amount_,
     uint256 tranchIndex_,
-    bool approved_,
-    bool declined_,
-    bool paid_,
-    bool cancelled_
+    uint256 state_,
+    bool disputed_,
+    bool acknowledged_
   ) {
-    amount_ = dataUint256[__i(_claimIndex, "claimAmount")];
     tranchIndex_ = dataUint256[__i(_claimIndex, "claimTranch")];
-    approved_ = dataBool[__i(_claimIndex, "claimApproved")];
-    declined_ = dataBool[__i(_claimIndex, "claimDeclined")];
-    paid_ = dataBool[__i(_claimIndex, "claimPaid")];
-    cancelled_ = dataBool[__i(_claimIndex, "claimCancelled")];
+    amount_ = dataUint256[__i(_claimIndex, "claimAmount")];
+    state_ = dataUint256[__i(_claimIndex, "claimState")];
+    disputed_ = dataBool[__i(_claimIndex, "claimDisputed")];
+    acknowledged_ = dataBool[__i(_claimIndex, "claimAcknowledged")];
   }
 
-  function makeClaim(uint256 _index, address _insuredPartyEntity, uint256 _amount) public override
+  function makeClaim(uint256 _tranchIndex, uint256 _amount) public override 
     assertActiveState
-    assertIsInsuredParty(msg.sender)
+    assertBelongsToEntityWithRole(msg.sender, ROLE_INSURED_PARTY)
   {
     IPolicyCoreFacet(address(this)).checkAndUpdateState();
-    _makeClaim(_index, _insuredPartyEntity, _amount);
+    address entity = _getEntityWithRole(ROLE_INSURED_PARTY);
+
+    // check that tranch is active
+    require(dataUint256[__i(_tranchIndex, "state")] == TRANCH_STATE_ACTIVE, 'tranch must be active');
+
+    // check amount
+    require(
+      _getTranchPendingClaimsAmount(_tranchIndex).add(_amount) <= dataUint256[string(abi.encodePacked(_tranchIndex, "balance"))],
+      'claim too high'
+    );
+
+    uint256 claimIndex = dataUint256["claimsCount"];
+    dataUint256[__i(claimIndex, "claimAmount")] = _amount;
+    dataUint256[__i(claimIndex, "claimTranch")] = _tranchIndex;
+    dataAddress[__i(claimIndex, "claimEntity")] = entity;
+    dataUint256[__i(claimIndex, "claimState")] = CLAIM_STATE_CREATED;
+
+    dataUint256["claimsCount"] = claimIndex + 1;
+    dataUint256["claimsPendingCount"] += 1;
+
+    emit NewClaim(_tranchIndex, claimIndex, msg.sender);
+  }
+
+  function disputeClaim(uint256 _claimIndex) 
+    public 
+    override
+    assertBelongsToEntityWithRole(msg.sender, ROLE_UNDERWRITER)
+  {
+    require(0 < dataUint256[__i(_claimIndex, "claimAmount")], 'invalid claim');
+    uint256 state = dataUint256[__i(_claimIndex, "claimState")];
+    require(state == CLAIM_STATE_CREATED, 'in wrong state');
+    dataBool[__i(_claimIndex, "claimDisputed")] = true;
+    emit ClaimDisputed(_claimIndex, msg.sender);
+  }
+
+  function acknowledgeClaim(uint256 _claimIndex) 
+    public 
+    override
+    assertBelongsToEntityWithRole(msg.sender, ROLE_UNDERWRITER)
+  {
+    require(0 < dataUint256[__i(_claimIndex, "claimAmount")], 'invalid claim');
+    uint256 state = dataUint256[__i(_claimIndex, "claimState")];
+    require(state == CLAIM_STATE_CREATED, 'in wrong state');
+    dataBool[__i(_claimIndex, "claimAcknowledged")] = true;
+    emit ClaimAcknowledged(_claimIndex, msg.sender);
   }
 
   function approveClaim(uint256 _claimIndex)
     public
     override
-    assertIsCapitalProvider(msg.sender)
+    assertBelongsToEntityWithRole(msg.sender, ROLE_CLAIMS_ADMIN)
   {
     // check claim
     require(0 < dataUint256[__i(_claimIndex, "claimAmount")], 'invalid claim');
-    require(!dataBool[__i(_claimIndex, "claimApproved")], 'already approved');
-    require(!dataBool[__i(_claimIndex, "claimDeclined")], 'already declined');
-    require(!dataBool[__i(_claimIndex, "claimCancelled")], 'already cancelled');
-
-    // mark claim as approved
-    dataBool[__i(_claimIndex, "claimApproved")] = true;
-    dataUint256["claimsPendingCount"] -= 1;
+    uint256 state = dataUint256[__i(_claimIndex, "claimState")];
+    require(state == CLAIM_STATE_CREATED, 'in wrong state');
 
     // remove from tranch balance
     uint256 claimAmount = dataUint256[__i(_claimIndex, "claimAmount")];
     uint256 claimTranch = dataUint256[__i(_claimIndex, "claimTranch")];
-
     dataUint256[__i(claimTranch, "balance")] = dataUint256[__i(claimTranch, "balance")].sub(claimAmount);
 
-    emit ClaimApproved(_claimIndex, msg.sender);
+    // update pending count
+    dataUint256["claimsPendingCount"] -= 1;
+
+    _setClaimState(_claimIndex, CLAIM_STATE_APPROVED);
   }
 
 
   function declineClaim(uint256 _claimIndex)
     public
     override
-    assertIsCapitalProvider(msg.sender)
+    assertBelongsToEntityWithRole(msg.sender, ROLE_CLAIMS_ADMIN)
   {
     // check claim
     require(0 < dataUint256[__i(_claimIndex, "claimAmount")], 'invalid claim');
-    require(!dataBool[__i(_claimIndex, "claimApproved")], 'already approved');
-    require(!dataBool[__i(_claimIndex, "claimDeclined")], 'already declined');
-    require(!dataBool[__i(_claimIndex, "claimCancelled")], 'already cancelled');
+    uint256 state = dataUint256[__i(_claimIndex, "claimState")];
+    require(state == CLAIM_STATE_CREATED, 'in wrong state');
 
-    // mark claim as declined
-    dataBool[__i(_claimIndex, "claimDeclined")] = true;
+    // update pending count
     dataUint256["claimsPendingCount"] -= 1;
 
-    emit ClaimDeclined(_claimIndex, msg.sender);
+    _setClaimState(_claimIndex, CLAIM_STATE_DECLINED);
   }
-
-
-
-  function cancelClaim(uint256 _claimIndex)
-    public
-    override
-    assertIsSystemManager(msg.sender)
-  {
-    // check claim
-    require(0 < dataUint256[__i(_claimIndex, "claimAmount")], 'invalid claim');
-    require(!dataBool[__i(_claimIndex, "claimCancelled")], 'already cancelled');
-    require(!dataBool[__i(_claimIndex, "claimPaid")], 'already paid');
-
-    // mark claim as cancelled
-    dataBool[__i(_claimIndex, "claimCancelled")] = true;
-    dataUint256["claimsPendingCount"] -= 1;
-
-    emit ClaimCancelled(_claimIndex, msg.sender);
-  }
-
 
 
   function payClaim(uint256 _claimIndex)
     public
     override
-    assertIsSystemManager(msg.sender)
+    assertBelongsToEntityWithRole(msg.sender, ROLE_CLAIMS_ADMIN)
   {
     // check claim
     require(0 < dataUint256[__i(_claimIndex, "claimAmount")], 'invalid claim');
-    require(dataBool[__i(_claimIndex, "claimApproved")], 'not approved');
-    require(!dataBool[__i(_claimIndex, "claimCancelled")], 'already cancelled');
-    require(!dataBool[__i(_claimIndex, "claimPaid")], 'already paid');
+    uint256 state = dataUint256[__i(_claimIndex, "claimState")];
+    require(state == CLAIM_STATE_APPROVED, 'not approved');
 
-    IERC20 tkn = IERC20(dataAddress["unit"]);
+    // transfer
+    _getTreasury().payClaim(
+      dataAddress[__i(_claimIndex, "claimEntity")], 
+      dataUint256[__i(_claimIndex, "claimAmount")]
+    );
 
-    tkn.transfer(dataAddress[__i(_claimIndex, "claimEntity")], dataUint256[__i(_claimIndex, "claimAmount")]);
-    dataBool[__i(_claimIndex, "claimPaid")] = true;
-
-    emit ClaimPaid(_claimIndex, msg.sender);
+    _setClaimState(_claimIndex, CLAIM_STATE_PAID);
   }
 
   // Internal methods
 
-  function _makeClaim(uint256 _index, address _insuredPartyEntity, uint256 _amount) private
-    assertActiveState
-    assertIsInsuredParty(msg.sender)
-  {
-    // check insured party entity
-    bytes32 insuredPartyEntityContext = AccessControl(_insuredPartyEntity).aclContext();
-    require(acl().userSomeHasRoleInContext(insuredPartyEntityContext, msg.sender), 'must have role in insured party entity');
-
-    // check that tranch is active
-    require(dataUint256[__i(_index, "state")] == TRANCH_STATE_ACTIVE, 'tranch must be active');
-
-    // check amount
-    require(
-      _getTranchPendingClaimsAmount(_index).add(_amount) <= dataUint256[string(abi.encodePacked(_index, "balance"))],
-      'claim too high'
-    );
-
-    uint256 claimIndex = dataUint256["claimsCount"];
-    dataUint256[__i(claimIndex, "claimAmount")] = _amount;
-    dataUint256[__i(claimIndex, "claimTranch")] = _index;
-    dataAddress[__i(claimIndex, "claimEntity")] = _insuredPartyEntity;
-
-    dataUint256["claimsCount"] = claimIndex + 1;
-    dataUint256["claimsPendingCount"] += 1;
-
-    emit NewClaim(_index, claimIndex, msg.sender);
+  function _setClaimState(uint256 _claimIndex, uint256 _newState) private {
+    if (dataUint256[__i(_claimIndex, "claimState")] != _newState) {
+      dataUint256[__i(_claimIndex, "claimState")] = _newState;
+      emit ClaimStateUpdated(_claimIndex, _newState, msg.sender);
+    }
   }
 
   function _getTranchPendingClaimsAmount (uint256 _index) private view returns (uint256) {
     uint256 amount;
 
     for (uint256 i = 0; i < dataUint256["claimsCount"]; i += 1) {
-      bool isApproved = dataBool[__i(i, "claimApproved")];
-      bool isDeclined = dataBool[__i(i, "claimDeclined")];
+      uint256 state = dataUint256[__i(i, "claimState")];
+      bool isPending = (state == CLAIM_STATE_CREATED);
       uint256 tranchNum = dataUint256[__i(i, "claimTranch")];
 
-      if (tranchNum == _index && !isApproved && !isDeclined) {
+      if (tranchNum == _index && isPending) {
         amount = amount.add(dataUint256[__i(i, "claimAmount")]);
       }
     }

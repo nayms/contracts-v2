@@ -21,6 +21,13 @@ interface IEntityCoreFacet {
   ) external;
 
   /**
+   * @dev Get balance.
+   *
+   * @param _unit Asset.
+   */
+  function getBalance(address _unit) external view returns (uint256);
+
+  /**
    * @dev Get no. of policies created.
    * @return Total no. of policies created.
    */
@@ -40,6 +47,7 @@ interface IEntityCoreFacet {
    * @param _amount Amount to deposit.
    */
   function deposit(address _unit, uint256 _amount) external;
+
   /**
    * @dev Withdraw assets.
    *
@@ -66,8 +74,10 @@ interface IEntityCoreFacet {
    * @param _payAmount Amount to sell.
    * @param _buyUnit Asset to buy.
    * @param _buyAmount Amount to buy.
+   *
+   * @return Market offer id.
    */
-  function trade(address _payUnit, uint256 _payAmount, address _buyUnit, uint256 _buyAmount) external;
+  function trade(address _payUnit, uint256 _payAmount, address _buyUnit, uint256 _buyAmount) external returns (uint256);
   /**
    * @dev Sell given asset at the best possible price.
    *
@@ -76,8 +86,10 @@ interface IEntityCoreFacet {
    * @param _sellUnit Asset to sell.
    * @param _sellAmount Amount to sell.
    * @param _buyUnit Asset to buy.
+   *
+   * @return Market offer id.
    */
-  function sellAtBestPrice(address _sellUnit, uint256 _sellAmount, address _buyUnit) external;
+  function sellAtBestPrice(address _sellUnit, uint256 _sellAmount, address _buyUnit) external returns (uint256);
 
   /**
    * @dev Emitted when a new policy has been created.
@@ -89,5 +101,29 @@ interface IEntityCoreFacet {
     address indexed policy,
     address indexed entity,
     address indexed deployer
+  );
+
+  /**
+   * @dev Emitted when a deposit is made.
+   * @param caller The caller.
+   * @param unit The token deposited.
+   * @param amount The amount deposited.
+   */
+  event EntityDeposit (
+    address indexed caller,
+    address indexed unit,
+    uint256 indexed amount
+  );
+
+  /**
+   * @dev Emitted when a withdrawal is made.
+   * @param caller The caller.
+   * @param unit The token withdrawn.
+   * @param amount The amount withdrawn.
+   */
+  event EntityWithdraw(
+    address indexed caller,
+    address indexed unit,
+    uint256 indexed amount
   );
 }

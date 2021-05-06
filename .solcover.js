@@ -23,16 +23,17 @@ module.exports = {
     "base/ECDSA.sol",
     "base/SafeMath.sol",
     /* testcode */,
+    "test/DummyEntityFacet.sol",
+    "test/DummyPolicyFacet.sol",
+    "test/EntityTreasuryTestFacet.sol",
+    "test/PolicyTreasuryTestFacet.sol",
     "test/FreezeUpgradesFacet.sol",
-    "test/TestEntityFacet.sol",
-    "test/TestPolicyFacet.sol",
     /* build-related stuff */
     "VersionInfo.sol",
     "Migrations.sol",
     "MIgrations.sol",
     /* stuff that's mostly the Diamond Standard external lib code + has assembly in it */
     "base/DiamondCutter.sol",
-    "base/DiamondLoupeFacet.sol"
   ],
   onCompileComplete: () => {
     console.log('Copying over maker-otc contract artifacts...')

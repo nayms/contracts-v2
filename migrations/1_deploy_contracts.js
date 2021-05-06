@@ -4,8 +4,9 @@ const got = require('got')
 const { EthHdWallet } = require('eth-hd-wallet')
 
 const { createLog } = require('./utils/log')
-const { getMatchingNetwork, defaultGetTxParams, ADDRESS_ZERO, execCall } = require('./utils')
-const { getCurrentAcl, ensureAclIsDeployed, setAclAdminToMultisigAddress } = require('./modules/acl')
+const { getMatchingNetwork, defaultGetTxParams, execCall } = require('./utils')
+const { ADDRESS_ZERO } = require('../utils/constants')
+const { getCurrentAcl, ensureAclIsDeployed, addMultisigAddressAsSystemAdmin } = require('./modules/acl')
 const { getCurrentSettings, ensureSettingsIsDeployed } = require('./modules/settings')
 const { getCurrentMarket, ensureMarketIsDeployed } = require('./modules/market')
 const { getCurrentEtherToken, ensureEtherTokenIsDeployed } = require('./modules/etherToken')
@@ -33,19 +34,15 @@ module.exports = async (deployer, network, accounts) => {
 
   const releaseConfig = require('../releaseConfig.json')
 
-  let canMultisig = false
-
   // check network
   switch (network) {
     case 'mainnet':
-      canMultisig = true
-      if (!releaseConfig.deployMainnet) {
+      if (releaseConfig.deployNetwork !== 'mainnet') {
         throw new Error('Release config does not allow Mainnet deployment')
       }
       break
     case 'rinkeby':
-      canMultisig = true
-      if (!releaseConfig.deployRinkeby) {
+      if (releaseConfig.deployNetwork !== 'rinkeby') {
         throw new Error('Release config does not allow Rinkeby deployment')
       }
       break
@@ -58,10 +55,6 @@ module.exports = async (deployer, network, accounts) => {
 
   // if trying to do multisig
   if (releaseConfig.multisig && !releaseConfig.freshDeployment) {
-    if (!canMultisig) {
-      throw new Error(`Cannot use multisig with network: ${network} !`)
-    }
-
     if (!process.env.MNEMONIC) {
       throw new Error('MNEMONIC env var must be set')
     }
@@ -117,10 +110,6 @@ module.exports = async (deployer, network, accounts) => {
     hdWallet,
   }
 
-  let acl
-  let settings
-  let entityDeployer
-
   if (!cfg.onlyDeployingUpgrades) {
     if (networkInfo.isLocal) {
       await deployer.deploy(artifacts.require("./Migrations"))
@@ -160,7 +149,10 @@ module.exports = async (deployer, network, accounts) => {
   }
 
   if (releaseConfig.freshDeployment && releaseConfig.multisig) {
-    await setAclAdminToMultisigAddress(cfg, releaseConfig.multisig)
-    // upgrades following this fresh deployment should use the multisig!
+    await addMultisigAddressAsSystemAdmin(cfg, {
+      multisig: releaseConfig.multisig,
+      // on rinkeby we append, on mainnet we replace
+      replaceExisting: (releaseConfig.deployNetwork === 'mainnet'),
+    })
   }
-}
+} 

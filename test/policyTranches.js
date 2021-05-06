@@ -8,9 +8,10 @@ import {
   ADDRESS_ZERO,
   createTranch,
   preSetupPolicy,
+  createEntity,
   EvmSnapshot,
 } from './utils'
-import { events } from '../'
+import { events } from '..'
 
 import { ROLES, ROLEGROUPS, SETTINGS } from '../utils/constants'
 
@@ -30,31 +31,13 @@ const IDiamondProxy = artifacts.require('./base/IDiamondProxy')
 const IPolicyStates = artifacts.require("./base/IPolicyStates")
 const Policy = artifacts.require("./Policy")
 const IPolicy = artifacts.require("./base/IPolicy")
-const TestPolicyFacet = artifacts.require("./test/TestPolicyFacet")
+const DummyPolicyFacet = artifacts.require("./test/DummyPolicyFacet")
+const TranchToken = artifacts.require("./TranchToken")
 const FreezeUpgradesFacet = artifacts.require("./test/FreezeUpgradesFacet")
 
-const POLICY_ATTRS_1 = {
-  initiationDateDiff: 1000,
-  startDateDiff: 2000,
-  maturationDateDiff: 3000,
-  premiumIntervalSeconds: undefined,
-  capitalProviderCommissionBP: 0,
-  brokerCommissionBP: 0,
-  naymsCommissionBP: 0
-}
 
-const POLICY_ATTRS_2 = Object.assign({}, POLICY_ATTRS_1, {
-  initiationDateDiff: 0,
-})
 
-const POLICY_ATTRS_3 = Object.assign({}, POLICY_ATTRS_1, {
-  initiationDateDiff: 0,
-  startDateDiff: 0,
-  maturationDateDiff: 30,
-  premiumIntervalSeconds: 10,
-})
-
-contract('Policy Tranches: Basic', accounts => {
+contract('Policy: Tranches', accounts => {
   const evmSnapshot = new EvmSnapshot()
 
   let acl
@@ -68,22 +51,37 @@ contract('Policy Tranches: Basic', accounts => {
   let policy
   let policyCoreAddress
   let policyContext
-  let entityManagerAddress
   let policyOwnerAddress
   let market
   let etherToken
 
+  const entityAdminAddress = accounts[1]
+  const entityManagerAddress = accounts[2]
+  const insuredPartyRep = accounts[4]
+  const underwriterRep = accounts[5]
+  const brokerRep = accounts[6]
+  const claimsAdminRep = accounts[7]
+
+  let insuredParty
+  let underwriter
+  let broker
+  let claimsAdmin
+    
   let POLICY_STATE_CREATED
-  let POLICY_STATE_SELLING
+  let POLICY_STATE_INITIATED
   let POLICY_STATE_ACTIVE
   let POLICY_STATE_MATURED
   let POLICY_STATE_IN_APPROVAL
-  let POLICY_STATE_INITIATED
+  let POLICY_STATE_APPROVED
   let POLICY_STATE_CANCELLED
 
   let TRANCH_STATE_CANCELLED
   let TRANCH_STATE_ACTIVE
   let TRANCH_STATE_MATURED
+
+  let POLICY_ATTRS_1
+  let POLICY_ATTRS_2
+  let POLICY_ATTRS_3
 
   let setupPolicy
   const policies = new Map()
@@ -107,28 +105,54 @@ contract('Policy Tranches: Basic', accounts => {
     await ensureEntityImplementationsAreDeployed({ artifacts, settings, entityDeployer })
 
     await acl.assignRole(systemContext, accounts[0], ROLES.SYSTEM_MANAGER)
-    const deployEntityTx = await entityDeployer.deploy()
-    const entityAddress = extractEventArgs(deployEntityTx, events.NewEntity).entity
+
+    const entityAddress = await createEntity({ entityDeployer, adminAddress: entityAdminAddress })
 
     entityProxy = await Entity.at(entityAddress)
     entity = await IEntity.at(entityAddress)
     entityContext = await entityProxy.aclContext()
 
+    // roles
+    underwriter = await createEntity({ entityDeployer, adminAddress: underwriterRep, entityContext, acl })
+    insuredParty = await createEntity({ entityDeployer, adminAddress: insuredPartyRep })
+    broker = await createEntity({ entityDeployer, adminAddress: brokerRep })
+    claimsAdmin = await createEntity({ entityDeployer, adminAddress: claimsAdminRep })
+
+    POLICY_ATTRS_1 = {
+      initiationDateDiff: 1000,
+      startDateDiff: 2000,
+      maturationDateDiff: 3000,
+      premiumIntervalSeconds: undefined,
+      claimsAdminCommissionBP: 0,
+      brokerCommissionBP: 0,
+      naymsCommissionBP: 0,
+      underwriter, insuredParty, broker, claimsAdmin,
+    }
+
+    POLICY_ATTRS_2 = Object.assign({}, POLICY_ATTRS_1, {
+      initiationDateDiff: 0,
+    })
+
+    POLICY_ATTRS_3 = Object.assign({}, POLICY_ATTRS_1, {
+      initiationDateDiff: 0,
+      startDateDiff: 0,
+      maturationDateDiff: 30,
+      premiumIntervalSeconds: 10,
+    })
+
     // policy
-    await acl.assignRole(entityContext, accounts[1], ROLES.ENTITY_ADMIN)
-    await acl.assignRole(entityContext, accounts[2], ROLES.ENTITY_MANAGER)
-    entityManagerAddress = accounts[2]
+    await acl.assignRole(entityContext, entityManagerAddress, ROLES.ENTITY_MANAGER)
 
     ;([ policyCoreAddress ] = await ensurePolicyImplementationsAreDeployed({ artifacts, settings }))
 
     const policyStates = await IPolicyStates.at(policyCoreAddress)
     POLICY_STATE_CREATED = await policyStates.POLICY_STATE_CREATED()
-    POLICY_STATE_SELLING = await policyStates.POLICY_STATE_SELLING()
+    POLICY_STATE_INITIATED = await policyStates.POLICY_STATE_INITIATED()
     POLICY_STATE_ACTIVE = await policyStates.POLICY_STATE_ACTIVE()
     POLICY_STATE_MATURED = await policyStates.POLICY_STATE_MATURED()
     POLICY_STATE_CANCELLED = await policyStates.POLICY_STATE_CANCELLED()
     POLICY_STATE_IN_APPROVAL = await policyStates.POLICY_STATE_IN_APPROVAL()
-    POLICY_STATE_INITIATED = await policyStates.POLICY_STATE_INITIATED()
+    POLICY_STATE_APPROVED = await policyStates.POLICY_STATE_APPROVED()
     
     TRANCH_STATE_CANCELLED = await policyStates.TRANCH_STATE_CANCELLED()
     TRANCH_STATE_ACTIVE = await policyStates.TRANCH_STATE_ACTIVE()
@@ -204,7 +228,7 @@ contract('Policy Tranches: Basic', accounts => {
         })
       })
 
-      it('can be created and have initial balance auto-allocated to policy impl', async () => {
+      it('can be created and has initial supply allocated to treasury', async () => {
         await setupPolicy(POLICY_ATTRS_1)
 
         const result = await createTranch(policy, {
@@ -220,26 +244,10 @@ contract('Policy Tranches: Basic', accounts => {
         expect(addr.length).to.eq(42)
 
         expect(log.args.token).to.eq(addr)
-        expect(log.args.initialBalanceHolder).to.eq(policy.address)
+        expect(log.args.initialBalanceHolder).to.eq(entity.address)
         expect(log.args.index).to.eq('0')
 
         await policy.getInfo().should.eventually.matchObj({ numTranches: 1 })
-      })
-
-      it('can be created and have initial balance allocated to a specific address', async () => {
-        await setupPolicy(POLICY_ATTRS_1)
-
-        const result = await createTranch(policy, {
-          numShares: tranchNumShares,
-          pricePerShareAmount: tranchPricePerShare,
-          initialBalanceHolder: accounts[3],
-        }, {
-          from: accounts[2]
-        }).should.be.fulfilled
-
-        const [log] = parseEvents(result, events.CreateTranch)
-
-        expect(log.args.initialBalanceHolder).to.eq(accounts[3])
       })
 
       it('can be created and will have state set to CREATED', async () => {
@@ -248,7 +256,6 @@ contract('Policy Tranches: Basic', accounts => {
         await createTranch(policy, {
           numShares: tranchNumShares,
           pricePerShareAmount: tranchPricePerShare,
-          initialBalanceHolder: accounts[3],
         }, {
           from: accounts[2]
         }).should.be.fulfilled
@@ -289,15 +296,17 @@ contract('Policy Tranches: Basic', accounts => {
         expect(Object.keys(addresses).length).to.eq(2)
       })
 
-      it('cannot be created once an approval has come in', async () => {
+      it('cannot be created once marked as ready for approval', async () => {
         await setupPolicy(POLICY_ATTRS_2)
         await acl.assignRole(policyContext, accounts[1], ROLES.CAPITAL_PROVIDER)
-        await policy.approve({ from: accounts[1] })
+        await policy.markAsReadyForApproval({ from: policyOwnerAddress })
         await createTranch(policy, {}, { from: accounts[2] }).should.be.rejectedWith('must be in created state')
       })
     })
 
     describe('are ERC20 tokens', () => {
+      let tokens
+
       beforeEach(async () => {
         await setupPolicy(POLICY_ATTRS_1)
 
@@ -306,15 +315,14 @@ contract('Policy Tranches: Basic', accounts => {
         await createTranch(policy, {
           numShares: tranchNumShares,
           pricePerShareAmount: tranchPricePerShare,
-          initialBalanceHolder: accounts[0],
         }).should.be.fulfilled
 
         await createTranch(policy, {
           numShares: tranchNumShares,
           pricePerShareAmount: tranchPricePerShare,
-          initialBalanceHolder: accounts[0],
         }).should.be.fulfilled
       })
+
 
       it('which have basic details', async () => {
         let done = 0
@@ -337,64 +345,18 @@ contract('Policy Tranches: Basic', accounts => {
         expect(done).to.eq(2)
       })
 
-      it('which have all supply initially allocated to initial balance holder', async () => {
+      it('which have all supply initially allocated to the treasury', async () => {
         let done = 0
 
         await Promise.all(_.range(0, 2).map(async i => {
           const tkn = await IERC20.at((await policy.getTranchInfo(i)).token_)
 
-          await tkn.balanceOf(accounts[0]).should.eventually.eq(await tkn.totalSupply())
+          await tkn.balanceOf(entity.address).should.eventually.eq(await tkn.totalSupply())
 
           done++
         }))
 
         expect(done).to.eq(2)
-      })
-
-      describe('which support operations', () => {
-        let firstTkn
-        let firstTknNumShares
-
-        beforeEach(async () => {
-          firstTkn = await IERC20.at((await policy.getTranchInfo(0)).token_)
-          firstTknNumShares = await firstTkn.totalSupply()
-        })
-
-        it('but sending one\'s own tokens is not possible', async () => {
-          await firstTkn.transfer(accounts[0], firstTknNumShares).should.be.rejectedWith('only nayms market is allowed to transfer')
-        })
-
-        it('but approving an address to send on one\'s behalf is not possible', async () => {
-          await firstTkn.approve(accounts[1], 2).should.be.rejectedWith('only nayms market is allowed to transfer')
-        })
-
-        it('approving an address to send on one\'s behalf is possible if it is the market', async () => {
-          await settings.setAddress(settings.address, SETTINGS.MARKET, accounts[3]).should.be.fulfilled
-          await firstTkn.approve(accounts[3], 2).should.be.fulfilled
-        })
-
-        describe('such as market sending tokens on one\' behalf', () => {
-          beforeEach(async () => {
-            await settings.setAddress(settings.address, SETTINGS.MARKET, accounts[3]).should.be.fulfilled
-          })
-
-          it('but not when owner does not have enough', async () => {
-            await firstTkn.transferFrom(accounts[0], accounts[2], firstTknNumShares + 1, { from: accounts[3] }).should.be.rejectedWith('not enough balance')
-          })
-
-          it('when the owner has enough', async () => {
-            const result = await firstTkn.transferFrom(accounts[0], accounts[2], firstTknNumShares, { from: accounts[3] })
-
-            await firstTkn.balanceOf(accounts[0]).should.eventually.eq(0)
-            await firstTkn.balanceOf(accounts[2]).should.eventually.eq(firstTknNumShares)
-
-            expect(extractEventArgs(result, events.Transfer)).to.include({
-              from: accounts[0],
-              to: accounts[2],
-              value: `${firstTknNumShares}`,
-            })
-          })
-        })
       })
     })
   })

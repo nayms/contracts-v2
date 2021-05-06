@@ -56,13 +56,15 @@ export const ensureAclIsDeployed = async ({ deployer, artifacts, log, getTxParam
 }
 
 
-export const setAclAdminToMultisigAddress = async ({ accounts, log, getTxParams = defaultGetTxParams, acl }, multisig) => {
+export const addMultisigAddressAsSystemAdmin = async ({ accounts, log, getTxParams = defaultGetTxParams, acl }, { multisig, replaceExisting = false }) => {
   log = createLog(log)
 
   if (acl && multisig) { 
     await log.task('Set Multisig as ACL admin', async task => {
       await acl.addAdmin(multisig, getTxParams())
-      await acl.removeAdmin(accounts[0], getTxParams())
+      if (replaceExisting) {
+        await acl.removeAdmin(accounts[0], getTxParams())
+      }
     })
   }
 }

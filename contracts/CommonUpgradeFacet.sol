@@ -14,8 +14,8 @@ contract CommonUpgradeFacet is Controller, IDiamondUpgradeFacet {
   }
 
   function getVersionInfo () public override pure returns (string memory num_, uint256 date_, string memory hash_) {
-    num_ = "1.0.0-local.1612437139521";
-    date_ = 1612437139;
-    hash_ = "3734141787ee246f600685113b4aa9c23868f426";
+    num_ = "1.0.0-build.dev1620307141590";
+    date_ = 1620307141;
+    hash_ = "79238b03885fdbf38d25b85f8a12255b8d93c381";
   }
 }

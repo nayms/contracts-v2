@@ -3,7 +3,7 @@ const infuraKey = process.env.INFURA_KEY || process.env.INFURA_ID || 'notset'
 
 const HDWalletProvider = require('truffle-hdwallet-provider')
 
-const solcVersion = "0.6.7"
+const solcVersion = "0.6.12"
 
 module.exports = {
   networks: {

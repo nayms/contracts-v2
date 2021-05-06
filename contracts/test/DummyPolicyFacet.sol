@@ -1,4 +1,4 @@
-pragma solidity >=0.6.7;
+pragma solidity 0.6.12;
 
 import '../base/IDiamondFacet.sol';
 import '../base/IPolicyCoreFacet.sol';
@@ -19,7 +19,7 @@ contract DummyPolicyFacet is IDiamondFacet, IPolicyCoreFacet {
   function markAsReadyForApproval () external override {}
 
   function getInfo () external view override  returns (
-    address creatorEntity_,
+    address treasury_,
     uint256 initiationDate_,
     uint256 startDate_,
     uint256 maturationDate_,

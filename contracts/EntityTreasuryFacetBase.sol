@@ -1,4 +1,4 @@
-pragma solidity >=0.6.7;
+pragma solidity 0.6.12;
 
 import "./EntityFacetBase.sol";
 import "./base/IPolicyCoreFacet.sol";

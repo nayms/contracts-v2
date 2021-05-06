@@ -1,4 +1,4 @@
-pragma solidity >=0.6.7;
+pragma solidity 0.6.12;
 
 /**
  * @dev Base contract for any upgradeable contract that wishes to store data.

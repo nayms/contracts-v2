@@ -43,7 +43,7 @@ async function main () {
       releaseInfo.freshDeployment = true
       releaseInfo.extractDeployedAddresses = true
       releaseInfo.pr = true
-      releaseInfo.deployRinkeby = true
+      releaseInfo.deployNetwork = network
       releaseInfo.npmTag = `pr${pullRequestNum}`
       releaseInfo.npmPkgVersion = `1.0.0-pr.${pullRequestNum}.build.${buildNum}`
     } else {

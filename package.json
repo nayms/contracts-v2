@@ -1,6 +1,6 @@
 {
   "name": "@nayms/contracts",
-  "version": "1.0.0-build.dev1620307174735",
+  "version": "1.0.0-local.1620716433549",
   "description": "Nayms smart contracts",
   "main": "index.js",
   "publishConfig": {
@@ -67,7 +67,7 @@
     "ethval": "^1.3.0",
     "faker": "^4.1.0",
     "fs-extra": "^8.1.0",
-    "ganache-cli": "^6.12.2",
+    "ganache-cli": "6.12",
     "ganache-core": "^2.13.2",
     "get-stdin": "^7.0.0",
     "gh-pages": "^2.2.0",
@@ -82,7 +82,7 @@
     "solc": "=0.6.12",
     "solgraph": "^0.3.2",
     "solhint": "^2.2.0",
-    "solidity-coverage": "^0.7.9",
+    "solidity-coverage": "^0.7.16",
     "truffle": "=5.1.5",
     "truffle-hdwallet-provider": "^1.0.0-web3one.0",
     "uuid": "^3.0.1",

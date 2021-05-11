@@ -2,7 +2,6 @@ const path = require('path')
 const got = require('got')
 const ethUtil = require('ethereumjs-util')
 
-const { keccak256 } = require('../../utils/functions')
 const { ADDRESS_ZERO, BYTES32_ZERO } = require('../../utils/constants')
 const { createLog } = require('./log')
 const { networks } = require('../../truffle-config.js')

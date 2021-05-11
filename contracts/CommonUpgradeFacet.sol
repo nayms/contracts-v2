@@ -1,4 +1,4 @@
-pragma solidity 0.6.12;
+pragma solidity >=0.6.7;
 
 import "./base/Controller.sol";
 import "./base/IDiamondUpgradeFacet.sol";
@@ -9,13 +9,13 @@ contract CommonUpgradeFacet is Controller, IDiamondUpgradeFacet {
     // empty
   }
 
-  function upgrade (address[] calldata _facets) external override assertIsAdmin {
+  function upgrade (address[] memory _facets) public override assertIsAdmin {
     IDiamondProxy(address(this)).registerFacets(_facets);
   }
 
-  function getVersionInfo () external override pure returns (string memory num_, uint256 date_, string memory hash_) {
-    num_ = "1.0.0-build.dev1620307174735";
-    date_ = 1620307174;
-    hash_ = "7de79f9d38fc8cb84a8d5715a0ce0fb55c202400";
+  function getVersionInfo () public override pure returns (string memory num_, uint256 date_, string memory hash_) {
+    num_ = "1.0.0-local.1620716433549";
+    date_ = 1620716433;
+    hash_ = "6433c7bd41a769c9d16de6cad39c935fb2eb7d61";
   }
 }

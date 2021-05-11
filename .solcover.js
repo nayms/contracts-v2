@@ -8,6 +8,7 @@ console.log(`Mnemonic: [ ${MNEMONIC} ]`)
 const projectDir = __dirname
 
 module.exports = {
+  client: require('ganache-core'),
   providerOptions: {
     total_accounts: 50,
     default_balance_ether: 1000000,
@@ -22,6 +23,7 @@ module.exports = {
     "base/Address.sol",
     "base/ECDSA.sol",
     "base/SafeMath.sol",
+    "base/ReentrancyGuard.sol",
     /* testcode */,
     "test/DummyEntityFacet.sol",
     "test/DummyPolicyFacet.sol",
@@ -33,6 +35,7 @@ module.exports = {
     "Migrations.sol",
     "MIgrations.sol",
     /* stuff that's mostly the Diamond Standard external lib code + has assembly in it */
+    "base/DiamondStorageBase.sol",
     "base/DiamondCutter.sol",
   ],
   onCompileComplete: () => {

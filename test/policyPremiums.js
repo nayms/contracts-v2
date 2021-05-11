@@ -49,7 +49,7 @@ const POLICY_ATTRS_1 = {
 }
 
 const POLICY_ATTRS_2 = Object.assign({}, POLICY_ATTRS_1, {
-  initiationDateDiff: 0,
+  initiationDateDiff: 100,
   startDateDiff: 2000,
   maturationDateDiff: 3000,
 })
@@ -677,10 +677,8 @@ contract('Policy: Premiums', accounts => {
     })
 
     describe('before initiation date has passed', () => {
-      let policyAttrs
-      
       beforeEach(async () => {
-        policyAttrs = await setupPolicy(POLICY_ATTRS_2)
+        await setupPolicy(POLICY_ATTRS_2)
 
         await createTranch(policy, {
           premiums: [2, 3, 4]
@@ -690,6 +688,8 @@ contract('Policy: Premiums', accounts => {
       })
 
       it('it requires first payment to have been made', async () => {
+        await evmClock.setRelativeTime(100)
+
         await policy.getTranchPremiumsInfo(0).should.eventually.matchObj({
           premiumPaymentsMissed_: 1,
           nextPremiumAmount_: 2,

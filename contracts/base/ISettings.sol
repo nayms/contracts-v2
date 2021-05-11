@@ -38,7 +38,7 @@ abstract contract ISettings is ISettingsKeys {
    * @param _key The key.
    * @param _value The value.
    */
-  function setAddress(address _context, bytes32 _key, address _value) public virtual;
+  function setAddress(address _context, bytes32 _key, address _value) external virtual;
 
   /**
    * @dev Get an address.
@@ -66,7 +66,7 @@ abstract contract ISettings is ISettingsKeys {
    * @param _key The key.
    * @param _value The value.
    */
-  function setAddresses(address _context, bytes32 _key, address[] memory _value) public virtual;
+  function setAddresses(address _context, bytes32 _key, address[] calldata _value) external virtual;
 
   /**
    * @dev Get a boolean.
@@ -94,7 +94,7 @@ abstract contract ISettings is ISettingsKeys {
    * @param _key The key.
    * @param _value The value.
    */
-  function setBool(address _context, bytes32 _key, bool _value) public virtual;
+  function setBool(address _context, bytes32 _key, bool _value) external virtual;
 
   /**
    * @dev Get a number.
@@ -122,7 +122,7 @@ abstract contract ISettings is ISettingsKeys {
    * @param _key The key.
    * @param _value The value.
    */
-  function setUint256(address _context, bytes32 _key, uint256 _value) public virtual;
+  function setUint256(address _context, bytes32 _key, uint256 _value) external virtual;
 
   /**
    * @dev Get a string.
@@ -150,7 +150,7 @@ abstract contract ISettings is ISettingsKeys {
    * @param _key The key.
    * @param _value The value.
    */
-  function setString(address _context, bytes32 _key, string memory _value) public virtual;
+  function setString(address _context, bytes32 _key, string memory _value) external virtual;
 
 
   /**

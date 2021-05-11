@@ -33,7 +33,7 @@ contract PolicyApprovalsFacet is EternalStorage, Controller, IDiamondFacet, IPol
 
   // IPolicyApprovalsFacet
 
-  function approve (bytes32 _role) public override 
+  function approve (bytes32 _role) external override 
     assertInApprovableState
     assertBelongsToEntityWithRole(msg.sender, _role)
   {

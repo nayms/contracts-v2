@@ -53,13 +53,13 @@ import "./Policy.sol";
   // IEntityCoreFacet
 
   function createPolicy(
-    uint256[] memory _dates,
+    uint256[] calldata _dates,
     address _unit,
     uint256 _premiumIntervalSeconds,
-    uint256[] memory _commmissionsBP,
-    address[] memory _stakeholders 
+    uint256[] calldata _commmissionsBP,
+    address[] calldata _stakeholders 
   )
-    public
+    external
     override
   {
     address[] memory stakeholders = new address[](6);
@@ -105,7 +105,10 @@ import "./Policy.sol";
     return dataAddress[__i(_index, "policy")];
   }
 
-  function deposit(address _unit, uint256 _amount) public override {
+  function deposit(address _unit, uint256 _amount) 
+    external 
+    override 
+  {
     IERC20 tok = IERC20(_unit);
     tok.transferFrom(msg.sender, address(this), _amount);
     dataUint256[__a(_unit, "balance")] = dataUint256[__a(_unit, "balance")].add(_amount);
@@ -114,7 +117,7 @@ import "./Policy.sol";
   }
 
   function withdraw(address _unit, uint256 _amount) 
-    public 
+    external 
     override 
     assertIsEntityAdmin(msg.sender)
   {
@@ -129,7 +132,7 @@ import "./Policy.sol";
   }
 
   function payTranchPremium(address _policy, uint256 _tranchIndex, uint256 _amount)
-    public
+    external
     override
     assertCanPayTranchPremiums(_policy)
   {
@@ -160,7 +163,7 @@ import "./Policy.sol";
   }
 
   function trade(address _payUnit, uint256 _payAmount, address _buyUnit, uint256 _buyAmount)
-    public
+    external
     override
     assertCanTradeTranchTokens
     returns (uint256)
@@ -172,7 +175,7 @@ import "./Policy.sol";
   }
 
   function sellAtBestPrice(address _sellUnit, uint256 _sellAmount, address _buyUnit)
-    public
+    external
     override
     assertCanTradeTranchTokens
     returns (uint256)

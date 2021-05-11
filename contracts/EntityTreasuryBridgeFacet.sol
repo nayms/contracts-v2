@@ -46,7 +46,7 @@ import "./base/SafeMath.sol";
     dataUint256["treasuryCollRatioBP"] = _treasuryCollRatioBP;
   }
 
-  function transferToTreasury(address _unit, uint256 _amount) public override {
+  function transferToTreasury(address _unit, uint256 _amount) external override {
     _assertHasEnoughBalance(_unit, _amount);
     dataUint256[__a(_unit, "balance")] = dataUint256[__a(_unit, "balance")].sub(_amount);
     string memory trbKey = __a(_unit, "treasuryRealBalance");
@@ -55,7 +55,7 @@ import "./base/SafeMath.sol";
     emit TransferToTreasury(msg.sender, _unit, _amount);
   }
 
-  function transferFromTreasury(address _unit, uint256 _amount) public override {
+  function transferFromTreasury(address _unit, uint256 _amount) external override {
     // check if we have enough balance
     string memory trbKey = __a(_unit, "treasuryRealBalance");
     string memory tmbKey = __a(_unit, "treasuryMinBalance");

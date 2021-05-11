@@ -40,7 +40,7 @@ import "./base/IACL.sol";
     return getAddress(address(this), _key);
   }
 
-  function setAddress(address _context, bytes32 _key, address _value) public override assertIsAuthorized(_context) {
+  function setAddress(address _context, bytes32 _key, address _value) external override assertIsAuthorized(_context) {
     dataAddress[__ab(_context, _key)] = _value;
     emit SettingChanged(_context, _key, msg.sender, 'address');
   }
@@ -53,7 +53,7 @@ import "./base/IACL.sol";
     return getAddresses(address(this), _key);
   }
 
-  function setAddresses(address _context, bytes32 _key, address[] memory _value) public override assertIsAuthorized(_context) {
+  function setAddresses(address _context, bytes32 _key, address[] calldata _value) external override assertIsAuthorized(_context) {
     dataManyAddresses[__ab(_context, _key)] = _value;
     emit SettingChanged(_context, _key, msg.sender, 'addresses');
   }
@@ -66,7 +66,7 @@ import "./base/IACL.sol";
     return getBool(address(this), _key);
   }
 
-  function setBool(address _context, bytes32 _key, bool _value) public override assertIsAuthorized(_context) {
+  function setBool(address _context, bytes32 _key, bool _value) external override assertIsAuthorized(_context) {
     dataBool[__ab(_context, _key)] = _value;
     emit SettingChanged(_context, _key, msg.sender, 'bool');
   }
@@ -79,7 +79,7 @@ import "./base/IACL.sol";
     return getUint256(address(this), _key);
   }
 
-  function setUint256(address _context, bytes32 _key, uint256 _value) public override assertIsAuthorized(_context) {
+  function setUint256(address _context, bytes32 _key, uint256 _value) external override assertIsAuthorized(_context) {
     dataUint256[__ab(_context, _key)] = _value;
     emit SettingChanged(_context, _key, msg.sender, 'uint256');
   }
@@ -92,7 +92,7 @@ import "./base/IACL.sol";
     return getString(address(this), _key);
   }
 
-  function setString(address _context, bytes32 _key, string memory _value) public override assertIsAuthorized(_context) {
+  function setString(address _context, bytes32 _key, string memory _value) external override assertIsAuthorized(_context) {
     dataString[__ab(_context, _key)] = _value;
     emit SettingChanged(_context, _key, msg.sender, 'string');
   }

@@ -27,37 +27,37 @@ abstract contract IPolicyClaimsFacet {
    * @param _tranchIndex Tranch index.
    * @param _amount Amount claimed.
    */
-  function makeClaim (uint256 _tranchIndex, uint256 _amount) virtual public;
+  function makeClaim (uint256 _tranchIndex, uint256 _amount) virtual external;
   /**
    * @dev Approve a claim.
    *
    * @param _claimIndex Claim index.
    */
-  function approveClaim (uint256 _claimIndex) virtual public;
+  function approveClaim (uint256 _claimIndex) virtual external;
   /**
    * @dev Dispute a claim.
    *
    * @param _claimIndex Claim index.
    */
-  function disputeClaim (uint256 _claimIndex) virtual public;
+  function disputeClaim (uint256 _claimIndex) virtual external;
   /**
    * @dev Acknowledge a claim.
    *
    * @param _claimIndex Claim index.
    */
-  function acknowledgeClaim (uint256 _claimIndex) virtual public;
+  function acknowledgeClaim (uint256 _claimIndex) virtual external;
   /**
    * @dev Decline a claim.
    *
    * @param _claimIndex Claim index.
    */
-  function declineClaim (uint256 _claimIndex) virtual public;
+  function declineClaim (uint256 _claimIndex) virtual external;
   /**
    * @dev Payout an approved claim.
    *
    * @param _claimIndex Claim index.
    */
-  function payClaim(uint256 _claimIndex) virtual public;
+  function payClaim(uint256 _claimIndex) virtual external;
   /**
    * @dev Get claim stats.
    * @return numClaims_ No. of claims raised in total.

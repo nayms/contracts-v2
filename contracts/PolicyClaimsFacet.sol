@@ -68,7 +68,7 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
     acknowledged_ = dataBool[__i(_claimIndex, "claimAcknowledged")];
   }
 
-  function makeClaim(uint256 _tranchIndex, uint256 _amount) public override 
+  function makeClaim(uint256 _tranchIndex, uint256 _amount) external override 
     assertActiveState
     assertBelongsToEntityWithRole(msg.sender, ROLE_INSURED_PARTY)
   {
@@ -97,7 +97,7 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
   }
 
   function disputeClaim(uint256 _claimIndex) 
-    public 
+    external 
     override
     assertBelongsToEntityWithRole(msg.sender, ROLE_UNDERWRITER)
   {
@@ -109,7 +109,7 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
   }
 
   function acknowledgeClaim(uint256 _claimIndex) 
-    public 
+    external 
     override
     assertBelongsToEntityWithRole(msg.sender, ROLE_UNDERWRITER)
   {
@@ -121,7 +121,7 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
   }
 
   function approveClaim(uint256 _claimIndex)
-    public
+    external
     override
     assertBelongsToEntityWithRole(msg.sender, ROLE_CLAIMS_ADMIN)
   {
@@ -143,7 +143,7 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
 
 
   function declineClaim(uint256 _claimIndex)
-    public
+    external
     override
     assertBelongsToEntityWithRole(msg.sender, ROLE_CLAIMS_ADMIN)
   {
@@ -160,7 +160,7 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
 
 
   function payClaim(uint256 _claimIndex)
-    public
+    external
     override
     nonReentrant
     assertBelongsToEntityWithRole(msg.sender, ROLE_CLAIMS_ADMIN)

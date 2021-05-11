@@ -67,7 +67,7 @@ contract PolicyPremiumsFacet is EternalStorage, Controller, IDiamondFacet, IPoli
     fullyPaidAt_ = dataUint256[__ii(_tranchIndex, _premiumIndex, "premiumPaidAt")];
   }
 
-  function payTranchPremium (uint256 _index, uint256 _amount) public override {
+  function payTranchPremium (uint256 _index, uint256 _amount) external override {
     IPolicyCoreFacet(address(this)).checkAndUpdateState();
     _payTranchPremium(_index, _amount);
   }

@@ -62,9 +62,9 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
   function createTranch (
     uint256 _numShares,
     uint256 _pricePerShareAmount,
-    uint256[] memory _premiums
+    uint256[] calldata _premiums
   )
-    public
+    external
     override
     assertIsOwner
     assertCreatedState
@@ -119,7 +119,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
   }
 
   function markAsReadyForApproval() 
-    public 
+    external 
     override
     assertCreatedState
     assertIsOwner
@@ -212,6 +212,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     return (dataUint256["maturationDate"] - dataUint256["initiationDate"]) / dataUint256["premiumIntervalSeconds"] + 1;
   }
 
+  // Internal methods
 
   function _cancelTranchMarketOffer(uint _index) private {
     uint256 initialSaleOfferId = dataUint256[__i(_index, "initialSaleOfferId")];
@@ -223,7 +224,6 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
       _setPolicyState(POLICY_STATE_CANCELLED);
     }
   }
-
 
   function _beginPolicySaleIfNotYetStarted() private {
     if (dataUint256["state"] == POLICY_STATE_APPROVED) {

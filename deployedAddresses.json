@@ -2,26 +2,41 @@
   "ACL": {
     "4": {
       "address": "0x0d57D53d32A21aE7CAf42052443A94888e516ea5"
+    },
+    "5777": {
+      "address": "0x4277832C07f720714cd05D2F70bEd7D8Efba0162"
     }
   },
   "Settings": {
     "4": {
       "address": "0x4A60ca4E7AD0f0257878Ff362d9Ec6eA00ed0043"
+    },
+    "5777": {
+      "address": "0xB72D99783e7e4B618c91e4b72839c23a762Fb907"
     }
   },
   "EntityDeployer": {
     "4": {
       "address": "0x76C3D8c6FFce00c2C7F80fd08a09703A71fFFa67"
+    },
+    "5777": {
+      "address": "0x162c81c5B38dB35088E68CB4046ACd159dDc1b3a"
     }
   },
   "EtherToken": {
     "4": {
       "address": "0x9E0DF576aCEd50700C06e46710136e74d55eb33A"
+    },
+    "5777": {
+      "address": "0x93C5FF193e474049838D55A4016F805DE950416d"
     }
   },
   "MatchingMarket": {
     "4": {
       "address": "0x60818a23762b318b6c7e347034F1363837E00C1a"
+    },
+    "5777": {
+      "address": "0xc2cd80560f6841228Be2B7ADaB14E618176b9e0B"
     }
   }
 }

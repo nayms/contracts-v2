@@ -89,7 +89,7 @@ contract('Entity', accounts => {
       freezeUpgradesFacet = await FreezeUpgradesFacet.new()
     })
 
-    it('and returns version info', async () => {
+    it.only('and returns version info', async () => {
       const versionInfo = await entity.getVersionInfo()
       expect(versionInfo.num_).to.exist
       expect(versionInfo.date_).to.exist

@@ -9,11 +9,12 @@ import "./base/IPolicyCoreFacet.sol";
 import ".//PolicyFacetBase.sol";
 import "./base/AccessControl.sol";
 import "./base/IERC20.sol";
+import "./base/ReentrancyGuard.sol";
 
 /**
  * @dev Business-logic for Policy claims
  */
-contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicyClaimsFacet, PolicyFacetBase {
+contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicyClaimsFacet, PolicyFacetBase, ReentrancyGuard {
   using SafeMath for uint;
 
   modifier assertActiveState () {
@@ -161,6 +162,7 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
   function payClaim(uint256 _claimIndex)
     public
     override
+    nonReentrant
     assertBelongsToEntityWithRole(msg.sender, ROLE_CLAIMS_ADMIN)
   {
     // check claim

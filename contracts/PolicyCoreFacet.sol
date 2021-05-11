@@ -12,11 +12,12 @@ import "./base/IPolicyTranchTokensFacet.sol";
 import ".//PolicyFacetBase.sol";
 import "./base/SafeMath.sol";
 import "./TranchToken.sol";
+import "./base/ReentrancyGuard.sol";
 
 /**
  * @dev Core policy logic
  */
-contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCoreFacet, PolicyFacetBase, IPolicyTreasuryConstants {
+contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCoreFacet, PolicyFacetBase, IPolicyTreasuryConstants, ReentrancyGuard {
   using SafeMath for uint;
   using Address for address;
 
@@ -186,7 +187,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
   }
 
   // heartbeat function!
-  function checkAndUpdateState() public override {
+  function checkAndUpdateState() public override nonReentrant {
     // past the initiation date
     if (initiationDateHasPassed()) {
       // past the start date

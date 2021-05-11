@@ -9,11 +9,11 @@ contract CommonUpgradeFacet is Controller, IDiamondUpgradeFacet {
     // empty
   }
 
-  function upgrade (address[] memory _facets) public override assertIsAdmin {
+  function upgrade (address[] calldata _facets) external override assertIsAdmin {
     IDiamondProxy(address(this)).registerFacets(_facets);
   }
 
-  function getVersionInfo () public override pure returns (string memory num_, uint256 date_, string memory hash_) {
+  function getVersionInfo () external override pure returns (string memory num_, uint256 date_, string memory hash_) {
     num_ = "1.0.0-build.dev1620307174735";
     date_ = 1620307174;
     hash_ = "7de79f9d38fc8cb84a8d5715a0ce0fb55c202400";

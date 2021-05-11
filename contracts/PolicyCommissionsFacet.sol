@@ -7,11 +7,12 @@ import "./base/IPolicyCommissionsFacet.sol";
 import ".//PolicyFacetBase.sol";
 import "./base/AccessControl.sol";
 import "./base/IERC20.sol";
+import "./base/ReentrancyGuard.sol";
 
 /**
  * @dev Business-logic for Policy commissions
  */
-contract PolicyCommissionsFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCommissionsFacet, PolicyFacetBase {
+contract PolicyCommissionsFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCommissionsFacet, PolicyFacetBase, ReentrancyGuard {
   modifier assertPolicyApproved () {
     uint256 state = dataUint256["state"];
     require(state != POLICY_STATE_IN_APPROVAL && state != POLICY_STATE_CREATED, 'must be approved');
@@ -50,6 +51,7 @@ contract PolicyCommissionsFacet is EternalStorage, Controller, IDiamondFacet, IP
   function payCommissions ()
     public
     override
+    nonReentrant
     assertPolicyApproved
   {
     address claimsAdmin = _getEntityWithRole(ROLE_CLAIMS_ADMIN);

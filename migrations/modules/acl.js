@@ -60,13 +60,24 @@ export const addMultisigAddressAsSystemAdmin = async ({ accounts, log, getTxPara
   log = createLog(log)
 
   if (acl && multisig) { 
-    await log.task('Set Multisig as ACL admin', async task => {
+    await log.task('Add Multisig as ACL admin', async task => {
       await acl.addAdmin(multisig, getTxParams())
+
       if (replaceExisting) {
         await task.log('Removing existing ACL admin...')
 
         await acl.removeAdmin(accounts[0], getTxParams())
       }
+    })
+
+    await log.task('Check ACL admin assignments', async task => {
+      const check = await Promise.all([
+        acl.isAdmin(multisig),
+        acl.isAdmin(accounts[0])
+      ])
+
+      await task.log(`isAdmin(multisig - ${multisig}): ${check[0]}`)
+      await task.log(`isAdmin(account0 - ${accounts[0]}): ${check[1]}`)
     })
   }
 }

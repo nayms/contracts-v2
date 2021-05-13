@@ -1,6 +1,6 @@
 {
   "name": "@nayms/contracts",
-  "version": "1.0.0-local.1620716433549",
+  "version": "1.0.0-build.dev1620912256601",
   "description": "Nayms smart contracts",
   "main": "index.js",
   "publishConfig": {
@@ -48,6 +48,7 @@
     "@commitlint/config-conventional": "^12.1.1",
     "@gnosis.pm/safe-contracts": "^1.2.0",
     "@solui/cli": "^1.21.3",
+    "@truffle/hdwallet-provider": "^1.4.0",
     "argv": "0.0.2",
     "babel-cli": "^6.26.0",
     "babel-preset-env": "^1.7.0",
@@ -84,7 +85,6 @@
     "solhint": "^2.2.0",
     "solidity-coverage": "^0.7.16",
     "truffle": "=5.1.5",
-    "truffle-hdwallet-provider": "^1.0.0-web3one.0",
     "uuid": "^3.0.1",
     "web3": "1.2.2",
     "web3-eth-abi": "^1.0.0-beta.55",

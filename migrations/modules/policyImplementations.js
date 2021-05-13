@@ -8,6 +8,9 @@ export const ensurePolicyImplementationsAreDeployed = async (cfg) => {
 
   let addresses
 
+  const PolicyDelegate = artifacts.require('./PolicyDelegate')
+  const IDiamondUpgradeFacet = artifacts.require('./base/IDiamondUpgradeFacet')
+
   await log.task(`Deploy Policy implementations`, async task => {
     const PolicyUpgradeFacet = artifacts.require('./PolicyUpgradeFacet')
     const PolicyCoreFacet = artifacts.require('./PolicyCoreFacet')
@@ -54,8 +57,6 @@ export const ensurePolicyImplementationsAreDeployed = async (cfg) => {
   })
 
   if (policyDelegateAddress === ADDRESS_ZERO) {
-    const PolicyDelegate = artifacts.require('./PolicyDelegate')
-
     await log.task(`Deploy policy delegate`, async task => {
       const { address } = await deploy(deployer, getTxParams(), PolicyDelegate, settings.address)
       policyDelegateAddress = address
@@ -67,7 +68,7 @@ export const ensurePolicyImplementationsAreDeployed = async (cfg) => {
     })
   } else {
     await log.task(`Upgrade policy delegate at ${policyDelegateAddress} with new facets`, async () => {
-      const entityDelegate = await PolicyDelegate.at(policyDelegateAddress)
+      const entityDelegate = await IDiamondUpgradeFacet.at(policyDelegateAddress)
       await entityDelegate.upgrade(addresses)
     })
   }

@@ -8,6 +8,9 @@ export const ensureEntityImplementationsAreDeployed = async (cfg) => {
 
   let addresses
 
+  const EntityDelegate = artifacts.require('./EntityDelegate')
+  const IDiamondUpgradeFacet = artifacts.require('./base/IDiamondUpgradeFacet')
+
   await log.task(`Deploy Entity implementations`, async task => {
     const EntityUpgradeFacet = artifacts.require('./EntityUpgradeFacet')
     const EntityCoreFacet = artifacts.require('./EntityCoreFacet')
@@ -48,8 +51,6 @@ export const ensureEntityImplementationsAreDeployed = async (cfg) => {
   })
 
   if (entityDelegateAddress === ADDRESS_ZERO) {
-    const EntityDelegate = artifacts.require('./EntityDelegate')
-
     await log.task(`Deploy entity delegate`, async task => {
       const { address } = await deploy(deployer, getTxParams(), EntityDelegate, settings.address)
       entityDelegateAddress = address
@@ -61,7 +62,7 @@ export const ensureEntityImplementationsAreDeployed = async (cfg) => {
     })
   } else {
     await log.task(`Upgrade entity delegate at ${entityDelegateAddress} with new facets`, async () => {
-      const entityDelegate = await EntityDelegate.at(entityDelegateAddress)
+      const entityDelegate = await IDiamondUpgradeFacet.at(entityDelegateAddress)
       await entityDelegate.upgrade(addresses)
     })
   }

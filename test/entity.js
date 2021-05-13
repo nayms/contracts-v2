@@ -20,7 +20,9 @@ import { ensureEntityImplementationsAreDeployed } from '../migrations/modules/en
 import { ensurePolicyImplementationsAreDeployed } from '../migrations/modules/policyImplementations'
 
 const IEntity = artifacts.require("./base/IEntity")
+const EntityDelegate = artifacts.require('./base/EntityDelegate')
 const IDiamondProxy = artifacts.require('./base/IDiamondProxy')
+const DiamondProxy = artifacts.require('./base/DiamondProxy')
 const AccessControl = artifacts.require('./base/AccessControl')
 const DummyEntityFacet = artifacts.require("./test/DummyEntityFacet")
 const FreezeUpgradesFacet = artifacts.require("./test/FreezeUpgradesFacet")
@@ -89,7 +91,23 @@ contract('Entity', accounts => {
       freezeUpgradesFacet = await FreezeUpgradesFacet.new()
     })
 
-    it.only('and returns version info', async () => {
+    it.only('has facets set', async () => {
+      // const sig = web3.eth.abi.encodeFunctionSignature("getVersionInfo()")
+      // console.log(sig) // 0x164e6374
+      const da = await settings.getRootAddress(SETTINGS.ENTITY_DELEGATE)
+      console.log(da)
+      // const del = await IEntity.at(da)
+      // console.log(await del.getVersionInfo())
+      const proxy = await DiamondProxy.at(da)
+      const sig = await proxy.getSig("getVersionInfo()")
+      console.log(sig)
+      const facet = await proxy.resolveFacet(sig)
+      console.log(facet)
+      const facet2 = await proxy.resolveFacetStr("getVersionInfo()")
+      console.log(facet2)
+    })
+
+    it('and returns version info', async () => {
       const versionInfo = await entity.getVersionInfo()
       expect(versionInfo.num_).to.exist
       expect(versionInfo.date_).to.exist

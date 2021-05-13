@@ -13,7 +13,6 @@ const { getCurrentEtherToken, ensureEtherTokenIsDeployed } = require('./modules/
 const { getCurrentEntityDeployer, ensureEntityDeployerIsDeployed } = require('./modules/entityDeployer')
 const { ensureEntityImplementationsAreDeployed } = require('./modules/entityImplementations')
 const { ensurePolicyImplementationsAreDeployed } = require('./modules/policyImplementations')
-const { upgradeExistingConstracts } = require('./modules/upgrades')
 const { updateDeployedAddressesJson } = require('./utils/postDeployment')
 
 const getLiveGasPrice = async ({ log }) => {
@@ -139,10 +138,6 @@ module.exports = async (deployer, network, accounts) => {
 
   await ensureEntityImplementationsAreDeployed(cfg)
   await ensurePolicyImplementationsAreDeployed(cfg)
-
-  if (!releaseConfig.freshDeployment) {
-    await upgradeExistingConstracts(cfg)
-  }
 
   if (releaseConfig.extractDeployedAddresses) {
     await updateDeployedAddressesJson(cfg)

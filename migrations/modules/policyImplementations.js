@@ -65,6 +65,11 @@ export const ensurePolicyImplementationsAreDeployed = async (cfg) => {
     await log.task(`Saving policy delegate address ${policyDelegateAddress} to settings`, async () => {
       await settings.setAddress(settings.address, SETTINGS.POLICY_DELEGATE, policyDelegateAddress, getTxParams())
     })
+  } else {
+    await log.task(`Upgrade policy delegate at ${policyDelegateAddress} with new facets`, async () => {
+      const entityDelegate = await PolicyDelegate.at(policyDelegateAddress)
+      await entityDelegate.upgrade(addresses)
+    })
   }
 
   return addresses

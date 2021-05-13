@@ -59,6 +59,11 @@ export const ensureEntityImplementationsAreDeployed = async (cfg) => {
     await log.task(`Saving entity delegate address ${entityDelegateAddress} to settings`, async () => {
       await settings.setAddress(settings.address, SETTINGS.ENTITY_DELEGATE, entityDelegateAddress, getTxParams())
     })
+  } else {
+    await log.task(`Upgrade entity delegate at ${entityDelegateAddress} with new facets`, async () => {
+      const entityDelegate = await EntityDelegate.at(entityDelegateAddress)
+      await entityDelegate.upgrade(addresses)
+    })
   }
 
   if (entityDeployer) {

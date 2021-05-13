@@ -23,6 +23,13 @@ abstract contract DiamondProxy is DiamondStorageBase, IDiamondProxy {
     _registerFacets(_facets);
   }
 
+  // Public methods 
+  
+  function resolveFacet (bytes4 _sig) public view virtual returns (address) {
+    DiamondStorage storage ds = diamondStorage();
+    return address(bytes20(ds.facets[_sig]));
+  }
+
   // Internal methods
 
   function _registerFacets (address[] memory _facets) internal {
@@ -37,21 +44,19 @@ abstract contract DiamondProxy is DiamondStorageBase, IDiamondProxy {
     _cut(changes);
   }
 
+  // Private methods
 
-  function _cut (bytes[] memory _changes) internal {
+  function _cut (bytes[] memory _changes) private {
     bytes memory cutFunction = abi.encodeWithSelector(DiamondCutter.diamondCut.selector, _changes);
     (bool success,) = dataAddress["diamondCutter"].delegatecall(cutFunction);
     require(success, "Adding functions failed.");
   }
 
-
-
   // Finds facet for function that is called and executes the
   // function if it is found and returns any value.
   fallback() external payable {
-    DiamondStorage storage ds = diamondStorage();
-    address facet = address(bytes20(ds.facets[msg.sig]));
-    require(facet != address(0), "Function does not exist.");
+    address facet = resolveFacet(msg.sig);
+    require(facet != address(0), "Facet not found");
 
     assembly {
       let ptr := mload(0x40)

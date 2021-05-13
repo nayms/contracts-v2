@@ -1,12 +1,15 @@
 const { createLog } = require('../utils/log')
 const { deploy, defaultGetTxParams, execCall } = require('../utils')
-const { SETTINGS } = require('../../utils/constants')
+const { SETTINGS, ADDRESS_ZERO } = require('../../utils/constants')
 
 export const ensurePolicyImplementationsAreDeployed = async (cfg) => {
   const { deployer, artifacts, log: baseLog, settings, getTxParams = defaultGetTxParams, extraFacets = [] } = cfg
   const log = createLog(baseLog)
 
   let addresses
+
+  const PolicyDelegate = artifacts.require('./PolicyDelegate')
+  const IDiamondUpgradeFacet = artifacts.require('./base/IDiamondUpgradeFacet')
 
   await log.task(`Deploy Policy implementations`, async task => {
     const PolicyUpgradeFacet = artifacts.require('./PolicyUpgradeFacet')
@@ -45,6 +48,30 @@ export const ensurePolicyImplementationsAreDeployed = async (cfg) => {
       cfg,
     })
   })
+
+  let policyDelegateAddress
+
+  await log.task('Retrieving existing policy delegate', async task => {
+    policyDelegateAddress = await settings.getRootAddress(SETTINGS.POLICY_DELEGATE)
+    task.log(`Existing policy delegate: ${policyDelegateAddress}`)
+  })
+
+  if (policyDelegateAddress === ADDRESS_ZERO) {
+    await log.task(`Deploy policy delegate`, async task => {
+      const { address } = await deploy(deployer, getTxParams(), PolicyDelegate, settings.address)
+      policyDelegateAddress = address
+      task.log(`Deployed at ${policyDelegateAddress}`)
+    })
+
+    await log.task(`Saving policy delegate address ${policyDelegateAddress} to settings`, async () => {
+      await settings.setAddress(settings.address, SETTINGS.POLICY_DELEGATE, policyDelegateAddress, getTxParams())
+    })
+  } else {
+    await log.task(`Upgrade policy delegate at ${policyDelegateAddress} with new facets`, async () => {
+      const entityDelegate = await IDiamondUpgradeFacet.at(policyDelegateAddress)
+      await entityDelegate.upgrade(addresses)
+    })
+  }
 
   return addresses
 }

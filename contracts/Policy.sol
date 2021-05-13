@@ -2,10 +2,10 @@ pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
 import "./base/Controller.sol";
-import "./base/DiamondProxy.sol";
-import ".//PolicyFacetBase.sol";
+import "./base/Proxy.sol";
+import "./PolicyFacetBase.sol";
 
-contract Policy is Controller, DiamondProxy, PolicyFacetBase {
+contract Policy is Controller, Proxy, PolicyFacetBase {
   constructor (
     address _settings,
     address[] memory _stakeholders,
@@ -13,9 +13,9 @@ contract Policy is Controller, DiamondProxy, PolicyFacetBase {
     address _unit,
     uint256 _premiumIntervalSeconds,
     uint256[] memory _commmissionsBP
-  ) Controller(_settings) DiamondProxy() public {
-    // set implementations
-    _registerFacets(settings().getRootAddresses(SETTING_POLICY_IMPL));
+  ) Controller(_settings) Proxy() public {
+    _setDelegateAddress(settings().getRootAddress(SETTING_POLICY_DELEGATE));
+
     // set properties
     dataAddress["treasury"] = _stakeholders[0];
     dataUint256["initiationDate"] = _dates[0];

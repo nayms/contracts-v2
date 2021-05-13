@@ -1,6 +1,6 @@
 const { createLog } = require('../utils/log')
 const { deploy, defaultGetTxParams, execCall } = require('../utils')
-const { SETTINGS, BYTES32_ZERO } = require('../../utils/constants')
+const { SETTINGS, BYTES32_ZERO, ADDRESS_ZERO } = require('../../utils/constants')
 
 export const ensureEntityImplementationsAreDeployed = async (cfg) => {
   const { deployer, artifacts, log: baseLog, accounts, settings, entityDeployer, getTxParams = defaultGetTxParams, extraFacets = [] } = cfg
@@ -8,11 +8,14 @@ export const ensureEntityImplementationsAreDeployed = async (cfg) => {
 
   let addresses
 
+  const EntityDelegate = artifacts.require('./EntityDelegate')
+  const IDiamondUpgradeFacet = artifacts.require('./base/IDiamondUpgradeFacet')
+
   await log.task(`Deploy Entity implementations`, async task => {
     const EntityUpgradeFacet = artifacts.require('./EntityUpgradeFacet')
     const EntityCoreFacet = artifacts.require('./EntityCoreFacet')
     const EntityTreasuryFacet = artifacts.require('./EntityTreasuryFacet')
-    const EntityTreasuryBridgeFacet = artifacts.require('./EntityTreasuryBridgeFacet')
+    const EntityTreasuryBridgeFacet = artifacts.require('./EntityTreasuryBridgeFacet')    
 
     addresses = [
       await deploy(deployer, getTxParams(), EntityUpgradeFacet, settings.address),
@@ -30,7 +33,6 @@ export const ensureEntityImplementationsAreDeployed = async (cfg) => {
     task.log(`Deployed at ${addresses.join(', ')}`)
   })
 
-
   await log.task(`Saving entity implementation addresses to settings`, async task => {
     await execCall({
       task,
@@ -41,8 +43,33 @@ export const ensureEntityImplementationsAreDeployed = async (cfg) => {
     })
   })
 
+  let entityDelegateAddress
+
+  await log.task('Retrieving existing entity delegate', async task => {
+    entityDelegateAddress = await settings.getRootAddress(SETTINGS.ENTITY_DELEGATE)
+    task.log(`Existing entity delegate: ${entityDelegateAddress}`)
+  })
+
+  if (entityDelegateAddress === ADDRESS_ZERO) {
+    await log.task(`Deploy entity delegate`, async task => {
+      const { address } = await deploy(deployer, getTxParams(), EntityDelegate, settings.address)
+      entityDelegateAddress = address
+      task.log(`Deployed at ${entityDelegateAddress}`)
+    })
+
+    await log.task(`Saving entity delegate address ${entityDelegateAddress} to settings`, async () => {
+      await settings.setAddress(settings.address, SETTINGS.ENTITY_DELEGATE, entityDelegateAddress, getTxParams())
+    })
+  } else {
+    await log.task(`Upgrade entity delegate at ${entityDelegateAddress} with new facets`, async () => {
+      const entityDelegate = await IDiamondUpgradeFacet.at(entityDelegateAddress)
+      await entityDelegate.upgrade(addresses)
+    })
+  }
+
   if (entityDeployer) {
     let naymsEntityAddress
+
     const numEntities = await entityDeployer.getNumEntities()
     if (0 == numEntities) {
       await log.task(`Deploy Nayms entity`, async task => {

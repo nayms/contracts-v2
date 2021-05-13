@@ -25,18 +25,9 @@ abstract contract DiamondProxy is DiamondStorageBase, IDiamondProxy {
 
   // Public methods 
   
-  function getSig (string memory _sig) public view virtual returns (bytes4) {
-    return bytes4(keccak256(abi.encode(_sig)));
-  }
-
-  function resolveFacetStr (string memory _func) public view virtual returns (address) {
-    bytes4 sig = getSig(_func);
-    return resolveFacet(sig);
-  }
-
   function resolveFacet (bytes4 _sig) public view virtual returns (address) {
     DiamondStorage storage ds = diamondStorage();
-    return address(bytes20(ds.facets[msg.sig]));
+    return address(bytes20(ds.facets[_sig]));
   }
 
   // Internal methods

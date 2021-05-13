@@ -20,9 +20,10 @@ import { ensureEntityImplementationsAreDeployed } from '../migrations/modules/en
 import { ensurePolicyImplementationsAreDeployed } from '../migrations/modules/policyImplementations'
 
 const IEntity = artifacts.require("./base/IEntity")
+const Proxy = artifacts.require('./base/Proxy')
 const EntityDelegate = artifacts.require('./base/EntityDelegate')
+const IDiamondUpgradeFacet = artifacts.require('./base/IDiamondUpgradeFacet')
 const IDiamondProxy = artifacts.require('./base/IDiamondProxy')
-const DiamondProxy = artifacts.require('./base/DiamondProxy')
 const AccessControl = artifacts.require('./base/AccessControl')
 const DummyEntityFacet = artifacts.require("./test/DummyEntityFacet")
 const FreezeUpgradesFacet = artifacts.require("./test/FreezeUpgradesFacet")
@@ -85,26 +86,15 @@ contract('Entity', accounts => {
   describe('it can be upgraded', () => {
     let dummyEntityTestFacet
     let freezeUpgradesFacet
-
+    let entityDelegate
+ 
     beforeEach(async () => {
       dummyEntityTestFacet = await DummyEntityFacet.new()
       freezeUpgradesFacet = await FreezeUpgradesFacet.new()
-    })
-
-    it.only('has facets set', async () => {
-      // const sig = web3.eth.abi.encodeFunctionSignature("getVersionInfo()")
-      // console.log(sig) // 0x164e6374
-      const da = await settings.getRootAddress(SETTINGS.ENTITY_DELEGATE)
-      console.log(da)
-      // const del = await IEntity.at(da)
-      // console.log(await del.getVersionInfo())
-      const proxy = await DiamondProxy.at(da)
-      const sig = await proxy.getSig("getVersionInfo()")
-      console.log(sig)
-      const facet = await proxy.resolveFacet(sig)
-      console.log(facet)
-      const facet2 = await proxy.resolveFacetStr("getVersionInfo()")
-      console.log(facet2)
+      
+      const proxy = await Proxy.at(entity.address)
+      const delegateAddress = await proxy.getDelegateAddress()
+      entityDelegate = await IDiamondUpgradeFacet.at(delegateAddress)
     })
 
     it('and returns version info', async () => {
@@ -115,26 +105,26 @@ contract('Entity', accounts => {
     })
 
     it('but not just by anyone', async () => {
-      await entity.upgrade([ dummyEntityTestFacet.address ], { from: accounts[1] }).should.be.rejectedWith('must be admin')
+      await entityDelegate.upgrade([ dummyEntityTestFacet.address ], { from: accounts[1] }).should.be.rejectedWith('must be admin')
     })
 
     it('but not to the existing implementation', async () => {
-      await entity.upgrade([ entityCoreAddress ]).should.be.rejectedWith('Adding functions failed')
+      await entityDelegate.upgrade([ entityCoreAddress ]).should.be.rejectedWith('Adding functions failed')
     })
 
     it('and adds the new implementation as a facet', async () => {
-      await entity.upgrade([ dummyEntityTestFacet.address ]).should.be.fulfilled
+      await entityDelegate.upgrade([ dummyEntityTestFacet.address ]).should.be.fulfilled
       await entity.getNumPolicies().should.eventually.eq(666);
     })
 
     it('and can be frozen', async () => {
-      await entity.upgrade([freezeUpgradesFacet.address]).should.be.fulfilled
-      await entity.upgrade([dummyEntityTestFacet.address]).should.be.rejectedWith('frozen')
+      await entityDelegate.upgrade([freezeUpgradesFacet.address]).should.be.fulfilled
+      await entityDelegate.upgrade([dummyEntityTestFacet.address]).should.be.rejectedWith('frozen')
     })
 
     it('and the internal upgrade function cannot be called directly', async () => {
-      const proxy = await IDiamondProxy.at(entity.address)
-      await proxy.registerFacets([]).should.be.rejectedWith('external caller not allowed')
+      const diamondProxy = await IDiamondProxy.at(entity.address)
+      await diamondProxy.registerFacets([]).should.be.rejectedWith('external caller not allowed')
     })
   })
 

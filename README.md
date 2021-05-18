@@ -14,7 +14,7 @@ The package exposes the following properties:
 
 * `contracts` - the key contracts (see below)
 * `rawContracts` - ABIs of all Solidity contracts in the repo
-* `addresses` - on-chain addresses of contracts in `rawContracts`
+* `addresses` - contents of `deployedAddresses.json`
 * `events` - ABIs for events to listen for
 * `releaseConfig` - the contents of `releaseConfig.json`, this is used to keep track of the build number in `VersionInfo.sol`.
 * `extractEventsFromAbis()` - given an array of contract ABIs, this will extract the event ABIs within.
@@ -36,6 +36,10 @@ The key contracts are:
 * `Settings (ISettings.sol)` - Interface for global settings. We have a single global settings instance for our platform.
 
 The _Nayms company entity_ and its address can be obtained via `Settings.getAddress(SETTINGS.NAYMS_ENTITY)`.
+
+## Technical docs
+
+An architectural overview can be found in [docs/architecture.md](docs/architecture.md).
 
 ## Example usage
 
@@ -122,7 +126,7 @@ yarn compile
 Setup release config:
 
 ```
-yarn setup-release-config-for-testing
+yarn setup-release-config-for-local
 ```
 
 Now deploy the contracts to it:
@@ -157,11 +161,6 @@ Visit the URL shown in the output and enjoy.
 
 ### Deployments
 
-Setup release config:
-
-```
-yarn setup-release-config
-```
 
 Set up the env vars:
 
@@ -173,14 +172,18 @@ export INFURA_KEY="..."
 To upgrade existing Rinkeby contracts:
 
 ```shell
+yarn setup-release-config-for-rinkeby
 yarn deploy:rinkeby
 ```
 
 For mainnet:
 
 ```shell
-yarn deploy:rinkeby
+yarn setup-release-config-for-mainnet
+yarn deploy:mainnet
 ```
+
+By default all deployments are upgrade-only, meaning that the `ACL`, `Settings` and other such contracts won't get deployed - instead the existing addresses from `deployedAddresses.json` will be used. Existing `Entity` and `Policy` contracts will be upgraded to the latest implementations.
 
 **Fresh deployments**
 
@@ -191,12 +194,15 @@ To deploy a fresh set of contracts and update `deployedAddresses.json`, edit `re
   ...
   "freshDeployment": true,
   "extractDeployedAddresses": true,
+  ...
 }
 ```
 
+The `deployedAddresses.json` file will be modified once complete. Remember to commit this into Git and push since it contains the addresses of the newly deployed `ACL`, `Settings`, etc.
+
 **The `release` branch**
 
-Pushing to the `release` branch will result in a Rinkeby deployment as well as the admin dapp being deployed.
+Pushing to the `release` branch will result in a Rinkeby deployment (upgrade-only) as well as the admin dapp being deployed.
 
 **Known issues**
 

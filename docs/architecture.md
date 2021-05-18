@@ -3,11 +3,11 @@
 This is high-level architectural guide to the Nayms smart contracts.
 
 
-## ACL (access control list)
+## ACL
 
 There are numerous stakeholders in the Nayms platform, all of whom have varying degrees of control and access to different parts of the platform. To accomodate for this complexity we utilize an [ACL](https://github.com/nayms/contracts/commits/master/contracts/ACL.sol) (access control list). This is a singleton contract instance into which all of our other contracts call.
 
-The address to the ACL is stored in the `Settings` contract.
+The address to the ACL is stored in the [Settings](#settings-contract) contract.
 
 ### Contexts
 
@@ -63,4 +63,4 @@ Our [Settings contract](https://github.com/nayms/contracts/blob/master/contracts
 
 It exposes a simple key-value storage interface where setting a value can only be done by System admins.
 
-We pass the address of the Settings contract in the constructor when deploying all other contracts (except the ACL, since Settings uses the ACL to authorize writes). Once deployed, a contract can lookup the addresses of other relevant contracts in the system via the Settings contract.
+We pass the address of the Settings contract in the constructor when deploying all other contracts (except the [ACL](#acl), since Settings uses the ACL to authorize writes). Once deployed, a contract can lookup the addresses of other relevant contracts in the system via the Settings contract.

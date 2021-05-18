@@ -2,6 +2,7 @@
 
 This is high-level architectural guide to the Nayms smart contracts.
 
+
 ## ACL (access control list)
 
 There are numerous stakeholders in the Nayms platform, all of whom have varying degrees of control and access to different parts of the platform. To accomodate for this complexity we utilize an [ACL](https://github.com/nayms/contracts/commits/master/contracts/ACL.sol) (access control list). This is a singleton contract instance into which all of our other contracts call.
@@ -56,3 +57,10 @@ They can assign any role within any context. And they are also the only group of
 Since this role is so powerful, upon initial of our smart contracts we set our [Gnosis SAFE](https://gnosis-safe.io/) multisig as the sole address with this role. This ensures that all future actions taken at the System admin level require n-of-m signatures via the multisig.  
 
 
+## Settings contract
+
+Our [Settings contract](https://github.com/nayms/contracts/blob/master/contracts/Settings.sol) is a singleton contract instance that acts as a global data store for our platfom. 
+
+It exposes a simple key-value storage interface where setting a value can only be done by System admins.
+
+We pass the address of the Settings contract in the constructor when deploying all other contracts (except the ACL, since Settings uses the ACL to authorize writes). Once deployed, a contract can lookup the addresses of other relevant contracts in the system via the Settings contract.

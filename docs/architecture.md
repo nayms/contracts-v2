@@ -2,6 +2,21 @@
 
 This is high-level architectural guide to the Nayms smart contracts.
 
+## Upgradeability
+
+Our [Entity](#entities) and [Policy](#policies) contracts are fully upgradeable, meaning we can fix bugs and release new features for these without have to redeploy existing contracts at new addresses. 
+
+We use the [Diamond Standard](https://hiddentao.com/archives/2020/05/28/upgradeable-smart-contracts-using-diamond-standard) to allow for virtually infinite-size smart contracts where every single function can be implemented within a separate contract if we so wished. The main entrypoint contract acts as a proxy, forwarding every incoming call to the appropriate implementation contract based on an internal lookup-table:
+
+![delegateproxy](https://user-images.githubusercontent.com/266594/118700115-35feb200-b80a-11eb-87b6-6fa22d501135.png)
+
+Taking entities as example, we have an [EntityDelegate](https://github.com/nayms/contracts/blob/master/contracts/EntityDelegate.sol) contract which acts as a singleton proxy. All actual entities then _virtually point_ to this one:
+
+![delegateproxy2](https://user-images.githubusercontent.com/266594/118700852-fe443a00-b80a-11eb-94ea-e71614ccee41.png)
+
+When a call comes in to an `Entity` it uses the lookup table inside the `EntityDelegate` to work out which implementation contract to call. Thus, when we wish to upgrade the code for our entities we only need to update the `EntityDelegate` singleton!
+
+Note that contract upgrades can only be performed by a [System admin](#system-admin).
 
 ## ACL
 
@@ -29,7 +44,7 @@ A context is just a `bytes32` value, and so the easiest way to generate a contex
 Any address can be assigned to any role within any context, as long as the _assigner_ (i.e. `msg.sender`) has permission to make such an assignment. Permission is based on atleast one of the following conditions being true:
 
 * The context is the caller's own
-* The caller is a System admin
+* The caller is a [System admin](#system-admin)
 * The caller has a role which belongs to a role group that is allowed to assign this role
 
 Note what the first condition states: any caller can assign roles within _their own_ context. Since by convention the context of an address is simply the `keccak256` hash of that address it's possible for the ACL to calculate the context of the caller and then check to see if the assignment is being made within that context.
@@ -61,6 +76,8 @@ Since this role is so powerful, upon initial of our smart contracts we set our [
 
 Our [Settings contract](https://github.com/nayms/contracts/blob/master/contracts/Settings.sol) is a singleton contract instance that acts as a global data store for our platfom. 
 
-It exposes a simple key-value storage interface where setting a value can only be done by System admins.
+It exposes a simple key-value storage interface where setting a value can only be done by [System admins](#system-admin).
 
 We pass the address of the Settings contract in the constructor when deploying all other contracts (except the [ACL](#acl), since Settings uses the ACL to authorize writes). Once deployed, a contract can lookup the addresses of other relevant contracts in the system via the Settings contract.
+
+

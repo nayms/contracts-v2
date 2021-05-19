@@ -22,7 +22,7 @@ Note that contract upgrades can only be performed by a [System admin](#system-ad
 
 There are numerous stakeholders in the Nayms platform, all of whom have varying degrees of control and access to different parts of the platform. To accomodate for this complexity we utilize an [ACL](https://github.com/nayms/contracts/commits/master/contracts/ACL.sol) (access control list). This is a singleton contract instance into which all of our other contracts call.
 
-The address to the ACL is stored in the [Settings](#settings-contract) contract.
+The address to the ACL is stored in the [Settings](#settings) contract.
 
 ### Contexts
 
@@ -72,12 +72,26 @@ They can assign any role within any context. And they are also the only group of
 Since this role is so powerful, upon initial of our smart contracts we set our [Gnosis SAFE](https://gnosis-safe.io/) multisig as the sole address with this role. This ensures that all future actions taken at the System admin level require n-of-m signatures via the multisig.  
 
 
-## Settings contract
+## Settings
 
 Our [Settings contract](https://github.com/nayms/contracts/blob/master/contracts/Settings.sol) is a singleton contract instance that acts as a global data store for our platfom. 
 
 It exposes a simple key-value storage interface where setting a value can only be done by [System admins](#system-admin).
 
 We pass the address of the Settings contract in the constructor when deploying all other contracts (except the [ACL](#acl), since Settings uses the ACL to authorize writes). Once deployed, a contract can lookup the addresses of other relevant contracts in the system via the Settings contract.
+
+## Entities
+
+All stakeholders are represented by [Entity](https://github.com/nayms/contracts/blob/master/contracts/Entity.sol) contracts.
+
+![entity](https://user-images.githubusercontent.com/266594/118809113-1a46ea80-b8a2-11eb-94e6-ca53a70e35fd.png)
+
+Anyone can deposit funds into an entity but only entity admins can withdraw. Entities can use these balances to invest in (i.e. collateralize) policies. Entities also have an internal _treasury_ which is where policy collateral (and premium payments) is actually stored. Funds can be transferred between the entity's "normal" balance and its treasury balance as long as its treasury's collateralization ratio is honoured.
+
+The treasury has a _virtual balance_, which is the balance it expects to have according to the policies it has collateralized as well as pending claims. It has a _real balance_, which is its actual balance. And it has a collateralization ratio set, which is essentially of the virtual balance to the real balance. 
+
+_For example, if the collateraliation ration is 25% then the real balance must always be atleast 25% of the virtual balance._
+
+When a claim needs to be paid out and there is not enough balance to do so, the claim gets added to the internal claim queue in the treasury. As soon as new funds are received (via transfer from the entity "normal" balance) any pending claims get paid out automatically.
 
 

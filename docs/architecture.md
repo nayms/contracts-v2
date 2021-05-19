@@ -84,14 +84,15 @@ We pass the address of the Settings contract in the constructor when deploying a
 
 All stakeholders are represented by [Entity](https://github.com/nayms/contracts/blob/master/contracts/Entity.sol) contracts.
 
-![entity](https://user-images.githubusercontent.com/266594/118809113-1a46ea80-b8a2-11eb-94e6-ca53a70e35fd.png)
-
 Anyone can deposit funds into an entity but only entity admins can withdraw. Entities can use these balances to invest in (i.e. collateralize) policies. Entities also have an internal _treasury_ which is where policy collateral (and premium payments) is actually stored. Funds can be transferred between the entity's "normal" balance and its treasury balance as long as its treasury's collateralization ratio is honoured.
 
-The treasury has a _virtual balance_, which is the balance it expects to have according to the policies it has collateralized as well as pending claims. It has a _real balance_, which is its actual balance. And it has a collateralization ratio set, which is essentially of the virtual balance to the real balance. 
+The treasury has a _virtual balance_, which is the balance it expects to have according to the policies it has collateralized as well as pending claims. It has a _real/actual balance_, which is its real balance. And it has a collateralization ratio set, which is essentially of the virtual balance to the real balance. 
 
 _For example, if the collateraliation ration is 25% then the real balance must always be atleast 25% of the virtual balance._
 
-When a claim needs to be paid out and there is not enough balance to do so, the claim gets added to the internal claim queue in the treasury. As soon as new funds are received (via transfer from the entity "normal" balance) any pending claims get paid out automatically.
+![entity](https://user-images.githubusercontent.com/266594/118809113-1a46ea80-b8a2-11eb-94e6-ca53a70e35fd.png)
 
+When a claim needs to be paid out and there is not enough balance to do so, the claim gets added to the internal claim queue in the treasury. As soon as new funds are received (via transfer from the entity "normal" balance) any pending claims get paid out automatically in the order in which they were originally created (FIFO):
+
+![claims](https://user-images.githubusercontent.com/266594/118810406-c0dfbb00-b8a3-11eb-90a0-d3ee615cdfcd.png)
 

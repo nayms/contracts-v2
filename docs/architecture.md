@@ -60,9 +60,6 @@ Authorization within our smart contracts is processed on the basis of role group
 ![rolegroups](https://user-images.githubusercontent.com/266594/118687840-5ffda780-b7fd-11eb-84b5-2e488c4640c4.png)
 
 Role groups can be allowed to assign roles. For example, the `ENTITY_ADMINS` role group is allowed to assign the `ENTITY_MANAGER` role. This means that an address that has been assigned a role belonging to the `ENTITY_ADMINS` role group will be able to assign the `ENTITY_MANAGER` role to itself and others. 
-
-The [ACL deployment script](https://github.com/nayms/contracts/blob/master/migrations/modules/acl.js) has the full list of role groups.
-
 ### System admin
 
 **System admins** are the most powerful actors in the Nayms system since they have access to anything and everything, including upgrading the smart contract logic. To be precise, any address which has a role that is part of the `SYSTEM_ADMINS` role group can do this. And since the only role in this group is the `SYSTEM_ADMIN` role, this means that only addresses with the `SYSTEM_ADMIN` role assigned have this level of access. Furthermore, assignment must be made in the System context.
@@ -71,6 +68,9 @@ They can assign any role within any context. And they are also the only group of
 
 Since this role is so powerful, upon initial of our smart contracts we set our [Gnosis SAFE](https://gnosis-safe.io/) multisig as the sole address with this role. This ensures that all future actions taken at the System admin level require n-of-m signatures via the multisig.  
 
+## Role architecture
+
+The [ACL deployment script](https://github.com/nayms/contracts/blob/master/migrations/modules/acl.js) has the full list of roles and role groups.
 
 ## Settings
 
@@ -96,3 +96,59 @@ When a claim needs to be paid out and there is not enough balance to do so, the 
 
 ![claims](https://user-images.githubusercontent.com/266594/118810406-c0dfbb00-b8a3-11eb-90a0-d3ee615cdfcd.png)
 
+Entites can create insurance [policies](#policies).
+
+## Policies
+
+Policies are created and collateralized by [entities](#entities).
+
+The four main types of entities are: _Capital providers, brokers, insured parties and claims administrators_. Only Capital providers and brokers are allowed to create policies. However, every policy must have a nominated entity representing each of the 4 types. 
+
+Every policy operates according to the following timeline:
+
+1. **Initiation date** - _The point in time when the policy's tranch tokens will go up for an initial sale._
+2. **Start date** - _The point in time after the initiation date when the policy's sale should have been completed by, and after which the policy is considered active._
+3. **Maturation date** - _The point in time after the start date when the policy stops being active and stop accepting new claims._
+
+Policies transition between the following [states](https://github.com/nayms/contracts/blob/master/contracts/base/IPolicyStates.sol), in order:
+
+1. **Created** - _The policy has been created. Tranches can now be created._
+2. **Ready for approval** - _All tranches have been created. The policy must now be approved by all its nominated entities._
+3. **In approval** - _The approval process is underway._
+4. **Approved** - _The policy has been approved by all its nominated entities. Once the initiation date has passed the initial tranch sale can begin._
+5. **Initiated** - _The policy initial tranch sale is now in progress._
+6. **Active** - _The start date has passed and the initial tranch sale has completed successfully. The policy is now active and will accept claims._
+7. **Matured** - _The maturation date has passed and the policy is now longer active. New claims are now longer accepted._
+8. **Buyback** - _All claims have been paid out and the policy is now buying back its tranch tokens from the initial sale using its leftover collateral._
+9. **Closed** - _The buyback has completed and the policy is now fully closed._
+10. **Cancelled** - _The policy has been cancelled. This state is reached if the initial tranch sale fails or if a premium payment is missed._
+
+Except for the **Ready for approval** state, all other states are transitioned to via our heartbeat mechanism.
+
+### Heartbeat
+
+The [`checkAndUpdateState()`](https://github.com/nayms/contracts/blob/master/contracts/base/IPolicyCoreFacet.sol#L109) function is responsible for checking the current state of a policy and progressing it to the next state if necessary. It roughly does the following:
+
+* If the initiation date has passed then begin the initial tranch sale.
+* If the start date has passed then check to see if the tranch sale succeeded and that premium payments are up-to-date. If so then mark the policy as **Active**. If not then mark the policy as **Cancelled**.
+* If the maturation date has passed then mark the policy as **Matured**.
+* If the policy has matured and all claims have been dealt with then initiate the tranch token **Buyback**.
+* Check that premium payments are up-to-date. If not then mark the policy as **Cancelled**.
+
+The heartbeat is currently called automatically by our backend.
+
+### Tranches
+
+### Claims
+
+### Commissions
+
+### Treasury
+
+
+
+
+
+Capital providers and 
+
+Policies are created by entities, though only broker and underwriter entiti

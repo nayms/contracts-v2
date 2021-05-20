@@ -116,14 +116,17 @@ Policies transition between the following [states](https://github.com/nayms/cont
 2. **Ready for approval** - _All tranches have been created. The policy must now be approved by all its nominated entities._
 3. **In approval** - _The approval process is underway._
 4. **Approved** - _The policy has been approved by all its nominated entities. Once the initiation date has passed the initial tranch sale can begin._
-5. **Initiated** - _The policy initial tranch sale is now in progress._
-6. **Active** - _The start date has passed and the initial tranch sale has completed successfully. The policy is now active and will accept claims._
+5. **Initiated** - _The policy initial sale is now in progress, whereby all tranches have been put up for sale in order for the policy to be become collateralized._
+6. **Active** - _The start date has passed and the initial sale has completed successfully (i.e. at least one tranch has fully sold out). The policy is now active and will accept claims._
 7. **Matured** - _The maturation date has passed and the policy is now longer active. New claims are now longer accepted._
 8. **Buyback** - _All claims have been paid out and the policy is now buying back its tranch tokens from the initial sale using its leftover collateral._
 9. **Closed** - _The buyback has completed and the policy is now fully closed._
 10. **Cancelled** - _The policy has been cancelled. This state is reached if the initial tranch sale fails or if a premium payment is missed._
 
 Except for the **Ready for approval** state, all other states are transitioned to via our heartbeat mechanism.
+
+![policystates](https://user-images.githubusercontent.com/266594/118973688-d7504a00-b969-11eb-81e1-e436ab6a7da2.png)
+
 
 ### Heartbeat
 
@@ -139,16 +142,35 @@ The heartbeat is currently called automatically by our backend.
 
 ### Tranches
 
+Every policy can have one or more tranches created. Each tranch has a configurable fixed no. of "shares" (similar to equity) as well as an initial price-per-share for during the initial sale period. All tranches are priced in the same currency as the policy.
+
+Tranches, like their parent policies, also have states:
+
+* **Created** - _Tranch created._
+* **Selling** - _Tranch tokens have been put for sale as part of the initial sale triggered by the policy initiation date._
+* **Active** - _All tranch tokens sold out by the policy start date, and the tranch is thus active. Only tranches in this state can have claims made against them._
+* **Matured** - _Policy has matured, and the tranch has thus matured._
+* **Cancelled** - _The tranch tokens did not fully sell out by the policy start date, and thus the tranch is cancelled._
+
+Tranche shares are [represented as ERC-20 tokens](https://github.com/nayms/contracts/blob/master/contracts/TranchToken.sol), meaning that each each tranch gets its own ERC-20 token. Since we want to restrict access to these tranch tokens to authorized entities they can only be [transferred through our Matching market](https://github.com/nayms/contracts/blob/master/contracts/PolicyTranchTokens.sol#L74).
+
+The Tranch token logic is actually implemented within the policy, thus allowing us to upgrade tranch token code when upgrading policy code:
+
+![token](https://user-images.githubusercontent.com/266594/118975104-8a6d7300-b96b-11eb-88f7-e883c34a155d.png)
+
 ### Claims
 
-### Commissions
+Claims can be made representatives of insured parties against a specific active policy tranch. Claims go through the following state transitions:
+
+1. **Created** - _A claim has been created._
+2. _todo_
+
 
 ### Treasury
 
 
+### Commissions
 
+## Matching market
 
-
-Capital providers and 
-
-Policies are created by entities, though only broker and underwriter entiti
+## Deployments

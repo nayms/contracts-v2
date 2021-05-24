@@ -84,7 +84,13 @@ We pass the address of the Settings contract in the constructor when deploying a
 
 All stakeholders are represented by [Entity](https://github.com/nayms/contracts/blob/master/contracts/Entity.sol) contracts.
 
-Anyone can deposit funds into an entity but only entity admins can withdraw. Entities can use these balances to invest in (i.e. collateralize) policies. Entities also have an internal _treasury_ which is where policy collateral (and premium payments) is actually stored. Funds can be transferred between the entity's "normal" balance and its treasury balance as long as its treasury's collateralization ratio is honoured.
+Anyone can deposit funds into an entity but only entity admins can withdraw. Entities can use these balances to invest in (i.e. collateralize) policies. 
+
+Entities can create policies, though the rule is that the entity itself must be set as either the broker or capital provider of the created policy.
+
+### Treasury
+
+Entities also have an internal _treasury_ which is where policy collateral (and premium payments) is actually stored. Funds can be transferred between the entity's "normal" balance and its treasury balance as long as its treasury's collateralization ratio is honoured.
 
 The treasury has a _virtual balance_, which is the balance it expects to have according to the policies it has collateralized as well as pending claims. It has a _real/actual balance_, which is its real balance. And it has a collateralization ratio set, which is essentially of the virtual balance to the real balance. 
 
@@ -163,14 +169,32 @@ The Tranch token logic is actually implemented within the policy, thus allowing 
 Claims can be made representatives of insured parties against a specific active policy tranch. Claims go through the following state transitions:
 
 1. **Created** - _A claim has been created._
-2. _todo_
+2. **Approved** - _A claim has been approved the claims administrator_.
+3. **Declined** - _A claim has been declined the claims administrator_.
+4. **Paid** - _A claim has been approved and paid_.
 
+Note that when a claim is in the **Paid** state it doesn't guarantee that the funds have actually reached the insured party. This only happens once there are enough funds in the [treasury](#treasury) to pay the claim. If there are already enough funds in the treasury then the claim will get paid out straight away, i.e. as soon as the [payClaims()](https://github.com/nayms/contracts/blob/master/contracts/base/IPolicyClaimsFacet.sol#L60) method gets called. Otherwise the claim will be placed in queue within the treasury.
 
-### Treasury
+Claims can also be _acknowledged_ by the capital provider. This is simply a flag on the claim data and is not considered to be a separate state. 
 
+At present there is no deadline for approving or declining claims. This also means that once a policy matures, the **Buyback** phase cannot be triggered until all pending claims are resolved (i.e. either approved or declined).
+
+### Treasury usage
+
+Every policy has an associated [treasury](#treasury) which stores all its funds. The treasury is usually the capital provider entity associated with the policy.
+
+Initially, all tranch tokens are owned by the treasury. This means the initial token sale is coordinated between the treasury and the [matching market](#matching-market) on behalf of the policy. And the collateral obtained as a result of the purchase is also then automatically help in the treasury. 
+
+Premium payments are forward to the treasury, minus [commision](#commissions) payments.
 
 ### Commissions
 
+Commission payments for the various associated entities are taken out of incoming premium payments and stored within the policy itself. They are then distributed to all the relevant parties whenever the [payComissions()](https://github.com/nayms/contracts/blob/master/contracts/base/IPolicyCommissionsFacet.sol#L10) method is invoked.
+
 ## Matching market
 
+
+
 ## Deployments
+
+

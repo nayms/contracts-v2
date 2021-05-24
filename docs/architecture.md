@@ -193,8 +193,9 @@ Commission payments for the various associated entities are taken out of incomin
 
 ## Matching market
 
+We use an unmodified fork of the [Maker OTC matching market](https://github.com/nayms/maker-otc) to facilitate tranch token sales and trades. In fact, at present the tranch tokens can only be transferred by our on-chain market, though we will likely loosen this restriction later.
 
 
 ## Deployments
 
-
+_todo_

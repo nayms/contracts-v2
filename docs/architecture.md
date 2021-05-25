@@ -198,4 +198,62 @@ We use an unmodified fork of the [Maker OTC matching market](https://github.com/
 
 ## Deployments
 
-_todo_
+We deploy contracts to Rinkeby and/or Mainnet and publish NPM packages which have the contract ABIs needed to deploy and manipulate these contracts. 
+
+Deployments are configured through a `releaseConfig.json` file set in the root of the project. This file gets generated when you run one of the `setup-release-config-for-*` commands and typically looks like this:
+
+```js
+{
+  "npmTag": "latest",  /* The tag to use for the published NPM package */
+  "npmPkgVersion": "1.0.0-build.local",   /* The version to use for the published NPM package */
+  "deployRinkeby": true, /* Whether we are deploying to Rinkeby */
+  "deployMainnet": false, /* Whether we are deploying to Mainnet */
+  "multisig": "0x52A1A89bF7C028f889Bf57D50aEB7B418c2Fc79B",  /* The Gnosis SAFE address for the network we are deploying to */ 
+  "adminDappPath": "1.0.0-build.local",  /* Path to admin dapp folder relative to project root folder */
+  "freshDeployment": false, /* Whether we are deploying everything from scratch or just upgrading entities and policies */
+  "extractAddresses": false, /* Whether to overwrite the ACL, Settings, etc contract addresses that are in deployedAddresses.json with the on-chain ones */
+  "hash": "1095e9f83d7bdd93441bb23af23258db062a11ae", /* Latest git commit hash */
+  "date": "2021-05-20T10:05:19.119Z"  /* Datetime for when the releaseConfig.json was generated */
+}
+```
+
+The last two attributes - `hash` and `date` - get inserted into `contracts/CommonUpgradeFacet.sol`, which looks like:
+
+```solidity
+...
+
+contract CommonUpgradeFacet is ... {
+  ...
+  
+  function getVersionInfo () public override pure returns (string memory num_, uint256 date_, string memory hash_) {
+    num_ = "1.0.0-build.dev1620912256601";   // matches NPM package version
+    date_ = 1620912256;
+    hash_ = "6088a4b34ede677319b09fa3239bf8ca7454c602";
+  }
+}
+```
+
+Thus both [entities](#entities) and [policies](#policies) can be queried for their deployment version - and this can then be matched to the correct NPM package version, allowing us to know which versino of the package to use to talk to a given on-chain contract.
+
+**Fresh deployments vs Upgrades**
+
+If `freshDeployment` is set to `true` then the [deployment script](https://github.com/nayms/contracts/blob/master/migrations/1_deploy_contracts.js) will deploy the `ACL`, `Settings`, `EntityDeployer` and `MatchingMarket` contracts. It will also deploy a new _Nayms_ entity using the `EntityDeployer`. After this it will deploy all entity and policy implementation contracts and save all the addresses into the [Settings](#settings) contract. 
+
+If `freshDeployment` is set to `false` then the script will instead obtain the addresses of the existing `ACL`, `Settings`, `EntityDeployer` and `MatchingMarket` contracts from the `deployedAddresses.json` file in the project folder. It will still freshly deploy all entity and policy implementation contracts and then upgrade all existing entities and policies to point to the new implementations. This type deployment is known as an _Upgrade_.
+
+By default we want to do upgrade deployments (instead of fresh ones) since this preserves all existing on-chain data in correlation with what's in our backend. Also, we are designing our core contracts (`ACL`, `Settings`, etc.) to not require upgrades so that we only have to deploy them once.
+
+**Continuous deployment (CD)**
+
+Our CD process auto-deploys contract code and auto-publishes NPM packages in certain circumstances. Specifically:
+
+1. Every commit to a PR branch results in a fresh deployment in Rinkeby and an associated fresh NPM package. This is so that the tech team can test out new features in isolation.
+2. Every commit to the `release` branch results in an upgrade deployment on Rinkeby and an associated fresh NPM package. These deployments are considered to be production-quality.
+
+Note that we don't auto-deploy to Mainnet at the moment. In fact, we haven't yet deployed our v2 contracts to Mainnet at all. 
+
+**Multisig**
+
+If `multisig` is set then upgrade deployments behave slightly differently. New entity and policy implementations will get deployed to chain as normal but the calls to actually upgrade existing entities and policies will be set to go via the multisig. Thus, these calls will need to be separately approved by the multisig signers in order to actually get executed on-chain.
+
+We envision using system this as our Mainnet upgrade deployement process.

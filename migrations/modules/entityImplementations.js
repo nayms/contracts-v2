@@ -34,13 +34,7 @@ export const ensureEntityImplementationsAreDeployed = async (cfg) => {
   })
 
   await log.task(`Saving entity implementation addresses to settings`, async task => {
-    await execCall({
-      task,
-      contract: settings,
-      method: 'setAddresses',
-      args: [settings.address, SETTINGS.ENTITY_IMPL, addresses],
-      cfg,
-    })
+    await settings.setAddresses(settings.address, SETTINGS.ENTITY_IMPL, addresses, getTxParams())
   })
 
   let entityDelegateAddress
@@ -61,9 +55,16 @@ export const ensureEntityImplementationsAreDeployed = async (cfg) => {
       await settings.setAddress(settings.address, SETTINGS.ENTITY_DELEGATE, entityDelegateAddress, getTxParams())
     })
   } else {
-    await log.task(`Upgrade entity delegate at ${entityDelegateAddress} with new facets`, async () => {
+    await log.task(`Upgrade entity delegate at ${entityDelegateAddress} with new facets`, async task => {
       const entityDelegate = await IDiamondUpgradeFacet.at(entityDelegateAddress)
-      await entityDelegate.upgrade(addresses)
+
+      await execCall({
+        task,
+        contract: entityDelegate,
+        method: 'upgrade',
+        args: [addresses],
+        cfg,
+      })
     })
   }
 

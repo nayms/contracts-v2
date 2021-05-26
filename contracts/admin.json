@@ -1319,6 +1319,304 @@
       ]
     },
     {
+      "id": "makeClaim",
+      "title": "Claim: create new",
+      "description": "Only the insured party of the policy can do this.",
+      "inputs": [
+        {
+          "name": "policyAddress",
+          "title": "Policy contract address",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "entityAddress",
+          "title": "Insured party entity address",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "tranchIndex",
+          "title": "Tranch index (0-based)",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        },
+        {
+          "name": "amount",
+          "title": "Amount to claim (in WEI)",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "send",
+          "contract": "IPolicy",
+          "method": "makeClaim",
+          "address": "@input[policyAddress]",
+          "args": {
+            "_index": "@input[tranchIndex]",
+            "_insuredPartyEntity": "@input[entityAddress]",
+            "_amount": "@input[amount]"
+          }
+        }
+      ]
+    },
+    {
+      "id": "getClaimInfo",
+      "title": "Claim: Get info",
+      "inputs": [
+        {
+          "name": "policyAddress",
+          "title": "Policy contract address",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "claimIndex",
+          "title": "Claim index (0-based)",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "IPolicy",
+          "method": "getClaimInfo",
+          "address": "@input[policyAddress]",
+          "args": {
+            "_claimIndex": "@input[claimIndex]"
+          },
+          "saveResultAsInput": "claimInfo"
+        }
+      ],
+      "outputs": [
+        {
+          "title": "Amount",
+          "type": "int",
+          "scale": "-18",
+          "unit": "Tokens",
+          "value": "@input[claimInfo][amount_]"
+        },
+        {
+          "title": "Tranch index",
+          "type": "int",
+          "value": "@input[claimInfo][tranchIndex_]"
+        },
+        {
+          "title": "Approved?",
+          "type": "bool",
+          "value": "@input[claimInfo][approved_]"
+        },
+        {
+          "title": "Declined?",
+          "type": "bool",
+          "value": "@input[claimInfo][declined_]"
+        },
+        {
+          "title": "Paid?",
+          "type": "bool",
+          "value": "@input[claimInfo][paid_]"
+        },
+        {
+          "title": "Cancelled?",
+          "type": "bool",
+          "value": "@input[claimInfo][cancelled_]"
+        }
+      ]
+    },
+    {
+      "id": "approveClaim",
+      "title": "Claim: approve",
+      "description": "Only the capital provider of the policy can do this.",
+      "inputs": [
+        {
+          "name": "policyAddress",
+          "title": "Policy contract address",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "claimIndex",
+          "title": "Claim index (0-based)",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "send",
+          "contract": "IPolicy",
+          "method": "approveClaim",
+          "address": "@input[policyAddress]",
+          "args": {
+            "_claimIndex": "@input[claimIndex]"
+          }
+        }
+      ]
+    },
+    {
+      "id": "declineClaim",
+      "title": "Claim: decline",
+      "description": "Only the capital provider of the policy can do this.",
+      "inputs": [
+        {
+          "name": "policyAddress",
+          "title": "Policy contract address",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "claimIndex",
+          "title": "Claim index (0-based)",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "send",
+          "contract": "IPolicy",
+          "method": "declineClaim",
+          "address": "@input[policyAddress]",
+          "args": {
+            "_claimIndex": "@input[claimIndex]"
+          }
+        }
+      ]
+    },
+    {
+      "id": "cancelClaim",
+      "title": "Claim: cancel previously approved",
+      "description": "Only the system manager can do this.",
+      "inputs": [
+        {
+          "name": "policyAddress",
+          "title": "Policy contract address",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "claimIndex",
+          "title": "Claim index (0-based)",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "send",
+          "contract": "IPolicy",
+          "method": "cancelClaim",
+          "address": "@input[policyAddress]",
+          "args": {
+            "_claimIndex": "@input[claimIndex]"
+          }
+        }
+      ]
+    },
+    {
+      "id": "payClaim",
+      "title": "Claim: pay previously approved",
+      "description": "Only the system manager can do this.",
+      "inputs": [
+        {
+          "name": "policyAddress",
+          "title": "Policy contract address",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "claimIndex",
+          "title": "Claim index (0-based)",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "send",
+          "contract": "IPolicy",
+          "method": "payClaim",
+          "address": "@input[policyAddress]",
+          "args": {
+            "_claimIndex": "@input[claimIndex]"
+          }
+        }
+      ]
+    },
+    {
       "id": "isOfferActive",
       "title": "Market: Get offer status",
       "inputs": [

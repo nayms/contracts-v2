@@ -61,7 +61,7 @@ export const ensurePolicyImplementationsAreDeployed = async (cfg) => {
       await settings.setAddress(settings.address, SETTINGS.POLICY_DELEGATE, policyDelegateAddress, getTxParams())
     })
   } else {
-    await log.task(`Upgrade policy delegate at ${policyDelegateAddress} with new facets`, async () => {
+    await log.task(`Upgrade policy delegate at ${policyDelegateAddress} with new facets`, async task => {
       const policyDelegate = await IDiamondUpgradeFacet.at(policyDelegateAddress)
 
       await execCall({

@@ -1319,6 +1319,44 @@
       ]
     },
     {
+      "id": "getClaimStats",
+      "title": "Claims: Get stats",
+      "inputs": [
+        {
+          "name": "policyAddress",
+          "title": "Policy contract address",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "IPolicy",
+          "method": "getClaimStats",
+          "address": "@input[policyAddress]",
+          "saveResultAsInput": "claimStats"
+        }
+      ],
+      "outputs": [
+        {
+          "title": "No. of claims",
+          "type": "int",
+          "value": "@input[claimStats][numClaims_]"
+        },
+        {
+          "title": "No. of pending claims",
+          "type": "int",
+          "value": "@input[claimStats][numPendingClaims_]"
+        }
+      ]
+    },
+    {
       "id": "makeClaim",
       "title": "Claim: create new",
       "description": "Only the insured party of the policy can do this.",

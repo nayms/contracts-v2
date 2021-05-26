@@ -2,6 +2,9 @@
 
 [Nayms](https://nayms.io) Smart contracts.
 
+_NOTE: the old version of the contracts used to deploy the v1 pilots can be found via the [v1_post_audit](https://github.com/nayms/contracts/tree/v1_post_audit) tag_.
+
+
 ## How to use
 
 Install the package:
@@ -207,6 +210,7 @@ Pushing to the `release` branch will result in a Rinkeby deployment (upgrade-onl
 **Known issues**
 
 When deploying to public networks, if deployment fails with a "transaction underpriced" error then it means there are pending transactions for the deployment account - you need to wait for these to complete before trying again.
+
 
 
 ## Notes

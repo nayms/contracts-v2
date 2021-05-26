@@ -40,13 +40,7 @@ export const ensurePolicyImplementationsAreDeployed = async (cfg) => {
   })
 
   await log.task(`Saving policy implementation addresses to settings`, async task => {
-    await execCall({
-      task,
-      contract: settings,
-      method: 'setAddresses',
-      args: [settings.address, SETTINGS.POLICY_IMPL, addresses],
-      cfg,
-    })
+    await settings.setAddresses(settings.address, SETTINGS.POLICY_IMPL, addresses, getTxParams())
   })
 
   let policyDelegateAddress
@@ -68,8 +62,15 @@ export const ensurePolicyImplementationsAreDeployed = async (cfg) => {
     })
   } else {
     await log.task(`Upgrade policy delegate at ${policyDelegateAddress} with new facets`, async () => {
-      const entityDelegate = await IDiamondUpgradeFacet.at(policyDelegateAddress)
-      await entityDelegate.upgrade(addresses)
+      const policyDelegate = await IDiamondUpgradeFacet.at(policyDelegateAddress)
+
+      await execCall({
+        task,
+        contract: policyDelegate,
+        method: 'upgrade',
+        args: [addresses],
+        cfg,
+      })
     })
   }
 

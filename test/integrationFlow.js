@@ -1279,6 +1279,26 @@ contract('Integration: Flow', accounts => {
 
           expect(treasuryPostBalance - treasuryPreBalance).to.eq(100)
         })
+
+        it.only('keeps track of when a tranch has been totally bought back', async () => {
+          const tranchTkn = await getTranchToken(0)
+
+          await tranchTkn.balanceOf(entity.address).should.eventually.eq(0)
+
+          const numShares = (await policy.getTranchInfo(0)).numShares_.toNumber()
+          
+          expect((await policy.getTranchInfo(0)).buybackCompleted_).to.eq(false)
+
+          const { finalBuybackofferId_: buybackOfferId } = await policy.getTranchInfo(0)
+
+          const offer = await market.getOffer(buybackOfferId)
+
+          await market.sellAllAmount(tranchTkn.address, offer[2], etherToken.address, offer[0], { from: accounts[2] });
+
+          await tranchTkn.balanceOf(entity.address).should.eventually.eq(numShares)
+
+          // TODO: expect((await policy.getTranchInfo(0)).buybackCompleted_).to.eq(true)
+        })
       })
     })
   })

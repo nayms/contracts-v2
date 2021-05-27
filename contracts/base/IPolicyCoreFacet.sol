@@ -64,6 +64,7 @@ interface IPolicyCoreFacet {
    * @return sharesSold_ No. of shared sold (during the initial sale period).
    * @return initialSaleOfferId_ Market offer id of the initial sale.
    * @return finalBuybackofferId_ Market offer id of the post-maturation/cancellation token buyback.
+   * @return buybackCompleted_ True once token buyback has completed.
    */
   function getTranchInfo (uint256 _index) external view returns (
     address token_,
@@ -73,7 +74,8 @@ interface IPolicyCoreFacet {
     uint256 balance_,
     uint256 sharesSold_,
     uint256 initialSaleOfferId_,
-    uint256 finalBuybackofferId_
+    uint256 finalBuybackofferId_,
+    bool buybackCompleted_
   );
 
 

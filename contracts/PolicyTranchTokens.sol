@@ -98,21 +98,38 @@ contract PolicyTranchTokensFacet is EternalStorage, Controller, IDiamondFacet, I
     dataUint256[fromKey] = dataUint256[fromKey].sub(_value);
     dataUint256[toKey] = dataUint256[toKey].add(_value);
 
-    // if we are in the initial sale period and this is a transfer from the market to a buyer
-    if (dataUint256[__i(_index, "state")] == TRANCH_STATE_SELLING && market == _from) {
-      // record how many "shares" were sold
-      dataUint256[__i(_index, "sharesSold")] = dataUint256[__i(_index, "sharesSold")].add(_value);
-      // update tranch balance
-      uint256 balanceIncrement = _value * dataUint256[__i(_index, "pricePerShareAmount")];
-      dataUint256[__i(_index, "balance")] = dataUint256[__i(_index, "balance")].add(balanceIncrement);
-      // tell treasury to add tranch balance value to overall policy balance
-      _getTreasury().incPolicyBalance(balanceIncrement);
+    // this is a transfer from the market to a buyer
+    if (market == _from) {
+      // if we are in the initial sale period      
+      if (dataUint256[__i(_index, "state")] == TRANCH_STATE_SELLING) {
+        // record how many "shares" were sold
+        dataUint256[__i(_index, "sharesSold")] = dataUint256[__i(_index, "sharesSold")].add(_value);
+        // update tranch balance
+        uint256 balanceIncrement = _value * dataUint256[__i(_index, "pricePerShareAmount")];
+        dataUint256[__i(_index, "balance")] = dataUint256[__i(_index, "balance")].add(balanceIncrement);
+        // tell treasury to add tranch balance value to overall policy balance
+        _getTreasury().incPolicyBalance(balanceIncrement);
 
-      // if the tranch has fully sold out
-      if (dataUint256[__i(_index, "sharesSold")] == dataUint256[__i(_index, "numShares")]) {
-        // flip tranch state to ACTIVE
-        _setTranchState(_index, TRANCH_STATE_ACTIVE);
+        // if the tranch has fully sold out
+        if (dataUint256[__i(_index, "sharesSold")] == dataUint256[__i(_index, "numShares")]) {
+          // flip tranch state to ACTIVE
+          _setTranchState(_index, TRANCH_STATE_ACTIVE);
+        }
+      } 
+      // if we are in policy buyback state
+      else if (dataUint256["state"] == POLICY_STATE_BUYBACK) {
+        // if we've bought back all tokens
+        if (dataUint256[toKey] == dataUint256[__i(_index, "numShares")]) {
+          dataBool[__i(_index, "buybackCompleted")] = true;
+          dataUint256["numTranchesBoughtBack"] += 1;
+
+          // if all tranches have been bought back
+          if (dataUint256["numTranchesBoughtBack"] == dataUint256["numTranches"]) {
+            // policy is now "closed"
+            _setPolicyState(POLICY_STATE_CLOSED);
+          }
+        }
       }
-    }
+    }    
   }
 }

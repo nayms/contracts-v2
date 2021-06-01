@@ -69,4 +69,10 @@ abstract contract PolicyFacetBase is EternalStorage, IPolicyStates, AccessContro
       return 0;
     }
   }
+
+  function _tranchPaymentsAllMade (uint256 _index) internal view returns (bool) {
+    uint256 numPremiums = dataUint256[__i(_index, "numPremiums")];
+    uint256 numPremiumsPaid = dataUint256[__i(_index, "numPremiumsPaid")];
+    return (numPremiumsPaid == numPremiums);
+  }
 }

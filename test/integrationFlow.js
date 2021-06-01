@@ -76,6 +76,7 @@ contract('Integration: Flow', accounts => {
   let POLICY_STATE_APPROVED
   let POLICY_STATE_CANCELLED
   let POLICY_STATE_BUYBACK
+  let POLICY_STATE_CLOSED
   
   let TRANCH_STATE_CREATED
   let TRANCH_STATE_SELLING
@@ -195,6 +196,7 @@ contract('Integration: Flow', accounts => {
     POLICY_STATE_IN_APPROVAL = await policyStates.POLICY_STATE_IN_APPROVAL()
     POLICY_STATE_APPROVED = await policyStates.POLICY_STATE_APPROVED()
     POLICY_STATE_BUYBACK = await policyStates.POLICY_STATE_BUYBACK()
+    POLICY_STATE_CLOSED = await policyStates.POLICY_STATE_CLOSED()
 
     TRANCH_STATE_CREATED = await policyStates.TRANCH_STATE_CREATED()
     TRANCH_STATE_SELLING = await policyStates.TRANCH_STATE_SELLING()
@@ -1280,7 +1282,7 @@ contract('Integration: Flow', accounts => {
           expect(treasuryPostBalance - treasuryPreBalance).to.eq(100)
         })
 
-        it.only('keeps track of when a tranch has been totally bought back', async () => {
+        it('keeps track of when a tranch has been totally bought back', async () => {
           const tranchTkn = await getTranchToken(0)
 
           await tranchTkn.balanceOf(entity.address).should.eventually.eq(0)
@@ -1296,8 +1298,42 @@ contract('Integration: Flow', accounts => {
           await market.sellAllAmount(tranchTkn.address, offer[2], etherToken.address, offer[0], { from: accounts[2] });
 
           await tranchTkn.balanceOf(entity.address).should.eventually.eq(numShares)
+ 
+          expect((await policy.getTranchInfo(0)).buybackCompleted_).to.eq(true)
+        })
 
-          // TODO: expect((await policy.getTranchInfo(0)).buybackCompleted_).to.eq(true)
+        it('sets policy to closed once all tranches have been fully bought back', async () => {
+          // buyback tranch 0
+          expect((await policy.getTranchInfo(0)).buybackCompleted_).to.eq(false)
+
+          const tranchTkn0 = await getTranchToken(0)
+
+          const { finalBuybackofferId_: buybackOfferId0 } = await policy.getTranchInfo(0)
+
+          const offer0 = await market.getOffer(buybackOfferId0)
+
+          await market.sellAllAmount(tranchTkn0.address, offer0[2], etherToken.address, offer0[0], { from: accounts[2] });
+
+          expect((await policy.getTranchInfo(0)).buybackCompleted_).to.eq(true)
+
+          // check: policy still in buyback state
+          await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_BUYBACK })
+
+          // buyback tranch 1
+          expect((await policy.getTranchInfo(1)).buybackCompleted_).to.eq(false)
+
+          const tranchTkn1 = await getTranchToken(1)
+
+          const { finalBuybackofferId_: buybackOfferId1 } = await policy.getTranchInfo(1)
+
+          const offer1 = await market.getOffer(buybackOfferId1)
+
+          await market.sellAllAmount(tranchTkn1.address, offer1[2], etherToken.address, offer1[0], { from: accounts[2] });
+
+          expect((await policy.getTranchInfo(1)).buybackCompleted_).to.eq(true)
+
+          // check: policy now closed
+          await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_CLOSED })
         })
       })
     })

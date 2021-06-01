@@ -40,7 +40,8 @@ contract DummyPolicyFacet is IDiamondFacet, IPolicyCoreFacet {
     uint256 balance_,
     uint256 sharesSold_,
     uint256 initialSaleOfferId_,
-    uint256 finalBuybackofferId_
+    uint256 finalBuybackofferId_,
+    bool buybackCompleted_
   ) {}
 
   function checkAndUpdateState () external override {}

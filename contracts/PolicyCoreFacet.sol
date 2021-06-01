@@ -161,7 +161,8 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     uint256 balance_,
     uint256 sharesSold_,
     uint256 initialSaleOfferId_,
-    uint256 finalBuybackofferId_
+    uint256 finalBuybackofferId_,
+    bool buybackCompleted_
   ) {
     token_ = dataAddress[__i(_index, "address")];
     state_ = dataUint256[__i(_index, "state")];
@@ -171,6 +172,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     sharesSold_ = dataUint256[__i(_index, "sharesSold")];
     initialSaleOfferId_ = dataUint256[__i(_index, "initialSaleOfferId")];
     finalBuybackofferId_ = dataUint256[__i(_index, "finalBuybackOfferId")];
+    buybackCompleted_ = dataBool[__i(_index, "buybackCompleted")];
   }
 
 
@@ -301,11 +303,9 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
   function _maturePolicy () private {
     // if no pending claims
     if (0 == dataUint256["claimsPendingCount"] && _getTreasury().isPolicyCollateralized(address(this))) {
-      // if we haven't yet initiated tranch buyback
-      if (!dataBool["buybackInitiated"]) {
+      // if we haven't yet initiated policy buyback then do so
+      if (dataUint256["state"] != POLICY_STATE_BUYBACK) {
         _setPolicyState(POLICY_STATE_BUYBACK);
-
-        dataBool["buybackInitiated"] = true;
 
         // buy back all tranch tokens
         for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {

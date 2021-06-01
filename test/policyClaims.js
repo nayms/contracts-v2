@@ -205,11 +205,11 @@ contract('Policy: Claims', accounts => {
       await etherToken.deposit({ value: 50000 })
       await etherToken.approve(policy.address, 50000)
 
-      // pay all
+      // pay 100%
       await policy.payTranchPremium(0, 9000)
 
-      // pay all
-      await policy.payTranchPremium(1, 13000)
+      // pay 90%
+      await policy.payTranchPremium(1, 13000 * 0.9)
 
       // pay 1 (so it's cancelled by the start date time)
       await policy.payTranchPremium(2, 7000)
@@ -732,80 +732,97 @@ contract('Policy: Claims', accounts => {
             await policy.payClaim(0, { from: accounts[4] }).should.be.rejectedWith('not a rep of associated entity')
           })
 
-          it('by claims admin', async () => {
-            await policy.payClaim(0, { from: claimsAdminRep }).should.be.fulfilled
-          })
-
-          it('and an event gets emitted', async () => {
-            const ret = await policy.payClaim(0, { from: claimsAdminRep })
-
-            expect(extractEventArgs(ret, events.ClaimStateUpdated)).to.exist
-          })
-
-          it('and the payout goes to the insured party entities', async () => {
-            const preBalance = ((await etherToken.balanceOf(insuredParty))).toNumber()
-
-            await policy.payClaim(0, { from: claimsAdminRep })
-
-            const postBalance = ((await etherToken.balanceOf(insuredParty))).toNumber()
-
-            expect(postBalance - preBalance).to.eq(4)
-
-            await policy.payClaim(2, { from: claimsAdminRep })
-
-            const postBalance2 = ((await etherToken.balanceOf(insuredParty))).toNumber()
-
-            expect(postBalance2 - preBalance).to.eq(5)
-          })
-
-          it('and does not do payouts for un-approved claims', async () => {
-            await policy.payClaim(1, { from: claimsAdminRep }).should.be.rejectedWith('not approved')
-          })
-
-          it('and only does the payouts for approved claims', async () => {
-            const preBalance = ((await etherToken.balanceOf(insuredParty))).toNumber()
-
-            await policy.payClaim(0, { from: claimsAdminRep })
-            await policy.payClaim(2, { from: claimsAdminRep })
-
-            const postBalance = ((await etherToken.balanceOf(insuredParty))).toNumber()
-
-            expect(postBalance - preBalance).to.eq(5)
-          })
-
-          it('and it updates the treasury balance', async () => {
-            const preBalance = ((await etherToken.balanceOf(entity.address))).toNumber()
-
-            await policy.payClaim(0, { from: claimsAdminRep })
-            await policy.payClaim(2, { from: claimsAdminRep })
-
-            const postBalance = ((await etherToken.balanceOf(entity.address))).toNumber()
-
-            expect(preBalance - postBalance).to.eq(5)
-          })
-
-          it('and it updates the internal stats', async () => {
-            await policy.payClaim(0, { from: claimsAdminRep })
-
-            await policy.getClaimStats().should.eventually.matchObj({
-              numClaims_: 4,
-              numPendingClaims_: 1,
+          describe('and when the premiums are NOT fully paid', async () => {
+            it('the payout fails', async () => {
+              await policy.payClaim(2, { from: claimsAdminRep }).should.be.rejectedWith('not possible until premiums are fully paid')
             })
 
-            await policy.getClaimInfo(0).should.eventually.matchObj({
-              state_: CLAIM_STATE_PAID
+            it('but then succeeds once premiums are fully paid', async () => {
+              await policy.payTranchPremium(1, 13000 * 0.1)
+              await policy.payClaim(2, { from: claimsAdminRep }).should.be.fulfilled
+            })
+          })
+
+          describe('and when the premiums are fully paid', async () => {
+            beforeEach(async () => {
+              await policy.payTranchPremium(1, 13000 * 0.1)
             })
 
-            await policy.getClaimInfo(1).should.eventually.matchObj({
-              state_: CLAIM_STATE_DECLINED
+            it('by claims admin', async () => {
+              await policy.payClaim(0, { from: claimsAdminRep }).should.be.fulfilled
             })
 
-            await policy.getClaimInfo(2).should.eventually.matchObj({
-              state_: CLAIM_STATE_APPROVED
+            it('and an event gets emitted', async () => {
+              const ret = await policy.payClaim(0, { from: claimsAdminRep })
+
+              expect(extractEventArgs(ret, events.ClaimStateUpdated)).to.exist
             })
 
-            await policy.getClaimInfo(3).should.eventually.matchObj({
-              state_: CLAIM_STATE_DISPUTED
+            it('and the payout goes to the insured party entities', async () => {
+              const preBalance = ((await etherToken.balanceOf(insuredParty))).toNumber()
+
+              await policy.payClaim(0, { from: claimsAdminRep })
+
+              const postBalance = ((await etherToken.balanceOf(insuredParty))).toNumber()
+
+              expect(postBalance - preBalance).to.eq(4)
+
+              await policy.payClaim(2, { from: claimsAdminRep })
+
+              const postBalance2 = ((await etherToken.balanceOf(insuredParty))).toNumber()
+
+              expect(postBalance2 - preBalance).to.eq(5)
+            })
+
+            it('and does not do payouts for un-approved claims', async () => {
+              await policy.payClaim(1, { from: claimsAdminRep }).should.be.rejectedWith('not approved')
+            })
+
+            it('and only does the payouts for approved claims', async () => {
+              const preBalance = ((await etherToken.balanceOf(insuredParty))).toNumber()
+
+              await policy.payClaim(0, { from: claimsAdminRep })
+              await policy.payClaim(2, { from: claimsAdminRep })
+
+              const postBalance = ((await etherToken.balanceOf(insuredParty))).toNumber()
+
+              expect(postBalance - preBalance).to.eq(5)
+            })
+
+            it('and it updates the treasury balance', async () => {
+              const preBalance = ((await etherToken.balanceOf(entity.address))).toNumber()
+
+              await policy.payClaim(0, { from: claimsAdminRep })
+              await policy.payClaim(2, { from: claimsAdminRep })
+
+              const postBalance = ((await etherToken.balanceOf(entity.address))).toNumber()
+
+              expect(preBalance - postBalance).to.eq(5)
+            })
+
+            it('and it updates the internal stats', async () => {
+              await policy.payClaim(0, { from: claimsAdminRep })
+
+              await policy.getClaimStats().should.eventually.matchObj({
+                numClaims_: 4,
+                numPendingClaims_: 1,
+              })
+
+              await policy.getClaimInfo(0).should.eventually.matchObj({
+                state_: CLAIM_STATE_PAID
+              })
+
+              await policy.getClaimInfo(1).should.eventually.matchObj({
+                state_: CLAIM_STATE_DECLINED
+              })
+
+              await policy.getClaimInfo(2).should.eventually.matchObj({
+                state_: CLAIM_STATE_APPROVED
+              })
+
+              await policy.getClaimInfo(3).should.eventually.matchObj({
+                state_: CLAIM_STATE_DISPUTED
+              })
             })
           })
         })

@@ -891,22 +891,6 @@ contract('Integration: Flow', accounts => {
           await policy.makeClaim(0, 1, { from: insuredPartyRep })
           await policy.approveClaim(1, { from: claimsAdminRep })
         })
-
-        it('and approved ones can be paid out', async () => {
-          await policy.declineClaim(0, { from: claimsAdminRep })
-          await policy.approveClaim(1, { from: claimsAdminRep })
-          await policy.approveClaim(3, { from: claimsAdminRep })
-
-          const preBalance = ((await etherToken.balanceOf(insuredParty)).toNumber())
-
-          const policyContext = await policy.aclContext()
-          await policy.payClaim(1, { from: claimsAdminRep })
-          await policy.payClaim(3, { from: claimsAdminRep })
-
-          const postBalance = ((await etherToken.balanceOf(insuredParty)).toNumber())
-
-          expect(postBalance - preBalance).to.eq(9)
-        })
       })
     })
 

@@ -54,8 +54,6 @@ contract PolicyApprovalsFacet is EternalStorage, Controller, IDiamondFacet, IPol
     } else if (_role == ROLE_PENDING_CLAIMS_ADMIN) {
       newRole = ROLE_CLAIMS_ADMIN;
       dataBool["claimsAdminApproved"] = true;
-    } else {
-      revert('invalid role');
     }
 
     acl().unassignRole(aclContext(), entity, _role);    

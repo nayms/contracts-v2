@@ -170,6 +170,12 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
     uint256 state = dataUint256[__i(_claimIndex, "claimState")];
     require(state == CLAIM_STATE_APPROVED, 'not approved');
 
+    // check that premiums are fully paid
+    require(
+      _tranchPaymentsAllMade(dataUint256[__i(_claimIndex, "claimTranch")]), 
+      'not possible until premiums are fully paid'
+    );
+
     // transfer
     _getTreasury().payClaim(
       dataAddress[__i(_claimIndex, "claimEntity")], 

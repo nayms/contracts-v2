@@ -81,7 +81,7 @@ contract PolicyTranchTokensFacet is EternalStorage, Controller, IDiamondFacet, I
   function _transfer(uint _index, address _from, address _to, uint256 _value) private {
     // when token holder is sending to the market
     address market = settings().getRootAddress(SETTING_MARKET);
-    address treasury = address(_getTreasury());
+    address treasuryFundsOwner = _getPolicyTreasury().getFundsOwnerAddress();
 
     // if this is a transfer to the market
     if (market == _to) {
@@ -111,7 +111,7 @@ contract PolicyTranchTokensFacet is EternalStorage, Controller, IDiamondFacet, I
         uint256 balanceIncrement = _value * dataUint256[__i(_index, "pricePerShareAmount")];
         dataUint256[__i(_index, "balance")] = dataUint256[__i(_index, "balance")].add(balanceIncrement);
         // tell treasury to add tranch balance value to overall policy balance
-        _getTreasury().incPolicyBalance(balanceIncrement);
+        _getPolicyTreasury().incPolicyBalance(balanceIncrement);
 
         // if the tranch has fully sold out
         if (dataUint256[__i(_index, "sharesSold")] == dataUint256[__i(_index, "numShares")]) {
@@ -123,7 +123,7 @@ contract PolicyTranchTokensFacet is EternalStorage, Controller, IDiamondFacet, I
     // if we are in policy buyback state
     else if (dataUint256["state"] == POLICY_STATE_BUYBACK) {
       // if this is a transfer to the treasury
-      if (treasury == _to) {
+      if (treasuryFundsOwner == _to) {
         // if we've bought back all tokens
         if (dataUint256[toKey] == dataUint256[__i(_index, "numShares")]) {
           dataBool[__i(_index, "buybackCompleted")] = true;

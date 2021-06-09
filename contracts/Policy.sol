@@ -17,7 +17,8 @@ contract Policy is Controller, Proxy, PolicyFacetBase {
     _setDelegateAddress(settings().getRootAddress(SETTING_POLICY_DELEGATE));
 
     // set properties
-    dataAddress["treasury"] = _stakeholders[0];
+    dataAddress["policyTreasury"] = _stakeholders[0];
+    dataAddress["globalTreasury"] = settings().getRootAddress(SETTING_TREASURY);
     dataUint256["initiationDate"] = _dates[0];
     dataUint256["startDate"] = _dates[1];
     dataUint256["maturationDate"] = _dates[2];

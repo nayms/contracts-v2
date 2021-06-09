@@ -52,13 +52,16 @@ exports.SETTINGS = {}
 
 ;[
   'MARKET',
+  'TREASURY',
   'ETHER_TOKEN',
   'ENTITY_IMPL',
   'POLICY_IMPL',
+  'TREASURY_IMPL',
   'ENTITY_DEPLOYER',
   'NAYMS_ENTITY',
   'ENTITY_DELEGATE',
   'POLICY_DELEGATE',
+  'TREASURY_IMPL',
 ].forEach(r => {
   exports.SETTINGS[r] = keccak256(`SETTING_${r}`)
 })

@@ -29,22 +29,22 @@ contract PolicyTreasuryTestFacet is EternalStorage, PolicyFacetBase, IPolicyTrea
   }
 
   function treasuryIncPolicyBalance (uint256 _amount) public override {
-    _getTreasury().incPolicyBalance(_amount);
+    _getPolicyTreasury().incPolicyBalance(_amount);
   }
 
   function treasurySetMinPolicyBalance (uint256 _amount) public override {
-    _getTreasury().setMinPolicyBalance(_amount);
+    _getPolicyTreasury().setMinPolicyBalance(_amount);
   }
 
   function treasuryPayClaim (address _recipient, uint256 _amount) public override {
-    _getTreasury().payClaim(_recipient, _amount);
+    _getPolicyTreasury().payClaim(_recipient, _amount);
   }
 
   function treasuryCreateOrder (bytes32 _type, address _sellUnit, uint256 _sellAmount, address _buyUnit, uint256 _buyAmount) public override {
-    _getTreasury().createOrder(_type, _sellUnit, _sellAmount, _buyUnit, _buyAmount);
+    _getPolicyTreasury().createOrder(_type, _sellUnit, _sellAmount, _buyUnit, _buyAmount);
   }
 
   function treasuryCancelOrder (uint256 _orderId) public override {
-    _getTreasury().cancelOrder(_orderId);
+    _getPolicyTreasury().cancelOrder(_orderId);
   }
 }

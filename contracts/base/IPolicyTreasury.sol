@@ -120,4 +120,9 @@ interface IPolicyTreasury {
    * @param _unit Token unit.
    */
   function resolveClaims (address _unit) external;
+
+  /**
+   * Get address of where treasury funds are actually stored.
+   */
+  function getFundsOwnerAddress () external view returns (address);
 }

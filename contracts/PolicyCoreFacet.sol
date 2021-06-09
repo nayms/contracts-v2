@@ -103,7 +103,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     TranchToken t = new TranchToken(address(this), i);
 
     // initial holder
-    address holder = dataAddress["treasury"];
+    address holder = _getPolicyTreasury().getFundsOwnerAddress();
     string memory initialHolderKey = __i(i, "initialHolder");
     dataAddress[initialHolderKey] = holder;
 
@@ -218,7 +218,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
 
   function _cancelTranchMarketOffer(uint _index) private {
     uint256 initialSaleOfferId = dataUint256[__i(_index, "initialSaleOfferId")];
-    _getTreasury().cancelOrder(initialSaleOfferId);
+    _getPolicyTreasury().cancelOrder(initialSaleOfferId);
   }
 
   function _cancelPolicyIfNotFullyApproved() private {
@@ -251,7 +251,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
         // set tranch state
         _setTranchState(i, TRANCH_STATE_SELLING);
         // offer tokens in initial sale
-        dataUint256[__i(i, "initialSaleOfferId")] = _getTreasury().createOrder(
+        dataUint256[__i(i, "initialSaleOfferId")] = _getPolicyTreasury().createOrder(
           ORDER_TYPE_TOKEN_SALE,
           tranchAddress, 
           totalSupply, 
@@ -276,7 +276,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
         }
       }
       // set min. collateral balance to treasury
-      _getTreasury().setMinPolicyBalance(minPolicyCollateral);
+      _getPolicyTreasury().setMinPolicyBalance(minPolicyCollateral);
 
       // update policy state
       _setPolicyState(POLICY_STATE_ACTIVE);
@@ -302,7 +302,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
 
   function _maturePolicy () private {
     // if no pending claims
-    if (0 == dataUint256["claimsPendingCount"] && _getTreasury().isPolicyCollateralized(address(this))) {
+    if (0 == dataUint256["claimsPendingCount"] && _getPolicyTreasury().isPolicyCollateralized(address(this))) {
       // if we haven't yet initiated policy buyback then do so
       if (dataUint256["state"] != POLICY_STATE_BUYBACK) {
         _setPolicyState(POLICY_STATE_BUYBACK);
@@ -317,7 +317,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
           uint256 tranchBalance = dataUint256[__i(i, "balance")];
 
           // buy back all sold tokens
-          dataUint256[__i(i, "finalBuybackOfferId")] = _getTreasury().createOrder(
+          dataUint256[__i(i, "finalBuybackOfferId")] = _getPolicyTreasury().createOrder(
             ORDER_TYPE_TOKEN_BUYBACK,
             unitAddress,
             tranchBalance,

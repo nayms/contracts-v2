@@ -177,7 +177,7 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
     );
 
     // transfer
-    _getTreasury().payClaim(
+    _getPolicyTreasury().payClaim(
       dataAddress[__i(_claimIndex, "claimEntity")], 
       dataUint256[__i(_claimIndex, "claimAmount")]
     );

@@ -60,7 +60,7 @@ abstract contract EntityTreasuryFacetBase is EntityFacetBase, IPolicyTreasuryCon
           dataUint256[pcutaKey] = dataUint256[pcutaKey].sub(amt);
           _decPolicyBalance(pol, amt);
           // payout
-          IERC20(_unit).transfer(dataAddress[__ia(i, _unit, "claimRecipient")], amt);
+          _getTreasury().transferTo(_unit, dataAddress[__ia(i, _unit, "claimRecipient")], amt);
           // mark as paid
           dataBool[__ia(i, _unit, "claimPaid")] = true;
           dataUint256[__a(_unit, "claimsUnpaidCount")] -= 1;

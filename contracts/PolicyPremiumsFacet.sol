@@ -92,7 +92,7 @@ contract PolicyPremiumsFacet is EternalStorage, Controller, IDiamondFacet, IPoli
       uint256 numPremiumsPaid = dataUint256[__i(_index, "numPremiumsPaid")];
 
       if (_amount >= pending) {
-        netPremium += _applyPremiumPaymentAmount(_index, pending);
+        netPremium = netPremium.add(_applyPremiumPaymentAmount(_index, pending));
         totalPaid = totalPaid.add(pending);
         _amount = _amount.sub(pending);
 
@@ -100,7 +100,7 @@ contract PolicyPremiumsFacet is EternalStorage, Controller, IDiamondFacet, IPoli
         dataUint256[__ii(_index, numPremiumsPaid, "premiumPaidAt")] = now;
         dataUint256[__ii(_index, numPremiumsPaid, "premiumPaidSoFar")] = dataUint256[__ii(_index, numPremiumsPaid, "premiumAmount")];
       } else {
-        netPremium += _applyPremiumPaymentAmount(_index, _amount);
+        netPremium = netPremium.add(_applyPremiumPaymentAmount(_index, _amount));
         totalPaid = totalPaid.add(_amount);
         dataUint256[__ii(_index, numPremiumsPaid, "premiumPaidSoFar")] = dataUint256[__ii(_index, numPremiumsPaid, "premiumPaidSoFar")].add(_amount);
         _amount = 0;
@@ -109,12 +109,15 @@ contract PolicyPremiumsFacet is EternalStorage, Controller, IDiamondFacet, IPoli
 
     // do the actual transfer to the treasury
     IERC20 tkn = IERC20(dataAddress["unit"]);
-    uint256 totalCommissions = totalPaid - netPremium;
-    tkn.transferFrom(msg.sender, address(this), totalCommissions);
-    tkn.transferFrom(msg.sender, dataAddress["treasury"], netPremium);
 
-    // tell treasury to update its balance for this policy
-    _getTreasury().incPolicyBalance(netPremium);
+    // premium
+    tkn.transferFrom(msg.sender, _getPolicyTreasury().getFundsOwnerAddress(), netPremium);
+    _getPolicyTreasury().incPolicyBalance(netPremium);
+
+    // commissions
+    uint256 totalCommissions = totalPaid.sub(netPremium);
+    tkn.transferFrom(msg.sender, address(_getGlobalTreasury()), totalCommissions);
+    _getGlobalTreasury().incBalance(address(tkn), totalCommissions);
     
     // event
     emit PremiumPayment(_index, totalPaid, msg.sender);

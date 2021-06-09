@@ -34,11 +34,16 @@ import "./base/SafeMath.sol";
       IPolicyTreasury.incPolicyBalance.selector,
       IPolicyTreasury.setMinPolicyBalance.selector,
       IPolicyTreasury.resolveClaims.selector,
-      IPolicyTreasury.isPolicyCollateralized.selector
+      IPolicyTreasury.isPolicyCollateralized.selector,
+      IPolicyTreasury.getFundsOwnerAddress.selector
     );
   }
 
   // IPolicyTreasury
+
+  function getFundsOwnerAddress () external view override returns (address) {
+    return address(_getTreasury());
+  }
 
   function getEconomics (address _unit) public view override returns (
     uint256 realBalance_,
@@ -136,7 +141,7 @@ import "./base/SafeMath.sol";
       _decPolicyBalance(msg.sender, _amount);
 
       // payout!
-      IERC20(unit).transfer(_recipient, _amount);
+      _getTreasury().transferTo(unit, _recipient, _amount);
     }
   }
 

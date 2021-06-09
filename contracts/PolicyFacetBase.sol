@@ -2,6 +2,7 @@ pragma solidity 0.6.12;
 
 import "./base/EternalStorage.sol";
 import "./base/IPolicyStates.sol";
+import "./base/ITreasury.sol";
 import "./base/IPolicyTreasury.sol";
 import "./base/AccessControl.sol";
 
@@ -45,8 +46,12 @@ abstract contract PolicyFacetBase is EternalStorage, IPolicyStates, AccessContro
     }
   }
 
-  function _getTreasury () internal view returns (IPolicyTreasury) {
-    return IPolicyTreasury(dataAddress["treasury"]);
+  function _getGlobalTreasury () internal view returns (ITreasury) {
+    return ITreasury(dataAddress["globalTreasury"]);
+  }
+
+  function _getPolicyTreasury () internal view returns (IPolicyTreasury) {
+    return IPolicyTreasury(dataAddress["policyTreasury"]);
   }
 
   function _getNumberOfTranchPaymentsMissed (uint256 _index) internal view returns (uint256) {

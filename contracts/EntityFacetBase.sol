@@ -3,6 +3,7 @@ pragma solidity 0.6.12;
 import "./base/EternalStorage.sol";
 import "./base/Controller.sol";
 import "./base/IMarket.sol";
+import "./base/ITreasury.sol";
 import "./base/IERC20.sol";
 
 /**
@@ -48,5 +49,9 @@ abstract contract EntityFacetBase is EternalStorage, Controller {
 
   function _getMarket () internal view returns (IMarket) {
     return IMarket(settings().getRootAddress(SETTING_MARKET));
+  }
+
+  function _getTreasury () internal view returns (ITreasury) {
+    return ITreasury(settings().getRootAddress(SETTING_TREASURY));
   }
 }

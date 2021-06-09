@@ -11,6 +11,7 @@ const { getCurrentSettings, ensureSettingsIsDeployed } = require('./modules/sett
 const { getCurrentMarket, ensureMarketIsDeployed } = require('./modules/market')
 const { getCurrentEtherToken, ensureEtherTokenIsDeployed } = require('./modules/etherToken')
 const { getCurrentEntityDeployer, ensureEntityDeployerIsDeployed } = require('./modules/entityDeployer')
+const { ensureTreasuryIsDeployed } = require('./modules/treasury')
 const { ensureEntityImplementationsAreDeployed } = require('./modules/entityImplementations')
 const { ensurePolicyImplementationsAreDeployed } = require('./modules/policyImplementations')
 const { updateDeployedAddressesJson } = require('./utils/postDeployment')
@@ -136,6 +137,7 @@ module.exports = async (deployer, network, accounts) => {
     })
   }
 
+  await ensureTreasuryIsDeployed(cfg)
   await ensureEntityImplementationsAreDeployed(cfg)
   await ensurePolicyImplementationsAreDeployed(cfg)
 

@@ -24,11 +24,19 @@ abstract contract EntityFacetBase is EternalStorage, Controller {
     require(dataUint256[__a(_unit, "balance")] >= _amount, 'exceeds entity balance');
   }
 
+  function _decBalance (address _unit, uint256 _amount) internal {
+    _assertHasEnoughBalance(_unit, _amount);    
+    dataUint256[__a(_unit, "balance")] = dataUint256[__a(_unit, "balance")].sub(_amount);
+  }
+
   function _isPolicyCreatedByMe(address _policy) internal view returns (bool) {
     return dataBool[__a(_policy, "isPolicy")];
   }
 
   function _tradeOnMarket(address _payUnit, uint256 _payAmount, address _buyUnit, uint256 _buyAmount) internal returns (uint256) {
+    // reduce my balance
+    _decBalance(_payUnit, _payAmount);
+
     // get mkt
     IMarket mkt = _getMarket();
     // approve mkt to use my tokens

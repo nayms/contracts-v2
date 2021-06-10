@@ -17,11 +17,11 @@ interface ITreasuryCoreFacet {
    * If this recipient is registered with the treasury then the call will simply result in respective balances
    * getting updated. Otherwise the call will result in tokens actually being sent to the recipient address.
    * 
-   * @param _token Token unit.
    * @param _recipient Recipient.
+   * @param _token Token unit.
    * @param _amount Amount to transfer.
    */
-  function transferTo (address _token, address _recipient, uint256 _amount) external;
+  function transferTo (address _recipient, address _token, uint256 _amount) external;
 
   /**
    * @dev Increase the caller's recorded balance.
@@ -33,4 +33,12 @@ interface ITreasuryCoreFacet {
    * @param _amount Amount to increase balance by.
    */
   function incBalance (address _token, uint256 _amount) external;
+
+  /**
+   * @dev Get balance of address.
+   *
+   * @param _owner Address.
+   * @param _token Token unit.
+   */
+  function getBalance (address _owner, address _token) external view returns (uint256);
 }

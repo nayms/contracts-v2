@@ -9,6 +9,7 @@ export const ensureTreasuryIsDeployed = async (cfg) => {
   let addresses
 
   const Treasury = artifacts.require('./Treasury')
+  const ITreasury = artifacts.require('./ITreasury')
   const IDiamondUpgradeFacet = artifacts.require('./base/IDiamondUpgradeFacet')
 
   await log.task(`Deploy Treasury implementations`, async task => {
@@ -34,6 +35,7 @@ export const ensureTreasuryIsDeployed = async (cfg) => {
   })
 
   let treasuryAddress
+  let treasury
 
   await log.task('Retrieving existing treasury', async task => {
     treasuryAddress = await settings.getRootAddress(SETTINGS.TREASURY)
@@ -42,17 +44,16 @@ export const ensureTreasuryIsDeployed = async (cfg) => {
 
   if (treasuryAddress === ADDRESS_ZERO) {
     await log.task(`Deploy treasury`, async task => {
-      const { address } = await deploy(deployer, getTxParams(), Treasury, settings.address)
-      treasuryAddress = address
-      task.log(`Deployed at ${treasuryAddress}`)
+      treasury = await deploy(deployer, getTxParams(), Treasury, settings.address)
+      task.log(`Deployed at ${treasury.address}`)
     })
 
     await log.task(`Saving treasury address ${treasuryAddress} to settings`, async () => {
-      await settings.setAddress(settings.address, SETTINGS.TREASURY, treasuryAddress, getTxParams())
+      await settings.setAddress(settings.address, SETTINGS.TREASURY, treasury.address, getTxParams())
     })
   } else {
     await log.task(`Upgrade treasury at ${treasuryAddress} with new facets`, async task => {
-      const treasury = await IDiamondUpgradeFacet.at(treasuryAddress)
+      treasury = await IDiamondUpgradeFacet.at(treasuryAddress)
 
       await execCall({
         task,
@@ -64,5 +65,5 @@ export const ensureTreasuryIsDeployed = async (cfg) => {
     })
   }
 
-  return addresses
+  return await ITreasury.at(treasury.address)
 }

@@ -28,7 +28,8 @@ contract TreasuryCoreFacet is EternalStorage, Controller, ITreasuryCoreFacet, ID
     return abi.encodePacked(
       ITreasuryCoreFacet.register.selector,
       ITreasuryCoreFacet.transferTo.selector,
-      ITreasuryCoreFacet.incBalance.selector
+      ITreasuryCoreFacet.incBalance.selector,
+      ITreasuryCoreFacet.getBalance.selector
     );
   }
 
@@ -39,7 +40,7 @@ contract TreasuryCoreFacet is EternalStorage, Controller, ITreasuryCoreFacet, ID
     dataBool[__a(msg.sender, "registered")] = true;
   }
 
-  function transferTo (address _token, address _recipient, uint256 _amount) 
+  function transferTo (address _recipient, address _token, uint256 _amount) 
     external 
     override 
     assertIsRegistered(msg.sender)
@@ -65,6 +66,15 @@ contract TreasuryCoreFacet is EternalStorage, Controller, ITreasuryCoreFacet, ID
     assertIsRegistered(msg.sender)
   {
     _setBal(msg.sender, _token, _getBal(msg.sender, _token).add(_amount));
+  }
+
+  function getBalance (address _owner, address _token) 
+    external 
+    view 
+    override
+    returns (uint256)
+  {
+    return _getBal(_owner, _token);
   }
 
   // Private methods

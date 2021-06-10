@@ -95,6 +95,14 @@ import "./base/SafeMath.sol";
     assertIsMyPolicy(msg.sender)
     returns (uint256)
   {
+    if (_type == ORDER_TYPE_TOKEN_BUYBACK) {
+      // TODO: need to be able to tell the market to make the sale but have the funds stored in the treasury
+    } else if (_type == ORDER_TYPE_TOKEN_SALE) {
+
+    } else {
+      revert('unknown order type');
+    }
+
     require(_type == ORDER_TYPE_TOKEN_BUYBACK || _type == ORDER_TYPE_TOKEN_SALE, 'unknown order type');
     return _tradeOnMarket(_sellUnit, _sellAmount, _buyUnit, _buyAmount);
   }
@@ -141,7 +149,7 @@ import "./base/SafeMath.sol";
       _decPolicyBalance(msg.sender, _amount);
 
       // payout!
-      _getTreasury().transferTo(unit, _recipient, _amount);
+      _getTreasury().transferTo(_recipient, unit, _amount);
     }
   }
 
@@ -198,6 +206,8 @@ import "./base/SafeMath.sol";
     dataUint256[trbKey] = dataUint256[trbKey].add(_amount);
     dataUint256[tvbKey] = dataUint256[tvbKey].add(_amount);
     dataUint256[pbKey] = dataUint256[pbKey].add(_amount);
+
+    _getTreasury().incBalance(unit, _amount);
 
     emit UpdatePolicyBalance(_policy, dataUint256[pbKey]);
   }

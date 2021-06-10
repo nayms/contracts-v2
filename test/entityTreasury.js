@@ -16,6 +16,7 @@ import { ROLES, SETTINGS } from '../utils/constants'
 import { ensureEtherTokenIsDeployed, deployNewEtherToken } from '../migrations/modules/etherToken'
 import { ensureEntityDeployerIsDeployed } from '../migrations/modules/entityDeployer'
 import { ensureAclIsDeployed } from '../migrations/modules/acl'
+import { ensureTreasuryIsDeployed } from '../migrations/modules/treasury'
 import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
 import { ensureMarketIsDeployed } from '../migrations/modules/market'
 import { ensureEntityImplementationsAreDeployed } from '../migrations/modules/entityImplementations'
@@ -37,7 +38,7 @@ const Entity = artifacts.require("./Entity")
 const IPolicy = artifacts.require("./IPolicy")
 const Policy = artifacts.require("./Policy")
 
-contract('Treasury', accounts => {
+contract('Entity treasury', accounts => {
   const evmSnapshot = new EvmSnapshot()
 
   let acl
@@ -45,6 +46,7 @@ contract('Treasury', accounts => {
   let etherToken
   let etherToken2
   let market
+  let treasury
   let systemContext
   let entityDeployer
   let entityProxy
@@ -54,7 +56,7 @@ contract('Treasury', accounts => {
 
   const entityAdminAddress = accounts[0]
 
-  let treasury
+  let policyTreasury
   
   let policies
 
@@ -70,6 +72,7 @@ contract('Treasury', accounts => {
     acl = await ensureAclIsDeployed({ artifacts })
     settings = await ensureSettingsIsDeployed({ artifacts, acl })
     market = await ensureMarketIsDeployed({ artifacts, settings })
+    treasury = await ensureTreasuryIsDeployed({ artifacts, settings })
     entityDeployer = await ensureEntityDeployerIsDeployed({ artifacts, settings })
     etherToken = await ensureEtherTokenIsDeployed({ artifacts, settings })
     etherToken2 = await deployNewEtherToken({ artifacts, settings })
@@ -107,8 +110,8 @@ contract('Treasury', accounts => {
     // test facets
     entityTreasuryTestFacet = await IEntityTreasuryTestFacet.at(entity.address)
 
-    // treasury
-    treasury = await IPolicyTreasury.at(entityProxy.address)
+    // policy treasury
+    policyTreasury = await IPolicyTreasury.at(entityProxy.address)
 
     // constants
     const cons = await EntityTreasuryFacet.new(settings.address)
@@ -126,6 +129,10 @@ contract('Treasury', accounts => {
 
   it('can be deployed', async () => {
     expect(entityProxy.address).to.exist
+  })
+
+  it('has funds owner address set to global treasury', async () => {
+    await policyTreasury.getFundsOwnerAddress().should.eventually.eq(treasury.address)
   })
 
   describe('has a collateralization ratio', () => {
@@ -149,16 +156,18 @@ contract('Treasury', accounts => {
 
   describe('can have policy balance updated', async () => {
     it('but not for a non-policy', async () => {
-      await treasury.incPolicyBalance(0, { from: accounts[0] }).should.be.rejectedWith('not my policy')
+      await policyTreasury.incPolicyBalance(0, { from: accounts[0] }).should.be.rejectedWith('not my policy')
     })
 
     it('for a policy', async () => {
-      await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+      await treasury.getBalance(policyTreasury.address, etherToken.address).should.eventually.eq(0)
+
+      await policyTreasury.getEconomics(etherToken.address).should.eventually.matchObj({
         realBalance_: 0,
         virtualBalance_: 0,
       })
 
-      await treasury.getPolicyEconomics(policies[0].address).should.eventually.matchObj({
+      await policyTreasury.getPolicyEconomics(policies[0].address).should.eventually.matchObj({
         balance_: 0,
         minBalance_: 0,
       })
@@ -170,24 +179,28 @@ contract('Treasury', accounts => {
         newBal: '123',
       })
 
-      await treasury.getPolicyEconomics(policies[0].address).should.eventually.matchObj({
+      await policyTreasury.getPolicyEconomics(policies[0].address).should.eventually.matchObj({
         balance_: 123,
         minBalance_: 0,
       })
 
-      await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+      await policyTreasury.getEconomics(etherToken.address).should.eventually.matchObj({
         realBalance_: 123,
         virtualBalance_: 123,
       })
+
+      await treasury.getBalance(policyTreasury.address, etherToken.address).should.eventually.eq(123)
     })
 
     it('when multiple policies deposit', async () => {
-      await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+      await treasury.getBalance(policyTreasury.address, etherToken.address).should.eventually.eq(0)
+
+      await policyTreasury.getEconomics(etherToken.address).should.eventually.matchObj({
         realBalance_: 0,
         virtualBalance_: 0,
       })
 
-      await treasury.getEconomics(etherToken2.address).should.eventually.matchObj({
+      await policyTreasury.getEconomics(etherToken2.address).should.eventually.matchObj({
         realBalance_: 0,
         virtualBalance_: 0,
       })
@@ -197,30 +210,32 @@ contract('Treasury', accounts => {
       await policies[1].testFacet.treasuryIncPolicyBalance(8)
       await policies[2].testFacet.treasuryIncPolicyBalance(5)
 
-      await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+      await policyTreasury.getEconomics(etherToken.address).should.eventually.matchObj({
         realBalance_: 27,
         virtualBalance_: 27,
       })
 
-      await treasury.getEconomics(etherToken2.address).should.eventually.matchObj({
+      await policyTreasury.getEconomics(etherToken2.address).should.eventually.matchObj({
         realBalance_: 5,
         virtualBalance_: 5,
       })
+
+      await treasury.getBalance(policyTreasury.address, etherToken.address).should.eventually.eq(27)
     })
   })
 
   describe('can have min policy balance set', async () => {
     it('but not for a non-policy', async () => {
-      await treasury.setMinPolicyBalance(0, { from: accounts[0] }).should.be.rejectedWith('not my policy')
+      await policyTreasury.setMinPolicyBalance(0, { from: accounts[0] }).should.be.rejectedWith('not my policy')
     })
 
     it('for a policy', async () => {
-      await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+      await policyTreasury.getEconomics(etherToken.address).should.eventually.matchObj({
         realBalance_: 0,
         virtualBalance_: 0,
       })
 
-      await treasury.getPolicyEconomics(policies[0].address).should.eventually.matchObj({
+      await policyTreasury.getPolicyEconomics(policies[0].address).should.eventually.matchObj({
         balance_: 0,
         minBalance_: 0,
       })
@@ -232,12 +247,12 @@ contract('Treasury', accounts => {
         bal: '123',
       })
 
-      await treasury.getPolicyEconomics(policies[0].address).should.eventually.matchObj({
+      await policyTreasury.getPolicyEconomics(policies[0].address).should.eventually.matchObj({
         balance_: 0,
         minBalance_: 123,
       })
 
-      await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+      await policyTreasury.getEconomics(etherToken.address).should.eventually.matchObj({
         realBalance_: 0,
         virtualBalance_: 0,
       })
@@ -249,19 +264,19 @@ contract('Treasury', accounts => {
     })
 
     it('and aggregates across policies', async () => {
-      await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+      await policyTreasury.getEconomics(etherToken.address).should.eventually.matchObj({
         minBalance_: 0
       })
 
       await policies[0].testFacet.treasurySetMinPolicyBalance(123)
 
-      await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+      await policyTreasury.getEconomics(etherToken.address).should.eventually.matchObj({
         minBalance_: 123
       })
 
       await policies[1].testFacet.treasurySetMinPolicyBalance(51)
 
-      await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+      await policyTreasury.getEconomics(etherToken.address).should.eventually.matchObj({
         minBalance_: 174
       })
     })
@@ -270,23 +285,23 @@ contract('Treasury', accounts => {
   describe('can pay claims', () => {
     beforeEach(async () => {
       await etherToken.deposit({ value: 100 })
-      await etherToken.transfer(treasury.address, 100)
+      await etherToken.transfer(await policyTreasury.getFundsOwnerAddress(), 100)
     })
 
     it('but not for a non-policy', async () => {
-      await treasury.payClaim(accounts[0], 1).should.be.rejectedWith('not my policy')
+      await policyTreasury.payClaim(accounts[0], 1).should.be.rejectedWith('not my policy')
     })
 
     it('for a policy, if policy balance is enough', async () => {
       await policies[0].testFacet.treasuryIncPolicyBalance(123)
 
-      await treasury.getPolicyEconomics(policies[0].address).should.eventually.matchObj({
+      await policyTreasury.getPolicyEconomics(policies[0].address).should.eventually.matchObj({
         balance_: 123,
         minBalance_: 0,
         claimsUnpaidTotalAmount_: 0,
       })
 
-      await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+      await policyTreasury.getEconomics(etherToken.address).should.eventually.matchObj({
         realBalance_: 123,
         virtualBalance_: 123,
       })
@@ -298,13 +313,13 @@ contract('Treasury', accounts => {
         newBal: '118',
       })
 
-      await treasury.getPolicyEconomics(policies[0].address).should.eventually.matchObj({
+      await policyTreasury.getPolicyEconomics(policies[0].address).should.eventually.matchObj({
         balance_: 118,
         minBalance_: 0,
         claimsUnpaidTotalAmount_: 0,
       })
 
-      await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+      await policyTreasury.getEconomics(etherToken.address).should.eventually.matchObj({
         realBalance_: 118,
         virtualBalance_: 118,
       })
@@ -315,12 +330,12 @@ contract('Treasury', accounts => {
     it('for a policy, if policy balance is not enough', async () => {
       await policies[0].testFacet.treasuryIncPolicyBalance(123)
 
-      await treasury.getPolicyEconomics(policies[0].address).should.eventually.matchObj({
+      await policyTreasury.getPolicyEconomics(policies[0].address).should.eventually.matchObj({
         balance_: 123,
         minBalance_: 0,
       })
 
-      await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+      await policyTreasury.getEconomics(etherToken.address).should.eventually.matchObj({
         realBalance_: 123,
         virtualBalance_: 123,
       })
@@ -337,7 +352,7 @@ contract('Treasury', accounts => {
       it('and real balance is not enough for either', async () => {
         await entityTreasuryTestFacet.setRealBalance(etherToken.address, 0)
 
-        await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+        await policyTreasury.getEconomics(etherToken.address).should.eventually.matchObj({
           realBalance_: 0,
           virtualBalance_: 5,
         })
@@ -345,37 +360,37 @@ contract('Treasury', accounts => {
         await policies[0].testFacet.treasuryPayClaim(accounts[5], 2)
         await policies[1].testFacet.treasuryPayClaim(accounts[4], 3)
 
-        await treasury.getClaims(etherToken.address).should.eventually.matchObj({
+        await policyTreasury.getClaims(etherToken.address).should.eventually.matchObj({
           count_: 2,
           unpaidCount_: 2,
           unpaidTotalAmount_: 5,
         })
 
-        await treasury.getClaim(etherToken.address, 1).should.eventually.matchObj({
+        await policyTreasury.getClaim(etherToken.address, 1).should.eventually.matchObj({
           policy_: policies[0].address,
           recipient_: accounts[5],
           amount_: 2,
           paid_: false,
         })
 
-        await treasury.getClaim(etherToken.address, 2).should.eventually.matchObj({
+        await policyTreasury.getClaim(etherToken.address, 2).should.eventually.matchObj({
           policy_: policies[1].address,
           recipient_: accounts[4],
           amount_: 3,
           paid_: false,
         })
 
-        await treasury.getPolicyEconomics(policies[0].address).should.eventually.matchObj({
+        await policyTreasury.getPolicyEconomics(policies[0].address).should.eventually.matchObj({
           balance_: 2,
           claimsUnpaidTotalAmount_: 2,
         })
 
-        await treasury.getPolicyEconomics(policies[1].address).should.eventually.matchObj({
+        await policyTreasury.getPolicyEconomics(policies[1].address).should.eventually.matchObj({
           balance_: 3,
           claimsUnpaidTotalAmount_: 3,
         })
 
-        await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+        await policyTreasury.getEconomics(etherToken.address).should.eventually.matchObj({
           realBalance_: 0,
           virtualBalance_: 5,
         })
@@ -384,7 +399,7 @@ contract('Treasury', accounts => {
       it('and real balance is enough for 1, but it exceeds the policy virtual balance', async () => {
         await entityTreasuryTestFacet.setRealBalance(etherToken.address, 0)
 
-        await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+        await policyTreasury.getEconomics(etherToken.address).should.eventually.matchObj({
           realBalance_: 0,
           virtualBalance_: 5,
         })
@@ -395,7 +410,7 @@ contract('Treasury', accounts => {
       it('and real balance is enough for 1, so it adds the other to pending claims', async () => {
         await entityTreasuryTestFacet.setRealBalance(etherToken.address, 1)
 
-        await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+        await policyTreasury.getEconomics(etherToken.address).should.eventually.matchObj({
           realBalance_: 1,
           virtualBalance_: 5,
         })
@@ -403,30 +418,30 @@ contract('Treasury', accounts => {
         await policies[0].testFacet.treasuryPayClaim(accounts[5], 1)
         await policies[1].testFacet.treasuryPayClaim(accounts[4], 1)
 
-        await treasury.getClaims(etherToken.address).should.eventually.matchObj({
+        await policyTreasury.getClaims(etherToken.address).should.eventually.matchObj({
           count_: 1,
           unpaidCount_: 1,
           unpaidTotalAmount_: 1,
         })
 
-        await treasury.getClaim(etherToken.address, 1).should.eventually.matchObj({
+        await policyTreasury.getClaim(etherToken.address, 1).should.eventually.matchObj({
           policy_: policies[1].address,
           recipient_: accounts[4],
           amount_: 1,
           paid_: false,
         })
 
-        await treasury.getPolicyEconomics(policies[0].address).should.eventually.matchObj({
+        await policyTreasury.getPolicyEconomics(policies[0].address).should.eventually.matchObj({
           balance_: 1,
           claimsUnpaidTotalAmount_: 0,
         })
 
-        await treasury.getPolicyEconomics(policies[1].address).should.eventually.matchObj({
+        await policyTreasury.getPolicyEconomics(policies[1].address).should.eventually.matchObj({
           balance_: 3,
           claimsUnpaidTotalAmount_: 1,
         })
 
-        await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+        await policyTreasury.getEconomics(etherToken.address).should.eventually.matchObj({
           realBalance_: 0,
           virtualBalance_: 4,
         })
@@ -449,14 +464,14 @@ contract('Treasury', accounts => {
 
         await entity.getBalance(etherToken.address).should.eventually.eq(123)
 
-        await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+        await policyTreasury.getEconomics(etherToken.address).should.eventually.matchObj({
           realBalance_: 0,
           virtualBalance_: 0,
         })
 
         await entity.transferToTreasury(etherToken.address, 123);
 
-        await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+        await policyTreasury.getEconomics(etherToken.address).should.eventually.matchObj({
           realBalance_: 123,
           virtualBalance_: 0,
         })
@@ -477,42 +492,42 @@ contract('Treasury', accounts => {
           await policies[1].testFacet.treasuryPayClaim(accounts[4], 7)
           await policies[0].testFacet.treasuryPayClaim(accounts[5], 2)
 
-          await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+          await policyTreasury.getEconomics(etherToken.address).should.eventually.matchObj({
             realBalance_: 0,
             virtualBalance_: 12,
           })
 
-          await treasury.getPolicyEconomics(policies[0].address).should.eventually.matchObj({
+          await policyTreasury.getPolicyEconomics(policies[0].address).should.eventually.matchObj({
             balance_: 5,
             claimsUnpaidTotalAmount_: 5,
           })
 
-          await treasury.getPolicyEconomics(policies[1].address).should.eventually.matchObj({
+          await policyTreasury.getPolicyEconomics(policies[1].address).should.eventually.matchObj({
             balance_: 7,
             claimsUnpaidTotalAmount_: 7,
           })
 
-          await treasury.getClaims(etherToken.address).should.eventually.matchObj({
+          await policyTreasury.getClaims(etherToken.address).should.eventually.matchObj({
             count_: 3,
             unpaidCount_: 3,
             unpaidTotalAmount_: 12,
           })
 
-          await treasury.getClaim(etherToken.address, 1).should.eventually.matchObj({
+          await policyTreasury.getClaim(etherToken.address, 1).should.eventually.matchObj({
             policy_: policies[0].address,
             recipient_: accounts[5],
             amount_: 3,
             paid_: false,
           })
 
-          await treasury.getClaim(etherToken.address, 2).should.eventually.matchObj({
+          await policyTreasury.getClaim(etherToken.address, 2).should.eventually.matchObj({
             policy_: policies[1].address,
             recipient_: accounts[4],
             amount_: 7,
             paid_: false,
           })
 
-          await treasury.getClaim(etherToken.address, 3).should.eventually.matchObj({
+          await policyTreasury.getClaim(etherToken.address, 3).should.eventually.matchObj({
             policy_: policies[0].address,
             recipient_: accounts[5],
             amount_: 2,
@@ -523,42 +538,42 @@ contract('Treasury', accounts => {
         it('when first claim cannot be paid even if a later claim could be', async () => {
           await entity.transferToTreasury(etherToken.address, 2)
 
-          await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+          await policyTreasury.getEconomics(etherToken.address).should.eventually.matchObj({
             realBalance_: 2,
             virtualBalance_: 12,
           })
 
-          await treasury.getPolicyEconomics(policies[0].address).should.eventually.matchObj({
+          await policyTreasury.getPolicyEconomics(policies[0].address).should.eventually.matchObj({
             balance_: 5,
             claimsUnpaidTotalAmount_: 5,
           })
 
-          await treasury.getPolicyEconomics(policies[1].address).should.eventually.matchObj({
+          await policyTreasury.getPolicyEconomics(policies[1].address).should.eventually.matchObj({
             balance_: 7,
             claimsUnpaidTotalAmount_: 7,
           })
 
-          await treasury.getClaims(etherToken.address).should.eventually.matchObj({
+          await policyTreasury.getClaims(etherToken.address).should.eventually.matchObj({
             count_: 3,
             unpaidCount_: 3,
             unpaidTotalAmount_: 12,
           })
 
-          await treasury.getClaim(etherToken.address, 1).should.eventually.matchObj({
+          await policyTreasury.getClaim(etherToken.address, 1).should.eventually.matchObj({
             policy_: policies[0].address,
             recipient_: accounts[5],
             amount_: 3,
             paid_: false,
           })
 
-          await treasury.getClaim(etherToken.address, 2).should.eventually.matchObj({
+          await policyTreasury.getClaim(etherToken.address, 2).should.eventually.matchObj({
             policy_: policies[1].address,
             recipient_: accounts[4],
             amount_: 7,
             paid_: false,
           })
 
-          await treasury.getClaim(etherToken.address, 3).should.eventually.matchObj({
+          await policyTreasury.getClaim(etherToken.address, 3).should.eventually.matchObj({
             policy_: policies[0].address,
             recipient_: accounts[5],
             amount_: 2,
@@ -569,42 +584,42 @@ contract('Treasury', accounts => {
         it('when first few claims can be paid', async () => {
           await entity.transferToTreasury(etherToken.address, 11)
 
-          await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+          await policyTreasury.getEconomics(etherToken.address).should.eventually.matchObj({
             realBalance_: 1,
             virtualBalance_: 2,
           })
 
-          await treasury.getPolicyEconomics(policies[0].address).should.eventually.matchObj({
+          await policyTreasury.getPolicyEconomics(policies[0].address).should.eventually.matchObj({
             balance_: 2,
             claimsUnpaidTotalAmount_: 2,
           })
 
-          await treasury.getPolicyEconomics(policies[1].address).should.eventually.matchObj({
+          await policyTreasury.getPolicyEconomics(policies[1].address).should.eventually.matchObj({
             balance_: 0,
             claimsUnpaidTotalAmount_: 0,
           })
 
-          await treasury.getClaims(etherToken.address).should.eventually.matchObj({
+          await policyTreasury.getClaims(etherToken.address).should.eventually.matchObj({
             count_: 3,
             unpaidCount_: 1,
             unpaidTotalAmount_: 2,
           })
 
-          await treasury.getClaim(etherToken.address, 1).should.eventually.matchObj({
+          await policyTreasury.getClaim(etherToken.address, 1).should.eventually.matchObj({
             policy_: policies[0].address,
             recipient_: accounts[5],
             amount_: 3,
             paid_: true,
           })
 
-          await treasury.getClaim(etherToken.address, 2).should.eventually.matchObj({
+          await policyTreasury.getClaim(etherToken.address, 2).should.eventually.matchObj({
             policy_: policies[1].address,
             recipient_: accounts[4],
             amount_: 7,
             paid_: true,
           })
 
-          await treasury.getClaim(etherToken.address, 3).should.eventually.matchObj({
+          await policyTreasury.getClaim(etherToken.address, 3).should.eventually.matchObj({
             policy_: policies[0].address,
             recipient_: accounts[5],
             amount_: 2,
@@ -629,14 +644,14 @@ contract('Treasury', accounts => {
 
         await entity.getBalance(etherToken.address).should.eventually.eq(0)
 
-        await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+        await policyTreasury.getEconomics(etherToken.address).should.eventually.matchObj({
           realBalance_: 5,
           virtualBalance_: 5,
         })
 
         await entity.transferFromTreasury(etherToken.address, 5)
 
-        await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+        await policyTreasury.getEconomics(etherToken.address).should.eventually.matchObj({
           realBalance_: 0,
           virtualBalance_: 5,
         })
@@ -650,7 +665,7 @@ contract('Treasury', accounts => {
 
         await entity.getBalance(etherToken.address).should.eventually.eq(0)
 
-        await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+        await policyTreasury.getEconomics(etherToken.address).should.eventually.matchObj({
           realBalance_: 5,
           virtualBalance_: 5,
         })
@@ -666,7 +681,7 @@ contract('Treasury', accounts => {
           await policies[1].testFacet.treasuryIncPolicyBalance(7)
           await policies[1].testFacet.treasurySetMinPolicyBalance(6)
 
-          await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+          await policyTreasury.getEconomics(etherToken.address).should.eventually.matchObj({
             realBalance_: 11,
             virtualBalance_: 11,
             minBalance_: 9,
@@ -682,7 +697,7 @@ contract('Treasury', accounts => {
           
           await entity.transferFromTreasury(etherToken.address, 2).should.be.fulfilled
 
-          await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+          await policyTreasury.getEconomics(etherToken.address).should.eventually.matchObj({
             realBalance_: 9,
             virtualBalance_: 11,
             minBalance_: 9,
@@ -696,7 +711,7 @@ contract('Treasury', accounts => {
 
           await entity.transferFromTreasury(etherToken.address, 11).should.be.fulfilled
 
-          await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+          await policyTreasury.getEconomics(etherToken.address).should.eventually.matchObj({
             realBalance_: 0,
             virtualBalance_: 11,
             minBalance_: 9,
@@ -710,7 +725,7 @@ contract('Treasury', accounts => {
 
           await entity.transferFromTreasury(etherToken.address, 11).should.be.fulfilled
 
-          await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+          await policyTreasury.getEconomics(etherToken.address).should.eventually.matchObj({
             realBalance_: 0,
             virtualBalance_: 11,
             minBalance_: 9,
@@ -726,7 +741,7 @@ contract('Treasury', accounts => {
 
           await entity.transferFromTreasury(etherToken.address, 10).should.be.fulfilled
 
-          await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+          await policyTreasury.getEconomics(etherToken.address).should.eventually.matchObj({
             realBalance_: 1,
             virtualBalance_: 11,
             minBalance_: 9,
@@ -742,27 +757,27 @@ contract('Treasury', accounts => {
     beforeEach(async () => {
       await policies[0].testFacet.treasuryIncPolicyBalance(5)
 
-      await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
+      await policyTreasury.getEconomics(etherToken.address).should.eventually.matchObj({
         realBalance_: 5,
         virtualBalance_: 5,
       })
 
-      await treasury.getPolicyEconomics(policies[0].address).should.eventually.matchObj({
+      await policyTreasury.getPolicyEconomics(policies[0].address).should.eventually.matchObj({
         balance_: 5,
         claimsUnpaidTotalAmount_: 0,
       })
     })
     
     it('if real balance is enough to cover it', async () => {
-      await treasury.isPolicyCollateralized(policies[0].address).should.eventually.eq(true)
+      await policyTreasury.isPolicyCollateralized(policies[0].address).should.eventually.eq(true)
       
       await entityTreasuryTestFacet.setRealBalance(etherToken.address, 6)
 
-      await treasury.isPolicyCollateralized(policies[0].address).should.eventually.eq(true)
+      await policyTreasury.isPolicyCollateralized(policies[0].address).should.eventually.eq(true)
 
       await entityTreasuryTestFacet.setRealBalance(etherToken.address, 4)
 
-      await treasury.isPolicyCollateralized(policies[0].address).should.eventually.eq(false)
+      await policyTreasury.isPolicyCollateralized(policies[0].address).should.eventually.eq(false)
     })
 
     it('and if there are no pending claims', async () => {
@@ -777,18 +792,18 @@ contract('Treasury', accounts => {
       // now update treasury real balance - policy 1 claim can't yet be paid because policy 2 has an earlier pending claim
       await entityTreasuryTestFacet.setRealBalance(etherToken.address, 5)
 
-      await treasury.isPolicyCollateralized(policies[0].address).should.eventually.eq(false)
+      await policyTreasury.isPolicyCollateralized(policies[0].address).should.eventually.eq(false)
     })
   })
 
   describe('can trade', () => {
     beforeEach(async () => {
       await etherToken.deposit({ value: 500 })
-      await etherToken.transfer(treasury.address, 500)
+      await etherToken.transfer(policyTreasury.getFundsOwnerAddress(), 500)
     })
 
     it('but not for a non-policy', async () => {
-      await treasury.createOrder(
+      await policyTreasury.createOrder(
         ORDER_TYPE_TOKEN_SALE,
         etherToken.address,
         1,
@@ -796,7 +811,7 @@ contract('Treasury', accounts => {
         1,
       ).should.be.rejectedWith('not my policy')
 
-      await treasury.cancelOrder(0).should.be.rejectedWith('not my policy')
+      await policyTreasury.cancelOrder(0).should.be.rejectedWith('not my policy')
     })
 
     it('for a policy', async () => {

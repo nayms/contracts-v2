@@ -110,7 +110,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     // set initial holder balance
     string memory contractBalanceKey = __ia(i, dataAddress[initialHolderKey], "balance");
     dataUint256[contractBalanceKey] = _numShares;
-
+    
     // save reference
     string memory addressKey = __i(i, "address");
     dataAddress[addressKey] = address(t);

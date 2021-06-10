@@ -110,7 +110,7 @@ import "./Policy.sol";
     override 
   {
     IERC20 tok = IERC20(_unit);
-    tok.transferFrom(msg.sender, address(this), _amount);
+    tok.transferFrom(msg.sender, address(_getTreasury()), _amount);
     dataUint256[__a(_unit, "balance")] = dataUint256[__a(_unit, "balance")].add(_amount);
     
     emit EntityDeposit(msg.sender, _unit, _amount);
@@ -125,8 +125,7 @@ import "./Policy.sol";
 
     dataUint256[__a(_unit, "balance")] = dataUint256[__a(_unit, "balance")].sub(_amount);
 
-    IERC20 tok = IERC20(_unit);
-    tok.transfer(msg.sender, _amount);
+    _getTreasury().transferTo(msg.sender, _unit, _amount);
 
     emit EntityWithdraw(msg.sender, _unit, _amount);
   }
@@ -151,10 +150,11 @@ import "./Policy.sol";
       (a1, i1, i2, i3, policyUnitAddress, , , , , ,) = p.getInfo();
     }
     
-    // check balance
-    _assertHasEnoughBalance(policyUnitAddress, _amount);
+    // update balance
+    _decBalance(policyUnitAddress, _amount);
 
     // approve transfer
+    _getTreasury().transferTo(address(this), policyUnitAddress, _amount);
     IERC20 tok = IERC20(policyUnitAddress);
     tok.approve(_policy, _amount);
 
@@ -168,9 +168,6 @@ import "./Policy.sol";
     assertCanTradeTranchTokens
     returns (uint256)
   {
-    // check balance
-    _assertHasEnoughBalance(_payUnit, _payAmount);
-    // do it
     return _tradeOnMarket(_payUnit, _payAmount, _buyUnit, _buyAmount);
   }
 
@@ -180,9 +177,6 @@ import "./Policy.sol";
     assertCanTradeTranchTokens
     returns (uint256)
   {
-    // check balance
-    _assertHasEnoughBalance(_sellUnit, _sellAmount);
-    // do it!
     return _sellAtBestPriceOnMarket(_sellUnit, _sellAmount, _buyUnit);
   }
 }

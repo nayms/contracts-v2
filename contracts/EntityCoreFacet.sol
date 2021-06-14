@@ -1,4 +1,5 @@
 pragma solidity 0.6.12;
+pragma experimental ABIEncoderV2;
 
 import "./base/Controller.sol";
 import "./base/EternalStorage.sol";
@@ -51,6 +52,57 @@ import "./Policy.sol";
 
 
   // IEntityCoreFacet
+  function createPolicyWithTranches(
+    //Policy Variables
+    uint256[] calldata _dates,
+    address _unit,
+    uint256 _premiumIntervalSeconds,
+    uint256[] calldata _commmissionsBP,
+    address[] calldata _stakeholders,
+
+    //Tranche variable array
+    uint256[] calldata _numShares,
+    uint256[] calldata _pricePerShareAmount,
+    uint256[][] calldata _premiums
+
+
+  )
+    external
+    override
+  {
+    address[] memory stakeholders;
+    stakeholders = new address[](6);
+    stakeholders[0] = address(this);
+    stakeholders[1] = msg.sender;
+    stakeholders[2] = _stakeholders[0];
+    stakeholders[3] = _stakeholders[1];
+    stakeholders[4] = _stakeholders[2];
+    stakeholders[5] = _stakeholders[3];
+
+    require(
+      IAccessControl(stakeholders[2]).aclContext() == aclContext(), 
+      'underwriter ACL context must match'
+    );
+    address f = this.createPolicy(
+      _dates,
+      _unit,
+      _premiumIntervalSeconds,
+      _commmissionsBP,
+      _stakeholders 
+    );
+
+    IPolicy pol = IPolicy(f);
+    // We know the length of the array
+    uint numTranches = _numShares.length;
+    for (uint i=0; i<numTranches; i++) {
+      pol.createTranch (
+      _numShares[i],
+      _pricePerShareAmount[i],
+      _premiums[i]
+      );
+    }
+  }
+
 
   function createPolicy(
     uint256[] calldata _dates,
@@ -61,15 +113,21 @@ import "./Policy.sol";
   )
     external
     override
+    returns (address)
   {
-    address[] memory stakeholders = new address[](6);
-    stakeholders[0] = address(this);
-    stakeholders[1] = msg.sender;
-    stakeholders[2] = _stakeholders[0];
-    stakeholders[3] = _stakeholders[1];
-    stakeholders[4] = _stakeholders[2];
-    stakeholders[5] = _stakeholders[3];
-
+    address[] memory stakeholders;
+    if (_stakeholders[0] == address(this)){
+      stakeholders = _stakeholders;
+    }
+    else{
+      stakeholders = new address[](6);
+      stakeholders[0] = address(this);
+      stakeholders[1] = msg.sender;
+      stakeholders[2] = _stakeholders[0];
+      stakeholders[3] = _stakeholders[1];
+      stakeholders[4] = _stakeholders[2];
+      stakeholders[5] = _stakeholders[3];
+    }
     require(
       IAccessControl(stakeholders[2]).aclContext() == aclContext(), 
       'underwriter ACL context must match'
@@ -91,6 +149,7 @@ import "./Policy.sol";
     dataBool[__a(pAddr, "isPolicy")] = true; // for _isPolicyCreatedByMe() to work
 
     emit NewPolicy(pAddr, address(this), msg.sender);
+    return pAddr;
   }
 
   function getBalance(address _unit) public view override returns (uint256) {

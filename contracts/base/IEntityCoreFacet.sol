@@ -1,4 +1,5 @@
 pragma solidity 0.6.12;
+pragma experimental ABIEncoderV2;
 
 /**
  * @dev Entity core logic.
@@ -12,13 +13,29 @@ interface IEntityCoreFacet {
    * @param _commmissionsBP The commissions (basis points, 1 = 0.1%) to pay the broker, capital provider and Nayms
    * @param _stakeholders The three stakeholders of the policy - capital provider, insured party, broker
    */
+
+
+  function createPolicyWithTranches(
+    //Policy Variables
+    uint256[] calldata _dates,
+    address _unit,
+    uint256 _premiumIntervalSeconds,
+    uint256[] calldata _commmissionsBP,
+    address[] calldata _stakeholders,
+
+    //Tranche variable array
+    uint256[] calldata _numShares,
+    uint256[] calldata _pricePerShareAmount,
+    uint256[][] calldata _premiums
+  ) external;
+
   function createPolicy(
     uint256[] calldata _dates,
     address _unit,
     uint256 _premiumIntervalSeconds,
     uint256[] calldata _commmissionsBP,
     address[] calldata _stakeholders
-  ) external;
+  ) external returns (address);
 
   /**
    * @dev Get balance.

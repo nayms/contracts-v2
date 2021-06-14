@@ -59,13 +59,10 @@ import "./Policy.sol";
     uint256 _premiumIntervalSeconds,
     uint256[] calldata _commmissionsBP,
     address[] calldata _stakeholders,
-
     //Tranche variable array
     uint256[] calldata _numShares,
     uint256[] calldata _pricePerShareAmount,
     uint256[][] calldata _premiums
-
-
   )
     external
     override
@@ -92,7 +89,6 @@ import "./Policy.sol";
     );
 
     IPolicy pol = IPolicy(f);
-    // We know the length of the array
     uint numTranches = _numShares.length;
     for (uint i=0; i<numTranches; i++) {
       pol.createTranch (

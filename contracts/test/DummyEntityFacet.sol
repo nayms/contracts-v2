@@ -1,4 +1,5 @@
 pragma solidity 0.6.12;
+pragma experimental ABIEncoderV2;
 
 import '../base/IDiamondFacet.sol';
 import '../base/IEntityCoreFacet.sol';
@@ -22,13 +23,28 @@ contract DummyEntityFacet is IDiamondFacet, IEntityCoreFacet {
     return address(this);
   }
 
+  function createPolicyWithTranches(
+    //Policy Variables
+    uint256[] calldata _dates,
+    address _unit,
+    uint256 _premiumIntervalSeconds,
+    uint256[] calldata _commmissionsBP,
+    address[] calldata _stakeholders,
+    //Tranche variable array
+    uint256[] calldata _numShares,
+    uint256[] calldata _pricePerShareAmount,
+    uint256[][] calldata _premiums
+  ) external override {}
+
+
   function createPolicy(
     uint256[] calldata _dates,
     address _unit,
     uint256 _premiumIntervalSeconds,
     uint256[] calldata _commmissionsBP,
     address[] calldata _stakeholders
-  ) external override {}
+  ) external override returns (address){}
+
   function deposit(address _unit, uint256 _amount) external override {}
   function withdraw(address _unit, uint256 _amount) external override {}
   function payTranchPremium(address _policy, uint256 _tranchIndex, uint256 _amount) external override {}

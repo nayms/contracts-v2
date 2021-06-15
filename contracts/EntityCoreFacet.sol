@@ -59,7 +59,7 @@ import "./Policy.sol";
     uint256 _premiumIntervalSeconds,
     uint256[] calldata _commmissionsBP,
     address[] calldata _stakeholders,
-    //Tranche variable array
+    //Tranche Variable Arrays
     uint256[] calldata _numShares,
     uint256[] calldata _pricePerShareAmount,
     uint256[][] calldata _premiums

@@ -60,26 +60,27 @@ import "./Policy.sol";
     uint256[] calldata _commmissionsBP,
     address[] calldata _stakeholders,
     //Tranche Variable Arrays
-    uint256[] calldata _numShares,
-    uint256[] calldata _pricePerShareAmount,
-    uint256[][] calldata _premiums
+    // uint256[] calldata _numShares,
+    // uint256[] calldata _pricePerShareAmount,
+    // uint256[][] calldata _premiums
+    uint256[][] calldata _trancheData
   )
     external
     override
   {
-    address[] memory stakeholders;
-    stakeholders = new address[](6);
-    stakeholders[0] = address(this);
-    stakeholders[1] = msg.sender;
-    stakeholders[2] = _stakeholders[0];
-    stakeholders[3] = _stakeholders[1];
-    stakeholders[4] = _stakeholders[2];
-    stakeholders[5] = _stakeholders[3];
+    // address[] memory stakeholders;
+    // stakeholders = new address[](6);
+    // stakeholders[0] = address(this);
+    // stakeholders[1] = msg.sender;
+    // stakeholders[2] = _stakeholders[0];
+    // stakeholders[3] = _stakeholders[1];
+    // stakeholders[4] = _stakeholders[2];
+    // stakeholders[5] = _stakeholders[3];
 
-    require(
-      IAccessControl(stakeholders[2]).aclContext() == aclContext(), 
-      'underwriter ACL context must match'
-    );
+    // require(
+    //   IAccessControl(stakeholders[2]).aclContext() == aclContext(), 
+    //   'underwriter ACL context must match'
+    // );
     address f = this.createPolicy(
       _dates,
       _unit,
@@ -88,15 +89,32 @@ import "./Policy.sol";
       _stakeholders 
     );
 
+    uint256[] memory premiums;
+    uint256 trancheDataLength;
+
     IPolicy pol = IPolicy(f);
-    uint numTranches = _numShares.length;
+    uint256 numTranches = _trancheData.length;
     for (uint i=0; i<numTranches; i++) {
+      trancheDataLength = _trancheData[i].length;
+      for (uint j=2; j<trancheDataLength; ++j)
+      {
+        premiums[j-2] = _trancheData[i][j];
+      }
+
       pol.createTranch (
-      _numShares[i],
-      _pricePerShareAmount[i],
-      _premiums[i]
+      _trancheData[i][0], // _numShares
+      _trancheData[i][1], // __pricePerShareAmount
+      premiums
       );
     }
+    // uint numTranches = _numShares.length;
+    // for (uint i=0; i<numTranches; i++) {
+    //   pol.createTranch (
+    //   _numShares[i],
+    //   _pricePerShareAmount[i],
+    //   _premiums[i]
+    //   );
+    // }
   }
 
 

@@ -24,9 +24,11 @@ interface IEntityCoreFacet {
     address[] calldata _stakeholders,
 
     //Tranche variable array
-    uint256[] calldata _numShares,
-    uint256[] calldata _pricePerShareAmount,
-    uint256[][] calldata _premiums
+    // uint256[] calldata _numShares,
+    // uint256[] calldata _pricePerShareAmount,
+    // uint256[][] calldata _premiums
+    uint256[][] calldata _trancheData
+
   ) external;
 
   function createPolicy(

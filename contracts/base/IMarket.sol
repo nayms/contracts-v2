@@ -5,7 +5,7 @@ import "./IAccessControl.sol";
 import "./ISettingsControl.sol";
 import "./IMarketCoreFacet.sol";
 
-interface IMarket is 
+abstract contract IMarket is 
   IDiamondUpgradeFacet,
   IAccessControl,
   ISettingsControl,

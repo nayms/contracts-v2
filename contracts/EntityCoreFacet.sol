@@ -178,11 +178,10 @@ import "./Policy.sol";
     external
     override
     assertCanTradeTranchTokens
-    returns (uint256)
   {
     // check balance
     _assertHasEnoughBalance(_sellUnit, _sellAmount);
     // do it!
-    return _sellAtBestPriceOnMarket(_sellUnit, _sellAmount, _buyUnit);
+    _sellAtBestPriceOnMarket(_sellUnit, _sellAmount, _buyUnit);
   }
 }

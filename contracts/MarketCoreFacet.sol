@@ -31,6 +31,7 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
     return abi.encodePacked(
       IMarketCoreFacet.executeLimitOffer.selector,
       IMarketCoreFacet.executeMarketOffer.selector,
+      IMarketCoreFacet.buy.selector,
       IMarketCoreFacet.cancel.selector,
       IMarketCoreFacet.getBestOffer.selector,
       IMarketCoreFacet.getLastOfferId.selector,
@@ -69,6 +70,10 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
     return dataUint256["lastOfferId"];
   }
 
+  function getBestOffer(address _sellToken, address _buyToken) public view override returns (uint256) {
+    return dataUint256[__iaa(0, _sellToken, _buyToken, "bestOfferId")];
+  }
+
   function cancel(uint256 _offerId) 
     assertIsActive(_offerId)
     nonReentrant
@@ -80,8 +85,13 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
     _cancel(_offerId);
   }
 
-  function getBestOffer(address _sellToken, address _buyToken) public view override returns (uint256) {
-    return dataUint256[__iaa(0, _sellToken, _buyToken, "bestOfferId")];
+  function buy(uint256 _offerId, uint256 _amount) 
+    assertIsActive(_offerId)
+    nonReentrant
+    external 
+    override
+  {
+    _buy(_offerId, _amount);
   }
 
   function executeLimitOffer(address _sellToken, uint256 _sellAmount, address _buyToken, uint256 _buyAmount) 

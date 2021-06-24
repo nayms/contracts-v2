@@ -4,6 +4,11 @@ interface IMarketCoreFacet {
   /**
    * @dev Execute a limit offer.
    *
+   * @param _sellToken token to sell.
+   * @param _sellAmount amount to sell.
+   * @param _buyToken token to buy.
+   * @param _buyAmount Amount to buy.
+   *
    * @return >0 if a limit offer was created on the market because the offer couldn't be totally fulfilled immediately. In this case the 
    * return value is the created offer's id.
    */
@@ -13,13 +18,27 @@ interface IMarketCoreFacet {
    * @dev Execute a market offer, ensuring the full amount gets sold.
    *
    * This will revert if the full amount could not be sold.
+   *
+   * @param _sellToken token to sell.
+   * @param _sellAmount amount to sell.
+   * @param _buyToken token to buy.
    */
   function executeMarketOffer(address _sellToken, uint256 _sellAmount, address _buyToken) external;
   
   /**
+   * @dev Buy an offer
+   *
+   * @param _offerId offer id.
+   * @param _amount amount (upto the offer's `buyAmount`) of offer's `buyToken` to buy with.
+   */
+  function buy(uint256 _offerId, uint256 _amount) external;
+
+  /**
    * @dev Cancel an offer.
    *
    * This will revert the offer is not longer active. 
+   *
+   * @param _offerId offer id.
    */
   function cancel(uint256 _offerId) external;
 

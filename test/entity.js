@@ -290,7 +290,7 @@ contract('Entity', accounts => {
           await acl.assignRole(entityContext, accounts[3], ROLES.ENTITY_REP)
         })
 
-        it.only('works', async () => {
+        it('works', async () => {
           // setup offers on market
           await etherToken2.deposit({ value: 100, from: accounts[7] })
           await etherToken2.approve(market.address, 100, { from: accounts[7] })

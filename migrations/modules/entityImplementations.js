@@ -12,13 +12,13 @@ export const ensureEntityImplementationsAreDeployed = async (cfg) => {
   const IDiamondUpgradeFacet = artifacts.require('./base/IDiamondUpgradeFacet')
 
   await log.task(`Deploy Entity implementations`, async task => {
-    const EntityUpgradeFacet = artifacts.require('./EntityUpgradeFacet')
+    const CommonUpgradeFacet = artifacts.require('./CommonUpgradeFacet')
     const EntityCoreFacet = artifacts.require('./EntityCoreFacet')
     const EntityTreasuryFacet = artifacts.require('./EntityTreasuryFacet')
     const EntityTreasuryBridgeFacet = artifacts.require('./EntityTreasuryBridgeFacet')    
 
     addresses = [
-      await deploy(deployer, getTxParams(), EntityUpgradeFacet, settings.address),
+      await deploy(deployer, getTxParams(), CommonUpgradeFacet, settings.address),
       await deploy(deployer, getTxParams(), EntityCoreFacet, settings.address),
       await deploy(deployer, getTxParams(), EntityTreasuryFacet, settings.address),
       await deploy(deployer, getTxParams(), EntityTreasuryBridgeFacet, settings.address),

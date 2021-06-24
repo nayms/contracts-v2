@@ -8,7 +8,7 @@ const { getMatchingNetwork, defaultGetTxParams, execCall } = require('./utils')
 const { ADDRESS_ZERO } = require('../utils/constants')
 const { getCurrentAcl, ensureAclIsDeployed, addMultisigAddressAsSystemAdmin } = require('./modules/acl')
 const { getCurrentSettings, ensureSettingsIsDeployed } = require('./modules/settings')
-const { getCurrentMarket, ensureMarketIsDeployed } = require('./modules/market')
+const { ensureMarketIsDeployed } = require('./modules/market')
 const { getCurrentEtherToken, ensureEtherTokenIsDeployed } = require('./modules/etherToken')
 const { getCurrentEntityDeployer, ensureEntityDeployerIsDeployed } = require('./modules/entityDeployer')
 const { ensureEntityImplementationsAreDeployed } = require('./modules/entityImplementations')
@@ -120,7 +120,6 @@ module.exports = async (deployer, network, accounts) => {
 
       ;[ cfg.entityDeployer, cfg.market, cfg.etherToken ] = await Promise.all([
         ensureEntityDeployerIsDeployed(cfg),
-        ensureMarketIsDeployed(cfg),
         ensureEtherTokenIsDeployed(cfg),
       ])
     })
@@ -130,12 +129,12 @@ module.exports = async (deployer, network, accounts) => {
         getCurrentAcl(cfg),
         getCurrentSettings(cfg),
         getCurrentEntityDeployer(cfg),
-        getCurrentMarket(cfg),
         getCurrentEtherToken(cfg),
       ])
     })
   }
 
+  await ensureMarketIsDeployed(cfg)
   await ensureEntityImplementationsAreDeployed(cfg)
   await ensurePolicyImplementationsAreDeployed(cfg)
 

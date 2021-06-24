@@ -59,6 +59,8 @@ interface IMarketCoreFacet {
    * @return buyToken_ buy token.
    * @return buyAmount_ buy amount.
    * @return isActive_ whether offer is active.
+   * @return nextOfferId_ id of the next offer in the sorted list of offers for this token pair.
+   * @return prevOfferId_ id of the previous offer in the sorted list of offers for this token pair.
    */
   function getOffer(uint256 _offerId) external view returns ( 
     address creator_,

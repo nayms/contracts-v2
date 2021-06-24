@@ -808,7 +808,7 @@ contract('Treasury', accounts => {
         5,
       )
 
-      const offerId = (await market.last_offer_id()).toNumber()
+      const offerId = (await market.getLastOfferId()).toNumber()
       await market.isActive(offerId).should.eventually.eq(true)
       const offer = await market.getOffer(offerId)
 

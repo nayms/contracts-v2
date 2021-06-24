@@ -26,6 +26,8 @@ interface IMarketCoreFacet {
   /**
    * @dev Get current best offer for given token pair.
    *
+   * This means finding the highest sellToken-per-buyToken price, i.e. price = sellToken / buyToken
+   *
    * @return offer id, or 0 if no current best is available.
    */
   function getBestOffer(address _sellToken, address _buyToken) external view returns (uint256);
@@ -64,6 +66,8 @@ interface IMarketCoreFacet {
     uint256 sellAmount_, 
     address buyToken_, 
     uint256 buyAmount_,
-    bool isActive_
+    bool isActive_,
+    uint256 nextOfferId_,
+    uint256 prevOfferId_
   );
 }

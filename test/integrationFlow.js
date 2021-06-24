@@ -366,7 +366,7 @@ contract('Integration: Flow', accounts => {
 
         // make the offer on the market
         await etherToken.approve(market.address, 10, { from: accounts[2] })
-        await market.offer(10, etherToken.address, 5000, tranchToken.address, 0, true, { from: accounts[2] })
+        await market.executeLimitOffer(10, etherToken.address, 5000, tranchToken.address, { from: accounts[2] })
 
         // check balances again
         await etherToken.balanceOf(accounts[2]).should.eventually.eq(15)
@@ -421,8 +421,8 @@ contract('Integration: Flow', accounts => {
 
         // make some offers on the market
         await etherToken.approve(market.address, 10, { from: accounts[2] })
-        await market.offer(4, etherToken.address, 2, tranchToken.address, 0, true, { from: accounts[2] })
-        await market.offer(6, etherToken.address, 3, tranchToken.address, 0, true, { from: accounts[2] })
+        await market.executeLimitOffer(4, etherToken.address, 2, tranchToken.address, { from: accounts[2] })
+        await market.executeLimitOffer(6, etherToken.address, 3, tranchToken.address, { from: accounts[2] })
 
         // check balances again
         await etherToken.balanceOf(accounts[2]).should.eventually.eq(15)
@@ -469,11 +469,11 @@ contract('Integration: Flow', accounts => {
     it('new token owners cannot trade their tokens whilst tranch is still selling', async () => {
       // get tranch tokens
       await etherToken.approve(market.address, 10, { from: accounts[2] })
-      await market.offer(10, etherToken.address, 5, tranchToken.address, 0, true, { from: accounts[2] })
+      await market.executeLimitOffer(10, etherToken.address, 5, tranchToken.address, { from: accounts[2] })
       // check balance
       await tranchToken.balanceOf(accounts[2]).should.eventually.eq(5)
       // try trading again
-      await market.offer(1, tranchToken.address, 1, etherToken.address, 0, true, { from: accounts[2] }).should.be.rejectedWith('can only trade when policy is active')
+      await market.executeLimitOffer(1, tranchToken.address, 1, etherToken.address, { from: accounts[2] }).should.be.rejectedWith('can only trade when policy is active')
     })
 
     describe('if a tranch fully sells out', () => {
@@ -487,7 +487,7 @@ contract('Integration: Flow', accounts => {
         // buy the whole tranch
         await etherToken.deposit({ from: accounts[2], value: 200 })
         await etherToken.approve(market.address, 200, { from: accounts[2] })
-        txResult = await market.offer(200, etherToken.address, 100, tranchToken.address, 0, true, { from: accounts[2] })
+        txResult = await market.executeLimitOffer(200, etherToken.address, 100, tranchToken.address, { from: accounts[2] })
       })
 
       it('emits tranch state updated event', async () => {
@@ -670,7 +670,7 @@ contract('Integration: Flow', accounts => {
           // buy the whole tranch to make it active
           await etherToken.deposit({ from: accounts[2], value: 1000 })
           await etherToken.approve(market.address, 200, { from: accounts[2] })
-          await market.offer(200, etherToken.address, 100, tranchToken.address, 0, true, { from: accounts[2] })
+          await market.executeLimitOffer(200, etherToken.address, 100, tranchToken.address, { from: accounts[2] })
         })
 
         it('and updates internal state', async () => {
@@ -710,7 +710,7 @@ contract('Integration: Flow', accounts => {
           // buy the whole tranch to make it active
           await etherToken.deposit({ from: accounts[2], value: 1000 })
           await etherToken.approve(market.address, 200, { from: accounts[2] })
-          const ret = await market.offer(200, etherToken.address, 100, tranchToken.address, 0, true, { from: accounts[2] })
+          const ret = await market.executeLimitOffer(200, etherToken.address, 100, tranchToken.address, { from: accounts[2] })
 
           const ev = extractEventArgs(ret, events.TranchStateUpdated)
           expect(ev.tranchIndex).to.eq('0')
@@ -761,7 +761,7 @@ contract('Integration: Flow', accounts => {
         // buy the whole tranch to make it active
         await etherToken.deposit({ from: accounts[2], value: 1000 })
         await etherToken.approve(market.address, 200, { from: accounts[2] })
-        await market.offer(200, etherToken.address, 100, tranchToken.address, 0, true, { from: accounts[2] })
+        await market.executeLimitOffer(200, etherToken.address, 100, tranchToken.address, { from: accounts[2] })
         // pay all premiums upto start date
         await etherToken.approve(policy.address, 1000, { from: accounts[2] })
         let toPay = 0
@@ -775,7 +775,7 @@ contract('Integration: Flow', accounts => {
         await policy.checkAndUpdateState()
 
         // try trading
-        await market.offer(1, tranchToken.address, 1, etherToken.address, 0, true, { from: accounts[2] }).should.be.fulfilled
+        await market.executeLimitOffer(1, tranchToken.address, 1, etherToken.address, { from: accounts[2] }).should.be.fulfilled
 
         // check balance
         await tranchToken.balanceOf(accounts[2]).should.eventually.eq(99)
@@ -806,10 +806,10 @@ contract('Integration: Flow', accounts => {
       await etherToken.approve(market.address, 2000, { from: accounts[2] })
 
       const tranch0Address = ((await getTranchToken(0))).address
-      await market.offer(200, etherToken.address, 100, tranch0Address, 0, true, { from: accounts[2] })
+      await market.executeLimitOffer(200, etherToken.address, 100, tranch0Address, { from: accounts[2] })
 
       const tranch1Address = ((await getTranchToken(1))).address
-      await market.offer(100, etherToken.address, 50, tranch1Address, 0, true, { from: accounts[2] })
+      await market.executeLimitOffer(100, etherToken.address, 50, tranch1Address, { from: accounts[2] })
 
       // pay premiums upto start date
       let toPay = 0

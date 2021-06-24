@@ -23,11 +23,6 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
    * Constructor
    */
   constructor (address _settings) Controller(_settings) public {
-    /*
-    * Minimum sell amount for a token - used to avoid "dust" offers that have very small amount of tokens to sell whereby it
-    * would cost more gas to accept the offer than the value of the tokens received
-    */
-    dataUint256["dust"] = 1000000000;
   }
 
   // IDiamondFacet
@@ -56,7 +51,9 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
     uint256 sellAmount_, 
     address buyToken_, 
     uint256 buyAmount_,
-    bool isActive_
+    bool isActive_,
+    uint256 nextOfferId_,
+    uint256 prevOfferId_
   ) {
     creator_ = dataAddress[__i(_offerId, "creator")];
     sellToken_ = dataAddress[__i(_offerId, "sellToken")];
@@ -64,6 +61,8 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
     buyToken_ = dataAddress[__i(_offerId, "buyToken")];
     buyAmount_ = dataUint256[__i(_offerId, "buyAmount")];
     isActive_ = dataBool[__i(_offerId, "isActive")];
+    nextOfferId_ = dataUint256[__i(_offerId, "rankNext")];
+    prevOfferId_ = dataUint256[__i(_offerId, "rankPrev")];
   }
 
   function getLastOfferId() external view override returns (uint256) {
@@ -120,7 +119,7 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
 
     uint256 sellAmount = _sellAmount;
     uint256 id;
-    uint256 fillAmount;
+    uint256 soldAmount;
 
     while (sellAmount > 0) {
       id = getBestOffer(_buyToken, _sellToken);
@@ -131,26 +130,25 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
 
       // There is a chance that pay_amt is smaller than 1 wei of the other token
       if (sellAmount * 1 ether < wdiv(offerBuyAmount, offerSellAmount)) {
-          break; // We consider that all amount is sold
+        break; // We consider that all amount is sold
       }
 
-      // if greater then buy whole offer
+      // if sell amount >= offer buy amount then lets buy the whole offer
       if (sellAmount >= offerBuyAmount) {                       //If amount to sell is higher or equal than current offer amount to buy
-        fillAmount = fillAmount.add(offerSellAmount);
+        _buy(id, offerBuyAmount);
+        soldAmount = soldAmount.add(offerBuyAmount);
         sellAmount = sellAmount.sub(offerBuyAmount);
-        _buy(id, sellAmount);
       } 
-      // if lower then buy as much as possible of offer
+      // otherwise, let's just buy what we can
       else {
-        uint256 baux = rmul(sellAmount.mul(10 ** 9), rdiv(offerSellAmount, offerBuyAmount)).div(10 ** 9);
-        fillAmount = fillAmount.add(baux);
-        _buy(id, baux);
+        _buy(id, sellAmount);
+        soldAmount = soldAmount.add(sellAmount);
         sellAmount = 0;
       }
     }
 
     // check that everything got sold
-    require(fillAmount >= _sellAmount, "sale not fulfilled");
+    require(soldAmount >= _sellAmount, "sale not fulfilled");
   }
 
   // Private
@@ -198,7 +196,7 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
   }
 
   function _removeOfferFromSortedList(uint256 _offerId) private {
-    // check that offer is still in the sorted list
+    // check that offer is in the sorted list
     require(_isOfferInSortedList(_offerId), "offer not in sorted list");
 
     address sellToken = dataAddress[__i(_offerId, "sellToken")];
@@ -269,6 +267,9 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
       // their "correct" values and `bestBuyAmount` and `buyAmount` at -1.
       // Since (c - 1) * (d - 1) > (a + 1) * (b + 1) is equivalent to
       // c * d > a * b + a + b + c + d, we write...
+      //
+      // (For detailed breakdown see https://hiddentao.com/archives/2019/09/08/maker-otc-on-chain-orderbook-deep-dive)
+      //
       if (bestBuyAmount.mul(buyAmount) > sellAmount.mul(bestSellAmount).add(bestBuyAmount).add(buyAmount).add(sellAmount).add(bestSellAmount)) {
         break;
       }
@@ -277,7 +278,7 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
       // of discussion.
 
       // do the buy      
-      _buy(bestOfferId, min(bestSellAmount, buyAmount));
+      _buy(bestOfferId, min(bestBuyAmount, sellAmount));
 
       uint256 buyAmountOld = buyAmount;
       buyAmount = buyAmount.sub(bestSellAmount.mul(buyAmount));
@@ -319,54 +320,42 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
     dataUint256[__i(id, "buyAmount")] = _buyAmount;
     dataBool[__i(id, "isActive")] = true;
 
+    // escrow the tokens
+    require(IERC20(_sellToken).transferFrom(msg.sender, address(this), _sellAmount), "unable to escrow tokens");
+
     return id;
   }
 
-  function _buy(uint256 _offerId, uint256 _amount) private {
-    uint256 offerSellToken = dataUint256[__i(_offerId, "sellToken")];
-    uint256 offerSellAmount = dataUint256[__i(_offerId, "sellAmount")];
-
-    if (offerSellAmount == _amount) {
-      // remove from sorted list
-      _removeOfferFromSortedList(_offerId);
-      
-      // do the buy
-      _executeBuy(_offerId, _amount);
-
-      // if offer has become dust during buy, we cancel it
-      if (isActive(_offerId) && offerSellAmount < dataUint256["dust"]) {
-        dataUint256["lastDustOfferId"] = _offerId;
-        _cancel(_offerId);
-      }
-    }
-  }
-
-  function _executeBuy(uint256 _offerId, uint256 _amount) private {
+  function _buy(uint256 _offerId, uint256 _requestedBuyAmount) private {
     address creator = dataAddress[__i(_offerId, "creator")];
-    address sellToken = dataAddress[__i(_offerId, "sellToken")];
-    uint256 sellAmount = dataUint256[__i(_offerId, "sellAmount")];
-    address buyToken = dataAddress[__i(_offerId, "buyToken")];
-    uint256 buyAmount = dataUint256[__i(_offerId, "buyAmount")];
+    address offerSellToken = dataAddress[__i(_offerId, "sellToken")];
+    uint256 offerSellAmount = dataUint256[__i(_offerId, "sellAmount")];
+    address offerBuyToken = dataAddress[__i(_offerId, "buyToken")];
+    uint256 offerBuyAmount = dataUint256[__i(_offerId, "buyAmount")];
 
-    uint spend = _amount.mul(buyAmount).div(sellAmount);
+    // (a / b) * c = c * a / b  -> do multiplication first to avoid underflow
+    uint256 thisSaleSellAmount = _requestedBuyAmount.mul(offerSellAmount).div(offerBuyAmount);
 
-    require(uint128(spend) == spend);
-    require(uint128(_amount) == _amount);    
+    require(uint128(_requestedBuyAmount) == _requestedBuyAmount, "buy amount exceeds int limit");    
+    require(uint128(thisSaleSellAmount) == thisSaleSellAmount, "sell amount exceeds int limit");
 
-    // For backwards semantic compatibility.
-    if (_amount == 0 || spend == 0 || _amount > sellAmount || spend > buyAmount) {
-      return;
-    }
+    // check bounds
+    require(_requestedBuyAmount > 0, "requested buy amount is 0");
+    require(_requestedBuyAmount <= offerBuyAmount, "requested buy amount too large");
+    require(thisSaleSellAmount > 0, "calculated sell amount is 0");
+    require(thisSaleSellAmount <= offerSellAmount, "calculated sell amount too large");
+
+    // update balances
+    dataUint256[__i(_offerId, "sellAmount")] = offerSellAmount.sub(thisSaleSellAmount);
+    dataUint256[__i(_offerId, "buyAmount")] = offerBuyAmount.sub(_requestedBuyAmount);
 
     // do the transfer
-    dataUint256[__i(_offerId, "sellAmount")] = sellAmount.sub(_amount);
-    dataUint256[__i(_offerId, "buyAmount")] = buyAmount.sub(spend);
-    require(IERC20(buyToken).transferFrom(msg.sender, creator, spend));
-    require(IERC20(sellToken).transfer(msg.sender, _amount));    
+    require(IERC20(offerBuyToken).transferFrom(msg.sender, creator, _requestedBuyAmount), "sender -> creator transfer failed");
+    require(IERC20(offerSellToken).transfer(msg.sender, thisSaleSellAmount), "market -> sender transfer failed");    
 
-    // mark offer as no longer active if necessary
-    if (dataUint256[__i(_offerId, "sellAmount")] == 0) {
-      dataBool[__i(_offerId, "isActive")] = false;
+    // cancel offer if it has become dust
+    if (dataUint256[__i(_offerId, "sellAmount")] < dataUint256["dust"]) {
+      _cancel(_offerId);
     }
   }
 
@@ -379,7 +368,10 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
     address sellToken = dataAddress[__i(_offerId, "sellToken")];
     uint256 sellAmount = dataUint256[__i(_offerId, "sellAmount")];
 
-    require(IERC20(sellToken).transfer(creator, sellAmount));
+    // transfer remaining sell amount back to creator
+    if (sellAmount > 0) {
+      require(IERC20(sellToken).transfer(creator, sellAmount));
+    }
 
     dataBool[__i(_offerId, "isActive")] = false;
   }

@@ -7,6 +7,7 @@ import {
   calcPremiumsMinusCommissions,
   EvmSnapshot,
   createEntity,
+  createPolicyWithTranches,
 } from './utils'
 
 import { events } from '..'
@@ -26,7 +27,7 @@ const Policy = artifacts.require("./Policy")
 const IPolicy = artifacts.require("./IPolicy")
 const IERC20 = artifacts.require("./base/IERC20")
 
-contract('Policy: Approvals', accounts => {
+contract('Policy: Approvals - Unified', accounts => {
   const evmSnapshot = new EvmSnapshot()
 
   const claimsAdminCommissionBP = 100
@@ -125,7 +126,7 @@ contract('Policy: Approvals', accounts => {
     premiumIntervalSeconds = 500
 
     //Create policy with two tranches...
-    const createPolicyTx = await createPolicy(entity, {
+    const createPolicyTx = await createPolicyWithTranches(entity, {
       initiationDate,
       startDate,
       maturationDate,
@@ -138,10 +139,11 @@ contract('Policy: Approvals', accounts => {
       insuredParty,
       broker,
       claimsAdmin,
-      numShares: [100,150],
-      pricePerShareAmount: [2,3],
-      premiums: [[10, 20, 30, 40, 50, 60, 70],[1, 2, 3, 4, 5, 6, 7]]
-    }, { from: entityManagerAddress })
+//      numShares: [100,150],
+//      pricePerShareAmount: [2,3],
+//      premiums: [[10, 20, 30, 40, 50, 60, 70],[1, 2, 3, 4, 5, 6, 7]]
+      trancheData: [[100,2,10, 20, 30, 40, 50, 60, 70],[150,3,1, 2, 3, 4, 5, 6, 7]]
+}, { from: entityManagerAddress })
 
 
 

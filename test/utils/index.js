@@ -157,6 +157,40 @@ export const createEntity = async ({ acl, entityDeployer, adminAddress, entityCo
   return entityAddress
 }
 
+export const createPolicyWithTranches = async (entity, attrs = {}, ...callAttrs) => {
+  const currentTime = ~~(Date.now() / 1000)
+
+  const {
+    initiationDate = currentTime,
+    startDate = currentTime + 120,
+    maturationDate = currentTime + 300,
+    unit = ADDRESS_ZERO,
+    premiumIntervalSeconds = 30,
+    brokerCommissionBP = 0,
+    claimsAdminCommissionBP = 0,
+    naymsCommissionBP = 0,
+    underwriter = entity.address,
+    insuredParty = ADDRESS_ZERO,
+    broker = ADDRESS_ZERO,
+    claimsAdmin = ADDRESS_ZERO,
+  } = attrs
+
+  const {
+    tranche1 = [10, 0.1, 0.1],
+    tranche2 = [5, 0.1, 0.1]
+  } = trancheAtrs
+
+  return entity.createPolicyWithTranches(
+    [initiationDate, startDate, maturationDate],
+    unit,
+    premiumIntervalSeconds,
+    [brokerCommissionBP, claimsAdminCommissionBP, naymsCommissionBP],
+    [underwriter, insuredParty, broker, claimsAdmin],
+    [tranche1, tranche2],
+    ...callAttrs,
+  )
+}
+
 export const createPolicy = async (entity, attrs = {}, ...callAttrs) => {
   const currentTime = ~~(Date.now() / 1000)
 

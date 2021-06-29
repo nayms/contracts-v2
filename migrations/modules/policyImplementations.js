@@ -12,7 +12,7 @@ export const ensurePolicyImplementationsAreDeployed = async (cfg) => {
   const IDiamondUpgradeFacet = artifacts.require('./base/IDiamondUpgradeFacet')
 
   await log.task(`Deploy Policy implementations`, async task => {
-    const PolicyUpgradeFacet = artifacts.require('./PolicyUpgradeFacet')
+    const CommonUpgradeFacet = artifacts.require('./CommonUpgradeFacet')
     const PolicyCoreFacet = artifacts.require('./PolicyCoreFacet')
     const PolicyClaimsFacet = artifacts.require('./PolicyClaimsFacet')
     const PolicyCommissionsFacet = artifacts.require('./PolicyCommissionsFacet')
@@ -22,7 +22,7 @@ export const ensurePolicyImplementationsAreDeployed = async (cfg) => {
 
     addresses = [
       await deploy(deployer, getTxParams(), PolicyCoreFacet, settings.address),
-      await deploy(deployer, getTxParams(), PolicyUpgradeFacet, settings.address),
+      await deploy(deployer, getTxParams(), CommonUpgradeFacet, settings.address),
       await deploy(deployer, getTxParams(), PolicyClaimsFacet, settings.address),
       await deploy(deployer, getTxParams(), PolicyCommissionsFacet, settings.address),
       await deploy(deployer, getTxParams(), PolicyPremiumsFacet, settings.address),

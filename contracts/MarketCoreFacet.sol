@@ -399,14 +399,8 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
   }
 
   // These are from https://github.com/nayms/maker-otc/blob/master/contracts/math.sol
-  function rmul(uint x, uint y) private pure returns (uint z) {
-    z = SafeMath.add(SafeMath.mul(x, y), (10 ** 27) / 2).div(10 ** 27);
-  }
   function wdiv(uint x, uint y) private pure returns (uint z) {
     z = SafeMath.add(SafeMath.mul(x, (10 ** 18)), y.div(2)).div(y);
-  }
-  function rdiv(uint x, uint y) private pure returns (uint z) {
-    z = SafeMath.add(SafeMath.mul(x, (10 ** 27)), y.div(2)).div(y);
   }
   function min(uint x, uint y) private pure returns (uint z) {
     z = (x < y ? x : y);

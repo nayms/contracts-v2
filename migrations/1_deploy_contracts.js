@@ -118,14 +118,14 @@ module.exports = async (deployer, network, accounts) => {
       cfg.acl = await ensureAclIsDeployed(cfg)
       cfg.settings = await ensureSettingsIsDeployed(cfg)
 
-      ;[ cfg.entityDeployer, cfg.market, cfg.etherToken ] = await Promise.all([
+      ;[ cfg.entityDeployer, cfg.etherToken ] = await Promise.all([
         ensureEntityDeployerIsDeployed(cfg),
         ensureEtherTokenIsDeployed(cfg),
       ])
     })
   } else {
     await log.task('Deploying upgrades only', async () => {
-      ;[ cfg.acl, cfg.settings, cfg.entityDeployer, cfg.market, cfg.etherToken ] = await Promise.all([
+      ;[ cfg.acl, cfg.settings, cfg.entityDeployer, cfg.etherToken ] = await Promise.all([
         getCurrentAcl(cfg),
         getCurrentSettings(cfg),
         getCurrentEntityDeployer(cfg),
@@ -134,7 +134,8 @@ module.exports = async (deployer, network, accounts) => {
     })
   }
 
-  await ensureMarketIsDeployed(cfg)
+  cfg.market = await ensureMarketIsDeployed(cfg)
+
   await ensureEntityImplementationsAreDeployed(cfg)
   await ensurePolicyImplementationsAreDeployed(cfg)
 

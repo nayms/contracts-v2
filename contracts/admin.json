@@ -1364,20 +1364,10 @@
         {
           "type": "call",
           "contract": "IMarket",
-          "method": "isActive",
-          "address": "@input[contractAddress]",
-          "args": {
-            "id": "@input[offerId]"
-          },
-          "saveResultAsInput": "isActive"
-        },
-        {
-          "type": "call",
-          "contract": "IMarket",
           "method": "getOffer",
           "address": "@input[contractAddress]",
           "args": {
-            "id": "@input[offerId]"
+            "_offerId": "@input[offerId]"
           },
           "saveResultAsInput": "details"
         }
@@ -1386,12 +1376,12 @@
         {
           "title": "Is active?",
           "type": "bool",
-          "value": "@input[isActive]"
+          "value": "@input[details][isActive_]"
         },
         {
           "title": "Creator",
           "type": "address",
-          "value": "@input[details][creator]"
+          "value": "@input[details][creator_]"
         },
         {
           "title": "Sell amount",

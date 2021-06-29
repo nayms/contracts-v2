@@ -65,5 +65,7 @@ export const ensureMarketIsDeployed = async (cfg) => {
     })
   }
 
-  return await IMarket.at(market.address)
+  cfg.market = await IMarket.at(market.address)
+
+  return cfg.market
 }

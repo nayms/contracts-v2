@@ -260,10 +260,10 @@ contract('Policy: Claims', accounts => {
       buyAllTranchTokens = async () => {
         await etherToken.deposit({ value: 40 })
         await etherToken.approve(market.address, 40)
-        await market.executeLimitOffer(10, etherToken.address, 10, tranch0Address)
-        await market.executeLimitOffer(10, etherToken.address, 10, tranch1Address)
-        await market.executeLimitOffer(10, etherToken.address, 10, tranch2Address)
-        await market.executeLimitOffer(10, etherToken.address, 10, tranch3Address)
+        await market.executeLimitOffer(etherToken.address, 10, tranch0Address, 10)
+        await market.executeLimitOffer(etherToken.address, 10, tranch1Address, 10)
+        await market.executeLimitOffer(etherToken.address, 10, tranch2Address, 10)
+        await market.executeLimitOffer(etherToken.address, 10, tranch3Address, 10)
       }
 
       evmClock = new EvmClock(baseTime)

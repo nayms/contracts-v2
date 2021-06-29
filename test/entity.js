@@ -302,7 +302,7 @@ contract('Entity', accounts => {
           await etherToken2.approve(market.address, 50, { from: accounts[8] })
           await market.executeLimitOffer(etherToken2.address, 50, etherToken.address, 5, { from: accounts[8] }); // worse price, but able to buy all
 
-          offerId = (await market.getBestOffer(etherToken2.address, etherToken.address)).toNumber()
+          offerId = (await market.getBestOfferId(etherToken2.address, etherToken.address)).toNumber()
 
           // now sell from the other direction
           await entity.sellAtBestPrice(etherToken.address, 5, etherToken2.address, { from: accounts[3] })

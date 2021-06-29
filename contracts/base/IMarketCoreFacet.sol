@@ -49,7 +49,7 @@ interface IMarketCoreFacet {
    *
    * @return offer id, or 0 if no current best is available.
    */
-  function getBestOffer(address _sellToken, address _buyToken) external view returns (uint256);
+  function getBestOfferId(address _sellToken, address _buyToken) external view returns (uint256);
 
   /**
    * @dev Get last created offer.

@@ -14,7 +14,7 @@
     "settingsAddress": {
       "default": ""
     },
-    "matchingMarketAddress": {
+    "marketAddress": {
       "default": ""
     },
     "roles": {
@@ -1333,13 +1333,13 @@
       ]
     },
     {
-      "id": "isOfferActive",
+      "id": "getOfferStatus",
       "title": "Market: Get offer status",
       "inputs": [
         {
           "name": "contractAddress",
           "title": "Market address",
-          "initialValue": "@constant[matchingMarketAddress]",
+          "initialValue": "@constant[marketAddress]",
           "type": "address",
           "validation": [
             {
@@ -1363,7 +1363,7 @@
       "execs": [
         {
           "type": "call",
-          "contract": "MatchingMarket",
+          "contract": "IMarket",
           "method": "isActive",
           "address": "@input[contractAddress]",
           "args": {
@@ -1373,17 +1373,7 @@
         },
         {
           "type": "call",
-          "contract": "MatchingMarket",
-          "method": "getOwner",
-          "address": "@input[contractAddress]",
-          "args": {
-            "id": "@input[offerId]"
-          },
-          "saveResultAsInput": "owner"
-        },
-        {
-          "type": "call",
-          "contract": "MatchingMarket",
+          "contract": "IMarket",
           "method": "getOffer",
           "address": "@input[contractAddress]",
           "args": {
@@ -1399,29 +1389,29 @@
           "value": "@input[isActive]"
         },
         {
-          "title": "Owner",
+          "title": "Creator",
           "type": "address",
-          "value": "@input[owner]"
+          "value": "@input[details][creator]"
         },
         {
           "title": "Sell amount",
           "type": "int",
-          "value": "@input[details][0]"
+          "value": "@input[details][sellAmount_)]"
         },
         {
           "title": "Sell token",
           "type": "address",
-          "value": "@input[details][1]"
+          "value": "@input[details][sellToken_]"
         },
         {
           "title": "Buy amount",
           "type": "int",
-          "value": "@input[details][2]"
+          "value": "@input[details][buyAmount_]"
         },
         {
           "title": "Buy token",
           "type": "address",
-          "value": "@input[details][3]"
+          "value": "@input[details][buyToken_]"
         }
       ]
     }

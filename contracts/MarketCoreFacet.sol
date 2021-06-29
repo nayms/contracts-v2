@@ -33,7 +33,7 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
       IMarketCoreFacet.executeMarketOffer.selector,
       IMarketCoreFacet.buy.selector,
       IMarketCoreFacet.cancel.selector,
-      IMarketCoreFacet.getBestOffer.selector,
+      IMarketCoreFacet.getBestOfferId.selector,
       IMarketCoreFacet.getLastOfferId.selector,
       IMarketCoreFacet.isActive.selector,
       IMarketCoreFacet.getOffer.selector
@@ -70,7 +70,7 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
     return dataUint256["lastOfferId"];
   }
 
-  function getBestOffer(address _sellToken, address _buyToken) public view override returns (uint256) {
+  function getBestOfferId(address _sellToken, address _buyToken) public view override returns (uint256) {
     return dataUint256[__iaa(0, _sellToken, _buyToken, "bestOfferId")];
   }
 
@@ -132,7 +132,7 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
     uint256 soldAmount;
 
     while (sellAmount > 0) {
-      id = getBestOffer(_buyToken, _sellToken);
+      id = getBestOfferId(_buyToken, _sellToken);
       require(id != 0, "not enough orders in market");
 
       uint256 offerBuyAmount = dataUint256[__i(id, "buyAmount")];
@@ -287,14 +287,16 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
       // ^ The `rounding` parameter is a compromise borne of a couple days
       // of discussion.
 
-      // do the buy      
-      _buy(bestOfferId, min(bestBuyAmount, sellAmount));
+      // do the buy     
+      uint256 finalSellAmount = min(bestBuyAmount, sellAmount); 
+      _buy(bestOfferId, finalSellAmount);
 
-      uint256 buyAmountOld = buyAmount;
-      buyAmount = buyAmount.sub(bestSellAmount.mul(buyAmount));
-      sellAmount = buyAmount.mul(sellAmount).div(buyAmountOld);
+      // calculate how much is left to buy/sell
+      uint256 sellAmountOld = sellAmount;
+      sellAmount = sellAmount.sub(finalSellAmount);
+      buyAmount = sellAmount.mul(buyAmount).div(sellAmountOld);
 
-      // if nothing to sell or buy then we're done
+      // if nothing left to sell or buy then we're done
       if (sellAmount == 0 || buyAmount == 0) {
         break;
       }
@@ -387,13 +389,13 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
   }
 
   function _assertValidOffer(address _sellToken, uint256 _sellAmount, address _buyToken, uint256 _buyAmount) private {
-    require(uint128(_sellAmount) == _sellAmount);
-    require(uint128(_buyAmount) == _buyAmount);
-    require(_sellAmount > 0);
-    require(_sellToken != address(0));
-    require(_buyAmount > 0);
-    require(_buyToken != address(0));
-    require(_sellToken != _buyToken);
+    require(uint128(_sellAmount) == _sellAmount, "sell amount must be uint128");
+    require(uint128(_buyAmount) == _buyAmount, "buy amount must be uint128");
+    require(_sellAmount > 0, "sell amount must be greater than 0");
+    require(_sellToken != address(0), "sell token must be valid");
+    require(_buyAmount > 0, "buy amount must be greater than 0");
+    require(_buyToken != address(0), "buy token must be valid");
+    require(_sellToken != _buyToken, "sell token and buy token must be different");
   }
 
   // These are from https://github.com/nayms/maker-otc/blob/master/contracts/math.sol

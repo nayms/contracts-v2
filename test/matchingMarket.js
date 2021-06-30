@@ -233,10 +233,85 @@ contract('MatchingMarket', accounts => {
             const firstOfferActive = await matchingMarketInstance.isActive(1) 
             expect(firstOfferActive).to.be.equal(false)
         })
+
+        it('should delete bought offer successfully', async () => {
+            await matchingMarketInstance.getOffer(1)
+            .should.eventually.matchObj({
+                '0': toBN(0),
+                '1': ADDRESS_ZERO,
+                '2': toBN(0),
+                '3': ADDRESS_ZERO
+            })
+        })
     })
 
     describe('match offers', () => {
-        xit('should add and match opposite offer for same token pair')
+        it('should add opposite offers for same token pair', async () => {
+            // first offer
+            const first_pay_amt = toWei('10')
+            const first_buy_amt = toWei('20')
+
+            await erc20WETH.approve(
+                matchingMarketInstance.address,
+                first_pay_amt,
+                {from: accounts[1]}
+            ).should.be.fulfilled
+
+            const first_offerTx = await matchingMarketInstance.make(
+                erc20WETH.address, 
+                erc20DAI.address,
+                first_pay_amt,
+                first_buy_amt,
+                {from: accounts[1]}
+            )
+
+            /* const eventArgs = extractEventArgs(first_offerTx, events.LogUnsortedOffer)
+            expect(eventArgs).to.include({ id: '3' }) */
+
+            await erc20WETH.balanceOf(accounts[1]).should.eventually.eq((mintAmount - first_pay_amt - first_pay_amt).toString())
+            
+            await matchingMarketInstance.getOffer(3)
+            .should.eventually.matchObj({
+                '0': toBN(10e18),
+                '1': erc20WETH.address,
+                '2': toBN(20e18),
+                '3': erc20DAI.address
+            })
+
+            // second matching offer
+            const second_pay_amt = toWei('20')
+            const second_buy_amt = toWei('10')
+
+            await erc20DAI.approve(
+                matchingMarketInstance.address,
+                second_pay_amt,
+                {from: accounts[3]}
+            ).should.be.fulfilled
+
+            const second_offerTx = await matchingMarketInstance.make( 
+                erc20DAI.address,
+                erc20WETH.address,
+                second_pay_amt,
+                second_buy_amt,
+                {from: accounts[3]}
+            )
+
+            /* const eventArgs = extractEventArgs(second_offerTx, events.LogUnsortedOffer)
+            expect(eventArgs).to.include({ id: '4' }) */
+
+            await erc20WETH.balanceOf(accounts[3]).should.eventually.eq(toWei('1010').toString())
+
+            await matchingMarketInstance.getOffer(4)
+            .should.eventually.matchObj({
+                '0': toBN(20e18),
+                '1': erc20DAI.address,
+                '2': toBN(10e18),
+                '3': erc20WETH.address
+            })
+        })
+
+        xit('should match opposite offers for same token pair')
+        
     })
 
     describe('insert', () => {

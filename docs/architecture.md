@@ -92,11 +92,9 @@ Entities can create policies, though the rule is that the entity itself must be 
 
 Entities also have an internal _treasury_ which is where policy collateral (and premium payments) is actually stored. Funds can be transferred between the entity's "normal" balance and its treasury balance as long as its treasury's collateralization ratio is honoured.
 
-The treasury has a _virtual balance_, which is the balance it expects to have according to the policies it has collateralized as well as pending claims. It has a _real/actual balance_, which is its real balance. And it has a collateralization ratio set, which is essentially of the virtual balance to the real balance. 
+The treasury has a _virtual balance_, which is the balance it expects to have according to the policies it has collateralized as well as pending claims. It has a _real/actual balance_, which is its real balance.
 
-_For example, if the collateraliation ration is 25% then the real balance must always be atleast 25% of the virtual balance._
-
-![entity](https://user-images.githubusercontent.com/266594/118809113-1a46ea80-b8a2-11eb-94e6-ca53a70e35fd.png)
+![entity treasury](https://user-images.githubusercontent.com/266594/123963705-a1f83c80-d9aa-11eb-9ba5-b106d0f96a72.png)
 
 When a claim needs to be paid out and there is not enough balance to do so, the claim gets added to the internal claim queue in the treasury. As soon as new funds are received (via transfer from the entity "normal" balance) any pending claims get paid out automatically in the order in which they were originally created (FIFO):
 

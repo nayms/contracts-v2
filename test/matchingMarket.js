@@ -1,11 +1,11 @@
-import { extractEventArgs, ADDRESS_ZERO, EvmSnapshot } from './utils'
+import { extractEventArgs, ADDRESS_ZERO, EvmSnapshot } from './utils/index'
+import {toBN, toWei } from './utils/web3'
 import { events } from '..'
-import { latest, duration, increaseTo, increase, parseEther, toBN } from './helpers/utils'
-import { findEventInTransaction } from './helpers/events';
 
 const IERC20 = artifacts.require("./base/IERC20")
 const DummyToken = artifacts.require("./DummyToken")
 const Market = artifacts.require('./MatchingMarket')
+
 
 contract('MatchingMarket', accounts => {
     let matchingMarketInstance
@@ -17,18 +17,18 @@ contract('MatchingMarket', accounts => {
     let mintAmount
 
     before(async () => {
-        erc20WETH = await DummyToken.new('Wrapped ETH', 'WETH', 18, parseEther('1'))
-        erc20DAI = await DummyToken.new('Dai Stablecoin', 'DAI', 18, parseEther('1'))
-        mintAmount = parseEther('1000')
+        erc20WETH = await DummyToken.new('Wrapped ETH', 'WETH', 18, 0, {from: accounts[0]})
+        erc20DAI = await DummyToken.new('Dai Stablecoin', 'DAI', 18, 0, {from: accounts[0]})
+        mintAmount = toWei('1000')
 
         for (let i = 1; i <= 3; i++) {
             await erc20WETH.mint(mintAmount, {from: accounts[i]})
             await erc20DAI.mint(mintAmount, {from: accounts[i]})
         }
 
-        const now = await latest()
-        oneHour = await duration.hours(1)
-        expiry = now.add(oneHour) 
+        const now = ~~(Date.now() / 1000)
+        oneHour = 3600
+        expiry = now + oneHour
 
         matchingMarketInstance = await Market.new(expiry.toString(), {from: accounts[0]})
     })
@@ -43,8 +43,8 @@ contract('MatchingMarket', accounts => {
 
     describe('make', () => {
         it('make first offer', async () => {
-            const pay_amt = parseEther('10')
-            const buy_amt = parseEther('20')
+            const pay_amt = toWei('10')
+            const buy_amt = toWei('20')
 
             await erc20WETH.approve(
                 matchingMarketInstance.address,
@@ -61,20 +61,14 @@ contract('MatchingMarket', accounts => {
             )
 
             /* const eventArgs = extractEventArgs(offerTx, events.LogUnsortedOffer)
-            expect(eventArgs).to.include({ id: '1' })
-
-            const {args} = await findEventInTransaction(
-                offerTx,
-                'LogUnsortedOffer'
-            );
-            expect(args.id).should.eventually.eq(1) */
+            expect(eventArgs).to.include({ id: '1' }) */
 
             await erc20WETH.balanceOf(accounts[1]).should.eventually.eq((mintAmount - pay_amt).toString())
         })
 
         it('make second offer', async () => {
-            const pay_amt = parseEther('10')
-            const buy_amt = parseEther('10')
+            const pay_amt = toWei('10')
+            const buy_amt = toWei('10')
 
             await erc20WETH.approve(
                 matchingMarketInstance.address,
@@ -91,13 +85,7 @@ contract('MatchingMarket', accounts => {
             )
 
             /* const eventArgs = extractEventArgs(offerTx, events.LogUnsortedOffer)
-            expect(eventArgs).to.include({ id: '2' })
-
-            const {args} = await findEventInTransaction(
-                offerTx,
-                'LogUnsortedOffer'
-            );
-            expect(args.id).should.eventually.eq(2) */
+            expect(eventArgs).to.include({ id: '2' }) */
             
             await erc20WETH.balanceOf(accounts[1]).should.eventually.eq((mintAmount - pay_amt).toString())
         })
@@ -113,21 +101,22 @@ contract('MatchingMarket', accounts => {
 
     describe('getOffer', () => {
         it('should get correct offer details', async () => {
-            const firstOffer = await matchingMarketInstance.getOffer(1)  
-            expect(firstOffer).to.deep.include({
-                0: toBN(10e18),
-                1: erc20WETH.address,
-                2: toBN(20e18),
-                3: erc20DAI.address
-            })          
+            await matchingMarketInstance.getOffer(1)  
+            .should.eventually.matchObj({
+                '0': toBN(10e18),
+                '1': erc20WETH.address,
+                '2': toBN(20e18),
+                '3': erc20DAI.address
+            })       
             
-            const secondOffer = await matchingMarketInstance.getOffer(2)
-            expect(secondOffer).to.deep.include({
-                0: toBN(10e18),
-                1: erc20WETH.address,
-                2: toBN(10e18),
-                3: erc20DAI.address
+            await matchingMarketInstance.getOffer(2)
+            .should.eventually.matchObj({
+                '0': toBN(10e18),
+                '1': erc20WETH.address,
+                '2': toBN(10e18),
+                '3': erc20DAI.address
             })
+            
         })
         
     })
@@ -154,12 +143,12 @@ contract('MatchingMarket', accounts => {
         })
 
         it('should delete cancelled offer successfully', async () => {
-            const secondOffer = await matchingMarketInstance.getOffer(2)
-            expect(secondOffer).to.deep.include({
-                0: toBN(0),
-                1: ADDRESS_ZERO,
-                2: toBN(0),
-                3: ADDRESS_ZERO
+            await matchingMarketInstance.getOffer(2)
+            .should.eventually.matchObj({
+                '0': toBN(0),
+                '1': ADDRESS_ZERO,
+                '2': toBN(0),
+                '3': ADDRESS_ZERO
             })
         })
     })
@@ -168,7 +157,7 @@ contract('MatchingMarket', accounts => {
         it('should fail to buy if offer is cancelled', async () => {
             const secondOfferActive = await matchingMarketInstance.isActive(2)
             expect(secondOfferActive).to.be.equal(false)  
-            await matchingMarketInstance.buy(2, parseEther('20'), {from: accounts[3]}).should.be.rejectedWith('revert')
+            await matchingMarketInstance.buy(2, toWei('20'), {from: accounts[3]}).should.be.rejectedWith('revert')
         })
 
         it('should fail to buy successfully if amount is zero', async () => {
@@ -177,7 +166,7 @@ contract('MatchingMarket', accounts => {
             
             await erc20DAI.approve(
                 matchingMarketInstance.address,
-                parseEther('20'),
+                toWei('20'),
                 {from: accounts[3]}
             ).should.be.fulfilled
 
@@ -194,49 +183,49 @@ contract('MatchingMarket', accounts => {
                 {from: accounts[3]}
             ).should.be.fulfilled
 
-            await matchingMarketInstance.buy(1, parseEther('1'), {from: accounts[3]}).should.be.rejectedWith('revert')
+            await matchingMarketInstance.buy(1, toWei('1'), {from: accounts[3]}).should.be.rejectedWith('revert')
         })
 
         it('should buy 50% or part of first offer successfully with 1:2 price ratio', async () => {
             const firstOfferActive = await matchingMarketInstance.isActive(1) 
             expect(firstOfferActive).to.be.equal(true)
 
-            const pay_amt = parseEther('10')
-            const buy_amt = parseEther('20')
+            const pay_amt = toWei('10')
+            const buy_amt = toWei('20')
 
             await erc20DAI.approve(
                 matchingMarketInstance.address,
-                parseEther('10'), 
+                toWei('10'), 
                 {from: accounts[3]}
             ).should.be.fulfilled
-
-            await matchingMarketInstance.buy(1, pay_amt.div(2), {from: accounts[3]})
+            
+            await matchingMarketInstance.buy(1, toBN(pay_amt * 0.5), {from: accounts[3]})
 
             await erc20WETH.balanceOf(accounts[1]).should.eventually.eq((mintAmount - pay_amt).toString()) // pay_amt collected upon making offer
-            await erc20DAI.balanceOf(accounts[1]).should.eventually.eq((mintAmount.add(parseEther('10'))).toString())
-            await erc20WETH.balanceOf(accounts[3]).should.eventually.eq((mintAmount.add(pay_amt.div(2))).toString())
-            await erc20DAI.balanceOf(accounts[3]).should.eventually.eq((mintAmount - buy_amt.div(2)).toString())
+            await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('1010').toString())
+            await erc20WETH.balanceOf(accounts[3]).should.eventually.eq(toWei('1005').toString())
+            await erc20DAI.balanceOf(accounts[3]).should.eventually.eq(toWei('990').toString())
         })
 
         it('should buy second 50% or part of first offer successfully with 1:2 price ratio', async () => {
             const firstOfferActive = await matchingMarketInstance.isActive(1)
             expect(firstOfferActive).to.be.equal(true)
 
-            const pay_amt = parseEther('10')
-            const buy_amt = parseEther('20')
+            const pay_amt = toWei('10')
+            const buy_amt = toWei('20')
 
             await erc20DAI.approve(
                 matchingMarketInstance.address,
-                parseEther('10'),
+                toWei('10'),
                 {from: accounts[3]}
             ).should.be.fulfilled
 
-            await matchingMarketInstance.buy(1, pay_amt.div(2), {from: accounts[3]})
+            await matchingMarketInstance.buy(1, toBN(pay_amt * 0.5), {from: accounts[3]})
 
-            await erc20WETH.balanceOf(accounts[1]).should.eventually.eq((mintAmount - pay_amt).toString())
-            await erc20DAI.balanceOf(accounts[1]).should.eventually.eq((mintAmount.add(buy_amt)).toString())
-            await erc20WETH.balanceOf(accounts[3]).should.eventually.eq((mintAmount.add(pay_amt)).toString())
-            await erc20DAI.balanceOf(accounts[3]).should.eventually.eq((mintAmount - buy_amt).toString())
+            await erc20WETH.balanceOf(accounts[1]).should.eventually.eq(toWei('990').toString())
+            await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('1020').toString())
+            await erc20WETH.balanceOf(accounts[3]).should.eventually.eq(toWei('1010').toString())
+            await erc20DAI.balanceOf(accounts[3]).should.eventually.eq(toWei('980').toString())
         
         })
 

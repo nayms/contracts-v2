@@ -106,7 +106,6 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
     address _buyToken, 
     uint256 _buyAmount
   ) 
-    nonReentrant
     external
     override 
     returns (uint256) 
@@ -515,7 +514,7 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
 
     // notify observers
     if (notify != address(0)) {
-      IMarketObserver(notify).handleCancellation(
+      IMarketObserver(notify).handleClosure(
         _offerId, 
         sellToken, 
         sellAmount, 

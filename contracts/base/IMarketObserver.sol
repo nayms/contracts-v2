@@ -28,7 +28,7 @@ interface IMarketObserver {
   ) external;
 
   /**
-   * @dev Handle an order cancellation.
+   * @dev Handle an order cancellation or closure.
    *
    * @param _offerId Order id.
    * @param _sellToken Token sold.
@@ -38,7 +38,7 @@ interface IMarketObserver {
    * @param _seller Order seller.
    * @param _data Extra metadata that is being passed through.
    */
-  function handleCancellation(
+  function handleClosure(
     uint256 _offerId,
     address _sellToken, 
     uint256 _unsoldAmount, 

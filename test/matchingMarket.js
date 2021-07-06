@@ -362,7 +362,9 @@ contract('MatchingMarket', accounts => {
             await matchingMarketInstance.getMinSell(erc20WETH.address).should.eventually.eq(toWei('10').toString())
         })
 
-        xit('should get correct minimum sell amount for an offer or token when not set')
+        it('should get correct minimum sell amount for an offer or token when not set', async () => {
+            await matchingMarketInstance.getMinSell(erc20DAI.address).should.eventually.eq(0)
+        })
     })
 
     describe('buy with minimum sell amount set', () => {

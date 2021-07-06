@@ -12,7 +12,37 @@ interface IMarketCoreFacet {
    * @return >0 if a limit offer was created on the market because the offer couldn't be totally fulfilled immediately. In this case the 
    * return value is the created offer's id.
    */
-  function executeLimitOffer(address _sellToken, uint256 _sellAmount, address _buyToken, uint256 _buyAmount) external returns (uint256);
+  function executeLimitOffer(
+    address _sellToken, 
+    uint256 _sellAmount, 
+    address _buyToken, 
+    uint256 _buyAmount
+  ) external returns (uint256);
+
+  /**
+   * @dev Execute a limit offer with an observer attached.
+   *
+   * The observer must implement `IMarketObserver`. It will be notified when the order 
+   * trades and/or gets cancelled.
+   * 
+   * @param _sellToken token to sell.
+   * @param _sellAmount amount to sell.
+   * @param _buyToken token to buy.
+   * @param _buyAmount Amount to buy.
+   * @param _notify `IMarketObserver` to notify when a trade takes place and/or order gets cancelled.
+   * @param _notifyData Data to pass through to the notified contract.
+   *
+   * @return >0 if a limit offer was created on the market because the offer couldn't be totally fulfilled immediately. In this case the 
+   * return value is the created offer's id.
+   */
+  function executeLimitOfferWithObserver(
+    address _sellToken, 
+    uint256 _sellAmount, 
+    address _buyToken, 
+    uint256 _buyAmount,
+    address _notify,
+    string memory _notifyData
+  ) external returns (uint256);
 
   /**
    * @dev Execute a market offer, ensuring the full amount gets sold.
@@ -77,6 +107,8 @@ interface IMarketCoreFacet {
    * @return sellAmount_ sell amount.
    * @return buyToken_ buy token.
    * @return buyAmount_ buy amount.
+   * @return notify_ Contract to notify when a trade takes place and/or order gets cancelled.
+   * @return notifyData_ Data to pass through to the notified contract.
    * @return isActive_ whether offer is active.
    * @return nextOfferId_ id of the next offer in the sorted list of offers for this token pair.
    * @return prevOfferId_ id of the previous offer in the sorted list of offers for this token pair.
@@ -87,6 +119,8 @@ interface IMarketCoreFacet {
     uint256 sellAmount_, 
     address buyToken_, 
     uint256 buyAmount_,
+    address notify_,
+    string memory notifyData_,
     bool isActive_,
     uint256 nextOfferId_,
     uint256 prevOfferId_

@@ -55,7 +55,7 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
     address buyToken_, 
     uint256 buyAmount_,
     address notify_,
-    string memory notifyData_,
+    bytes memory notifyData_,
     bool isActive_,
     uint256 nextOfferId_,
     uint256 prevOfferId_
@@ -66,7 +66,7 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
     buyToken_ = dataAddress[__i(_offerId, "buyToken")];
     buyAmount_ = dataUint256[__i(_offerId, "buyAmount")];
     notify_ = dataAddress[__i(_offerId, "notify")];
-    notifyData_ = dataString[__i(_offerId, "notifyData")];
+    notifyData_ = dataBytes[__i(_offerId, "notifyData")];
     isActive_ = dataBool[__i(_offerId, "isActive")];
     nextOfferId_ = dataUint256[__i(_offerId, "rankNext")];
     prevOfferId_ = dataUint256[__i(_offerId, "rankPrev")];
@@ -126,7 +126,7 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
     address _buyToken, 
     uint256 _buyAmount,
     address _notify,
-    string memory _notifyData
+    bytes memory _notifyData
   ) 
     nonReentrant
     public
@@ -299,7 +299,7 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
     address _buyToken, 
     uint256 _buyAmount,
     address _notify,
-    string memory _notifyData
+    bytes memory _notifyData
   ) 
     private 
     returns (uint256) 
@@ -382,7 +382,7 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
     address _buyToken, 
     uint256 _buyAmount,
     address _notify,
-    string memory _notifyData
+    bytes memory _notifyData
   ) 
     private 
     returns (uint256) 
@@ -396,7 +396,7 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
     dataAddress[__i(id, "buyToken")] = _buyToken;
     dataUint256[__i(id, "buyAmount")] = _buyAmount;
     dataAddress[__i(id, "notify")] = _notify;
-    dataString[__i(id, "notifyData")] = _notifyData;
+    dataBytes[__i(id, "notifyData")] = _notifyData;
     dataBool[__i(id, "isActive")] = true;
 
     // escrow the tokens
@@ -413,7 +413,7 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
     uint256 _offerId, 
     uint256 _requestedBuyAmount,
     address _buyNotify,
-    string memory _buyNotifyData
+    bytes memory _buyNotifyData
   ) private {
     address creator = dataAddress[__i(_offerId, "creator")];
     address offerSellToken = dataAddress[__i(_offerId, "sellToken")];
@@ -452,13 +452,13 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
     uint256 _soldAmount,
     uint256 _boughtAmount,
     address _buyNotify,
-    string memory _buyNotifyData
+    bytes memory _buyNotifyData
   ) private {
     address creator = dataAddress[__i(_offerId, "creator")];
     address offerSellToken = dataAddress[__i(_offerId, "sellToken")];
     address offerBuyToken = dataAddress[__i(_offerId, "buyToken")];
     address offerNotify = dataAddress[__i(_offerId, "notify")];
-    string memory offerNotifyData = dataString[__i(_offerId, "notifyData")];
+    bytes memory offerNotifyData = dataBytes[__i(_offerId, "notifyData")];
 
     if (_buyNotify != address(0)) {
       IMarketObserver(_buyNotify).handleTrade(
@@ -505,7 +505,7 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
     address buyToken = dataAddress[__i(_offerId, "buyToken")];
     uint256 buyAmount = dataUint256[__i(_offerId, "buyAmount")];
     address notify = dataAddress[__i(_offerId, "notify")];
-    string memory notifyData = dataString[__i(_offerId, "notifyData")];
+    bytes memory notifyData = dataBytes[__i(_offerId, "notifyData")];
 
     // transfer remaining sell amount back to creator
     if (sellAmount > 0) {

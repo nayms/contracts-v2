@@ -24,7 +24,7 @@ interface IMarketObserver {
     uint256 _boughtAmount,
     address _seller,
     address _buyer,
-    string memory _data
+    bytes memory _data
   ) external;
 
   /**
@@ -45,6 +45,6 @@ interface IMarketObserver {
     address _buyToken, 
     uint256 _unboughtAmount,
     address _seller,
-    string memory _data
+    bytes memory _data
   ) external;
 }

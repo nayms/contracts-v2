@@ -4,18 +4,20 @@ import "./base/EternalStorage.sol";
 import "./base/Controller.sol";
 import "./base/IDiamondFacet.sol";
 import "./base/IPolicyTranchTokensFacet.sol";
-import ".//PolicyFacetBase.sol";
+import "./base/IMarketObserver.sol";
+import "./base/IMarketObserverDataTypes.sol";
 import "./base/AccessControl.sol";
 import "./base/SafeMath.sol";
 import "./base/Address.sol";
 import "./base/Strings.sol";
 import "./base/Uint.sol";
 import "./base/IERC20.sol";
+import "./PolicyFacetBase.sol";
 
 /**
  * @dev Business-logic for Policy commissions
  */
-contract PolicyTranchTokensFacet is EternalStorage, Controller, IDiamondFacet, IPolicyTranchTokensFacet, PolicyFacetBase {
+contract PolicyTranchTokensFacet is EternalStorage, Controller, IDiamondFacet, IPolicyTranchTokensFacet, PolicyFacetBase, IMarketObserver, IMarketObserverDataTypes {
   using SafeMath for uint;
   using Uint for uint;
   using Address for address;
@@ -38,7 +40,9 @@ contract PolicyTranchTokensFacet is EternalStorage, Controller, IDiamondFacet, I
       IPolicyTranchTokensFacet.tknBalanceOf.selector,
       IPolicyTranchTokensFacet.tknAllowance.selector,
       IPolicyTranchTokensFacet.tknApprove.selector,
-      IPolicyTranchTokensFacet.tknTransfer.selector
+      IPolicyTranchTokensFacet.tknTransfer.selector,
+      IMarketObserver.handleTrade.selector,
+      IMarketObserver.handleClosure.selector
     );
   }
 
@@ -101,27 +105,8 @@ contract PolicyTranchTokensFacet is EternalStorage, Controller, IDiamondFacet, I
     dataUint256[fromKey] = dataUint256[fromKey].sub(_value);
     dataUint256[toKey] = dataUint256[toKey].add(_value);
 
-    // if we are in the initial sale period      
-    if (dataUint256[__i(_index, "state")] == TRANCH_STATE_SELLING) {
-      // this is a transfer from the market to a buyer
-      if (market == _from) {
-        // record how many "shares" were sold
-        dataUint256[__i(_index, "sharesSold")] = dataUint256[__i(_index, "sharesSold")].add(_value);
-        // update tranch balance
-        uint256 balanceIncrement = _value * dataUint256[__i(_index, "pricePerShareAmount")];
-        dataUint256[__i(_index, "balance")] = dataUint256[__i(_index, "balance")].add(balanceIncrement);
-        // tell treasury to add tranch balance value to overall policy balance
-        _getTreasury().incPolicyBalance(balanceIncrement);
-
-        // if the tranch has fully sold out
-        if (dataUint256[__i(_index, "sharesSold")] == dataUint256[__i(_index, "numShares")]) {
-          // flip tranch state to ACTIVE
-          _setTranchState(_index, TRANCH_STATE_ACTIVE);
-        }
-      } 
-    }
     // if we are in policy buyback state
-    else if (dataUint256["state"] == POLICY_STATE_BUYBACK) {
+    if (dataUint256["state"] == POLICY_STATE_BUYBACK) {
       // if this is a transfer to the treasury
       if (treasury == _to) {
         // if we've bought back all tokens
@@ -137,5 +122,61 @@ contract PolicyTranchTokensFacet is EternalStorage, Controller, IDiamondFacet, I
         }
       }
     }
+  }
+
+  function handleTrade(
+    uint256 _offerId,
+    address _sellToken, 
+    uint256 _soldAmount, 
+    address _buyToken, 
+    uint256 _boughtAmount,
+    address _seller,
+    address _buyer,
+    bytes memory _data
+  ) external override {
+    if (_data.length == 0) {
+      return;
+    }
+
+    // get data type
+    (uint256 t) = abi.decode(_data, (uint256));
+
+    if (t == MODT_TRANCH_SALE) {
+      // get policy address and tranch id
+      (, address policy, uint256 tranchId) = abi.decode(_data, (uint256, address, uint256));
+
+      // if we created this offer
+      if (policy == address(this)) {
+        // if we are in the initial sale period      
+        if (dataUint256[__i(tranchId, "state")] == TRANCH_STATE_SELLING) {
+          // check tranch address matches seller
+          address tranchAddress = dataAddress[__i(tranchId, "address")];
+          require(tranchAddress == _sellToken, "sell token must be tranch token");
+          // record how many "shares" were sold
+          dataUint256[__i(tranchId, "sharesSold")] = dataUint256[__i(tranchId, "sharesSold")].add(_soldAmount);
+          // update tranch balance
+          dataUint256[__i(tranchId, "balance")] = dataUint256[__i(tranchId, "balance")].add(_boughtAmount);
+          // tell treasury to add tranch balance value to overall policy balance
+          _getTreasury().incPolicyBalance(_boughtAmount);
+          // if the tranch has fully sold out
+          if (dataUint256[__i(tranchId, "sharesSold")] == dataUint256[__i(tranchId, "numShares")]) {
+            // flip tranch state to ACTIVE
+            _setTranchState(tranchId, TRANCH_STATE_ACTIVE);
+          }
+        }
+      }
+    }
+  }
+
+  function handleClosure(
+    uint256 _offerId,
+    address _sellToken, 
+    uint256 _unsoldAmount, 
+    address _buyToken, 
+    uint256 _unboughtAmount,
+    address _seller,
+    bytes memory _data
+  ) external override {
+    // nothing to do here
   }
 }

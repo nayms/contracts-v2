@@ -41,7 +41,7 @@ contract PolicyTreasuryTestFacet is EternalStorage, PolicyFacetBase, IPolicyTrea
   }
 
   function treasuryCreateOrder (bytes32 _type, address _sellUnit, uint256 _sellAmount, address _buyUnit, uint256 _buyAmount) public override {
-    _getTreasury().createOrder(_type, _sellUnit, _sellAmount, _buyUnit, _buyAmount);
+    _getTreasury().createOrder(_type, _sellUnit, _sellAmount, _buyUnit, _buyAmount, address(0), "");
   }
 
   function treasuryCancelOrder (uint256 _orderId) public override {

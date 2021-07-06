@@ -41,7 +41,7 @@ interface IMarketCoreFacet {
     address _buyToken, 
     uint256 _buyAmount,
     address _notify,
-    string memory _notifyData
+    bytes memory _notifyData
   ) external returns (uint256);
 
   /**
@@ -120,7 +120,7 @@ interface IMarketCoreFacet {
     address buyToken_, 
     uint256 buyAmount_,
     address notify_,
-    string memory notifyData_,
+    bytes memory notifyData_,
     bool isActive_,
     uint256 nextOfferId_,
     uint256 prevOfferId_

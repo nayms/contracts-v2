@@ -121,6 +121,11 @@ contract('MatchingMarket', accounts => {
         
     })
 
+    describe('offer', () => {
+        xit('use offer function to make third offer')
+
+    })
+
     describe('isActive', () => {
         it('should get correct active status for offer', async () => {
             const secondOfferActive = await matchingMarketInstance.isActive(1)   
@@ -314,8 +319,20 @@ contract('MatchingMarket', accounts => {
         
     })
 
-    describe('insert', () => {
+    describe('isOfferSorted', () => {
+        it('should successfully check whether an offer is sorted or not', async () => {
+            expect(await matchingMarketInstance.isOfferSorted(3)).to.be.equal(false)
 
+            expect(await matchingMarketInstance.isOfferSorted(4)).to.be.equal(false)
+        })
+    })
+
+    describe('insert', () => {
+        it('should successfully insert an offer into the sorted list', async () => {
+            await matchingMarketInstance.insert(3, 0, {from: accounts[0]}).should.be.fulfilled
+
+            await matchingMarketInstance.insert(4, 1, {from: accounts[0]}).should.be.fulfilled
+        })
     })
 
     describe('del_rank', () => {
@@ -323,15 +340,33 @@ contract('MatchingMarket', accounts => {
     })
 
     describe('setMinSell', () => {
-        xit('should allow only admins to set the minimum sell amount for any token')
+        it('should allow only admins to set the minimum sell amount for any token', async () => {
+            await matchingMarketInstance.setMinSell(
+                erc20WETH.address,
+                toBN(10e18),
+                {from: accounts[0]}
+            ).should.be.fulfilled
+        })
 
-        xit('should revert if buy amount is below minimum sell')
+        it('should not allow non authorised admins to set the minimum sell amount for any token', async () => {
+            await matchingMarketInstance.setMinSell(
+                erc20WETH.address,
+                toBN(10e18),
+                {from: accounts[1]}
+            ).should.be.rejectedWith('revert')
+        })
     })
 
     describe('getMinSell', () => {
         xit('should get correct minimum sell amount for an offer or token when it is set')
 
         xit('should get correct minimum sell amount for an offer or token when not set')
+    })
+
+    describe('buy with minimum sell amount set', () => {
+        xit('should revert if buy amount is below minimum sell amount for an offer or token when it is set')
+
+        xit('should buy below minimum sell amount for an offer or token when not set')
     })
 
     describe('setBuyEnabled', () => {
@@ -370,10 +405,6 @@ contract('MatchingMarket', accounts => {
     describe('getNextUnsortedOffer', () => {
         xit('should get the next unsorted offer')
         //Can be used to cycle through all the unsorted offers.
-    })
-
-    describe('isOfferSorted', () => {
-        xit('should successfully check whether an offer is sorted')
     })
 
     describe('sellAllAmount', () => {

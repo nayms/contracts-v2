@@ -365,6 +365,7 @@ contract('MatchingMarket', accounts => {
         it('should get correct minimum sell amount for an offer or token when not set', async () => {
             await matchingMarketInstance.getMinSell(erc20DAI.address).should.eventually.eq(0)
         })
+
     })
 
     describe('buy with minimum sell amount set', () => {
@@ -374,16 +375,82 @@ contract('MatchingMarket', accounts => {
     })
 
     describe('setBuyEnabled', () => {
-        xit('should allow only admins to enable or disable buy')
+        it('should allow only admins to disable buy', async () => {
+            await matchingMarketInstance.setBuyEnabled(
+                false,
+                {from: accounts[0]}
+            ).should.be.fulfilled
 
-        xit('should fail buy if buy disabled')
+            await matchingMarketInstance.buyEnabled().should.eventually.eq(false)
+        })
+
+        it('should allow only admins to enable buy', async () => {
+            await matchingMarketInstance.setBuyEnabled(
+                true,
+                {from: accounts[0]}
+            ).should.be.fulfilled
+
+            await matchingMarketInstance.buyEnabled().should.eventually.eq(true)
+        })
+
+        it('should revert if non admins attempt to disable buy', async () => {
+            await matchingMarketInstance.setBuyEnabled(
+                false,
+                {from: accounts[1]}
+            ).should.be.rejectedWith('revert')
+
+            await matchingMarketInstance.buyEnabled().should.eventually.eq(true)
+        })
+
+        it('should revert if non admins attempt to enable buy', async () => {
+            await matchingMarketInstance.setBuyEnabled(
+                true,
+                {from: accounts[1]}
+            ).should.be.rejectedWith('revert')
+
+            await matchingMarketInstance.buyEnabled().should.eventually.eq(true)
+        })
+
+        xit('should fail to buy if buy is disabled')
 
     })
 
     describe('setMatchingEnabled', () => {
-        xit('allow only admin to enable matching')
+        it('should allow only admins to disable buy', async () => {
+            await matchingMarketInstance.setMatchingEnabled(
+                false,
+                {from: accounts[0]}
+            ).should.be.fulfilled
 
-        xit('allow only admin to disable matching')
+            await matchingMarketInstance.matchingEnabled().should.eventually.eq(false)
+        })
+
+        it('should allow only admins to enable buy', async () => {
+            await matchingMarketInstance.setMatchingEnabled(
+                true,
+                {from: accounts[0]}
+            ).should.be.fulfilled
+
+            await matchingMarketInstance.matchingEnabled().should.eventually.eq(true)
+        })
+
+        it('should revert if non admins attempt to disable buy', async () => {
+            await matchingMarketInstance.setMatchingEnabled(
+                false,
+                {from: accounts[1]}
+            ).should.be.rejectedWith('revert')
+
+            await matchingMarketInstance.matchingEnabled().should.eventually.eq(true)
+        })
+
+        it('should revert if non admins attempt to enable buy', async () => {
+            await matchingMarketInstance.setMatchingEnabled(
+                true,
+                {from: accounts[1]}
+            ).should.be.rejectedWith('revert')
+
+            await matchingMarketInstance.matchingEnabled().should.eventually.eq(true)
+        })
     })
 
     describe('getBestOffer', () => {

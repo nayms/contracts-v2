@@ -9,9 +9,9 @@ interface IMarketObserver {
    *
    * @param _offerId Order id.
    * @param _sellToken Token sold.
-   * @param _sellAmount Amount sold.
+   * @param _soldAmount Amount sold.
    * @param _buyToken Token bought.
-   * @param _buyAmount Amount bought.
+   * @param _boughtAmount Amount bought.
    * @param _seller Order seller.
    * @param _buyer Order buyer.
    * @param _data Extra metadata that is being passed through.
@@ -19,9 +19,9 @@ interface IMarketObserver {
   function handleTrade(
     uint256 _offerId,
     address _sellToken, 
-    uint256 _sellAmount, 
+    uint256 _soldAmount, 
     address _buyToken, 
-    uint256 _buyAmount,
+    uint256 _boughtAmount,
     address _seller,
     address _buyer,
     string memory _data

@@ -421,8 +421,6 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
     uint256 offerSellAmount = dataUint256[__i(_offerId, "sellAmount")];
     address offerBuyToken = dataAddress[__i(_offerId, "buyToken")];
     uint256 offerBuyAmount = dataUint256[__i(_offerId, "buyAmount")];
-    address offerNotify = dataAddress[__i(_offerId, "notify")];
-    string memory offerNotifyData = dataString[__i(_offerId, "notifyData")];
 
     // (a / b) * c = c * a / b  -> do multiplication first to avoid underflow
     uint256 thisSaleSellAmount = _requestedBuyAmount.mul(offerSellAmount).div(offerBuyAmount);
@@ -431,10 +429,7 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
     require(uint128(thisSaleSellAmount) == thisSaleSellAmount, "sell amount exceeds int limit");
 
     // check bounds
-    require(_requestedBuyAmount > 0, "requested buy amount is 0");
-    require(_requestedBuyAmount <= offerBuyAmount, "requested buy amount too large");
-    require(thisSaleSellAmount > 0, "calculated sell amount is 0");
-    require(thisSaleSellAmount <= offerSellAmount, "calculated sell amount too large");
+    _checkTradeBounds(offerBuyAmount, _requestedBuyAmount, offerSellAmount, thisSaleSellAmount);
 
     // update balances
     dataUint256[__i(_offerId, "sellAmount")] = offerSellAmount.sub(thisSaleSellAmount);
@@ -445,35 +440,59 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
     require(IERC20(offerSellToken).transfer(msg.sender, thisSaleSellAmount), "market -> sender transfer failed");    
 
     // notify observers
-    if (_buyNotify != address(0)) {
-      IMarketObserver(_buyNotify).handleTrade(
-        _offerId, 
-        offerSellToken, 
-        thisSaleSellAmount, 
-        offerBuyToken, 
-        _requestedBuyAmount, 
-        creator, 
-        msg.sender, 
-        offerNotifyData
-      );
-    }
-    if (offerNotify != address(0)) {
-      IMarketObserver(offerNotify).handleTrade(
-        _offerId, 
-        offerSellToken, 
-        thisSaleSellAmount, 
-        offerBuyToken, 
-        _requestedBuyAmount, 
-        creator, 
-        msg.sender, 
-        offerNotifyData
-      );
-    }
+    _notifyObserversOfTrade(_offerId, thisSaleSellAmount, _requestedBuyAmount, _buyNotify, _buyNotifyData);
 
     // cancel offer if it has become dust
     if (dataUint256[__i(_offerId, "sellAmount")] < dataUint256["dust"]) {
       _cancel(_offerId);
     }
+  }
+
+  function _notifyObserversOfTrade(
+    uint256 _offerId,
+    uint256 _soldAmount,
+    uint256 _boughtAmount,
+    address _buyNotify,
+    string memory _buyNotifyData
+  ) private {
+    address creator = dataAddress[__i(_offerId, "creator")];
+    address offerSellToken = dataAddress[__i(_offerId, "sellToken")];
+    address offerBuyToken = dataAddress[__i(_offerId, "buyToken")];
+    address offerNotify = dataAddress[__i(_offerId, "notify")];
+    string memory offerNotifyData = dataString[__i(_offerId, "notifyData")];
+
+    if (_buyNotify != address(0)) {
+      IMarketObserver(_buyNotify).handleTrade(
+        _offerId, 
+        offerSellToken, 
+        _soldAmount, 
+        offerBuyToken, 
+        _boughtAmount, 
+        creator, 
+        msg.sender, 
+        _buyNotifyData
+      );
+    }
+
+    if (offerNotify != address(0)) {
+      IMarketObserver(offerNotify).handleTrade(
+        _offerId, 
+        offerSellToken, 
+        _soldAmount, 
+        offerBuyToken, 
+        _boughtAmount, 
+        creator, 
+        msg.sender, 
+        offerNotifyData
+      );
+    }
+  }
+
+  function _checkTradeBounds(uint256 _maxBuyAmount, uint256 _buyAmount, uint256 _maxSellAmount, uint256 _sellAmount) private {
+    require(_buyAmount > 0, "requested buy amount is 0");
+    require(_buyAmount <= _maxBuyAmount, "requested buy amount too large");
+    require(_sellAmount > 0, "calculated sell amount is 0");
+    require(_sellAmount <= _maxSellAmount, "calculated sell amount too large");
   }
 
   function _cancel(uint256 _offerId) private {

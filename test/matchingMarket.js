@@ -454,7 +454,9 @@ contract('MatchingMarket', accounts => {
     })
 
     describe('getBestOffer', () => {
-        xit('should get best offer for a token pair')
+        it('should get best offer for a token pair', async () => {
+            console.log(await matchingMarketInstance.getBestOffer(erc20WETH.address, erc20DAI.address))
+        })
     })
 
     describe('getWorseOffer', () => {

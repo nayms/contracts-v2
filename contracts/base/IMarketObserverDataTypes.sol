@@ -11,5 +11,5 @@ abstract contract IMarketObserverDataTypes {
   /**
    * @dev State: Tranch token buyback
    */
-  uint256 constant public MODT_TRANCH_BUYBACK = 1;
+  uint256 constant public MODT_TRANCH_BUYBACK = 2;
 }

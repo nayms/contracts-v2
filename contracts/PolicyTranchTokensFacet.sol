@@ -104,24 +104,6 @@ contract PolicyTranchTokensFacet is EternalStorage, Controller, IDiamondFacet, I
 
     dataUint256[fromKey] = dataUint256[fromKey].sub(_value);
     dataUint256[toKey] = dataUint256[toKey].add(_value);
-
-    // if we are in policy buyback state
-    if (dataUint256["state"] == POLICY_STATE_BUYBACK) {
-      // if this is a transfer to the treasury
-      if (treasury == _to) {
-        // if we've bought back all tokens
-        if (dataUint256[toKey] == dataUint256[__i(_index, "numShares")]) {
-          dataBool[__i(_index, "buybackCompleted")] = true;
-          dataUint256["numTranchesBoughtBack"] += 1;
-
-          // if all tranches have been bought back
-          if (dataUint256["numTranchesBoughtBack"] == dataUint256["numTranches"]) {
-            // policy is now "closed"
-            _setPolicyState(POLICY_STATE_CLOSED);
-          }
-        }
-      }
-    }
   }
 
   function handleTrade(
@@ -149,7 +131,7 @@ contract PolicyTranchTokensFacet is EternalStorage, Controller, IDiamondFacet, I
       if (policy == address(this)) {
         // if we are in the initial sale period      
         if (dataUint256[__i(tranchId, "state")] == TRANCH_STATE_SELLING) {
-          // check tranch address matches seller
+          // check tranch token matches sell token
           address tranchAddress = dataAddress[__i(tranchId, "address")];
           require(tranchAddress == _sellToken, "sell token must be tranch token");
           // record how many "shares" were sold
@@ -177,6 +159,40 @@ contract PolicyTranchTokensFacet is EternalStorage, Controller, IDiamondFacet, I
     address _seller,
     bytes memory _data
   ) external override {
-    // nothing to do here
+    if (_data.length == 0) {
+      return;
+    }
+
+    // get data type
+    (uint256 t) = abi.decode(_data, (uint256));
+
+    // if it's a tranch token buyback trade
+    if (t == MODT_TRANCH_BUYBACK) {
+      // get policy address and tranch id
+      (, address policy, uint256 tranchId) = abi.decode(_data, (uint256, address, uint256));
+
+      // if we created this offer
+      if (policy == address(this)) {
+        // if we are in the policy buyback state
+        if (dataUint256["state"] == POLICY_STATE_BUYBACK) {
+          // check tranch token matches buy token
+          address tranchAddress = dataAddress[__i(tranchId, "address")];
+          require(tranchAddress == _buyToken, "buy token must be tranch token");
+
+          // NOTE: we're assuming that an order never gets closed until it is sold out
+          // Sold out = only <=dusk amount remaining (see market for dusk level)
+
+          // mark buyback as complete
+          dataBool[__i(tranchId, "buybackCompleted")] = true;
+          dataUint256["numTranchesBoughtBack"] += 1;
+
+          // if all tranches have been bought back
+          if (dataUint256["numTranchesBoughtBack"] == dataUint256["numTranches"]) {
+            // policy is now "closed"
+            _setPolicyState(POLICY_STATE_CLOSED);
+          }
+        }
+      }
+    }    
   }
 }

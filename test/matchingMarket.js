@@ -373,9 +373,26 @@ contract('MatchingMarket', accounts => {
     })
 
     describe('buy with minimum sell amount set', () => {
-        xit('should revert if buy amount is below minimum sell amount for an offer or token when it is set')
+        it('should revert if sell or pay amount is below minimum sell amount for an offer or token when it is set', async () => {
+            // offer
+            const first_pay_amt = toWei('0.5')
+            const first_buy_amt = toWei('20')
 
-        xit('should buy below minimum sell amount for an offer or token when not set')
+            await erc20WETH.approve(
+                matchingMarketInstance.address,
+                first_pay_amt,
+                {from: accounts[1]}
+            ).should.be.fulfilled
+
+            await matchingMarketInstance.make(
+                erc20WETH.address, 
+                erc20DAI.address,
+                first_pay_amt,
+                first_buy_amt,
+                {from: accounts[1]}
+            ).should.be.rejectedWith('revert')
+        })
+
     })
 
     describe('setBuyEnabled', () => {
@@ -397,6 +414,16 @@ contract('MatchingMarket', accounts => {
             await matchingMarketInstance.buyEnabled().should.eventually.eq(true)
         })
 
+        it('should fail to buy if buy is disabled', async () => {
+            await erc20DAI.approve(
+                matchingMarketInstance.address,
+                toBN(2e18),
+                {from: accounts[3]}
+            ).should.be.fulfilled
+
+            await matchingMarketInstance.buy(3, toWei('10'), {from: accounts[3]}).should.be.rejectedWith('revert')
+        })
+
         it('should revert if non admins attempt to disable buy', async () => {
             await matchingMarketInstance.setBuyEnabled(
                 false,
@@ -415,7 +442,7 @@ contract('MatchingMarket', accounts => {
             await matchingMarketInstance.buyEnabled().should.eventually.eq(true)
         })
 
-        xit('should fail to buy if buy is disabled')
+        
 
     })
 

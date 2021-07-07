@@ -355,7 +355,7 @@ contract('MatchingMarket', accounts => {
     })
 
     describe('matching offers', () => {
-        it('use offer function to make offer successfully as an option instead of make', async () => {
+        it('make offer and match with previous offer successfully', async () => {
             const pay_amt = toWei('10')
             const buy_amt = toWei('20')
 
@@ -395,7 +395,151 @@ contract('MatchingMarket', accounts => {
                 '3': erc20DAI.address
             })
         })
+
+        it('get correct last offer id after complete and active offers', async () => {
+            await matchingMarketInstance.last_offer_id().should.eventually.eq(4)
+        })
+
+
+        it('make larger offer which will not be partly matched with two smaller offers due to pricing', async () => {
+            // larger offer
+            const pay_amt = toWei('20')
+            const buy_amt = toWei('40')
+
+            await erc20DAI.approve(
+                matchingMarketInstance.address,
+                pay_amt,
+                {from: accounts[1]}
+            ).should.be.fulfilled
+            
+            const txToMatch = await matchingMarketInstance.offer(
+                pay_amt,
+                erc20DAI.address, 
+                buy_amt,
+                erc20WETH.address,
+                0,
+                true,
+                {from: accounts[1]}
+            )
+        })
+
+        it('get correct last offer id after complete and active offers', async () => {
+            await matchingMarketInstance.last_offer_id().should.eventually.eq(5)
+        })
         
+        it('make second smaller offer', async () => {
+            const pay_amt = toWei('10')
+            const buy_amt = toWei('20')
+
+            await erc20WETH.approve(
+                matchingMarketInstance.address,
+                pay_amt,
+                {from: accounts[2]}
+            ).should.be.fulfilled
+            
+            const txToMatch = await matchingMarketInstance.offer(
+                pay_amt,
+                erc20WETH.address, 
+                buy_amt,
+                erc20DAI.address,
+                0,
+                true,
+                {from: accounts[2]}
+            )
+        })
+        
+        it('get correct last offer id after complete and active offers', async () => {
+            await matchingMarketInstance.last_offer_id().should.eventually.eq(6)
+        })
+
+        it('should not match all three prior offers if the prices do not match', async () => {
+            await matchingMarketInstance.getOffer(4)
+            .should.eventually.matchObj({
+                '0': toBN(5e18), // previously toBN(20e18),
+                '1': erc20WETH.address,
+                '2': toBN(10e18), // previously toBN(10e18),
+                '3': erc20DAI.address
+            })
+
+            await matchingMarketInstance.getOffer(5)
+            .should.eventually.matchObj({
+                '0': toBN(20e18),
+                '1': erc20DAI.address,
+                '2': toBN(40e18),
+                '3': erc20WETH.address
+            })
+
+            await matchingMarketInstance.getOffer(6)
+            .should.eventually.matchObj({
+                '0': toBN(10e18),
+                '1': erc20WETH.address,
+                '2': toBN(20e18),
+                '3': erc20DAI.address
+            })
+        })
+
+        it('make larger offer to be partly matched with two smaller offers', async () => {
+            // larger offer
+            const pay_amt = toWei('40')
+            const buy_amt = toWei('20')
+
+            await erc20DAI.approve(
+                matchingMarketInstance.address,
+                pay_amt,
+                {from: accounts[1]}
+            ).should.be.fulfilled
+            
+            const txToMatch = await matchingMarketInstance.offer(
+                pay_amt,
+                erc20DAI.address, 
+                buy_amt,
+                erc20WETH.address,
+                0,
+                true,
+                {from: accounts[1]}
+            )
+
+        })
+
+        it('get correct last offer id after complete and active offers', async () => {
+            await matchingMarketInstance.last_offer_id().should.eventually.eq(7)
+        })
+
+
+        it('should match offers 4, 6, and 7', async () => {
+            await matchingMarketInstance.getOffer(4)
+            .should.eventually.matchObj({
+                '0': toBN(0), // previously toBN(5e18)
+                '1': ADDRESS_ZERO, // previously WETH
+                '2': toBN(0), // previously toBN(10e18)
+                '3': ADDRESS_ZERO // previously DAI
+            })
+
+            await matchingMarketInstance.getOffer(5)
+            .should.eventually.matchObj({
+                '0': toBN(20e18),
+                '1': erc20DAI.address,
+                '2': toBN(40e18),
+                '3': erc20WETH.address
+            })
+
+            await matchingMarketInstance.getOffer(6)
+            .should.eventually.matchObj({
+                '0': toBN(0), // previously toBN(5e18)
+                '1': ADDRESS_ZERO, // previously WETH
+                '2': toBN(0), // previously toBN(10e18)
+                '3': ADDRESS_ZERO // previously DAI
+            })
+
+            await matchingMarketInstance.getOffer(7)
+            .should.eventually.matchObj({
+                '0': toBN(10e18),
+                '1': erc20DAI.address,
+                '2': toBN(5e18),
+                '3': erc20WETH.address
+            })
+        })
+
     })
 
 })

@@ -1,5 +1,5 @@
 import { extractEventArgs, ADDRESS_ZERO, EvmSnapshot } from './utils/index'
-import {toBN, toWei } from './utils/web3'
+import {toBN, toWei, toHex } from './utils/web3'
 import { events } from '..'
 
 const IERC20 = artifacts.require("./base/IERC20")
@@ -21,7 +21,7 @@ contract('MatchingMarket', accounts => {
         erc20DAI = await DummyToken.new('Dai Stablecoin', 'DAI', 18, 0, {from: accounts[0]})
         mintAmount = toWei('1000')
 
-        for (let i = 1; i <= 3; i++) {
+        for (let i = 1; i <= 4; i++) {
             await erc20WETH.mint(mintAmount, {from: accounts[i]})
             await erc20DAI.mint(mintAmount, {from: accounts[i]})
         }
@@ -41,7 +41,7 @@ contract('MatchingMarket', accounts => {
 
     })
 
-    describe('make', () => {
+    describe('offer with make function', () => {
         it('make first offer', async () => {
             const pay_amt = toWei('10')
             const buy_amt = toWei('20')
@@ -121,10 +121,6 @@ contract('MatchingMarket', accounts => {
         
     })
 
-    describe('offer', () => {
-        xit('use offer function to make third offer')
-
-    })
 
     describe('isActive', () => {
         it('should get correct active status for offer', async () => {
@@ -165,7 +161,7 @@ contract('MatchingMarket', accounts => {
             await matchingMarketInstance.buy(2, toWei('20'), {from: accounts[3]}).should.be.rejectedWith('revert')
         })
 
-        it('should fail to buy successfully if amount is zero', async () => {
+        it('should fail to buy successfully if amount is zero using take function', async () => {
             const firstOfferActive = await matchingMarketInstance.isActive(1) 
             expect(firstOfferActive).to.be.equal(true)
             
@@ -175,7 +171,8 @@ contract('MatchingMarket', accounts => {
                 {from: accounts[3]}
             ).should.be.fulfilled
 
-            await matchingMarketInstance.buy(1, 0, {from: accounts[3]}).should.be.rejectedWith('revert')
+            // await matchingMarketInstance.buy(1, 0, {from: accounts[3]}).should.be.rejectedWith('revert')
+            await matchingMarketInstance.take(toHex(1), 0, {from: accounts[3]}).should.be.rejectedWith('revert')
         })
 
         it('should fail to buy successfully if amount is not approved by buyer', async () => {
@@ -212,7 +209,7 @@ contract('MatchingMarket', accounts => {
             await erc20DAI.balanceOf(accounts[3]).should.eventually.eq(toWei('990').toString())
         })
 
-        it('should buy second 50% or part of first offer successfully with 1:2 price ratio', async () => {
+        it('should use take function to buy second 50% or part of first offer successfully with 1:2 price ratio', async () => {
             const firstOfferActive = await matchingMarketInstance.isActive(1)
             expect(firstOfferActive).to.be.equal(true)
 
@@ -225,7 +222,8 @@ contract('MatchingMarket', accounts => {
                 {from: accounts[3]}
             ).should.be.fulfilled
 
-            await matchingMarketInstance.buy(1, toBN(pay_amt * 0.5), {from: accounts[3]})
+            // await matchingMarketInstance.buy(1, toBN(pay_amt * 0.5), {from: accounts[3]})
+            await matchingMarketInstance.buy(toHex(1), toBN(pay_amt * 0.5), {from: accounts[3]})
 
             await erc20WETH.balanceOf(accounts[1]).should.eventually.eq(toWei('990').toString())
             await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('1020').toString())
@@ -486,48 +484,49 @@ contract('MatchingMarket', accounts => {
 
     describe('getBestOffer', () => {
         it('should get best offer for a sell/buy token pair', async () => {
-            console.log('best offer for token pair: ', (await matchingMarketInstance.getBestOffer(erc20WETH.address, erc20DAI.address)).toString())
+            await matchingMarketInstance.getBestOffer(erc20WETH.address, erc20DAI.address).should.eventually.eq(3)
 
-            console.log('best offer for token pair: ', (await matchingMarketInstance._best(erc20WETH.address, erc20DAI.address)).toString())
+            await matchingMarketInstance._best(erc20WETH.address, erc20DAI.address).should.eventually.eq(3)
         })
     })
 
     describe('getWorseOffer', () => {
         it('should return the worse offer in the sorted list of offers', async () => {
-            console.log('worse offer: ', (await matchingMarketInstance.getWorseOffer(3)).toString())
+            await matchingMarketInstance.getWorseOffer(3).should.eventually.eq(0)
         })
     })
 
     describe('getBetterOffer', () => {
         it('should get the next better offer in the sorted list', async () => {
-            console.log('next better offer: ', (await matchingMarketInstance.getBetterOffer(3)).toString())
+            await matchingMarketInstance.getBetterOffer(3).should.eventually.eq(0)
         })
     })
 
     describe('getOfferCount', () => {
         it('should return the amount of better offers for a token pair', async () => {
-            console.log('offer count for token pair: ', (await matchingMarketInstance.getOfferCount(erc20WETH.address, erc20DAI.address)).toString())
+            await matchingMarketInstance.getOfferCount(erc20WETH.address, erc20DAI.address).should.eventually.eq(1)
         })
     })
 
     describe('getFirstUnsortedOffer', () => {
         it('should get the first unsorted offer that was inserted by a contract', async () => {
-            console.log('first unsorted offer inserted by contract: ', (await matchingMarketInstance.getFirstUnsortedOffer()).toString())
+            await matchingMarketInstance.getFirstUnsortedOffer().should.eventually.eq(0)
         })
     })
 
     describe('getNextUnsortedOffer', () => {
         it('should get the next unsorted offer', async () => {
-            console.log('first unsorted offer inserted by contract: ', (await matchingMarketInstance.getNextUnsortedOffer(0)).toString())
+            // Can be used to cycle through all the unsorted offers.
+            await matchingMarketInstance.getNextUnsortedOffer(0).should.eventually.eq(0)
         })
-        //Can be used to cycle through all the unsorted offers.
+       
     })
 
     describe('getBuyAmount', () => {
         it('should get the buy amount for a token pair', async () => {
             // returns best buy amount
             // returns how much can be bought based on best offer and amount entered
-            console.log('best buy amount for offer 3: ', (await matchingMarketInstance.getBuyAmount(erc20DAI.address, erc20WETH.address, toBN(10e18))).toString()) // offer 3
+            await matchingMarketInstance.getBuyAmount(erc20DAI.address, erc20WETH.address, toBN(10e18)).should.eventually.eq(toWei('20').toString()) // offer 3
         })
     })
 
@@ -535,7 +534,7 @@ contract('MatchingMarket', accounts => {
         it('should get the pay amount for a token pair', async () => {
             // returns best pay amount
             // returns how much should be offered to buyers based on best offer and amount entered
-            console.log('best pay amount for offer 3: ', (await matchingMarketInstance.getPayAmount(erc20WETH.address, erc20DAI.address, toBN(20e18))).toString()) // offer 3
+            await matchingMarketInstance.getPayAmount(erc20WETH.address, erc20DAI.address, toBN(20e18)).should.eventually.eq(toWei('10').toString()) // offer 3
         })
     })
 
@@ -644,6 +643,30 @@ contract('MatchingMarket', accounts => {
 
 
     })
+
+
+    /* describe('offer with offer function', () => {
+        it('use offer function to make offer successfully as an option instead of make', async () => {
+            const pay_amt = toWei('10')
+            const buy_amt = toWei('20')
+
+            await erc20WETH.approve(
+                matchingMarketInstance.address,
+                pay_amt,
+                {from: accounts[4]}
+            ).should.be.fulfilled
+            
+            await matchingMarketInstance.offer(
+                pay_amt,
+                erc20WETH.address, 
+                buy_amt,
+                erc20DAI.address,
+                0,
+                {from: accounts[4]}
+            ).should.be.fulfilled
+        })
+        
+    }) */
 
 })
 

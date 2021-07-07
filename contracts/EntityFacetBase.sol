@@ -27,23 +27,23 @@ abstract contract EntityFacetBase is EternalStorage, Controller {
     return dataBool[__a(_policy, "isPolicy")];
   }
 
-  function _tradeOnMarket(address _payUnit, uint256 _payAmount, address _buyUnit, uint256 _buyAmount) internal returns (uint256) {
+  function _tradeOnMarket(address _sellUnit, uint256 _sellAmount, address _buyUnit, uint256 _buyAmount) internal returns (uint256) {
     // get mkt
-    IMarket mkt = _getMarket();
-    // approve mkt to use my tokens
-    IERC20 tok = IERC20(_payUnit);
-    tok.approve(address(mkt), _payAmount);
-    // make the offer
-    return mkt.offer(_payAmount, _payUnit, _buyAmount, _buyUnit, 0, false);
-  }  
-
-  function _sellAtBestPriceOnMarket(address _sellUnit, uint256 _sellAmount, address _buyUnit) internal returns (uint256) {
     IMarket mkt = _getMarket();
     // approve mkt to use my tokens
     IERC20 tok = IERC20(_sellUnit);
     tok.approve(address(mkt), _sellAmount);
     // make the offer
-    return mkt.sellAllAmount(_sellUnit, _sellAmount, _buyUnit, _sellAmount);
+    return mkt.executeLimitOffer(_sellUnit, _sellAmount, _buyUnit, _buyAmount);
+  }  
+
+  function _sellAtBestPriceOnMarket(address _sellUnit, uint256 _sellAmount, address _buyUnit) internal {
+    IMarket mkt = _getMarket();
+    // approve mkt to use my tokens
+    IERC20 tok = IERC20(_sellUnit);
+    tok.approve(address(mkt), _sellAmount);
+    // make the offer
+    mkt.executeMarketOffer(_sellUnit, _sellAmount, _buyUnit);
   }  
 
   function _getMarket () internal view returns (IMarket) {

@@ -128,25 +128,6 @@ contract('Treasury', accounts => {
     expect(entityProxy.address).to.exist
   })
 
-  describe('has a collateralization ratio', () => {
-    it('with default as 100', async () => {
-      await entity.getCollateralRatio().should.eventually.eq(10000)
-    })
-
-    it('which can be set, but not just by anyone', async () => {
-      await entity.setCollateralRatio(500, { from: accounts[2] }).should.be.rejectedWith('must be entity admin')
-    })
-
-    it('which can be set', async () => {
-      await entity.setCollateralRatio(500, { from: entityAdminAddress })
-      await entity.getCollateralRatio().should.eventually.eq(500)
-    })
-
-    it('which cannot be set to 0', async () => {
-      await entity.setCollateralRatio(0, { from: entityAdminAddress }).should.be.rejectedWith('cannot be 0')
-    })
-  })
-
   describe('can have policy balance updated', async () => {
     it('but not for a non-policy', async () => {
       await treasury.incPolicyBalance(0, { from: accounts[0] }).should.be.rejectedWith('not my policy')
@@ -657,84 +638,6 @@ contract('Treasury', accounts => {
 
         await entity.transferFromTreasury(etherToken.address, 6).should.be.rejectedWith('exceeds treasury balance')
       })
-
-      describe('and takes into account collateralization ratio', async () => {
-        beforeEach(async () => {
-          await policies[0].testFacet.treasuryIncPolicyBalance(4)
-          await policies[0].testFacet.treasurySetMinPolicyBalance(3)
-
-          await policies[1].testFacet.treasuryIncPolicyBalance(7)
-          await policies[1].testFacet.treasurySetMinPolicyBalance(6)
-
-          await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
-            realBalance_: 11,
-            virtualBalance_: 11,
-            minBalance_: 9,
-          })
-
-          await entity.getBalance(etherToken.address).should.eventually.eq(0)
-        })
-
-        it('when at 100%', async () => {
-          await entity.setCollateralRatio(10000)
-
-          await entity.transferFromTreasury(etherToken.address, 3).should.be.rejectedWith("collateral too low")
-          
-          await entity.transferFromTreasury(etherToken.address, 2).should.be.fulfilled
-
-          await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
-            realBalance_: 9,
-            virtualBalance_: 11,
-            minBalance_: 9,
-          })
-
-          await entity.getBalance(etherToken.address).should.eventually.eq(2)
-        })
-
-        it('when at 0.1%', async () => {
-          await entity.setCollateralRatio(1)
-
-          await entity.transferFromTreasury(etherToken.address, 11).should.be.fulfilled
-
-          await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
-            realBalance_: 0,
-            virtualBalance_: 11,
-            minBalance_: 9,
-          })
-
-          await entity.getBalance(etherToken.address).should.eventually.eq(11)
-        })
-
-        it('when at 1%', async () => {
-          await entity.setCollateralRatio(100)
-
-          await entity.transferFromTreasury(etherToken.address, 11).should.be.fulfilled
-
-          await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
-            realBalance_: 0,
-            virtualBalance_: 11,
-            minBalance_: 9,
-          })
-
-          await entity.getBalance(etherToken.address).should.eventually.eq(11)
-        })
-
-        it('when at 12%', async () => {
-          await entity.setCollateralRatio(1200)
-
-          await entity.transferFromTreasury(etherToken.address, 11).should.be.rejectedWith('collateral too low')
-
-          await entity.transferFromTreasury(etherToken.address, 10).should.be.fulfilled
-
-          await treasury.getEconomics(etherToken.address).should.eventually.matchObj({
-            realBalance_: 1,
-            virtualBalance_: 11,
-            minBalance_: 9,
-          })
-
-          await entity.getBalance(etherToken.address).should.eventually.eq(10)
-        })
-      })
     })
   })
 
@@ -808,14 +711,14 @@ contract('Treasury', accounts => {
         5,
       )
 
-      const offerId = (await market.last_offer_id()).toNumber()
+      const offerId = (await market.getLastOfferId()).toNumber()
       await market.isActive(offerId).should.eventually.eq(true)
       const offer = await market.getOffer(offerId)
 
-      expect(offer[0].toNumber()).to.eq(1)
-      expect(offer[1]).to.eq(etherToken.address)
-      expect(offer[2].toNumber()).to.eq(5)
-      expect(offer[3]).to.eq(etherToken2.address)
+      expect(offer.sellAmount_.toNumber()).to.eq(1)
+      expect(offer.sellToken_).to.eq(etherToken.address)
+      expect(offer.buyAmount_.toNumber()).to.eq(5)
+      expect(offer.buyToken_).to.eq(etherToken2.address)
 
       await policies[0].testFacet.treasuryCancelOrder(offerId)
 

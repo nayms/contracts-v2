@@ -239,7 +239,7 @@ contract('MatchingMarket', accounts => {
             expect(firstOfferActive).to.be.equal(false)
         })
 
-        it('should delete bought offer successfully', async () => {
+        it('should delete fully bought offer successfully', async () => {
             await matchingMarketInstance.getOffer(1)
             .should.eventually.matchObj({
                 '0': toBN(0),
@@ -314,8 +314,6 @@ contract('MatchingMarket', accounts => {
                 '3': erc20WETH.address
             })
         })
-
-        xit('should match opposite offers for same token pair')
         
     })
 
@@ -333,6 +331,12 @@ contract('MatchingMarket', accounts => {
 
             await matchingMarketInstance.insert(4, 1, {from: accounts[0]}).should.be.fulfilled
         })
+
+        it('after insertion it should successfully check whether an offer is sorted or not', async () => {
+            expect(await matchingMarketInstance.isOfferSorted(3)).to.be.equal(true)
+
+            expect(await matchingMarketInstance.isOfferSorted(4)).to.be.equal(true)
+        })
     })
 
     describe('del_rank', () => {
@@ -343,7 +347,7 @@ contract('MatchingMarket', accounts => {
         it('should allow only admins to set the minimum sell amount for any token', async () => {
             await matchingMarketInstance.setMinSell(
                 erc20WETH.address,
-                toBN(10e18),
+                toBN(1e18),
                 {from: accounts[0]}
             ).should.be.fulfilled
         })
@@ -351,7 +355,7 @@ contract('MatchingMarket', accounts => {
         it('should not allow non authorised admins to set the minimum sell amount for any token', async () => {
             await matchingMarketInstance.setMinSell(
                 erc20WETH.address,
-                toBN(10e18),
+                toBN(1e18),
                 {from: accounts[1]}
             ).should.be.rejectedWith('revert')
         })
@@ -359,7 +363,7 @@ contract('MatchingMarket', accounts => {
 
     describe('getMinSell', () => {
         it('should get correct minimum sell amount for an offer or token when it is set', async () => {
-            await matchingMarketInstance.getMinSell(erc20WETH.address).should.eventually.eq(toWei('10').toString())
+            await matchingMarketInstance.getMinSell(erc20WETH.address).should.eventually.eq(toWei('1').toString())
         })
 
         it('should get correct minimum sell amount for an offer or token when not set', async () => {
@@ -454,46 +458,164 @@ contract('MatchingMarket', accounts => {
     })
 
     describe('getBestOffer', () => {
-        it('should get best offer for a token pair', async () => {
-            console.log(await matchingMarketInstance.getBestOffer(erc20WETH.address, erc20DAI.address))
+        it('should get best offer for a sell/buy token pair', async () => {
+            console.log('best offer for token pair: ', (await matchingMarketInstance.getBestOffer(erc20WETH.address, erc20DAI.address)).toString())
+
+            console.log('best offer for token pair: ', (await matchingMarketInstance._best(erc20WETH.address, erc20DAI.address)).toString())
         })
     })
 
     describe('getWorseOffer', () => {
-        xit('should return the worse offer in the sorted list of offers')
+        it('should return the worse offer in the sorted list of offers', async () => {
+            console.log('worse offer: ', (await matchingMarketInstance.getWorseOffer(3)).toString())
+        })
     })
 
     describe('getBetterOffer', () => {
-        xit('should get the next better offer in the sorted list')
+        it('should get the next better offer in the sorted list', async () => {
+            console.log('next better offer: ', (await matchingMarketInstance.getBetterOffer(3)).toString())
+        })
     })
 
     describe('getOfferCount', () => {
-        xit('should return the amount of better offers for a token pair')
+        it('should return the amount of better offers for a token pair', async () => {
+            console.log('offer count for token pair: ', (await matchingMarketInstance.getOfferCount(erc20WETH.address, erc20DAI.address)).toString())
+        })
     })
 
     describe('getFirstUnsortedOffer', () => {
-        xit('should get the first unsorted offer that was inserted by a contract')
+        it('should get the first unsorted offer that was inserted by a contract', async () => {
+            console.log('first unsorted offer inserted by contract: ', (await matchingMarketInstance.getFirstUnsortedOffer()).toString())
+        })
     })
 
     describe('getNextUnsortedOffer', () => {
-        xit('should get the next unsorted offer')
+        it('should get the next unsorted offer', async () => {
+            console.log('first unsorted offer inserted by contract: ', (await matchingMarketInstance.getNextUnsortedOffer(0)).toString())
+        })
         //Can be used to cycle through all the unsorted offers.
     })
 
-    describe('sellAllAmount', () => {
-        xit('should return the sell all amount for a token pair and pay amount')
-    })
-
-    describe('buyAllAmount', () => {
-        xit('should get the buy all amount for a token pair')
-    })
-
     describe('getBuyAmount', () => {
-        xit('should get the buy amount for a token pair')
+        it('should get the buy amount for a token pair', async () => {
+            // returns best buy amount
+            // returns how much can be bought based on best offer and amount entered
+            console.log('best buy amount for offer 3: ', (await matchingMarketInstance.getBuyAmount(erc20DAI.address, erc20WETH.address, toBN(10e18))).toString()) // offer 3
+        })
     })
 
     describe('getPayAmount', () => {
-        xit('should get the pay amount for a token pair')
+        it('should get the pay amount for a token pair', async () => {
+            // returns best pay amount
+            // returns how much should be offered to buyers based on best offer and amount entered
+            console.log('best pay amount for offer 3: ', (await matchingMarketInstance.getPayAmount(erc20WETH.address, erc20DAI.address, toBN(20e18))).toString()) // offer 3
+        })
+    })
+
+    describe('sellAllAmount', () => {
+        it('should match offers, return the fill amount for a token pair, with pay amount and minimum fill amount', async () => {
+            // check minimum sell for DAI
+            await matchingMarketInstance.getMinSell(erc20DAI.address).should.eventually.eq(0)
+            
+            // buyer must have approved WETH to get DAI at best offer
+            await erc20WETH.approve(
+                matchingMarketInstance.address,
+                toBN(5e18),
+                {from: accounts[1]}
+            ).should.be.fulfilled
+
+            await matchingMarketInstance.getOffer(4)
+            .should.eventually.matchObj({
+                '0': toBN(20e18),
+                '1': erc20DAI.address,
+                '2': toBN(10e18),
+                '3': erc20WETH.address
+            })
+
+            // matching offer 4
+            // caller must approve amount to give
+            // calls take which calls buy
+            // Transfers funds from caller to offer maker, and from market to caller.
+            console.log('sell all amount for offer 4 with min fill: ', (await matchingMarketInstance.sellAllAmount(erc20WETH.address, toBN(5e18), erc20DAI.address, toBN(10e18), {from: accounts[1]})).toString()) 
+        
+        })
+
+        it('after match offer and selling, update offer amounts', async () => {
+            await matchingMarketInstance.getOffer(3)
+            .should.eventually.matchObj({
+                '0': toBN(10e18),
+                '1': erc20WETH.address,
+                '2': toBN(20e18),
+                '3': erc20DAI.address
+            })
+
+            await matchingMarketInstance.getOffer(4)
+            .should.eventually.matchObj({
+                '0': toBN(10e18), // previously toBN(20e18),
+                '1': erc20DAI.address,
+                '2': toBN(5e18), // previously toBN(10e18),
+                '3': erc20WETH.address
+            })
+        })
+    })
+
+    
+    describe('buyAllAmount', () => {
+        it('should revert if fill amount is less than max fill amount', async () => {
+            // check minimum sell for WETH
+            await matchingMarketInstance.getMinSell(erc20WETH.address).should.eventually.eq(toWei('1').toString())
+
+            await erc20DAI.approve(
+                matchingMarketInstance.address,
+                toBN(20e18),
+                {from: accounts[3]}
+            ).should.be.fulfilled
+
+            await matchingMarketInstance.getOffer(3)
+            .should.eventually.matchObj({
+                '0': toBN(10e18),
+                '1': erc20WETH.address,
+                '2': toBN(20e18),
+                '3': erc20DAI.address
+            })
+
+            // matching offer 3
+            await matchingMarketInstance.buyAllAmount(erc20WETH.address, toBN(20e18), erc20DAI.address, toBN(10e18), {from: accounts[3]}).should.be.rejectedWith('revert')
+        })
+
+        it('should match offers, return the fill amount for a token pair, with buy amount and maximum fill amount', async () => {
+            // check minimum sell for WETH
+            await matchingMarketInstance.getMinSell(erc20WETH.address).should.eventually.eq(toWei('1').toString())
+
+            await erc20DAI.approve(
+                matchingMarketInstance.address,
+                toBN(20e18),
+                {from: accounts[3]}
+            ).should.be.fulfilled
+
+            // matching offer 3
+            console.log('buy all amount for offer 3 with max fill: ', (await matchingMarketInstance.buyAllAmount(erc20WETH.address, toBN(10e18), erc20DAI.address, toBN(20e18), {from: accounts[3]})).toString())
+        })
+
+        it('should delete fully bought offer successfully', async () => {
+            await matchingMarketInstance.getOffer(3)
+            .should.eventually.matchObj({
+                '0': toBN(0),
+                '1': ADDRESS_ZERO,
+                '2': toBN(0),
+                '3': ADDRESS_ZERO
+            })
+
+            await matchingMarketInstance.getOffer(4)
+            .should.eventually.matchObj({
+                '0': toBN(10e18), // previously toBN(20e18),
+                '1': erc20DAI.address,
+                '2': toBN(5e18), // previously toBN(10e18),
+                '3': erc20WETH.address
+            })
+        })
+
+
     })
 
 })

@@ -84,14 +84,22 @@ import "./base/SafeMath.sol";
     paid_ = dataBool[__ia(_index, _unit, "claimPaid")];
   }
 
-  function createOrder (bytes32 _type, address _sellUnit, uint256 _sellAmount, address _buyUnit, uint256 _buyAmount)
-    public 
+  function createOrder (
+    bytes32 _type, 
+    address _sellUnit, 
+    uint256 _sellAmount, 
+    address _buyUnit, 
+    uint256 _buyAmount,
+    address _notify,
+    bytes calldata _notifyData
+  )
+    external 
     override
     assertIsMyPolicy(msg.sender)
     returns (uint256)
   {
     require(_type == ORDER_TYPE_TOKEN_BUYBACK || _type == ORDER_TYPE_TOKEN_SALE, 'unknown order type');
-    return _tradeOnMarket(_sellUnit, _sellAmount, _buyUnit, _buyAmount);
+    return _tradeOnMarket(_sellUnit, _sellAmount, _buyUnit, _buyAmount, _notify, _notifyData);
   }
 
   function cancelOrder (uint256 _orderId) 

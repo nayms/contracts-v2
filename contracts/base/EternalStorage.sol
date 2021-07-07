@@ -6,17 +6,17 @@ pragma solidity 0.6.12;
 contract EternalStorage {
   // scalars
   mapping(string => address) dataAddress;
-  mapping(string => string) dataString;
   mapping(string => bytes32) dataBytes32;
   mapping(string => int256) dataInt256;
   mapping(string => uint256) dataUint256;
   mapping(string => bool) dataBool;
+  mapping(string => string) dataString;
+  mapping(string => bytes) dataBytes;
   // arrays
   mapping(string => address[]) dataManyAddresses;
   mapping(string => bytes32[]) dataManyBytes32s;
   mapping(string => int256[]) dataManyInt256;
   mapping(string => uint256[]) dataManyUint256;
-  mapping(string => bool[]) dataManyBool;
   // helpers
   function __i (uint256 i1, string memory s) internal pure returns (string memory) {
     return string(abi.encodePacked(i1, s));

@@ -73,10 +73,20 @@ interface IPolicyTreasury {
    * @param _sellAmount Amount to sell.
    * @param _buyUnit Unit to buy.
    * @param _buyAmount Amount to buy.
+   * @param _notify Observer to notify of trade and/or closure.
+   * @param _notifyData Extra metadata to pass to observer.
    *
    * @return Market order id.
    */
-  function createOrder (bytes32 _type, address _sellUnit, uint256 _sellAmount, address _buyUnit, uint256 _buyAmount) external returns (uint256);
+  function createOrder (
+    bytes32 _type, 
+    address _sellUnit, 
+    uint256 _sellAmount, 
+    address _buyUnit, 
+    uint256 _buyAmount,
+    address _notify,
+    bytes calldata _notifyData
+  ) external returns (uint256);
   /**
    * @dev Cancel token sale order.
    *

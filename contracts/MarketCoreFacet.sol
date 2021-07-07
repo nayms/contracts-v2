@@ -2,6 +2,7 @@ pragma solidity 0.6.12;
 
 import "./base/EternalStorage.sol";
 import "./base/IMarketCoreFacet.sol";
+import "./base/IMarketObserver.sol";
 import "./base/IDiamondFacet.sol";
 import "./base/Controller.sol";
 import "./base/SafeMath.sol";
@@ -30,6 +31,7 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
   function getSelectors () public pure override returns (bytes memory) {
     return abi.encodePacked(
       IMarketCoreFacet.executeLimitOffer.selector,
+      IMarketCoreFacet.executeLimitOfferWithObserver.selector,
       IMarketCoreFacet.executeMarketOffer.selector,
       IMarketCoreFacet.buy.selector,
       IMarketCoreFacet.cancel.selector,
@@ -52,6 +54,8 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
     uint256 sellAmount_, 
     address buyToken_, 
     uint256 buyAmount_,
+    address notify_,
+    bytes memory notifyData_,
     bool isActive_,
     uint256 nextOfferId_,
     uint256 prevOfferId_
@@ -61,6 +65,8 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
     sellAmount_ = dataUint256[__i(_offerId, "sellAmount")];
     buyToken_ = dataAddress[__i(_offerId, "buyToken")];
     buyAmount_ = dataUint256[__i(_offerId, "buyAmount")];
+    notify_ = dataAddress[__i(_offerId, "notify")];
+    notifyData_ = dataBytes[__i(_offerId, "notifyData")];
     isActive_ = dataBool[__i(_offerId, "isActive")];
     nextOfferId_ = dataUint256[__i(_offerId, "rankNext")];
     prevOfferId_ = dataUint256[__i(_offerId, "rankPrev")];
@@ -94,9 +100,36 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
     _buy(_offerId, _amount);
   }
 
-  function executeLimitOffer(address _sellToken, uint256 _sellAmount, address _buyToken, uint256 _buyAmount) 
-    nonReentrant
+  function executeLimitOffer(
+    address _sellToken, 
+    uint256 _sellAmount, 
+    address _buyToken, 
+    uint256 _buyAmount
+  ) 
     external
+    override 
+    returns (uint256) 
+  {
+    return executeLimitOfferWithObserver(
+      _sellToken,
+      _sellAmount,
+      _buyToken,
+      _buyAmount,
+      address(0),
+      ""
+    );
+  }
+
+  function executeLimitOfferWithObserver(
+    address _sellToken, 
+    uint256 _sellAmount, 
+    address _buyToken, 
+    uint256 _buyAmount,
+    address _notify,
+    bytes memory _notifyData
+  ) 
+    nonReentrant
+    public
     override 
     returns (uint256) 
   {
@@ -111,7 +144,9 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
       _sellToken,
       _sellAmount,
       _buyToken,
-      _buyAmount
+      _buyAmount,
+      _notify,
+      _notifyData
     );
   }
 
@@ -258,7 +293,14 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
       || dataUint256[__iaa(0, sellToken, buyToken, "bestOfferId")] == _offerId;
   }  
 
-  function _matchToExistingOffers(address _sellToken, uint256 _sellAmount, address _buyToken, uint256 _buyAmount) 
+  function _matchToExistingOffers(
+    address _sellToken, 
+    uint256 _sellAmount, 
+    address _buyToken, 
+    uint256 _buyAmount,
+    address _notify,
+    bytes memory _notifyData
+  ) 
     private 
     returns (uint256) 
   {
@@ -287,14 +329,23 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
       // ^ The `rounding` parameter is a compromise borne of a couple days
       // of discussion.
 
-      // do the buy     
-      uint256 finalSellAmount = min(bestBuyAmount, sellAmount); 
-      _buy(bestOfferId, finalSellAmount);
+      // avoid stack-too-deep
+      {
+        // do the buy     
+        uint256 finalSellAmount = min(bestBuyAmount, sellAmount); 
 
-      // calculate how much is left to buy/sell
-      uint256 sellAmountOld = sellAmount;
-      sellAmount = sellAmount.sub(finalSellAmount);
-      buyAmount = sellAmount.mul(buyAmount).div(sellAmountOld);
+        _buyWithObserver(
+          bestOfferId, 
+          finalSellAmount,
+          _notify,
+          _notifyData
+        );
+
+        // calculate how much is left to buy/sell
+        uint256 sellAmountOld = sellAmount;
+        sellAmount = sellAmount.sub(finalSellAmount);
+        buyAmount = sellAmount.mul(buyAmount).div(sellAmountOld);
+      }
 
       // if nothing left to sell or buy then we're done
       if (sellAmount == 0 || buyAmount == 0) {
@@ -307,7 +358,14 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
     // if still some left
     if (buyAmount > 0 && sellAmount > 0 && sellAmount >= dataUint256["dust"]) {
       // new offer should be created
-      uint256 id = _createLimitOffer(_sellToken, sellAmount, _buyToken, buyAmount);
+      uint256 id = _createLimitOffer(
+        _sellToken, 
+        sellAmount, 
+        _buyToken, 
+        buyAmount,
+        _notify,
+        _notifyData
+      );
 
       // ensure it's in the right position in the list
       _insertOfferIntoSortedList(id);
@@ -318,7 +376,14 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
     return 0;
   }
 
-  function _createLimitOffer(address _sellToken, uint256 _sellAmount, address _buyToken, uint256 _buyAmount) 
+  function _createLimitOffer(
+    address _sellToken, 
+    uint256 _sellAmount, 
+    address _buyToken, 
+    uint256 _buyAmount,
+    address _notify,
+    bytes memory _notifyData
+  ) 
     private 
     returns (uint256) 
   {
@@ -330,6 +395,8 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
     dataUint256[__i(id, "sellAmount")] = _sellAmount;
     dataAddress[__i(id, "buyToken")] = _buyToken;
     dataUint256[__i(id, "buyAmount")] = _buyAmount;
+    dataAddress[__i(id, "notify")] = _notify;
+    dataBytes[__i(id, "notifyData")] = _notifyData;
     dataBool[__i(id, "isActive")] = true;
 
     // escrow the tokens
@@ -339,6 +406,15 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
   }
 
   function _buy(uint256 _offerId, uint256 _requestedBuyAmount) private {
+    _buyWithObserver(_offerId, _requestedBuyAmount, address(0), "");
+  }
+
+  function _buyWithObserver(
+    uint256 _offerId, 
+    uint256 _requestedBuyAmount,
+    address _buyNotify,
+    bytes memory _buyNotifyData
+  ) private {
     address creator = dataAddress[__i(_offerId, "creator")];
     address offerSellToken = dataAddress[__i(_offerId, "sellToken")];
     uint256 offerSellAmount = dataUint256[__i(_offerId, "sellAmount")];
@@ -352,10 +428,7 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
     require(uint128(thisSaleSellAmount) == thisSaleSellAmount, "sell amount exceeds int limit");
 
     // check bounds
-    require(_requestedBuyAmount > 0, "requested buy amount is 0");
-    require(_requestedBuyAmount <= offerBuyAmount, "requested buy amount too large");
-    require(thisSaleSellAmount > 0, "calculated sell amount is 0");
-    require(thisSaleSellAmount <= offerSellAmount, "calculated sell amount too large");
+    _checkTradeBounds(offerBuyAmount, _requestedBuyAmount, offerSellAmount, thisSaleSellAmount);
 
     // update balances
     dataUint256[__i(_offerId, "sellAmount")] = offerSellAmount.sub(thisSaleSellAmount);
@@ -365,10 +438,60 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
     require(IERC20(offerBuyToken).transferFrom(msg.sender, creator, _requestedBuyAmount), "sender -> creator transfer failed");
     require(IERC20(offerSellToken).transfer(msg.sender, thisSaleSellAmount), "market -> sender transfer failed");    
 
+    // notify observers
+    _notifyObserversOfTrade(_offerId, thisSaleSellAmount, _requestedBuyAmount, _buyNotify, _buyNotifyData);
+
     // cancel offer if it has become dust
     if (dataUint256[__i(_offerId, "sellAmount")] < dataUint256["dust"]) {
       _cancel(_offerId);
     }
+  }
+
+  function _notifyObserversOfTrade(
+    uint256 _offerId,
+    uint256 _soldAmount,
+    uint256 _boughtAmount,
+    address _buyNotify,
+    bytes memory _buyNotifyData
+  ) private {
+    address creator = dataAddress[__i(_offerId, "creator")];
+    address offerSellToken = dataAddress[__i(_offerId, "sellToken")];
+    address offerBuyToken = dataAddress[__i(_offerId, "buyToken")];
+    address offerNotify = dataAddress[__i(_offerId, "notify")];
+    bytes memory offerNotifyData = dataBytes[__i(_offerId, "notifyData")];
+
+    if (_buyNotify != address(0)) {
+      IMarketObserver(_buyNotify).handleTrade(
+        _offerId, 
+        offerSellToken, 
+        _soldAmount, 
+        offerBuyToken, 
+        _boughtAmount, 
+        creator, 
+        msg.sender, 
+        _buyNotifyData
+      );
+    }
+
+    if (offerNotify != address(0)) {
+      IMarketObserver(offerNotify).handleTrade(
+        _offerId, 
+        offerSellToken, 
+        _soldAmount, 
+        offerBuyToken, 
+        _boughtAmount, 
+        creator, 
+        msg.sender, 
+        offerNotifyData
+      );
+    }
+  }
+
+  function _checkTradeBounds(uint256 _maxBuyAmount, uint256 _buyAmount, uint256 _maxSellAmount, uint256 _sellAmount) private {
+    require(_buyAmount > 0, "requested buy amount is 0");
+    require(_buyAmount <= _maxBuyAmount, "requested buy amount too large");
+    require(_sellAmount > 0, "calculated sell amount is 0");
+    require(_sellAmount <= _maxSellAmount, "calculated sell amount too large");
   }
 
   function _cancel(uint256 _offerId) private {
@@ -379,10 +502,27 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
     address creator = dataAddress[__i(_offerId, "creator")];
     address sellToken = dataAddress[__i(_offerId, "sellToken")];
     uint256 sellAmount = dataUint256[__i(_offerId, "sellAmount")];
+    address buyToken = dataAddress[__i(_offerId, "buyToken")];
+    uint256 buyAmount = dataUint256[__i(_offerId, "buyAmount")];
+    address notify = dataAddress[__i(_offerId, "notify")];
+    bytes memory notifyData = dataBytes[__i(_offerId, "notifyData")];
 
     // transfer remaining sell amount back to creator
     if (sellAmount > 0) {
       require(IERC20(sellToken).transfer(creator, sellAmount));
+    }
+
+    // notify observers
+    if (notify != address(0)) {
+      IMarketObserver(notify).handleClosure(
+        _offerId, 
+        sellToken, 
+        sellAmount, 
+        buyToken, 
+        buyAmount, 
+        creator, 
+        notifyData
+      );
     }
 
     dataBool[__i(_offerId, "isActive")] = false;

@@ -7,10 +7,10 @@ import chaiAsPromised from 'chai-as-promised'
 import { events } from '../..'
 import packageJson from '../../package.json'
 import { toBN, isBN } from './web3'
-import { ADDRESS_ZERO, BYTES32_ZERO } from '../../utils/constants'
+import { ADDRESS_ZERO, BYTES32_ZERO, BYTES_ZERO } from '../../utils/constants'
 import { ROLES } from '../../utils/constants'
 
-export { ADDRESS_ZERO, BYTES32_ZERO }
+export { ADDRESS_ZERO, BYTES32_ZERO, BYTES_ZERO }
 
 const MNEMONIC = (packageJson.scripts.devnet.match(/\'(.+)\'/))[1]
 console.log(`Mnemonic: [ ${MNEMONIC} ]`)

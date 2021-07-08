@@ -5,11 +5,15 @@ pragma solidity 0.6.12;
  */
 abstract contract IMarketObserverDataTypes {
   /**
-   * @dev State: Tranch token initial sale
+   * @dev Tranch token initial sale
    */
   uint256 constant public MODT_TRANCH_SALE = 1;
   /**
-   * @dev State: Tranch token buyback
+   * @dev Tranch token buyback
    */
   uint256 constant public MODT_TRANCH_BUYBACK = 2;
+  /**
+   * @dev Entity token sale
+   */
+  uint256 constant public MODT_ENTITY_SALE = 3;
 }

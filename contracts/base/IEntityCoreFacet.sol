@@ -86,10 +86,8 @@ interface IEntityCoreFacet {
    * @param _sellUnit Asset to sell.
    * @param _sellAmount Amount to sell.
    * @param _buyUnit Asset to buy.
-   *
-   * @return Market offer id.
    */
-  function sellAtBestPrice(address _sellUnit, uint256 _sellAmount, address _buyUnit) external returns (uint256);
+  function sellAtBestPrice(address _sellUnit, uint256 _sellAmount, address _buyUnit) external;
 
   /**
    * @dev Emitted when a new policy has been created.

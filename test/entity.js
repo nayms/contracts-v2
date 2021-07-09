@@ -249,7 +249,7 @@ contract('Entity', accounts => {
           // now match the trade
           await etherToken2.deposit({ value: 1, from: accounts[5] })
           await etherToken2.approve(market.address, 1, { from: accounts[5] })
-          const offerId = await market.last_offer_id()
+          const offerId = await market.getLastOfferId()
           await market.buy(offerId, 1, { from: accounts[5] })
 
           // post-check
@@ -294,11 +294,15 @@ contract('Entity', accounts => {
           // setup offers on market
           await etherToken2.deposit({ value: 100, from: accounts[7] })
           await etherToken2.approve(market.address, 100, { from: accounts[7] })
-          await market.offer(100, etherToken2.address, 3, etherToken.address, 0, false, { from: accounts[7] }); // best price, but only buying 3
+          await market.executeLimitOffer(etherToken2.address, 100, etherToken.address, 3, { from: accounts[7] }); // best price, but only buying 3
+
+          let offerId, offer
 
           await etherToken2.deposit({ value: 50, from: accounts[8] })
           await etherToken2.approve(market.address, 50, { from: accounts[8] })
-          await market.offer(50, etherToken2.address, 5, etherToken.address, 0, false, { from: accounts[8] }); // worse price, but able to buy all
+          await market.executeLimitOffer(etherToken2.address, 50, etherToken.address, 5, { from: accounts[8] }); // worse price, but able to buy all
+
+          offerId = (await market.getBestOfferId(etherToken2.address, etherToken.address)).toNumber()
 
           // now sell from the other direction
           await entity.sellAtBestPrice(etherToken.address, 5, etherToken2.address, { from: accounts[3] })
@@ -321,7 +325,7 @@ contract('Entity', accounts => {
           // setup matching offer
           await etherToken2.deposit({ value: 50, from: accounts[8] })
           await etherToken2.approve(market.address, 50, { from: accounts[8] })
-          await market.offer(50, etherToken2.address, 10, etherToken.address, 0, false, { from: accounts[8] });
+          await market.executeLimitOffer(etherToken2.address, 50, etherToken.address, 10, { from: accounts[8] });
 
           // trading more than is explicitly deposited should fail
           await entity.sellAtBestPrice(etherToken.address, 11, etherToken2.address, { from: accounts[3] }).should.be.rejectedWith('exceeds entity balance')

@@ -779,21 +779,6 @@ contract('Policy: Premiums', accounts => {
           _state: TRANCH_STATE_CANCELLED,
         })
       })
-
-      it('if tranch has already matured', async () => {
-        // pay second premium
-        await policy.payTranchPremium(0, 3).should.be.fulfilled
-
-        // shift to maturation date
-        await evmClock.setRelativeTime(6000)
-
-        // should auto-call heartbeat in here
-        await policy.payTranchPremium(0, 1).should.be.rejectedWith('payment not allowed')
-
-        await policy.getTranchInfo(0).should.eventually.matchObj({
-          _state: TRANCH_STATE_MATURED,
-        })
-      })
     })
   })
 })

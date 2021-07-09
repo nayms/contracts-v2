@@ -5,22 +5,6 @@ pragma solidity 0.6.12;
  */
 interface IEntityTreasuryBridgeFacet {
   /**
-   * @dev Get treasury collaterlization ratio.
-   *
-   * @return treasuryCollRatioBP_ Treasury collateralization ratio.
-   */
-  function getCollateralRatio() external view returns (
-    uint256 treasuryCollRatioBP_
-  );
-
-  /**
-   * @dev Set treasury collateralization raiot.
-   *
-   * @param _treasuryCollRatioBP Treasury collateralization ratio basis points.
-   */
-  function setCollateralRatio(uint256 _treasuryCollRatioBP) external;
-
-  /**
    * @dev Transfer assets from the internal balance to the treasury balance.
    *
    * @param _unit Asset to move.

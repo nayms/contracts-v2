@@ -27,24 +27,11 @@ import "./base/SafeMath.sol";
   function getSelectors () public pure override returns (bytes memory) {
     return abi.encodePacked(
       IEntityTreasuryBridgeFacet.transferFromTreasury.selector,
-      IEntityTreasuryBridgeFacet.transferToTreasury.selector,
-      IEntityTreasuryBridgeFacet.getCollateralRatio.selector,
-      IEntityTreasuryBridgeFacet.setCollateralRatio.selector
+      IEntityTreasuryBridgeFacet.transferToTreasury.selector
     );
   }
 
   // IEntityTreasuryBridgeFacet
-
-  function getCollateralRatio() public view override returns (
-    uint256 treasuryCollRatioBP_
-  ) {
-    treasuryCollRatioBP_ = dataUint256["treasuryCollRatioBP"];
-  }
-
-  function setCollateralRatio(uint256 _treasuryCollRatioBP) external override assertIsEntityAdmin(msg.sender) {
-    require(_treasuryCollRatioBP > 0, "cannot be 0");
-    dataUint256["treasuryCollRatioBP"] = _treasuryCollRatioBP;
-  }
 
   function transferToTreasury(address _unit, uint256 _amount) external override {
     _assertHasEnoughBalance(_unit, _amount);
@@ -58,12 +45,7 @@ import "./base/SafeMath.sol";
   function transferFromTreasury(address _unit, uint256 _amount) external override {
     // check if we have enough balance
     string memory trbKey = __a(_unit, "treasuryRealBalance");
-    string memory tmbKey = __a(_unit, "treasuryMinBalance");
     require(dataUint256[trbKey] >= _amount, "exceeds treasury balance");
-
-    // check if minimum coll ratio is maintained
-    uint256 collBal = dataUint256[tmbKey].mul(10000 * dataUint256["treasuryCollRatioBP"]).div(10000 * 10000);
-    require(dataUint256[trbKey].sub(_amount) >= collBal, "collateral too low");
 
     dataUint256[trbKey] = dataUint256[trbKey].sub(_amount);
     dataUint256[__a(_unit, "balance")] = dataUint256[__a(_unit, "balance")].add(_amount);

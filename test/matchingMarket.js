@@ -11,7 +11,6 @@ contract('MatchingMarket', accounts => {
     let matchingMarketInstance
     let expiry
     let oneHour
-
     let erc20WETH
     let erc20DAI
     let mintAmount

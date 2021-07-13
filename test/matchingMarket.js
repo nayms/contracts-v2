@@ -374,7 +374,27 @@ contract('MatchingMarket', accounts => {
                 '3': erc20WETH.address
             })
 
-            await matchingMarketInstance.sellAllAmount(erc20WETH.address, toBN(15e18), erc20DAI.address, toBN(30e18), {from: accounts[1]}).should.be.rejectedWith('revert')
+            //based on pricing 2 dai = 1 weth
+            //5 weth should get 10 dai (min fill amount based on pricing)
+            //30 dai worth of 5 weth - fails with revert (30 dai not available)
+            //20 dai worth of 5 weth - fails with revert (20 dai available but no price match)
+            //11 dai worth of 5 weth - fails with revert (11 dai available but no price match)
+            //10 dai worth of 5 weth - works in following test below
+
+            await matchingMarketInstance.sellAllAmount(
+                erc20WETH.address, toBN(5e18), erc20DAI.address, 
+                toBN(11e18), {from: accounts[1]})
+            .should.be.rejectedWith('revert')
+
+            await matchingMarketInstance.sellAllAmount(
+                erc20WETH.address, toBN(5e18), erc20DAI.address, 
+                toBN(20e18), {from: accounts[1]})
+            .should.be.rejectedWith('revert')
+
+            await matchingMarketInstance.sellAllAmount(
+                erc20WETH.address, toBN(5e18), erc20DAI.address, 
+                toBN(30e18), {from: accounts[1]})
+            .should.be.rejectedWith('revert')
         
         })
 
@@ -397,7 +417,9 @@ contract('MatchingMarket', accounts => {
             // caller must approve amount to give
             // calls take which calls buy
             // Transfers funds from caller to offer maker, and from market to caller.
-            console.log('sell all amount for offer 1 with min fill: ', (await matchingMarketInstance.sellAllAmount(erc20WETH.address, toBN(5e18), erc20DAI.address, toBN(10e18), {from: accounts[1]})).toString()) 
+            await matchingMarketInstance.sellAllAmount(
+                    erc20WETH.address, toBN(5e18), erc20DAI.address, 
+                    toBN(10e18), {from: accounts[1]})
    
             await matchingMarketInstance.getOffer(1)
             .should.eventually.matchObj({
@@ -536,7 +558,7 @@ contract('MatchingMarket', accounts => {
             await matchingMarketInstance.last_offer_id().should.eventually.eq(2)
         })
 
-        it('should not match all three prior offers if the prices do not match', async () => {
+        it('should not match the two created offers if the prices do not match', async () => {
             await matchingMarketInstance.getOffer(1)
             .should.eventually.matchObj({
                 '0': toBN(20e18),
@@ -631,6 +653,18 @@ contract('MatchingMarket', accounts => {
             })
 
             await matchingMarketInstance.last_offer_id().should.eventually.eq(3)
+
+            await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('980').toString())
+            await erc20WETH.balanceOf(accounts[1]).should.eventually.eq(toWei('1000').toString())
+
+            await erc20DAI.balanceOf(accounts[2]).should.eventually.eq(toWei('1020').toString())
+            await erc20WETH.balanceOf(accounts[2]).should.eventually.eq(toWei('990').toString())
+
+            await erc20DAI.balanceOf(accounts[3]).should.eventually.eq(toWei('960').toString())
+            await erc20WETH.balanceOf(accounts[3]).should.eventually.eq(toWei('1015').toString())
+
+            await erc20DAI.balanceOf(accounts[4]).should.eventually.eq(toWei('1010').toString())
+            await erc20WETH.balanceOf(accounts[4]).should.eventually.eq(toWei('995').toString())
         })
     })
 
@@ -698,8 +732,16 @@ contract('MatchingMarket', accounts => {
             })
         })
 
-        it('get correct last offer id after creating offers', async () => {
+        it('should get correct last offer id after creating offers', async () => {
             await matchingMarketInstance.last_offer_id().should.eventually.eq(2)
+        })
+
+        it('should get correct balances after creating offers', async () => {
+            await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('990').toString())
+            await erc20WETH.balanceOf(accounts[1]).should.eventually.eq(toWei('1005').toString())
+
+            await erc20DAI.balanceOf(accounts[2]).should.eventually.eq(toWei('1010').toString())
+            await erc20WETH.balanceOf(accounts[2]).should.eventually.eq(toWei('990').toString())
         })
 
     })
@@ -768,8 +810,17 @@ contract('MatchingMarket', accounts => {
             })
         })
 
-        it('get correct last offer id after creating offers', async () => {
+        it('should get correct last offer id after creating offers', async () => {
             await matchingMarketInstance.last_offer_id().should.eventually.eq(1)
+        })
+
+        it('should get correct balances after matching offers', async () => {
+            await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('990').toString())
+            await erc20WETH.balanceOf(accounts[1]).should.eventually.eq(toWei('1005').toString())
+
+            await erc20DAI.balanceOf(accounts[2]).should.eventually.eq(toWei('1010').toString())
+            await erc20WETH.balanceOf(accounts[2]).should.eventually.eq(toWei('995').toString())
+            
         })
 
     })

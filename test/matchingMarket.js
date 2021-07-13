@@ -6,7 +6,6 @@ const IERC20 = artifacts.require("./base/IERC20")
 const DummyToken = artifacts.require("./DummyToken")
 const Market = artifacts.require('./MatchingMarket')
 
-
 contract('MatchingMarket', accounts => {
     let matchingMarketInstance
     let expiry
@@ -635,7 +634,6 @@ contract('MatchingMarket', accounts => {
         })
     })
 
-
     describe('should get correct last offer id when second matching offer not completely filled', () => {
         let first_offer_pay_amt;
         let second_offer_pay_amt;
@@ -704,34 +702,7 @@ contract('MatchingMarket', accounts => {
             await matchingMarketInstance.last_offer_id().should.eventually.eq(2)
         })
 
-        it('make new larger offer to be partly matched with two smaller offers', async () => {
-            const pay_amt = toWei('20')
-            const buy_amt = toWei('10')
-
-            await erc20DAI.approve(
-                matchingMarketInstance.address,
-                pay_amt,
-                {from: accounts[1]}
-            ).should.be.fulfilled
-            
-            const txToMatch = await matchingMarketInstance.offer(
-                pay_amt,
-                erc20DAI.address, 
-                buy_amt,
-                erc20WETH.address,
-                0,
-                true,
-                {from: accounts[1]}
-            )
-
-        })
-
-        it('get correct last offer id after complete and active offers', async () => {
-            await matchingMarketInstance.last_offer_id().should.eventually.eq(8)
-        })
-
     })
-
 
     describe('should get correct last offer id when second matching offer is completely filled', () => {
         let first_offer_pay_amt;
@@ -803,9 +774,4 @@ contract('MatchingMarket', accounts => {
 
     })
 
-    
-
 })
-
-
-

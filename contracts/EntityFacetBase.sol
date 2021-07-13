@@ -27,14 +27,21 @@ abstract contract EntityFacetBase is EternalStorage, Controller {
     return dataBool[__a(_policy, "isPolicy")];
   }
 
-  function _tradeOnMarket(address _sellUnit, uint256 _sellAmount, address _buyUnit, uint256 _buyAmount) internal returns (uint256) {
+  function _tradeOnMarket(
+    address _sellUnit, 
+    uint256 _sellAmount, 
+    address _buyUnit, 
+    uint256 _buyAmount,
+    address _notify,
+    bytes memory _notifyData
+  ) internal returns (uint256) {
     // get mkt
     IMarket mkt = _getMarket();
     // approve mkt to use my tokens
     IERC20 tok = IERC20(_sellUnit);
     tok.approve(address(mkt), _sellAmount);
     // make the offer
-    return mkt.executeLimitOffer(_sellUnit, _sellAmount, _buyUnit, _buyAmount);
+    return mkt.executeLimitOfferWithObserver(_sellUnit, _sellAmount, _buyUnit, _buyAmount, _notify, _notifyData);
   }  
 
   function _sellAtBestPriceOnMarket(address _sellUnit, uint256 _sellAmount, address _buyUnit) internal {

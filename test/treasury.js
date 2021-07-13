@@ -5,7 +5,7 @@ import {
   extractEventArgs,
   hdWallet,
   ADDRESS_ZERO,
-  BYTES32_ZERO,
+  BYTES_ZERO,
   createEntity,
   createPolicy,
   createTranch,
@@ -697,6 +697,8 @@ contract('Treasury', accounts => {
         1,
         etherToken2.address,
         1,
+        ADDRESS_ZERO,
+        BYTES_ZERO
       ).should.be.rejectedWith('not my policy')
 
       await treasury.cancelOrder(0).should.be.rejectedWith('not my policy')

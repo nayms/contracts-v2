@@ -173,6 +173,10 @@ contract('MatchingMarket', accounts => {
             
                 const secondOfferActive = await matchingMarketInstance.isActive(2) 
                 expect(secondOfferActive).to.be.equal(false)  
+
+                await erc20DAI.balanceOf(accounts[2]).should.eventually.eq(toWei('1000').toString())
+                await erc20WETH.balanceOf(accounts[2]).should.eventually.eq(toWei('1000').toString())
+
             })
     
             it('should delete cancelled offer successfully', async () => {
@@ -195,6 +199,9 @@ contract('MatchingMarket', accounts => {
                 const secondOfferActive = await matchingMarketInstance.isActive(2)
                 expect(secondOfferActive).to.be.equal(false)  
                 await matchingMarketInstance.buy(2, toWei('20'), {from: accounts[3]}).should.be.rejectedWith('revert')
+                
+                await erc20DAI.balanceOf(accounts[2]).should.eventually.eq(toWei('1000').toString())
+                await erc20WETH.balanceOf(accounts[2]).should.eventually.eq(toWei('1000').toString())
             })
     
             it('should fail to buy successfully if amount is zero', async () => {
@@ -208,6 +215,12 @@ contract('MatchingMarket', accounts => {
                 ).should.be.fulfilled
     
                 await matchingMarketInstance.buy(1, 0, {from: accounts[3]}).should.be.rejectedWith('revert')
+
+                await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('1000').toString())
+                await erc20WETH.balanceOf(accounts[1]).should.eventually.eq(toWei('990').toString())
+
+                await erc20DAI.balanceOf(accounts[3]).should.eventually.eq(toWei('1000').toString())
+                await erc20WETH.balanceOf(accounts[3]).should.eventually.eq(toWei('1000').toString())
             })
     
             it('should fail to buy successfully if amount is not approved by buyer', async () => {
@@ -395,10 +408,17 @@ contract('MatchingMarket', accounts => {
                 erc20WETH.address, toBN(5e18), erc20DAI.address, 
                 toBN(30e18), {from: accounts[1]})
             .should.be.rejectedWith('revert')
+
+
+            await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('1000').toString())
+            await erc20WETH.balanceOf(accounts[1]).should.eventually.eq(toWei('1000').toString())
+
+            await erc20DAI.balanceOf(accounts[3]).should.eventually.eq(toWei('980').toString())
+            await erc20WETH.balanceOf(accounts[3]).should.eventually.eq(toWei('1000').toString())
         
         })
 
-        it('should match offers, return the fill amount for a token pair, with pay amount and minimum fill amount', async () => {
+        it('should match offers partly, return the fill amount for a token pair, with pay amount and minimum fill amount', async () => {
             // buyer must have approved WETH to get DAI at best offer
             await erc20WETH.approve(
                 matchingMarketInstance.address,
@@ -428,6 +448,50 @@ contract('MatchingMarket', accounts => {
                 '2': toBN(5e18), // previously toBN(10e18),
                 '3': erc20WETH.address
             })
+
+            await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('1010').toString())
+            await erc20WETH.balanceOf(accounts[1]).should.eventually.eq(toWei('995').toString())
+
+            await erc20DAI.balanceOf(accounts[3]).should.eventually.eq(toWei('980').toString())
+            await erc20WETH.balanceOf(accounts[3]).should.eventually.eq(toWei('1005').toString())
+        })
+
+        it('should match offers fully, return the fill amount for a token pair, with pay amount and minimum fill amount', async () => {
+            // buyer must have approved WETH to get DAI at best offer
+            await erc20WETH.approve(
+                matchingMarketInstance.address,
+                toBN(10e18),
+                {from: accounts[1]}
+            ).should.be.fulfilled
+
+            await matchingMarketInstance.getOffer(1)
+            .should.eventually.matchObj({
+                '0': toBN(20e18),
+                '1': erc20DAI.address,
+                '2': toBN(10e18),
+                '3': erc20WETH.address
+            })
+
+            // caller must approve amount to give
+            // calls take which calls buy
+            // Transfers funds from caller to offer maker, and from market to caller.
+            await matchingMarketInstance.sellAllAmount(
+                    erc20WETH.address, toBN(10e18), erc20DAI.address, 
+                    toBN(20e18), {from: accounts[1]})
+   
+            await matchingMarketInstance.getOffer(1)
+            .should.eventually.matchObj({
+                '0': 0, // previously toBN(20e18),
+                '1': ADDRESS_ZERO,
+                '2': 0, // previously toBN(10e18),
+                '3': ADDRESS_ZERO
+            })
+
+            await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('1020').toString())
+            await erc20WETH.balanceOf(accounts[1]).should.eventually.eq(toWei('990').toString())
+
+            await erc20DAI.balanceOf(accounts[3]).should.eventually.eq(toWei('980').toString())
+            await erc20WETH.balanceOf(accounts[3]).should.eventually.eq(toWei('1010').toString())
         })
 
     })
@@ -502,6 +566,12 @@ contract('MatchingMarket', accounts => {
             })
 
             await matchingMarketInstance.last_offer_id().should.eventually.eq(2)
+
+            await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('990').toString())
+            await erc20WETH.balanceOf(accounts[1]).should.eventually.eq(toWei('1005').toString())
+
+            await erc20DAI.balanceOf(accounts[2]).should.eventually.eq(toWei('1010').toString())
+            await erc20WETH.balanceOf(accounts[2]).should.eventually.eq(toWei('990').toString())
         })
 
     })
@@ -574,6 +644,13 @@ contract('MatchingMarket', accounts => {
                 '2': toBN(20e18),
                 '3': erc20DAI.address
             })
+
+            await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('980').toString())
+            await erc20WETH.balanceOf(accounts[1]).should.eventually.eq(toWei('1000').toString())
+
+            await erc20DAI.balanceOf(accounts[2]).should.eventually.eq(toWei('1000').toString())
+            await erc20WETH.balanceOf(accounts[2]).should.eventually.eq(toWei('990').toString())
+
         })
 
         it('create and match two more offers with one previous matching offer', async () => {

@@ -540,6 +540,32 @@ contract('MatchingMarket', accounts => {
             })
         })
 
+        it('make new larger offer to be partly matched with two smaller offers', async () => {
+            const pay_amt = toWei('20')
+            const buy_amt = toWei('10')
+
+            await erc20DAI.approve(
+                matchingMarketInstance.address,
+                pay_amt,
+                {from: accounts[1]}
+            ).should.be.fulfilled
+            
+            const txToMatch = await matchingMarketInstance.offer(
+                pay_amt,
+                erc20DAI.address, 
+                buy_amt,
+                erc20WETH.address,
+                0,
+                true,
+                {from: accounts[1]}
+            )
+
+        })
+
+        it('get correct last offer id after complete and active offers', async () => {
+            await matchingMarketInstance.last_offer_id().should.eventually.eq(8)
+        })
+
     })
 
 })

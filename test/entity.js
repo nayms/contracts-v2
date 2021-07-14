@@ -500,33 +500,21 @@ contract('Entity', accounts => {
       })
 
       describe('and funds withdrawals are prevented', () => {
+        beforeEach(async () => {
+          await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager })
+          
+          await etherToken.deposit({ value: 1000 })
+          await etherToken.approve(entity.address, 1000)
+          await entity.deposit(etherToken.address, 1000)
+        })
+        
         it('when token supply is non-zero', async () => {
-          await entity.cancelTokenSale().should.be.rejectedWith('must be entity mgr')
+          await entity.withdraw(etherToken.address, 1, { from: entityAdmin }).should.be.rejectedWith('cannot withdraw while tokens exist')
         })
 
-        it('but only if a sale is active', async () => {
-          await entity.cancelTokenSale({ from: entityManager }).should.be.rejectedWith('no active token sale')
-        })
-
-        it('if active', async () => {
-          await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager })
-          await entity.cancelTokenSale({ from: entityManager }).should.be.fulfilled
-          await entity.getTokenInfo().should.matchObj({
-            currentTokenSaleOfferId_: 0,
-          })
-        })
-
-        it('and burns unsold tokens', async () => {
-          await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager })
-
-          const tokenInfo = await entity.getTokenInfo()
-          const entityToken = await IERC20.at(tokenInfo.tokenContract_)
-
-          await entityToken.totalSupply().should.eventually.eq(500)
-
-          await entity.cancelTokenSale({ from: entityManager }).should.be.fulfilled
-
-          await entityToken.totalSupply().should.eventually.eq(0)
+        it('once token supply is non-zero', async () => {
+          await entity.cancelTokenSale({ from: entityManager })
+          await entity.withdraw(etherToken.address, 1, { from: entityAdmin }).should.be.fulfilled
         })
       })
     })

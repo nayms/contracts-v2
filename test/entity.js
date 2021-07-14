@@ -337,7 +337,7 @@ contract('Entity', accounts => {
     })
   })
 
-  describe.only('entity tokens', () => {
+  describe('entity tokens', () => {
     const entityManager = accounts[2]
 
     beforeEach(async () => {

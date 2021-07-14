@@ -37,6 +37,7 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
 
   function getSelectors () public pure override returns (bytes memory) {
     return abi.encodePacked(
+      IEntityTokensFacet.getTokenInfo.selector,
       IEntityTokensFacet.burnTokens.selector,
       IEntityTokensFacet.startTokenSale.selector,
       IEntityTokensFacet.cancelTokenSale.selector,
@@ -47,12 +48,21 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
       IEntityTokensFacet.tknAllowance.selector,
       IEntityTokensFacet.tknApprove.selector,
       IEntityTokensFacet.tknTransfer.selector,
+      IMarketObserver.handleTrade.selector,
       IMarketObserver.handleClosure.selector
     );
   }
 
 
   // IEntityTokensFacet
+
+  function getTokenInfo() external view override returns (
+    address tokenContract_,
+    uint256 currentTokenSaleOfferId_
+  ) {
+    tokenContract_ = dataAddress["token"];
+    currentTokenSaleOfferId_ = dataUint256["tokenSaleOfferId"];
+  }
 
   function burnTokens(uint256 _amount) external override {
     string memory k = __a(msg.sender, "tokenBalance");

@@ -121,6 +121,8 @@ import "./Policy.sol";
     override 
     assertIsEntityAdmin(msg.sender)
   {
+    require(dataUint256["tokenSupply"] == 0, "cannot withdraw while tokens exist");
+
     _assertHasEnoughBalance(_unit, _amount);
 
     dataUint256[__a(_unit, "balance")] = dataUint256[__a(_unit, "balance")].sub(_amount);

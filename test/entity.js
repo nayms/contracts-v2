@@ -21,7 +21,7 @@ import { ensurePolicyImplementationsAreDeployed } from '../migrations/modules/po
 
 const IEntity = artifacts.require("./base/IEntity")
 const Proxy = artifacts.require('./base/Proxy')
-const EntityDelegate = artifacts.require('./base/EntityDelegate')
+const IERC20 = artifacts.require('./base/IERC20')
 const IDiamondUpgradeFacet = artifacts.require('./base/IDiamondUpgradeFacet')
 const IDiamondProxy = artifacts.require('./base/IDiamondProxy')
 const AccessControl = artifacts.require('./base/AccessControl')
@@ -332,6 +332,201 @@ contract('Entity', accounts => {
 
           // trading the max possible amount is ok
           await entity.sellAtBestPrice(etherToken.address, 10, etherToken2.address, { from: accounts[3] }).should.be.fulfilled
+        })
+      })
+    })
+  })
+
+  describe.only('entity tokens', () => {
+    const entityManager = accounts[2]
+
+    beforeEach(async () => {
+      await acl.assignRole(entityContext, entityManager, ROLES.ENTITY_MANAGER)
+    })
+
+    it('initially do not exist', async () => {
+      await entity.getTokenInfo().should.eventually.matchObj({
+        contract_: ADDRESS_ZERO,
+        currentTokenSaleOfferId_: 0,
+      })
+    })
+
+    describe('are minted by starting a sale', () => {
+      it('but must be by entity mgr', async () => {
+        await entity.startTokenSale(500, etherToken.address, 1000).should.be.rejectedWith('must be entity mgr')
+      })
+
+      it('and creates a market offer', async () => {
+        await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager })
+
+        const tokenInfo = await entity.getTokenInfo()
+
+        expect(tokenInfo.tokenContract_).to.not.eq(ADDRESS_ZERO)
+        expect(tokenInfo.currentTokenSaleOfferId_).to.not.eq(0)
+
+        const offerId = await market.getLastOfferId()
+
+        await market.getOffer(offerId).should.eventually.matchObj({
+          creator_: entity.address,
+          sellToken_: tokenInfo.tokenContract_,
+          sellAmount_: 500,
+          buyToken_: etherToken.address,
+          buyAmount_: 1000,
+          isActive_: true,
+        })
+
+        const entityToken = await IERC20.at(tokenInfo.tokenContract_)
+        await entityToken.totalSupply().should.eventually.eq(500)
+      })
+
+      it('and tokens can partially sell', async ()=> {
+        await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager })
+
+        const tokenInfo = await entity.getTokenInfo()
+
+        const offerId = await market.getLastOfferId()
+
+        await etherToken.deposit({ value: 500 })
+        await etherToken.approve(market.address, 500)
+        await market.executeLimitOffer(etherToken.address, 500, tokenInfo.tokenContract_, 250)
+
+        await market.getOffer(offerId).should.eventually.matchObj({
+          sellToken_: tokenInfo.contract_,
+          sellAmount_: 250,
+          buyToken_: etherToken.address,
+          buyAmount_: 500,
+          isActive_: true,
+        })
+
+        await etherToken.balanceOf(entity.address).should.eventually.eq(500)
+
+        const entityToken = await IERC20.at(tokenInfo.tokenContract_)
+        await entityToken.balanceOf(accounts[0]).should.eventually.eq(250)
+        await entityToken.totalSupply().should.eventually.eq(500)
+      })
+      
+      it('and tokens can fully sell', async ()=> {
+        await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager })
+
+        const tokenInfo = await entity.getTokenInfo()
+
+        const offerId = await market.getLastOfferId()
+
+        await etherToken.deposit({ value: 1000 })
+        await etherToken.approve(market.address, 1000)
+        await market.executeLimitOffer(etherToken.address, 1000, tokenInfo.tokenContract_, 500)
+
+        await market.getOffer(offerId).should.eventually.matchObj({
+          isActive_: false,
+        })
+
+        await etherToken.balanceOf(entity.address).should.eventually.eq(1000)
+
+        const entityToken = await IERC20.at(tokenInfo.tokenContract_)
+        await entityToken.totalSupply().should.eventually.eq(500)
+        await entityToken.balanceOf(accounts[0]).should.eventually.eq(500)
+
+        await entity.getTokenInfo().should.matchObj({
+          currentTokenSaleOfferId_: 0,
+        })
+      })
+
+      describe('and once sold', () => {
+        let tokenInfo
+        let entityToken
+
+        beforeEach(async () => {
+          await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager })
+
+          tokenInfo = await entity.getTokenInfo()
+
+          await etherToken.deposit({ value: 1000 })
+          await etherToken.approve(market.address, 1000)
+          await market.executeLimitOffer(etherToken.address, 1000, tokenInfo.tokenContract_, 500)
+
+          entityToken = await IERC20.at(tokenInfo.tokenContract_)
+
+          await entityToken.balanceOf(accounts[0]).should.eventually.eq(500)
+          await entityToken.totalSupply().should.eventually.eq(500)
+        })
+
+        it('can only be transferred by the market', async () => {
+          await entityToken.approve(accounts[2], 1).should.be.rejectedWith('only nayms market is allowed to transfer')
+          await entityToken.transfer(accounts[2], 1).should.be.rejectedWith('only nayms market is allowed to transfer')
+        })
+
+        it('can be burnt', async () => {
+          await entity.burnTokens(1).should.be.fulfilled
+          
+          await entityToken.balanceOf(accounts[0]).should.eventually.eq(499)
+          await entityToken.totalSupply().should.eventually.eq(499)
+        })
+
+        it('cannot be burnt if more than balance', async () => {
+          await entity.burnTokens(1001).should.be.rejectedWith('not enough balance to burn')
+        })
+      })
+
+
+      describe('and a sale can be cancelled', () => {
+        it('but only by entity mgr', async () => {
+          await entity.cancelTokenSale().should.be.rejectedWith('must be entity mgr')
+        })
+
+        it('but only if a sale is active', async () => {
+          await entity.cancelTokenSale({ from: entityManager }).should.be.rejectedWith('no active token sale')
+        })
+
+        it('if active', async () => {
+          await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager })
+          await entity.cancelTokenSale({ from: entityManager }).should.be.fulfilled
+          await entity.getTokenInfo().should.matchObj({
+            currentTokenSaleOfferId_: 0,
+          })
+        })
+
+        it('and burns unsold tokens', async () => {
+          await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager })
+
+          const tokenInfo = await entity.getTokenInfo()
+          const entityToken = await IERC20.at(tokenInfo.tokenContract_)
+
+          await entityToken.totalSupply().should.eventually.eq(500)
+
+          await entity.cancelTokenSale({ from: entityManager }).should.be.fulfilled
+
+          await entityToken.totalSupply().should.eventually.eq(0)
+        })
+      })
+
+      describe('and funds withdrawals are prevented', () => {
+        it('when token supply is non-zero', async () => {
+          await entity.cancelTokenSale().should.be.rejectedWith('must be entity mgr')
+        })
+
+        it('but only if a sale is active', async () => {
+          await entity.cancelTokenSale({ from: entityManager }).should.be.rejectedWith('no active token sale')
+        })
+
+        it('if active', async () => {
+          await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager })
+          await entity.cancelTokenSale({ from: entityManager }).should.be.fulfilled
+          await entity.getTokenInfo().should.matchObj({
+            currentTokenSaleOfferId_: 0,
+          })
+        })
+
+        it('and burns unsold tokens', async () => {
+          await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager })
+
+          const tokenInfo = await entity.getTokenInfo()
+          const entityToken = await IERC20.at(tokenInfo.tokenContract_)
+
+          await entityToken.totalSupply().should.eventually.eq(500)
+
+          await entity.cancelTokenSale({ from: entityManager }).should.be.fulfilled
+
+          await entityToken.totalSupply().should.eventually.eq(0)
         })
       })
     })

@@ -5,6 +5,17 @@ pragma solidity 0.6.12;
  */
 interface IEntityTokensFacet {
   /**
+   * @dev Get entity token info.
+   *
+   * @return tokenContract_ Token contract address.
+   * @return currentTokenSaleOfferId_ Current token sale market offer id. If 0 then no sale is taking place.
+   */
+  function getTokenInfo() external view returns (
+    address tokenContract_,
+    uint256 currentTokenSaleOfferId_
+  );
+
+  /**
    * @dev Burn the caller's entity tokens.
    *
    * The given entity tokens will be deducted from the caller's balance as well as the total entity token supply.

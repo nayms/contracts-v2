@@ -172,6 +172,9 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
 
         // burn the unsold amount
         dataUint256["tokenSupply"] = dataUint256["tokenSupply"].sub(_unsoldAmount);
+
+        // reset sale id
+        dataUint256["tokenSaleOfferId"] = 0;
       }
     }    
   }

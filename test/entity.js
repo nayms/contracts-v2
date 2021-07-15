@@ -379,6 +379,24 @@ contract('Entity', accounts => {
         await entityToken.totalSupply().should.eventually.eq(500)
       })
 
+      it('and only one sale can be in progress at a time', async () => {
+        await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager })
+        await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager }).should.be.rejectedWith('token sale already in progress')
+      })
+
+      it('and tokens have basic properties', async () => {
+        await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager })
+
+        const tokenInfo = await entity.getTokenInfo()
+        const entityToken = await IERC20.at(tokenInfo.tokenContract_)
+
+        expect((await entityToken.name()).toLowerCase()).to.eq(`NAYMS-${entity.address}-ENTITY`.toLowerCase())
+        expect((await entityToken.symbol()).toLowerCase()).to.eq(`N-${entity.address.substr(0, 6)}-E`.toLowerCase())
+        await entityToken.totalSupply().should.eventually.eq(500)
+        await entityToken.balanceOf(market.address).should.eventually.eq(500)
+        await entityToken.allowance(market.address, entity.address).should.eventually.eq(0)
+      })
+
       it('and tokens can partially sell', async ()=> {
         await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager })
 
@@ -426,7 +444,7 @@ contract('Entity', accounts => {
         await entityToken.totalSupply().should.eventually.eq(500)
         await entityToken.balanceOf(accounts[0]).should.eventually.eq(500)
 
-        await entity.getTokenInfo().should.matchObj({
+        await entity.getTokenInfo().should.eventually.matchObj({
           currentTokenSaleOfferId_: 0,
         })
       })
@@ -479,8 +497,10 @@ contract('Entity', accounts => {
 
         it('if active', async () => {
           await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager })
+
           await entity.cancelTokenSale({ from: entityManager }).should.be.fulfilled
-          await entity.getTokenInfo().should.matchObj({
+
+          await entity.getTokenInfo().should.eventually.matchObj({
             currentTokenSaleOfferId_: 0,
           })
         })
@@ -496,6 +516,20 @@ contract('Entity', accounts => {
           await entity.cancelTokenSale({ from: entityManager }).should.be.fulfilled
 
           await entityToken.totalSupply().should.eventually.eq(0)
+        })
+
+        it('and re-uses existing token if new sale is initiated', async () => {
+          await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager }).should.be.fulfilled
+
+          const prevTokenInfo = await entity.getTokenInfo()
+
+          await entity.cancelTokenSale({ from: entityManager }).should.be.fulfilled
+
+          await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager })
+
+          await entity.getTokenInfo().should.eventually.matchObj({
+            tokenContract_: prevTokenInfo.tokenContract_
+          })
         })
       })
 

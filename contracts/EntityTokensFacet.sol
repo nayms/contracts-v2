@@ -65,9 +65,16 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
   }
 
   function burnTokens(uint256 _amount) external override {
+    require(_amount > 0, "cannot burn zero");
+
     string memory k = __a(msg.sender, "tokenBalance");
     require(dataUint256[k] >= _amount, "not enough balance to burn");
     dataUint256[k] = dataUint256[k].sub(_amount);
+
+    if (dataUint256[k] == 0) {
+      _removeTokenHolder(msg.sender);
+    }
+
     dataUint256["tokenSupply"] = dataUint256["tokenSupply"].sub(_amount);
   }
 
@@ -182,12 +189,44 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
   // Internal functions
 
   function _transfer(address _from, address _to, uint256 _value) private {
+    require(_value > 0, "cannot transfer zero");
+
     string memory fromKey = __a(_from, "tokenBalance");
     string memory toKey = __a(_to, "tokenBalance");
 
     require(dataUint256[fromKey] >= _value, 'not enough balance');
 
     dataUint256[fromKey] = dataUint256[fromKey].sub(_value);
+
+    // if sender now has 0 balance then remove them from the token holder list
+    if (dataUint256[fromKey] == 0) {
+      _removeTokenHolder(_from);
+    }
+
+    // if recipient did not have a balance until now then append them to the token holder list
+    if (dataUint256[toKey] == 0) {
+      dataUint256["numTokenHolders"] += 1;
+      dataAddress[__i(dataUint256["numTokenHolders"], "tokenHolder")] = _to;
+      dataUint256[__a(_to, "tokenHolderIndex")] = dataUint256["numTokenHolders"];
+    }
+
     dataUint256[toKey] = dataUint256[toKey].add(_value);
+  }
+
+  function _removeTokenHolder(address _holder) private {
+    uint256 idx = dataUint256[__a(_holder, "tokenHolderIndex")];
+    dataUint256[__a(_holder, "tokenHolderIndex")] = 0;
+
+    // fast delete: replace with item currently at end of list
+    if (dataUint256["numTokenHolders"] > 1) {
+      
+      address lastHolder = dataAddress[__i(dataUint256["numTokenHolders"], "tokenHolder")];
+      dataAddress[__i(idx, "tokenHolder")] = lastHolder;
+      dataUint256[__a(lastHolder, "tokenHolderIndex")] = idx;
+    } else {
+      dataAddress[__i(idx, "tokenHolder")] = address(0);          
+    }
+
+    dataUint256["numTokenHolders"] -= 1;
   }
 }

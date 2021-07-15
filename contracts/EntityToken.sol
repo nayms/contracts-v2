@@ -1,36 +1,34 @@
 pragma solidity 0.6.12;
 
 import './base/IERC20.sol';
-import './base/IPolicyTranchTokensFacet.sol';
+import './base/IEntityTokensFacet.sol';
 
 /**
- * @dev A Policy tranch token.
+ * @dev An entity token.
  */
-contract TranchToken is IERC20 {
-  IPolicyTranchTokensFacet public impl;
-  uint256 public index;
+contract EntityToken is IERC20 {
+  IEntityTokensFacet public impl;
 
-  constructor (address _impl, uint256 _index) public {
-    impl = IPolicyTranchTokensFacet(_impl);
-    index = _index;
+  constructor (address _impl) public {
+    impl = IEntityTokensFacet(_impl);
   }
 
   // ERC-20 queries //
 
   function name() public view override returns (string memory) {
-    return impl.tknName(index);
+    return impl.tknName();
   }
 
   function symbol() public view override returns (string memory) {
-    return impl.tknSymbol(index);
+    return impl.tknSymbol();
   }
 
   function totalSupply() public view override returns (uint256) {
-    return impl.tknTotalSupply(index);
+    return impl.tknTotalSupply();
   }
 
   function balanceOf(address owner) public view override returns (uint256) {
-    return impl.tknBalanceOf(index, owner);
+    return impl.tknBalanceOf(owner);
   }
 
   function decimals() public view override returns (uint8) {
@@ -38,25 +36,25 @@ contract TranchToken is IERC20 {
   }
 
   function allowance(address owner, address spender) public view override returns (uint256) {
-    return impl.tknAllowance(index, spender, owner);
+    return impl.tknAllowance(spender, owner);
   }
 
   // ERC-20 mutations //
 
   function approve(address spender, uint256 value) public override returns (bool) {
-    impl.tknApprove(index, spender, msg.sender, value);
+    impl.tknApprove(spender, msg.sender, value);
     emit Approval(msg.sender, spender, value);
     return true;
   }
 
   function transfer(address to, uint256 value) public override returns (bool) {
-    impl.tknTransfer(index, msg.sender, msg.sender, to, value);
+    impl.tknTransfer(msg.sender, msg.sender, to, value);
     emit Transfer(msg.sender, to, value);
     return true;
   }
 
   function transferFrom(address from, address to, uint256 value) public override returns (bool) {
-    impl.tknTransfer(index, msg.sender, from, to, value);
+    impl.tknTransfer(msg.sender, from, to, value);
     emit Transfer(from, to, value);
     return true;
   }

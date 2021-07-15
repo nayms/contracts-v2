@@ -3,7 +3,7 @@ pragma solidity 0.6.12;
 /**
  * A `IMarket` observer which receives notifications of trades and cancellations.
  */
-interface IMarketObserver {
+abstract contract IMarketObserver {
   /**
    * @dev Handle a trade notification.
    *
@@ -25,7 +25,7 @@ interface IMarketObserver {
     address _seller,
     address _buyer,
     bytes memory _data
-  ) external;
+  ) external virtual {}
 
   /**
    * @dev Handle an order cancellation or closure.
@@ -46,5 +46,5 @@ interface IMarketObserver {
     uint256 _unboughtAmount,
     address _seller,
     bytes memory _data
-  ) external;
+  ) external virtual {}
 }

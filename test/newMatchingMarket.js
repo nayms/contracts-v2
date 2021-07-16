@@ -192,7 +192,7 @@ contract('Market', accounts => {
 
             })
         })
-/* 
+
         describe('isActive', () => {
             it('should get correct active status for offer', async () => {
                 const firstOfferActive = await matchingMarketInstance.isActive(1)   
@@ -205,7 +205,7 @@ contract('Market', accounts => {
 
         describe('cancel', () => {
             it('should fail to cancel unless called by offer owner', async () => {
-                await matchingMarketInstance.cancel(2, {from: accounts[1]}).should.be.rejectedWith('Offer can not be cancelled because user is not owner, and market is open, and offer sells required amount of tokens')
+                await matchingMarketInstance.cancel(2, {from: accounts[1]}).should.be.rejectedWith('only creator can cancel')
             })
     
             it('should allow offer owner to cancel offer successfully', async () => {
@@ -222,16 +222,19 @@ contract('Market', accounts => {
             it('should delete cancelled offer successfully', async () => {
                 await matchingMarketInstance.cancel(2, {from: accounts[2]}).should.be.fulfilled
 
-                await matchingMarketInstance.getOffer(2)
-                .should.eventually.matchObj({
-                    '0': toBN(0),
-                    '1': ADDRESS_ZERO,
-                    '2': toBN(0),
-                    '3': ADDRESS_ZERO
-                })
+                const secondOffer = await matchingMarketInstance.getOffer(2)
+                expect(secondOffer.creator_).to.eq(accounts[2])
+                expect(secondOffer.sellToken_).to.eq(erc20WETH.address)
+                expect(secondOffer.sellAmount_.toString()).to.eq(second_offer_pay_amt)
+                expect(secondOffer.buyToken_).to.eq(erc20DAI.address)
+                expect(secondOffer.buyAmount_.toString()).to.eq(second_offer_buy_amt)
+                expect(secondOffer.notify_).to.eq(ADDRESS_ZERO)
+                expect(secondOffer.isActive_).to.eq(false)
+                expect(secondOffer.nextOfferId_.toNumber()).to.eq(0)
+                expect(secondOffer.prevOfferId_.toNumber()).to.eq(0)
             })
         })
-
+/* 
         describe('buy', () => {
             it('should fail to buy if offer is cancelled', async () => {
                 await matchingMarketInstance.cancel(2, {from: accounts[2]}).should.be.fulfilled

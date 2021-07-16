@@ -234,7 +234,7 @@ contract('Market', accounts => {
                 expect(secondOffer.prevOfferId_.toNumber()).to.eq(0)
             })
         })
-/* 
+
         describe('buy', () => {
             it('should fail to buy if offer is cancelled', async () => {
                 await matchingMarketInstance.cancel(2, {from: accounts[2]}).should.be.fulfilled
@@ -292,7 +292,7 @@ contract('Market', accounts => {
                     {from: accounts[3]}
                 ).should.be.fulfilled
                 
-                await matchingMarketInstance.buy(1, toBN(pay_amt * 0.5), {from: accounts[3]})
+                await matchingMarketInstance.buy(1, toBN(buy_amt * 0.5), {from: accounts[3]})
     
                 await erc20WETH.balanceOf(accounts[1]).should.eventually.eq((mintAmount - pay_amt).toString()) // pay_amt collected upon making offer
                 await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('1010').toString())
@@ -300,11 +300,11 @@ contract('Market', accounts => {
                 await erc20DAI.balanceOf(accounts[3]).should.eventually.eq(toWei('990').toString())
             })
     
-            it('should buy all of first offer successfully with 1:2 price ratio in two buy transactions', async () => {
+            /* it('should buy all of first offer successfully with 1:2 price ratio in two buy transactions', async () => {
                 const firstOfferActive = await matchingMarketInstance.isActive(1)
                 expect(firstOfferActive).to.be.equal(true)
     
-                const pay_amt = toWei('10')
+                const buy_amt = toWei('20')
     
                 await erc20DAI.approve(
                     matchingMarketInstance.address,
@@ -382,9 +382,9 @@ contract('Market', accounts => {
                     '1': ADDRESS_ZERO,
                     '2': toBN(0),
                     '3': ADDRESS_ZERO
-                })
-            })
-        }) */
+                }) 
+            })*/
+        })
 
     })
 

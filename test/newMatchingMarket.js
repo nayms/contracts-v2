@@ -160,7 +160,7 @@ contract('Market', accounts => {
                 const firstOffer = await matchingMarketInstance.getOffer(1)
                 expect(firstOffer.creator_).to.eq(accounts[1])
 
-                const secondOffer = await matchingMarketInstance.getOffer(1)
+                const secondOffer = await matchingMarketInstance.getOffer(2)
                 expect(secondOffer.creator_).to.eq(accounts[2])
             })
             
@@ -168,22 +168,28 @@ contract('Market', accounts => {
 
         describe('getOffer', () => {
             it('should get correct offer details for non-matching offers without matching them', async () => {
-                await matchingMarketInstance.getOffer(1)  
-                .should.eventually.matchObj({
-                    '0': toBN(10e18),
-                    '1': erc20WETH.address,
-                    '2': toBN(20e18),
-                    '3': erc20DAI.address
-                })       
+                const firstOffer = await matchingMarketInstance.getOffer(1)
+                expect(firstOffer.creator_).to.eq(accounts[1])
+                expect(firstOffer.sellToken_).to.eq(erc20WETH.address)
+                expect(firstOffer.sellAmount_.toString()).to.eq(first_offer_pay_amt)
+                expect(firstOffer.buyToken_).to.eq(erc20DAI.address)
+                expect(firstOffer.buyAmount_.toString()).to.eq(first_offer_buy_amt)
+                expect(firstOffer.notify_).to.eq(ADDRESS_ZERO)
+                expect(firstOffer.isActive_).to.eq(true)
+                expect(firstOffer.nextOfferId_.toNumber()).to.eq(2)
+                expect(firstOffer.prevOfferId_.toNumber()).to.eq(0)
                 
-                await matchingMarketInstance.getOffer(2)
-                .should.eventually.matchObj({
-                    '0': toBN(10e18),
-                    '1': erc20WETH.address,
-                    '2': toBN(10e18),
-                    '3': erc20DAI.address
-                })
-                
+                const secondOffer = await matchingMarketInstance.getOffer(2)
+                expect(secondOffer.creator_).to.eq(accounts[2])
+                expect(secondOffer.sellToken_).to.eq(erc20WETH.address)
+                expect(secondOffer.sellAmount_.toString()).to.eq(second_offer_pay_amt)
+                expect(secondOffer.buyToken_).to.eq(erc20DAI.address)
+                expect(secondOffer.buyAmount_.toString()).to.eq(second_offer_buy_amt)
+                expect(secondOffer.notify_).to.eq(ADDRESS_ZERO)
+                expect(secondOffer.isActive_).to.eq(true)
+                expect(secondOffer.nextOfferId_.toNumber()).to.eq(0)
+                expect(secondOffer.prevOfferId_.toNumber()).to.eq(1)
+
             })
         })
 /* 

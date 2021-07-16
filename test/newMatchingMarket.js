@@ -394,7 +394,7 @@ contract('Market', accounts => {
 
     })
 
-    /* describe('supports sellAllAmount', () => {
+    describe('supports executeMarketOffer to sell all amount', () => {
         let pay_amt;
         let buy_amt;
         let second_offerTx;
@@ -429,14 +429,6 @@ contract('Market', accounts => {
                 {from: accounts[1]}
             ).should.be.fulfilled
 
-            await matchingMarketInstance.getOffer(1)
-            .should.eventually.matchObj({
-                '0': toBN(20e18),
-                '1': erc20DAI.address,
-                '2': toBN(10e18),
-                '3': erc20WETH.address
-            })
-
             //based on pricing 2 dai = 1 weth
             //5 weth should get 10 dai (min fill amount based on pricing)
             //30 dai worth of 5 weth - fails with revert (30 dai not available)
@@ -444,20 +436,14 @@ contract('Market', accounts => {
             //11 dai worth of 5 weth - fails with revert (11 dai available but no price match)
             //10 dai worth of 5 weth - works in following test below
 
-            await matchingMarketInstance.sellAllAmount(
-                erc20WETH.address, toBN(5e18), erc20DAI.address, 
-                toBN(11e18), {from: accounts[1]})
-            .should.be.rejectedWith('revert')
+            await matchingMarketInstance.executeMarketOffer(erc20DAI.address, 
+                toBN(11e18), erc20WETH.address).should.be.rejectedWith('not enough orders in market')
+            
+            await matchingMarketInstance.executeMarketOffer(erc20DAI.address, 
+                toBN(20e18), erc20WETH.address).should.be.rejectedWith('not enough orders in market')
 
-            await matchingMarketInstance.sellAllAmount(
-                erc20WETH.address, toBN(5e18), erc20DAI.address, 
-                toBN(20e18), {from: accounts[1]})
-            .should.be.rejectedWith('revert')
-
-            await matchingMarketInstance.sellAllAmount(
-                erc20WETH.address, toBN(5e18), erc20DAI.address, 
-                toBN(30e18), {from: accounts[1]})
-            .should.be.rejectedWith('revert')
+                await matchingMarketInstance.executeMarketOffer(erc20DAI.address, 
+                    toBN(30e18), erc20WETH.address).should.be.rejectedWith('not enough orders in market')
 
 
             await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('1000').toString())
@@ -465,10 +451,10 @@ contract('Market', accounts => {
 
             await erc20DAI.balanceOf(accounts[3]).should.eventually.eq(toWei('980').toString())
             await erc20WETH.balanceOf(accounts[3]).should.eventually.eq(toWei('1000').toString())
-        
+
         })
 
-        it('should match offers partly, return the fill amount for a token pair, with pay amount and minimum fill amount', async () => {
+        /* it('should match offers partly, return the fill amount for a token pair, with pay amount and minimum fill amount', async () => {
             // buyer must have approved WETH to get DAI at best offer
             await erc20WETH.approve(
                 matchingMarketInstance.address,
@@ -542,10 +528,10 @@ contract('Market', accounts => {
 
             await erc20DAI.balanceOf(accounts[3]).should.eventually.eq(toWei('980').toString())
             await erc20WETH.balanceOf(accounts[3]).should.eventually.eq(toWei('1010').toString())
-        })
+        })*/
 
     })
-
+/*
     describe('can match a pair of matching offers', () => {
         let first_offer_pay_amt;
         let second_offer_pay_amt;

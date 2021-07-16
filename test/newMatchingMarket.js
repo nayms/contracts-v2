@@ -335,11 +335,12 @@ contract('Market', accounts => {
             
             })
     
-            /* it('should set offer status to inactive if pay amount is all bought', async () => {
+            it('should set offer status to inactive if pay amount is all bought', async () => {
                 let firstOfferActive = await matchingMarketInstance.isActive(1)
                 expect(firstOfferActive).to.be.equal(true)
-    
+                
                 const pay_amt = toWei('10')
+                const buy_amt = toWei('20')
     
                 await erc20DAI.approve(
                     matchingMarketInstance.address,
@@ -347,7 +348,7 @@ contract('Market', accounts => {
                     {from: accounts[3]}
                 ).should.be.fulfilled
     
-                await matchingMarketInstance.buy(1, toBN(pay_amt), {from: accounts[3]})
+                await matchingMarketInstance.buy(1, toBN(buy_amt), {from: accounts[3]})
     
                 await erc20WETH.balanceOf(accounts[1]).should.eventually.eq((mintAmount - pay_amt).toString()) // pay_amt collected upon making offer
                 await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('1020').toString())
@@ -357,12 +358,13 @@ contract('Market', accounts => {
                 firstOfferActive = await matchingMarketInstance.isActive(1) 
                 expect(firstOfferActive).to.be.equal(false)
             })
-    
+   
             it('should delete fully bought offer successfully', async () => {
                 const firstOfferActive = await matchingMarketInstance.isActive(1)
                 expect(firstOfferActive).to.be.equal(true)
     
                 const pay_amt = toWei('10')
+                const buy_amt = toWei('20')
     
                 await erc20DAI.approve(
                     matchingMarketInstance.address,
@@ -370,21 +372,24 @@ contract('Market', accounts => {
                     {from: accounts[3]}
                 ).should.be.fulfilled
     
-                await matchingMarketInstance.buy(1, toBN(pay_amt), {from: accounts[3]})
+                await matchingMarketInstance.buy(1, toBN(buy_amt), {from: accounts[3]})
     
                 await erc20WETH.balanceOf(accounts[1]).should.eventually.eq((mintAmount - pay_amt).toString()) // pay_amt collected upon making offer
                 await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('1020').toString())
                 await erc20WETH.balanceOf(accounts[3]).should.eventually.eq(toWei('1010').toString())
                 await erc20DAI.balanceOf(accounts[3]).should.eventually.eq(toWei('980').toString())
 
-                await matchingMarketInstance.getOffer(1)
-                .should.eventually.matchObj({
-                    '0': toBN(0),
-                    '1': ADDRESS_ZERO,
-                    '2': toBN(0),
-                    '3': ADDRESS_ZERO
-                }) 
-            })*/
+                const firstOffer = await matchingMarketInstance.getOffer(1)
+                expect(firstOffer.creator_).to.eq(accounts[1])
+                expect(firstOffer.sellToken_).to.eq(erc20WETH.address)
+                expect(firstOffer.sellAmount_.toNumber()).to.eq(0)
+                expect(firstOffer.buyToken_).to.eq(erc20DAI.address)
+                expect(firstOffer.buyAmount_.toNumber()).to.eq(0)
+                expect(firstOffer.notify_).to.eq(ADDRESS_ZERO)
+                expect(firstOffer.isActive_).to.eq(false)
+                expect(firstOffer.nextOfferId_.toNumber()).to.eq(0)
+                expect(firstOffer.prevOfferId_.toNumber()).to.eq(0)
+            })
         })
 
     })

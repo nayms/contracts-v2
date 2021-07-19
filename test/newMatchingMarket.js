@@ -867,6 +867,88 @@ contract('Market', accounts => {
             
         })
 
-    }) 
+    })
+
+    describe('can find the best offer id for a token pair', () => {
+        let first_offer_pay_amt;
+        let second_offer_pay_amt;
+        let first_offer_buy_amt;
+        let second_offer_buy_amt;
+        let firstOfferTx;
+        let secondOfferTx;
+
+        beforeEach(async () => {
+            first_offer_pay_amt = toWei('20');
+            first_offer_buy_amt = toWei('40');
+
+            await erc20DAI.approve(
+                matchingMarketInstance.address,
+                first_offer_pay_amt,
+                {from: accounts[1]}
+            ).should.be.fulfilled
+
+            firstOfferTx = await matchingMarketInstance.executeLimitOffer(
+                
+                erc20DAI.address, 
+                first_offer_pay_amt,
+                
+                erc20WETH.address,
+                first_offer_buy_amt,
+                
+                {from: accounts[1]}
+            )
+
+            second_offer_pay_amt = toWei('20');
+            second_offer_buy_amt = toWei('30');
+
+            await erc20DAI.approve(
+                matchingMarketInstance.address,
+                second_offer_pay_amt,
+                {from: accounts[2]}
+            ).should.be.fulfilled
+
+            secondOfferTx = await matchingMarketInstance.executeLimitOffer(
+                
+                erc20DAI.address, 
+                second_offer_pay_amt,
+                
+                erc20WETH.address,
+                second_offer_buy_amt,
+                
+                {from: accounts[2]}
+            )
+        })
+
+        it('get correct last offer id after creating offers', async () => {
+            await matchingMarketInstance.getLastOfferId().should.eventually.eq(2)
+        })
+
+        it('should not match the two created offers if the prices do not match', async () => {
+            const firstOffer = await matchingMarketInstance.getOffer(1)
+            expect(firstOffer.sellAmount_.toString()).to.eq(toWei('20')) 
+            expect(firstOffer.buyAmount_.toString()).to.eq(toWei('40')) 
+
+            const secondOffer = await matchingMarketInstance.getOffer(2)
+            expect(secondOffer.sellAmount_.toString()).to.eq(toWei('20')) 
+            expect(secondOffer.buyAmount_.toString()).to.eq(toWei('30')) 
+            
+
+            await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('980').toString())
+            await erc20WETH.balanceOf(accounts[1]).should.eventually.eq(toWei('1000').toString())
+
+            await erc20DAI.balanceOf(accounts[2]).should.eventually.eq(toWei('980').toString())
+            await erc20WETH.balanceOf(accounts[2]).should.eventually.eq(toWei('1000').toString())
+
+        })
+
+        it('should get the id of the best offer if available', async () => {
+            await matchingMarketInstance.getBestOfferId(erc20DAI.address, erc20WETH.address).should.eventually.eq(2)
+        })
+
+        it('should return 0 when there is no best offer for a token pair', async () => {
+            await matchingMarketInstance.getBestOfferId(erc20WETH.address, erc20DAI.address).should.eventually.eq(0)
+        })
+
+    })
 
 })

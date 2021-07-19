@@ -568,7 +568,7 @@ contract('Market', accounts => {
         
     }) 
     
-/*
+
     describe('can match multiple or more than two matching offers simoultaneously', () => {
         let first_offer_pay_amt;
         let second_offer_pay_amt;
@@ -624,21 +624,14 @@ contract('Market', accounts => {
         })
 
         it('should not match the two created offers if the prices do not match', async () => {
-            await matchingMarketInstance.getOffer(1)
-            .should.eventually.matchObj({
-                '0': toBN(20e18),
-                '1': erc20DAI.address,
-                '2': toBN(40e18),
-                '3': erc20WETH.address
-            })
+            const firstOffer = await matchingMarketInstance.getOffer(1)
+            expect(firstOffer.sellAmount_.toString()).to.eq(toWei('20')) 
+            expect(firstOffer.buyAmount_.toString()).to.eq(toWei('40')) 
 
-            await matchingMarketInstance.getOffer(2)
-            .should.eventually.matchObj({
-                '0': toBN(10e18),
-                '1': erc20WETH.address,
-                '2': toBN(20e18),
-                '3': erc20DAI.address
-            })
+            const secondOffer = await matchingMarketInstance.getOffer(2)
+            expect(secondOffer.sellAmount_.toString()).to.eq(toWei('10')) 
+            expect(secondOffer.buyAmount_.toString()).to.eq(toWei('20')) 
+            
 
             await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('980').toString())
             await erc20WETH.balanceOf(accounts[1]).should.eventually.eq(toWei('1000').toString())
@@ -648,7 +641,7 @@ contract('Market', accounts => {
 
         })
 
-        it('create and match two more offers with one previous matching offer', async () => {
+        it('create and match two more offers with one previous matching offer, i.e., offer 2', async () => {
             let third_offer_pay_amt;
             let third_offer_buy_amt;
             let fourth_offer_pay_amt;
@@ -663,7 +656,7 @@ contract('Market', accounts => {
                 {from: accounts[3]}
             ).should.be.fulfilled
             
-            const txToMatch = await matchingMarketInstance.executeLimitOffer(
+            const thirdOfferTx = await matchingMarketInstance.executeLimitOffer(
                 
                 erc20DAI.address, 
                 third_offer_pay_amt,
@@ -685,10 +678,10 @@ contract('Market', accounts => {
                 {from: accounts[4]}
             ).should.be.fulfilled
 
-            firstOfferTx = await matchingMarketInstance.executeLimitOffer(
+            const fourthOfferTx = await matchingMarketInstance.executeLimitOffer(
                 
                 erc20WETH.address, 
-                first_offer_pay_amt,
+                fourth_offer_pay_amt,
                 
                 erc20DAI.address,
                 fourth_offer_buy_amt,
@@ -702,29 +695,17 @@ contract('Market', accounts => {
             // fourth_offer_buy_amt = toWei('60');
             await matchingMarketInstance.getLastOfferId().should.eventually.eq(3)
 
-            await matchingMarketInstance.getOffer(2)
-            .should.eventually.matchObj({
-                '0': toBN(0), // previously toBN(10e18)
-                '1': ADDRESS_ZERO, // previously WETH
-                '2': toBN(0), // previously toBN(20e18)
-                '3': ADDRESS_ZERO // previously DAI
-            })
+            const secondOffer = await matchingMarketInstance.getOffer(2)
+            expect(secondOffer.sellAmount_.toNumber()).to.eq(0) 
+            expect(secondOffer.buyAmount_.toNumber()).to.eq(0)
 
-            await matchingMarketInstance.getOffer(3)
-            .should.eventually.matchObj({
-                '0': toBN(10e18), // previously toBN(40e18)
-                '1': erc20DAI.address,
-                '2': toBN(5e18), // previously toBN(20e18)
-                '3': erc20WETH.address
-            })
+            const thirdOffer = await matchingMarketInstance.getOffer(3)
+            expect(thirdOffer.sellAmount_.toString()).to.eq(toWei('10')) // previously 40
+            expect(thirdOffer.buyAmount_.toString()).to.eq(toWei('5')) // previously 20
 
-            await matchingMarketInstance.getOffer(4)
-            .should.eventually.matchObj({
-                '0': toBN(0), // previously toBN(5e18)
-                '1': ADDRESS_ZERO, // previously WETH
-                '2': toBN(0), // previously toBN(10e18)
-                '3': ADDRESS_ZERO // previously DAI
-            })
+            const fourthOffer = await matchingMarketInstance.getOffer(4)
+            expect(fourthOffer.sellAmount_.toNumber()).to.eq(0)  // previously 5
+            expect(fourthOffer.buyAmount_.toNumber()).to.eq(0) // previously 10
 
             await matchingMarketInstance.getLastOfferId().should.eventually.eq(3)
 
@@ -741,7 +722,8 @@ contract('Market', accounts => {
             await erc20WETH.balanceOf(accounts[4]).should.eventually.eq(toWei('995').toString())
         })
     })
-
+    */
+/*
     describe('should get correct last offer id when second matching offer not completely filled', () => {
         let first_offer_pay_amt;
         let second_offer_pay_amt;

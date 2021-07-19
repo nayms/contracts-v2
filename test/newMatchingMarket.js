@@ -8,6 +8,7 @@ import { ensureMarketIsDeployed } from '../migrations/modules/market'
 
 const IERC20 = artifacts.require("./base/IERC20")
 const DummyToken = artifacts.require("./DummyToken")
+const DummyMarketObserver = artifacts.require("./DummyMarketObserver")
 const Market = artifacts.require('./Market')
 const IMarket = artifacts.require('./base/IMarket')
 
@@ -58,7 +59,7 @@ contract('Market', accounts => {
         matchingMarketInstance = await ensureMarketIsDeployed({ artifacts, settings })
     })
 
-    describe('deployment checks', () => {
+    /* describe('deployment checks', () => {
         it('should return deployed market address and not zero address', async () => {
             (matchingMarketInstance.address).should.not.equal(ADDRESS_ZERO)
         })
@@ -949,6 +950,40 @@ contract('Market', accounts => {
             await matchingMarketInstance.getBestOfferId(erc20WETH.address, erc20DAI.address).should.eventually.eq(0)
         })
 
+    }) */
+
+    describe('handleTrade should handle trade notifications in market observer', () => {
+        let marketObserver; 
+
+        beforeEach(async () => {
+            // deploy new market observer contract
+            marketObserver = await DummyMarketObserver.new({ from: accounts[0] });
+            console.log(marketObserver)
+            // create two matching orders that should match with 
+            // executeLimitOfferWithObserver function and lead to trade
+        })
+
+        it('should deploy market observer correctly', async () => {
+            //(marketObserver.address).should.not.equal(ADDRESS_ZERO)
+            //console.log(await marketObserver.getOrder(1))
+        })
+
+        xit('should implement IMarketObserver')
+
+        xit('should handle trades')
+        
+    })
+
+    describe('handleClosure should handle order closures and cancellations in market observer', () => {
+        beforeEach(async () => {
+            // deploy new market observer contract
+            // create two non-matching orders with 
+            // executeLimitOfferWithObserver function
+        })
+
+        xit('should handle order closures')
+
+        xit('should handle order cancellations')
     })
 
 })

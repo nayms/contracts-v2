@@ -58,7 +58,7 @@ contract('Market', accounts => {
         matchingMarketInstance = await ensureMarketIsDeployed({ artifacts, settings })
     })
 
-    /* describe('deployment checks', () => {
+    describe('deployment checks', () => {
         it('should return deployed market address and not zero address', async () => {
             (matchingMarketInstance.address).should.not.equal(ADDRESS_ZERO)
         })
@@ -722,8 +722,8 @@ contract('Market', accounts => {
             await erc20WETH.balanceOf(accounts[4]).should.eventually.eq(toWei('995').toString())
         })
     })
-    */
-/*
+    
+
     describe('should get correct last offer id when second matching offer not completely filled', () => {
         let first_offer_pay_amt;
         let second_offer_pay_amt;
@@ -773,21 +773,13 @@ contract('Market', accounts => {
                 {from: accounts[2]}
             )
 
-            await matchingMarketInstance.getOffer(1)
-            .should.eventually.matchObj({
-                '0': toBN(0),
-                '1': ADDRESS_ZERO, 
-                '2': toBN(0), 
-                '3': ADDRESS_ZERO 
-            })
+            const firstOffer = await matchingMarketInstance.getOffer(1)
+            expect(firstOffer.sellAmount_.toNumber()).to.eq(0)  // previously 10
+            expect(firstOffer.buyAmount_.toNumber()).to.eq(0) // previously 5
 
-            await matchingMarketInstance.getOffer(2)
-            .should.eventually.matchObj({
-                '0': toBN(5e18),
-                '1': erc20WETH.address, 
-                '2': toBN(10e18), 
-                '3': erc20DAI.address 
-            })
+            const secondOffer = await matchingMarketInstance.getOffer(2)
+            expect(secondOffer.sellAmount_.toString()).to.eq(toWei('5')) // previously 10
+            expect(secondOffer.buyAmount_.toString()).to.eq(toWei('10')) // previously 20
         })
 
         it('should get correct last offer id after creating offers', async () => {
@@ -852,21 +844,14 @@ contract('Market', accounts => {
                 {from: accounts[2]}
             )
 
-            await matchingMarketInstance.getOffer(1)
-            .should.eventually.matchObj({
-                '0': toBN(0),
-                '1': ADDRESS_ZERO, 
-                '2': toBN(0), 
-                '3': ADDRESS_ZERO 
-            })
+            const firstOffer = await matchingMarketInstance.getOffer(1)
+            expect(firstOffer.sellAmount_.toNumber()).to.eq(0)  // previously 10
+            expect(firstOffer.buyAmount_.toNumber()).to.eq(0) // previously 5
 
-            await matchingMarketInstance.getOffer(2)
-            .should.eventually.matchObj({
-                '0': toBN(0),
-                '1': ADDRESS_ZERO, 
-                '2': toBN(0), 
-                '3': ADDRESS_ZERO 
-            })
+            const secondOffer = await matchingMarketInstance.getOffer(2)
+            expect(secondOffer.sellAmount_.toNumber()).to.eq(0)  // previously 5
+            expect(secondOffer.buyAmount_.toNumber()).to.eq(0) // previously 10
+
         })
 
         it('should get correct last offer id after creating offers', async () => {
@@ -882,6 +867,6 @@ contract('Market', accounts => {
             
         })
 
-    }) */
+    }) 
 
 })

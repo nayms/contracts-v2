@@ -23,6 +23,10 @@ abstract contract EntityFacetBase is EternalStorage, Controller {
     require(dataUint256[__a(_unit, "balance")] >= _amount, 'exceeds entity balance');
   }
 
+  function _assertNoTokenSaleInProgress () internal view {
+    require(dataUint256["tokenSaleOfferId"] == 0, "token sale in progress");
+  }
+
   function _isPolicyCreatedByMe(address _policy) internal view returns (bool) {
     return dataBool[__a(_policy, "isPolicy")];
   }

@@ -1,4 +1,4 @@
-import { extractEventArgs, ADDRESS_ZERO, EvmSnapshot } from './utils/index'
+import { extractEventArgs, ADDRESS_ZERO, BYTES_ZERO, EvmSnapshot } from './utils/index'
 import { toBN, toWei, toHex } from './utils/web3'
 import { events } from '..'
 
@@ -59,7 +59,7 @@ contract('Market', accounts => {
         matchingMarketInstance = await ensureMarketIsDeployed({ artifacts, settings })
     })
 
-    /* describe('deployment checks', () => {
+    describe('deployment checks', () => {
         it('should return deployed market address and not zero address', async () => {
             (matchingMarketInstance.address).should.not.equal(ADDRESS_ZERO)
         })
@@ -950,40 +950,357 @@ contract('Market', accounts => {
             await matchingMarketInstance.getBestOfferId(erc20WETH.address, erc20DAI.address).should.eventually.eq(0)
         })
 
-    }) */
+    })
 
-    describe('handleTrade should handle trade notifications in market observer', () => {
+    describe('handleTrade and handleClosure should handle trade or closure or cancellation notifications in market observer', () => {
         let marketObserver; 
+        let notifyData = toHex('nayms')
+        const orderType = {
+            none: 0,
+            trade: 1,
+            closure: 2
+        }
 
         beforeEach(async () => {
-            // deploy new market observer contract
-            marketObserver = await DummyMarketObserver.new({ from: accounts[0] });
-            console.log(marketObserver)
-            // create two matching orders that should match with 
-            // executeLimitOfferWithObserver function and lead to trade
+            marketObserver = await DummyMarketObserver.new({ from: accounts[0]})
         })
 
         it('should deploy market observer correctly', async () => {
-            //(marketObserver.address).should.not.equal(ADDRESS_ZERO)
-            //console.log(await marketObserver.getOrder(1))
+            (marketObserver.address).should.not.equal(ADDRESS_ZERO)
+            const orderInfo = await marketObserver.getOrder(3)
+            expect((orderInfo._type).toNumber()).to.be.eq(0)
+            expect(orderInfo._data).to.be.eq(null)
         })
 
-        xit('should implement IMarketObserver')
+        it('should get correct order info for created orders when no trade or closure occurs', async () => {
+            const first_offer_pay_amt = toWei('10')
+            const first_offer_buy_amt = toWei('10')
 
-        xit('should handle trades')
-        
-    })
+            await erc20WETH.approve(
+                matchingMarketInstance.address,
+                first_offer_pay_amt,
+                {from: accounts[1]}
+            ).should.be.fulfilled
 
-    describe('handleClosure should handle order closures and cancellations in market observer', () => {
-        beforeEach(async () => {
-            // deploy new market observer contract
-            // create two non-matching orders with 
-            // executeLimitOfferWithObserver function
+            const firstOfferTx = await matchingMarketInstance.executeLimitOfferWithObserver(
+                erc20WETH.address, 
+                first_offer_pay_amt,
+                erc20DAI.address,
+                first_offer_buy_amt,
+                marketObserver.address,
+                notifyData,
+                {from: accounts[1]}
+            )
+
+            const second_offer_pay_amt = toWei('10')
+            const second_offer_buy_amt = toWei('10')
+
+            await erc20WETH.approve(
+                matchingMarketInstance.address,
+                second_offer_pay_amt,
+                {from: accounts[2]}
+            ).should.be.fulfilled
+
+            const secondOfferTx = await matchingMarketInstance.executeLimitOfferWithObserver(
+                erc20WETH.address, 
+                second_offer_pay_amt,
+                erc20DAI.address,
+                second_offer_buy_amt,
+                marketObserver.address,
+                notifyData,
+                {from: accounts[2]}
+            )
+            
+            const firstOrderInfo = await marketObserver.getOrder(1)
+            expect((firstOrderInfo._type).toNumber()).to.be.eq(0)
+            expect(firstOrderInfo._data).to.be.eq(null)
+
+            const secondOrderInfo = await marketObserver.getOrder(2)
+            expect((secondOrderInfo._type).toNumber()).to.be.eq(0)
+            expect(secondOrderInfo._data).to.be.eq(null)
+
+            const firstOffer = await matchingMarketInstance.getOffer(1)
+            expect(firstOffer.sellAmount_.toString()).to.eq(toWei('10')) 
+            expect(firstOffer.buyAmount_.toString()).to.eq(toWei('10')) 
+
+            const secondOffer = await matchingMarketInstance.getOffer(2)
+            expect(secondOffer.sellAmount_.toString()).to.eq(toWei('10')) 
+            expect(secondOffer.buyAmount_.toString()).to.eq(toWei('10')) 
+            
+
+            await erc20WETH.balanceOf(accounts[1]).should.eventually.eq(toWei('990').toString())
+            await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('1000').toString())
+
+            await erc20WETH.balanceOf(accounts[2]).should.eventually.eq(toWei('990').toString())
+            await erc20DAI.balanceOf(accounts[2]).should.eventually.eq(toWei('1000').toString())
         })
 
-        xit('should handle order closures')
+        it('should implement IMarketObserver', async () => {
+            const FUNC_SIGNATURE = "handleTrade(uint256,address,uint256,address,uint256,address,address,bytes)";
+            // const funcSelector = web3.sha3(FUNC_SIGNATURE).slice(2,10); // Truffle v4.x / Web3 v0.x
+            const funcSelector = web3.utils.keccak256(FUNC_SIGNATURE).slice(2,10); // Truffle v5.x / Web3 v1.x
+            const bytecode = await web3.eth.getCode(marketObserver.address);
+            expect(bytecode.includes(funcSelector)).to.be.eq(true);
+        })
 
-        xit('should handle order cancellations')
+        it('should handle order closures for fully matching offers and get correct order info after closure occurs', async () => {
+            const first_offer_pay_amt = toWei('10')
+            const first_offer_buy_amt = toWei('10')
+
+            await erc20WETH.approve(
+                matchingMarketInstance.address,
+                first_offer_pay_amt,
+                {from: accounts[1]}
+            ).should.be.fulfilled
+
+            const firstOfferTx = await matchingMarketInstance.executeLimitOfferWithObserver(
+                erc20WETH.address, 
+                first_offer_pay_amt,
+                erc20DAI.address,
+                first_offer_buy_amt,
+                marketObserver.address,
+                notifyData,
+                {from: accounts[1]}
+            )
+
+            const second_offer_pay_amt = toWei('10')
+            const second_offer_buy_amt = toWei('10')
+
+            await erc20DAI.approve(
+                matchingMarketInstance.address,
+                second_offer_pay_amt,
+                {from: accounts[2]}
+            ).should.be.fulfilled
+
+            const secondOfferTx = await matchingMarketInstance.executeLimitOfferWithObserver(
+                erc20DAI.address, 
+                second_offer_pay_amt,
+                erc20WETH.address,
+                second_offer_buy_amt,
+                marketObserver.address,
+                notifyData,
+                {from: accounts[2]}
+            )
+            
+            const firstOrderInfo = await marketObserver.getOrder(1)
+            expect((firstOrderInfo._type).toNumber()).to.be.eq(orderType.closure)
+            expect(firstOrderInfo._data).to.be.eq(notifyData)
+
+            const secondOrderInfo = await marketObserver.getOrder(2)
+            expect((secondOrderInfo._type).toNumber()).to.be.eq(orderType.none)
+            expect(secondOrderInfo._data).to.be.eq(null)
+
+            const firstOffer = await matchingMarketInstance.getOffer(1)
+            expect(firstOffer.sellAmount_.toNumber()).to.eq(0) 
+            expect(firstOffer.buyAmount_.toNumber()).to.eq(0) 
+
+            const secondOffer = await matchingMarketInstance.getOffer(2)
+            expect(secondOffer.sellAmount_.toNumber()).to.eq(0) 
+            expect(secondOffer.buyAmount_.toNumber()).to.eq(0) 
+            
+
+            await erc20WETH.balanceOf(accounts[1]).should.eventually.eq(toWei('990').toString())
+            await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('1010').toString())
+
+            await erc20DAI.balanceOf(accounts[2]).should.eventually.eq(toWei('990').toString())
+            await erc20WETH.balanceOf(accounts[2]).should.eventually.eq(toWei('1010').toString())
+        })
+
+        it('should handle trade and return order info of created order that did not fully sell', async () => {
+            const first_offer_pay_amt = toWei('10')
+            const first_offer_buy_amt = toWei('20')
+
+            await erc20WETH.approve(
+                matchingMarketInstance.address,
+                first_offer_pay_amt,
+                {from: accounts[1]}
+            ).should.be.fulfilled
+
+            const firstOfferTx = await matchingMarketInstance.executeLimitOfferWithObserver(
+                erc20WETH.address, 
+                first_offer_pay_amt,
+                erc20DAI.address,
+                first_offer_buy_amt,
+                marketObserver.address,
+                notifyData,
+                {from: accounts[1]}
+            )
+
+            const second_offer_pay_amt = toWei('40')
+            const second_offer_buy_amt = toWei('20')
+
+            await erc20DAI.approve(
+                matchingMarketInstance.address,
+                second_offer_pay_amt,
+                {from: accounts[2]}
+            ).should.be.fulfilled
+
+            const secondOfferTx = await matchingMarketInstance.executeLimitOfferWithObserver(
+                erc20DAI.address, 
+                second_offer_pay_amt,
+                erc20WETH.address,
+                second_offer_buy_amt,
+                marketObserver.address,
+                notifyData,
+                {from: accounts[2]}
+            )
+            
+            const firstOrderInfo = await marketObserver.getOrder(1)
+            expect((firstOrderInfo._type).toNumber()).to.be.eq(orderType.closure)
+            expect(firstOrderInfo._data).to.be.eq(notifyData)
+
+            let secondOrderInfo = await marketObserver.getOrder(2)
+            expect((secondOrderInfo._type).toNumber()).to.be.eq(orderType.none)
+            expect(secondOrderInfo._data).to.be.eq(null)
+
+            const firstOffer = await matchingMarketInstance.getOffer(1)
+            expect(firstOffer.sellAmount_.toNumber()).to.eq(0) 
+            expect(firstOffer.buyAmount_.toNumber()).to.eq(0) 
+
+            let secondOffer = await matchingMarketInstance.getOffer(2)
+            expect(secondOffer.sellAmount_.toString()).to.eq(toWei('20')) 
+            expect(secondOffer.buyAmount_.toString()).to.eq(toWei('10'))
+
+            await erc20WETH.balanceOf(accounts[1]).should.eventually.eq(toWei('990').toString())
+            await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('1020').toString())
+
+            await erc20WETH.balanceOf(accounts[2]).should.eventually.eq(toWei('1010').toString())
+            await erc20DAI.balanceOf(accounts[2]).should.eventually.eq(toWei('960').toString())
+
+            await erc20WETH.approve(
+                matchingMarketInstance.address,
+                first_offer_pay_amt,
+                {from: accounts[1]}
+            ).should.be.fulfilled
+
+            const thirdOfferTx = await matchingMarketInstance.executeLimitOfferWithObserver(
+                erc20WETH.address, 
+                first_offer_pay_amt,
+                erc20DAI.address,
+                first_offer_buy_amt,
+                marketObserver.address,
+                notifyData,
+                {from: accounts[1]}
+            )
+
+
+            const thirdOrderInfo = await marketObserver.getOrder(3)
+            expect((thirdOrderInfo._type).toNumber()).to.be.eq(orderType.none)
+            expect(thirdOrderInfo._data).to.be.eq(null)
+
+            secondOrderInfo = await marketObserver.getOrder(2)
+            expect((secondOrderInfo._type).toNumber()).to.be.eq(orderType.closure)
+            expect(secondOrderInfo._data).to.be.eq(notifyData)
+
+            const thirdOffer = await matchingMarketInstance.getOffer(3)
+            expect(thirdOffer.sellAmount_.toNumber()).to.eq(0) 
+            expect(thirdOffer.buyAmount_.toNumber()).to.eq(0) 
+
+            secondOffer = await matchingMarketInstance.getOffer(2)
+            expect(secondOffer.sellAmount_.toNumber()).to.eq(0)  
+            expect(secondOffer.buyAmount_.toNumber()).to.eq(0) 
+
+            await erc20WETH.balanceOf(accounts[1]).should.eventually.eq(toWei('980').toString())
+            await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('1040').toString())
+            
+            await erc20WETH.balanceOf(accounts[2]).should.eventually.eq(toWei('1020').toString())
+            await erc20DAI.balanceOf(accounts[2]).should.eventually.eq(toWei('960').toString())
+        })
+
+        it('should handle order cancellation', async () => {
+            const first_offer_pay_amt = toWei('10')
+            const first_offer_buy_amt = toWei('20')
+
+            await erc20WETH.approve(
+                matchingMarketInstance.address,
+                first_offer_pay_amt,
+                {from: accounts[1]}
+            ).should.be.fulfilled
+
+            const firstOfferTx = await matchingMarketInstance.executeLimitOfferWithObserver(
+                erc20WETH.address, 
+                first_offer_pay_amt,
+                erc20DAI.address,
+                first_offer_buy_amt,
+                marketObserver.address,
+                notifyData,
+                {from: accounts[1]}
+            )
+
+            let firstOrderInfo = await marketObserver.getOrder(1)
+            expect((firstOrderInfo._type).toNumber()).to.be.eq(orderType.none)
+            expect(firstOrderInfo._data).to.be.eq(null)
+
+            let firstOffer = await matchingMarketInstance.getOffer(1)
+            expect(firstOffer.sellAmount_.toString()).to.eq(toWei('10')) 
+            expect(firstOffer.buyAmount_.toString()).to.eq(toWei('20'))
+            
+            await erc20WETH.balanceOf(accounts[1]).should.eventually.eq(toWei('990').toString())
+            await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('1000').toString())
+
+
+            await matchingMarketInstance.cancel(1, {from: accounts[1]}).should.be.fulfilled
+
+            firstOrderInfo = await marketObserver.getOrder(1)
+            expect((firstOrderInfo._type).toNumber()).to.be.eq(orderType.closure)
+            expect(firstOrderInfo._data).to.be.eq(notifyData)
+
+            firstOffer = await matchingMarketInstance.getOffer(1)
+            expect(firstOffer.sellAmount_.toString()).to.eq(toWei('10')) 
+            expect(firstOffer.buyAmount_.toString()).to.eq(toWei('20')) 
+            const firstOfferActive = await matchingMarketInstance.isActive(1) 
+            expect(firstOfferActive).to.be.equal(false)
+
+            await erc20WETH.balanceOf(accounts[1]).should.eventually.eq(toWei('1000').toString())
+            await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('1000').toString())
+        })
+
+        it('should handle order cancellation without notify data', async () => {
+            const first_offer_pay_amt = toWei('10')
+            const first_offer_buy_amt = toWei('20')
+
+            await erc20WETH.approve(
+                matchingMarketInstance.address,
+                first_offer_pay_amt,
+                {from: accounts[1]}
+            ).should.be.fulfilled
+
+            const firstOfferTx = await matchingMarketInstance.executeLimitOfferWithObserver(
+                erc20WETH.address, 
+                first_offer_pay_amt,
+                erc20DAI.address,
+                first_offer_buy_amt,
+                marketObserver.address,
+                BYTES_ZERO,
+                {from: accounts[1]}
+            )
+
+            let firstOrderInfo = await marketObserver.getOrder(1)
+            expect((firstOrderInfo._type).toNumber()).to.be.eq(orderType.none)
+            expect(firstOrderInfo._data).to.be.eq(null)
+
+            let firstOffer = await matchingMarketInstance.getOffer(1)
+            expect(firstOffer.sellAmount_.toString()).to.eq(toWei('10')) 
+            expect(firstOffer.buyAmount_.toString()).to.eq(toWei('20'))
+            
+            await erc20WETH.balanceOf(accounts[1]).should.eventually.eq(toWei('990').toString())
+            await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('1000').toString())
+
+            await matchingMarketInstance.cancel(1, {from: accounts[1]}).should.be.fulfilled
+
+            firstOrderInfo = await marketObserver.getOrder(1)
+            expect((firstOrderInfo._type).toNumber()).to.be.eq(orderType.closure)
+            expect(firstOrderInfo._data).to.be.eq("0x00")
+
+            firstOffer = await matchingMarketInstance.getOffer(1)
+            expect(firstOffer.sellAmount_.toString()).to.eq(toWei('10')) 
+            expect(firstOffer.buyAmount_.toString()).to.eq(toWei('20')) 
+            const firstOfferActive = await matchingMarketInstance.isActive(1) 
+            expect(firstOfferActive).to.be.equal(false)
+
+            await erc20WETH.balanceOf(accounts[1]).should.eventually.eq(toWei('1000').toString())
+            await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('1000').toString())
+        })
     })
 
 })

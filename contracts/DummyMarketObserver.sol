@@ -5,19 +5,21 @@ import "./base/IDummyMarketObserver.sol";
 
 contract DummyMarketObserver is IMarketObserver, IDummyMarketObserver {
     // order id => "trade" or "closure"
-    mapping(uint256 => string) private order;
+    mapping(uint256 => ORDER_TYPE) private order;
+    mapping(uint256 => bytes) private notifyData;
 
     /**
      * @dev Get order details.
      *
      * @param orderId The order id.
+     * @return _type trade or closure.
+     * @return _data passed optional data.
      */
     function getOrder(uint256 orderId)
-        external override
-        returns (string memory orderType)
+        external view override
+        returns (ORDER_TYPE _type, bytes memory _data)
     {
-        orderType = order[orderId];
-        return orderType;
+        return (order[orderId], notifyData[orderId]);
     }
 
     /**
@@ -41,7 +43,10 @@ contract DummyMarketObserver is IMarketObserver, IDummyMarketObserver {
         address _seller,
         address _buyer,
         bytes memory _data
-    ) external override {}
+    ) external override {
+        order[_offerId] = ORDER_TYPE.TRADE;
+        notifyData[_offerId] = _data;
+    }
 
     /**
      * @dev Handle an order cancellation or closure.
@@ -62,5 +67,8 @@ contract DummyMarketObserver is IMarketObserver, IDummyMarketObserver {
         uint256 _unboughtAmount,
         address _seller,
         bytes memory _data
-    ) external override {}
+    ) external override {
+        order[_offerId] = ORDER_TYPE.CLOSURE;
+        notifyData[_offerId] = _data;
+    }
 }

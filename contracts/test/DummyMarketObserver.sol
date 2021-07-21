@@ -1,12 +1,14 @@
 pragma solidity 0.6.12;
 
-import "./base/IMarketObserver.sol";
-import "./base/IDummyMarketObserver.sol";
+import "../base/IMarketObserver.sol";
+import "../base/IDummyMarketObserver.sol";
 
 contract DummyMarketObserver is IMarketObserver, IDummyMarketObserver {
     // order id => "trade" or "closure"
     mapping(uint256 => ORDER_TYPE) private order;
     mapping(uint256 => bytes) private notifyData;
+
+    
 
     /**
      * @dev Get order details.
@@ -46,6 +48,7 @@ contract DummyMarketObserver is IMarketObserver, IDummyMarketObserver {
     ) external override {
         order[_offerId] = ORDER_TYPE.TRADE;
         notifyData[_offerId] = _data;
+        emit TRADE(_offerId);
     }
 
     /**
@@ -70,5 +73,6 @@ contract DummyMarketObserver is IMarketObserver, IDummyMarketObserver {
     ) external override {
         order[_offerId] = ORDER_TYPE.CLOSURE;
         notifyData[_offerId] = _data;
+        emit CLOSURE(_offerId);
     }
 }

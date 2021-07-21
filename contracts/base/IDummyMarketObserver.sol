@@ -5,6 +5,9 @@ pragma solidity 0.6.12;
  */
 abstract contract IDummyMarketObserver {
   enum ORDER_TYPE{NONE, TRADE, CLOSURE}
+  
+  event TRADE(uint256 orderId);
+  event CLOSURE(uint256 orderId);
 
   /**
    * @dev Get order details.

@@ -25,19 +25,6 @@ contract('Market', accounts => {
     let erc20DAI
     let mintAmount
 
-    /* before(async () => {
-        // acl
-        acl = await ensureAclIsDeployed({ artifacts })
-        systemContext = await acl.systemContext()
-
-        // settings
-        settings = await ensureSettingsIsDeployed({ artifacts, acl })
-
-        // market
-        market = await ensureMarketIsDeployed({ artifacts, settings })
-
-    }) */
-
     beforeEach(async () => {
         erc20WETH = await DummyToken.new('Wrapped ETH', 'WETH', 18, 0, { from: accounts[0] })
         erc20DAI = await DummyToken.new('Dai Stablecoin', 'DAI', 18, 0, { from: accounts[0] })
@@ -449,7 +436,7 @@ contract('Market', accounts => {
 
         })
 
-        it('should match offers partly, return the fill amount for a token pair, with pay amount and minimum fill amount', async () => {
+        it('should match market offers partly when offer cannot be fully matched by counter offer', async () => {
             // buyer must have approved WETH to get DAI at best offer
             await erc20WETH.approve(
                 matchingMarketInstance.address,
@@ -474,7 +461,7 @@ contract('Market', accounts => {
             await erc20WETH.balanceOf(accounts[3]).should.eventually.eq(toWei('1005').toString())
         })
 
-        it('should match offers fully, return the fill amount for a token pair, with pay amount and minimum fill amount', async () => {
+        it('should match market offers fully when an offer can be fully matched by counter offer', async () => {
             await erc20WETH.approve(
                 matchingMarketInstance.address,
                 toBN(10e18),
@@ -570,7 +557,7 @@ contract('Market', accounts => {
     }) 
     
 
-    describe('can match multiple or more than two matching offers simoultaneously', () => {
+    describe('can match multiple or more than two matching offers simultaneously', () => {
         let first_offer_pay_amt;
         let second_offer_pay_amt;
         let first_offer_buy_amt;
@@ -622,24 +609,6 @@ contract('Market', accounts => {
 
         it('get correct last offer id after creating offers', async () => {
             await matchingMarketInstance.getLastOfferId().should.eventually.eq(2)
-        })
-
-        it('should not match the two created offers if the prices do not match', async () => {
-            const firstOffer = await matchingMarketInstance.getOffer(1)
-            expect(firstOffer.sellAmount_.toString()).to.eq(toWei('20')) 
-            expect(firstOffer.buyAmount_.toString()).to.eq(toWei('40')) 
-
-            const secondOffer = await matchingMarketInstance.getOffer(2)
-            expect(secondOffer.sellAmount_.toString()).to.eq(toWei('10')) 
-            expect(secondOffer.buyAmount_.toString()).to.eq(toWei('20')) 
-            
-
-            await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('980').toString())
-            await erc20WETH.balanceOf(accounts[1]).should.eventually.eq(toWei('1000').toString())
-
-            await erc20DAI.balanceOf(accounts[2]).should.eventually.eq(toWei('1000').toString())
-            await erc20WETH.balanceOf(accounts[2]).should.eventually.eq(toWei('990').toString())
-
         })
 
         it('create and match two more offers with one previous matching offer, i.e., offer 2', async () => {
@@ -781,10 +750,6 @@ contract('Market', accounts => {
             const secondOffer = await matchingMarketInstance.getOffer(2)
             expect(secondOffer.sellAmount_.toString()).to.eq(toWei('5')) // previously 10
             expect(secondOffer.buyAmount_.toString()).to.eq(toWei('10')) // previously 20
-        })
-
-        it('should get correct last offer id after creating offers', async () => {
-            await matchingMarketInstance.getLastOfferId().should.eventually.eq(2)
         })
 
         it('should get correct balances after creating offers', async () => {
@@ -1026,7 +991,6 @@ contract('Market', accounts => {
             const secondOffer = await matchingMarketInstance.getOffer(2)
             expect(secondOffer.sellAmount_.toString()).to.eq(toWei('10')) 
             expect(secondOffer.buyAmount_.toString()).to.eq(toWei('10')) 
-            
 
             await erc20WETH.balanceOf(accounts[1]).should.eventually.eq(toWei('990').toString())
             await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('1000').toString())
@@ -1106,7 +1070,7 @@ contract('Market', accounts => {
             await erc20WETH.balanceOf(accounts[2]).should.eventually.eq(toWei('1010').toString())
         })
 
-        it('should handle trade and return order info of created order that did not fully sell', async () => {
+        it('should handle multiple offers, trade, closure and return order info of created order that did not fully sell', async () => {
             const first_offer_pay_amt = toWei('10')
             const first_offer_buy_amt = toWei('20')
 
@@ -1149,6 +1113,7 @@ contract('Market', accounts => {
             expect((firstOrderInfo._type).toNumber()).to.be.eq(orderType.closure)
             expect(firstOrderInfo._data).to.be.eq(notifyData)
 
+            // bought order id is the one that's sent to observer in notification
             let secondOrderInfo = await marketObserver.getOrder(2)
             expect((secondOrderInfo._type).toNumber()).to.be.eq(orderType.none)
             expect(secondOrderInfo._data).to.be.eq(null)
@@ -1182,7 +1147,6 @@ contract('Market', accounts => {
                 notifyData,
                 {from: accounts[1]}
             )
-
 
             const thirdOrderInfo = await marketObserver.getOrder(3)
             expect((thirdOrderInfo._type).toNumber()).to.be.eq(orderType.none)
@@ -1227,6 +1191,7 @@ contract('Market', accounts => {
                 {from: accounts[1]}
             )
 
+            // no matching offer
             let firstOrderInfo = await marketObserver.getOrder(1)
             expect((firstOrderInfo._type).toNumber()).to.be.eq(orderType.none)
             expect(firstOrderInfo._data).to.be.eq(null)
@@ -1300,6 +1265,48 @@ contract('Market', accounts => {
 
             await erc20WETH.balanceOf(accounts[1]).should.eventually.eq(toWei('1000').toString())
             await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('1000').toString())
+        })
+
+        it('should handle trade after a buy', async () => {
+            const first_offer_pay_amt = toWei('10')
+            const first_offer_buy_amt = toWei('20')
+
+            await erc20WETH.approve(
+                matchingMarketInstance.address,
+                first_offer_pay_amt,
+                {from: accounts[1]}
+            ).should.be.fulfilled
+
+            const firstOfferTx = await matchingMarketInstance.executeLimitOfferWithObserver(
+                erc20WETH.address, 
+                first_offer_pay_amt,
+                erc20DAI.address,
+                first_offer_buy_amt,
+                marketObserver.address,
+                notifyData,
+                {from: accounts[1]}
+            )
+
+
+            const firstOfferActive = await matchingMarketInstance.isActive(1) 
+            expect(firstOfferActive).to.be.equal(true)
+
+            await erc20DAI.approve(
+                matchingMarketInstance.address,
+                toWei('10'), 
+                {from: accounts[3]}
+            ).should.be.fulfilled
+            
+            await matchingMarketInstance.buy(1, toBN(first_offer_buy_amt * 0.5), {from: accounts[3]})
+
+            const firstOrderInfo = await marketObserver.getOrder(1)
+            expect((firstOrderInfo._type).toNumber()).to.be.eq(orderType.trade)
+            expect(firstOrderInfo._data).to.be.eq(notifyData)
+
+            await erc20WETH.balanceOf(accounts[1]).should.eventually.eq((mintAmount - first_offer_pay_amt).toString()) // pay_amt collected upon making offer
+            await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('1010').toString())
+            await erc20WETH.balanceOf(accounts[3]).should.eventually.eq(toWei('1005').toString())
+            await erc20DAI.balanceOf(accounts[3]).should.eventually.eq(toWei('990').toString())
         })
     })
 

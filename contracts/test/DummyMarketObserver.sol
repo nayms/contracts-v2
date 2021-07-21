@@ -1,7 +1,7 @@
 pragma solidity 0.6.12;
 
-import "./base/IMarketObserver.sol";
-import "./base/IDummyMarketObserver.sol";
+import "../base/IMarketObserver.sol";
+import "./IDummyMarketObserver.sol";
 
 contract DummyMarketObserver is IMarketObserver, IDummyMarketObserver {
     // order id => "trade" or "closure"

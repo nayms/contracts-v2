@@ -46,6 +46,7 @@ contract DummyMarketObserver is IMarketObserver, IDummyMarketObserver {
     ) external override {
         order[_offerId] = ORDER_TYPE.TRADE;
         notifyData[_offerId] = _data;
+        emit TRADE(_offerId);
     }
 
     /**
@@ -70,5 +71,6 @@ contract DummyMarketObserver is IMarketObserver, IDummyMarketObserver {
     ) external override {
         order[_offerId] = ORDER_TYPE.CLOSURE;
         notifyData[_offerId] = _data;
+        emit CLOSURE(_offerId);
     }
 }

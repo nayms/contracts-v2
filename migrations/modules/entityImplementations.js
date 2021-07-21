@@ -15,6 +15,7 @@ export const ensureEntityImplementationsAreDeployed = async (cfg) => {
     const CommonUpgradeFacet = artifacts.require('./CommonUpgradeFacet')
     const EntityCoreFacet = artifacts.require('./EntityCoreFacet')
     const EntityTokensFacet = artifacts.require('./EntityTokensFacet')
+    const EntityDividendsFacet = artifacts.require('./EntityDividendsFacet')
     const EntityTreasuryFacet = artifacts.require('./EntityTreasuryFacet')
     const EntityTreasuryBridgeFacet = artifacts.require('./EntityTreasuryBridgeFacet')    
 
@@ -22,6 +23,7 @@ export const ensureEntityImplementationsAreDeployed = async (cfg) => {
       await deploy(deployer, getTxParams(), CommonUpgradeFacet, settings.address),
       await deploy(deployer, getTxParams(), EntityCoreFacet, settings.address),
       await deploy(deployer, getTxParams(), EntityTokensFacet, settings.address),
+      await deploy(deployer, getTxParams(), EntityDividendsFacet, settings.address),
       await deploy(deployer, getTxParams(), EntityTreasuryFacet, settings.address),
       await deploy(deployer, getTxParams(), EntityTreasuryBridgeFacet, settings.address),
     ]

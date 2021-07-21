@@ -65,10 +65,7 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
   }
 
   function burnTokens(uint256 _amount) external override {
-    string memory k = __a(msg.sender, "tokenBalance");
-    require(dataUint256[k] >= _amount, "not enough balance to burn");
-    dataUint256[k] = dataUint256[k].sub(_amount);
-    dataUint256["tokenSupply"] = dataUint256["tokenSupply"].sub(_amount);
+    _burn(msg.sender, _amount);
   }
 
   function startTokenSale(uint256 _amount, address _priceUnit, uint256 _totalPrice) 
@@ -76,7 +73,7 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
     override
     assertCanStartTokenSale
   {
-    require(dataUint256["tokenSaleOfferId"] == 0, "token sale already in progress");
+    _assertNoTokenSaleInProgress();
 
     // mint token if it doesn't exist
     if (dataAddress["token"] == address(0)) {
@@ -143,6 +140,41 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
 
   // IMarketObserver
 
+  function handleTrade(
+    uint256 _offerId,
+    address _sellToken, 
+    uint256 _soldAmount, 
+    address _buyToken, 
+    uint256 _boughtAmount,
+    address _seller,
+    address _buyer,
+    bytes memory _data
+  ) external override {
+    if (_data.length == 0) {
+      return;
+    }
+
+    // get data type
+    (uint256 t) = abi.decode(_data, (uint256));
+
+    // if it's an entity token sale
+    if (t == MODT_ENTITY_SALE) {
+      // get entity address
+      (, address entity) = abi.decode(_data, (uint256, address));
+
+      // if we created this offer
+      if (entity == address(this)) {
+        // check entity token matches sell token
+        address tokenAddress = dataAddress["token"];
+        require(tokenAddress == _sellToken, "sell token must be entity token");
+
+        // add bought amount to balance
+        string memory balKey = __a(_buyToken, "balance");
+        dataUint256[balKey] = dataUint256[balKey].add(_boughtAmount);
+      }
+    }    
+  }
+
   function handleClosure(
     uint256 _offerId,
     address _sellToken, 
@@ -159,7 +191,7 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
     // get data type
     (uint256 t) = abi.decode(_data, (uint256));
 
-    // if it's a tranch token buyback trade
+    // if it's an entity token sale
     if (t == MODT_ENTITY_SALE) {
       // get entity address
       (, address entity) = abi.decode(_data, (uint256, address));
@@ -170,8 +202,10 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
         address tokenAddress = dataAddress["token"];
         require(tokenAddress == _sellToken, "sell token must be entity token");
 
-        // burn the unsold amount
-        dataUint256["tokenSupply"] = dataUint256["tokenSupply"].sub(_unsoldAmount);
+        // burn the unsold amount (currently owned by the entity since the market has already sent it back)
+        if (_unsoldAmount > 0) {
+          _burn(address(this), _unsoldAmount);
+        }
 
         // reset sale id
         dataUint256["tokenSaleOfferId"] = 0;
@@ -182,6 +216,8 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
   // Internal functions
 
   function _transfer(address _from, address _to, uint256 _value) private {
+    require(_value > 0, "cannot transfer zero");
+
     string memory fromKey = __a(_from, "tokenBalance");
     string memory toKey = __a(_to, "tokenBalance");
 
@@ -189,5 +225,47 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
 
     dataUint256[fromKey] = dataUint256[fromKey].sub(_value);
     dataUint256[toKey] = dataUint256[toKey].add(_value);
+
+    // add recipient to the token holder list
+    if (dataUint256[__a(_to, "tokenHolderIndex")] == 0) {
+      dataUint256["numTokenHolders"] += 1;
+      dataAddress[__i(dataUint256["numTokenHolders"], "tokenHolder")] = _to;
+      dataUint256[__a(_to, "tokenHolderIndex")] = dataUint256["numTokenHolders"];
+    }
+
+    // if sender now has 0 balance then remove them from the token holder list
+    if (dataUint256[fromKey] == 0 && dataUint256[__a(_from, "tokenHolderIndex")] > 0) {
+      _removeTokenHolder(_from);
+    }
+  }
+
+  function _removeTokenHolder(address _holder) private {
+    uint256 idx = dataUint256[__a(_holder, "tokenHolderIndex")];
+    dataUint256[__a(_holder, "tokenHolderIndex")] = 0;
+
+    // fast delete: replace with item currently at end of list
+    if (dataUint256["numTokenHolders"] > 1) {
+      address lastHolder = dataAddress[__i(dataUint256["numTokenHolders"], "tokenHolder")];
+      dataAddress[__i(idx, "tokenHolder")] = lastHolder;
+      dataUint256[__a(lastHolder, "tokenHolderIndex")] = idx;
+    } else {
+      dataAddress[__i(idx, "tokenHolder")] = address(0);          
+    }
+
+    dataUint256["numTokenHolders"] -= 1;
+  }
+
+  function _burn(address _holder, uint256 _amount) private {
+    require(_amount > 0, "cannot burn zero");    
+    
+    string memory k = __a(_holder, "tokenBalance");
+    require(dataUint256[k] >= _amount, "not enough balance to burn");    
+    dataUint256[k] = dataUint256[k].sub(_amount);
+
+    if (dataUint256[k] == 0) {
+      _removeTokenHolder(_holder);
+    }
+
+    dataUint256["tokenSupply"] = dataUint256["tokenSupply"].sub(_amount);
   }
 }

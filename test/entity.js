@@ -381,7 +381,7 @@ contract('Entity', accounts => {
 
       it('and only one sale can be in progress at a time', async () => {
         await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager })
-        await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager }).should.be.rejectedWith('token sale already in progress')
+        await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager }).should.be.rejectedWith('token sale in progress')
       })
 
       it('and tokens have basic properties', async () => {
@@ -417,6 +417,7 @@ contract('Entity', accounts => {
         })
 
         await etherToken.balanceOf(entity.address).should.eventually.eq(500)
+        await entity.getBalance(etherToken.address).should.eventually.eq(500)
 
         const entityToken = await IERC20.at(tokenInfo.tokenContract_)
         await entityToken.balanceOf(accounts[0]).should.eventually.eq(250)
@@ -439,6 +440,7 @@ contract('Entity', accounts => {
         })
 
         await etherToken.balanceOf(entity.address).should.eventually.eq(1000)
+        await entity.getBalance(etherToken.address).should.eventually.eq(1000)
 
         const entityToken = await IERC20.at(tokenInfo.tokenContract_)
         await entityToken.totalSupply().should.eventually.eq(500)
@@ -446,6 +448,40 @@ contract('Entity', accounts => {
 
         await entity.getTokenInfo().should.eventually.matchObj({
           currentTokenSaleOfferId_: 0,
+        })
+      })
+
+      describe('and token transfers are controlled such that', () => {
+        let entityToken
+
+        beforeEach(async () => {
+          await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager })
+          await etherToken.deposit({ value: 500 })
+          await etherToken.approve(market.address, 500)
+
+          const tokenInfo = await entity.getTokenInfo()
+
+          await market.executeLimitOffer(etherToken.address, 500, tokenInfo.tokenContract_, 250)
+          
+          entityToken = await IERC20.at(tokenInfo.tokenContract_)
+          await entityToken.balanceOf(accounts[0]).should.eventually.eq(250)
+          
+          // temp set accounts[0] as market
+          await settings.setAddress(settings.address, SETTINGS.MARKET, accounts[0])
+        })
+
+        it('only market can transfer tokens', async () => {
+          await entityToken.transfer(accounts[1], 1).should.be.fulfilled
+          await entityToken.transfer(accounts[0], 1, { from: accounts[1] }).should.be.rejectedWith('only nayms market is allowed to transfer')
+        })
+
+        it('only market can be approved for transfers', async () => {
+          await entityToken.approve(accounts[0], 1).should.be.fulfilled
+          await entityToken.approve(accounts[1], 1).should.be.rejectedWith('only nayms market is allowed to transfer')
+        })
+
+        it('transfers must be non-zero', async () => {
+          await entityToken.transfer(accounts[1], 0).should.be.rejectedWith('cannot transfer zero')
         })
       })
 
@@ -483,8 +519,11 @@ contract('Entity', accounts => {
         it('cannot be burnt if more than balance', async () => {
           await entity.burnTokens(1001).should.be.rejectedWith('not enough balance to burn')
         })
-      })
 
+        it('cannot be burnt if zero', async () => {
+          await entity.burnTokens(0).should.be.rejectedWith('cannot burn zero')
+        })
+      })
 
       describe('and a sale can be cancelled', () => {
         it('but only by entity mgr', async () => {
@@ -516,6 +555,7 @@ contract('Entity', accounts => {
           await entity.cancelTokenSale({ from: entityManager }).should.be.fulfilled
 
           await entityToken.totalSupply().should.eventually.eq(0)
+          await entityToken.balanceOf(entity.address).should.eventually.eq(0) // market sends cancelled back to entity - ensure we burn these too!
         })
 
         it('and re-uses existing token if new sale is initiated', async () => {
@@ -550,6 +590,227 @@ contract('Entity', accounts => {
           await entity.cancelTokenSale({ from: entityManager })
           await entity.withdraw(etherToken.address, 1, { from: entityAdmin }).should.be.fulfilled
         })
+      })
+    })
+  })
+
+  describe('token holder tracking', () => {
+    const entityManager = accounts[2]
+    let entityToken
+
+    beforeEach(async () => {
+      await acl.assignRole(entityContext, entityManager, ROLES.ENTITY_MANAGER)
+
+      await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager })
+
+      await entity.getNumTokenHolders().should.eventually.eq(1)
+      await entity.getTokenHolderAtIndex(1).should.eventually.eq(market.address)
+
+      await etherToken.deposit({ value: 500 })
+      await etherToken.approve(market.address, 500)
+      const tokenInfo = await entity.getTokenInfo()
+
+      await market.executeLimitOffer(etherToken.address, 500, tokenInfo.tokenContract_, 250)
+
+      // after some has been sold the market and buyer are the present holders
+      await entity.getNumTokenHolders().should.eventually.eq(2)
+      await entity.getTokenHolderAtIndex(1).should.eventually.eq(market.address)
+      await entity.getTokenHolderAtIndex(2).should.eventually.eq(accounts[0])
+
+      entityToken = await IERC20.at(tokenInfo.tokenContract_)
+
+      await entityToken.balanceOf(accounts[0]).should.eventually.eq(250)
+      await entityToken.balanceOf(market.address).should.eventually.eq(250)
+      await etherToken.balanceOf(entity.address).should.eventually.eq(500)
+      await entity.getBalance(etherToken.address).should.eventually.eq(500)
+    })
+
+    it('ensures entity is not a holder after token sale is complete', async () => {
+      // now cancel the token sale
+      await entity.cancelTokenSale({ from: entityManager })
+
+      // only the buyer should be a holder
+      await entity.getNumTokenHolders().should.eventually.eq(1)
+      await entity.getTokenHolderAtIndex(1).should.eventually.eq(accounts[0])
+    })
+
+    describe('between accounts', () => {
+      beforeEach(async () => {
+        await entity.cancelTokenSale({ from: entityManager })
+
+        // temp set accounts[0] as market so that we can send tokens around
+        await settings.setAddress(settings.address, SETTINGS.MARKET, accounts[0])
+      })
+
+      it('works for a single holder', async () => {
+        await entity.getNumTokenHolders().should.eventually.eq(1)
+        await entity.getTokenHolderAtIndex(1).should.eventually.eq(accounts[0])
+      })
+
+      it('works for multiple holders', async () => {
+        await entityToken.transfer(accounts[1], 1)
+        await entityToken.transfer(accounts[2], 1)
+
+        await entity.getNumTokenHolders().should.eventually.eq(3)
+        await entity.getTokenHolderAtIndex(1).should.eventually.eq(accounts[0])
+        await entity.getTokenHolderAtIndex(2).should.eventually.eq(accounts[1])
+        await entity.getTokenHolderAtIndex(3).should.eventually.eq(accounts[2])
+      })
+
+      it('removes holder once their balance goes to zero', async () => {
+        await entityToken.transfer(accounts[1], 1)
+
+        await entity.getNumTokenHolders().should.eventually.eq(2)
+        await entity.getTokenHolderAtIndex(1).should.eventually.eq(accounts[0])
+        await entity.getTokenHolderAtIndex(2).should.eventually.eq(accounts[1])
+
+        await entityToken.transfer(accounts[1], 249)
+
+        await entity.getNumTokenHolders().should.eventually.eq(1)
+        await entity.getTokenHolderAtIndex(1).should.eventually.eq(accounts[1])
+      })
+
+      it('re-adds holder if their balance goes to zero but then goes back up again', async () => {
+        await entityToken.transfer(accounts[1], 250)
+
+        await entity.getNumTokenHolders().should.eventually.eq(1)
+        await entity.getTokenHolderAtIndex(1).should.eventually.eq(accounts[1])
+
+        await entityToken.transferFrom(accounts[1], accounts[0], 100)
+
+        await entity.getNumTokenHolders().should.eventually.eq(2)
+        await entity.getTokenHolderAtIndex(1).should.eventually.eq(accounts[1])
+        await entity.getTokenHolderAtIndex(2).should.eventually.eq(accounts[0])
+      })
+
+      it('removes holder if their balance gets burnt', async () => {
+        await entityToken.transfer(accounts[1], 249)
+
+        await entity.burnTokens(1, { from: accounts[1] })
+
+        await entity.getNumTokenHolders().should.eventually.eq(2)
+        await entity.getTokenHolderAtIndex(1).should.eventually.eq(accounts[0])
+        await entity.getTokenHolderAtIndex(2).should.eventually.eq(accounts[1])
+
+        await entity.burnTokens(248, { from: accounts[1] })
+
+        await entity.getNumTokenHolders().should.eventually.eq(1)
+        await entity.getTokenHolderAtIndex(1).should.eventually.eq(accounts[0])
+      })
+    })
+  })
+
+  describe('dividend payouts', () => {
+    const entityManager = accounts[2]
+    let entityToken
+
+    beforeEach(async () => {
+      await acl.assignRole(entityContext, entityManager, ROLES.ENTITY_MANAGER)
+
+      await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager })
+
+      await etherToken.deposit({ value: 500 })
+      await etherToken.approve(market.address, 500)
+      const tokenInfo = await entity.getTokenInfo()
+      await market.executeLimitOffer(etherToken.address, 500, tokenInfo.tokenContract_, 250)
+
+      entityToken = await IERC20.at(tokenInfo.tokenContract_)
+      
+      await entityToken.balanceOf(accounts[0]).should.eventually.eq(250)
+      await entityToken.balanceOf(market.address).should.eventually.eq(250)
+      await entity.getBalance(etherToken.address).should.eventually.eq(500)
+
+      await entity.cancelTokenSale({ from: entityManager })
+
+      await entityToken.balanceOf(accounts[0]).should.eventually.eq(250)
+      await entityToken.balanceOf(market.address).should.eventually.eq(0)
+      await entity.getNumTokenHolders().should.eventually.eq(1)
+      await entity.getTokenHolderAtIndex(1).should.eventually.eq(accounts[0])
+    })
+
+    it('cannot happen when token sale is in progress', async () => {
+      await entity.startTokenSale(1, etherToken.address, 1, { from: entityManager })
+      await entity.payDividend(etherToken.address, 1).should.be.rejectedWith('token sale in progress')
+      await entity.cancelTokenSale({ from: entityManager })
+      await entity.payDividend(etherToken.address, 1).should.be.fulfilled
+    })
+
+    describe('with multiple holders', async () => {
+      beforeEach(async () => {
+        // temp set accounts[0] as market so that we can send tokens around
+        await settings.setAddress(settings.address, SETTINGS.MARKET, accounts[0])
+
+        await entityToken.transfer(accounts[1], 100)
+
+        // check balances
+        await entityToken.balanceOf(accounts[0]).should.eventually.eq(150)
+        await entityToken.balanceOf(accounts[1]).should.eventually.eq(100)
+        await entityToken.totalSupply().should.eventually.eq(250)
+        await entity.getNumTokenHolders().should.eventually.eq(2)
+      })
+
+      it('must not exceed entity balance', async () => {
+        await entity.payDividend(etherToken.address, 501).should.be.rejectedWith('exceeds entity balance')
+      })
+
+      it('get allocated proportionately to holders', async () => {
+        await entity.payDividend(etherToken.address, 500)
+
+        await entity.getBalance(etherToken.address).should.eventually.eq(0)
+        await entity.getWithdrawableDividend(etherToken.address, accounts[0]).should.eventually.eq(300)
+        await entity.getWithdrawableDividend(etherToken.address, accounts[1]).should.eventually.eq(200)
+      })
+
+      it('add to previous payouts', async () => {
+        await entity.payDividend(etherToken.address, 100)
+
+        await entity.getBalance(etherToken.address).should.eventually.eq(400)
+        await entity.getWithdrawableDividend(etherToken.address, accounts[0]).should.eventually.eq(60)
+        await entity.getWithdrawableDividend(etherToken.address, accounts[1]).should.eventually.eq(40)
+
+        await entity.payDividend(etherToken.address, 50)
+
+        await entity.getBalance(etherToken.address).should.eventually.eq(350)
+        await entity.getWithdrawableDividend(etherToken.address, accounts[0]).should.eventually.eq(90)
+        await entity.getWithdrawableDividend(etherToken.address, accounts[1]).should.eventually.eq(60)
+      })
+
+      it('can be withdrawn', async () => {
+        await entity.payDividend(etherToken.address, 100)
+
+        await entity.getWithdrawableDividend(etherToken.address, accounts[1]).should.eventually.eq(40)
+
+        await entity.withdrawDividend(etherToken.address, { from: accounts[1] })
+
+        await entity.getWithdrawableDividend(etherToken.address, accounts[1]).should.eventually.eq(0)
+        await etherToken.balanceOf(accounts[1]).should.eventually.eq(40)
+      })
+
+      it('can be withdrawn even if 0', async () => {
+        await entity.getWithdrawableDividend(etherToken.address, accounts[1]).should.eventually.eq(0)
+        await entity.withdrawDividend(etherToken.address, { from: accounts[1] })
+        await entity.getWithdrawableDividend(etherToken.address, accounts[1]).should.eventually.eq(0)
+        await etherToken.balanceOf(accounts[1]).should.eventually.eq(0)
+      })
+
+      it('can be withdrawn even after holder has given tokens away', async () => {
+        await entity.payDividend(etherToken.address, 100)
+
+        await entity.getWithdrawableDividend(etherToken.address, accounts[0]).should.eventually.eq(60)
+        await entity.getWithdrawableDividend(etherToken.address, accounts[1]).should.eventually.eq(40)
+
+        // send all tokens back to accounts[0]
+        await entityToken.transferFrom(accounts[1], accounts[0], 100)
+
+        await entity.payDividend(etherToken.address, 50)
+
+        await entity.getWithdrawableDividend(etherToken.address, accounts[0]).should.eventually.eq(110)
+        await entity.getWithdrawableDividend(etherToken.address, accounts[1]).should.eventually.eq(40)
+
+        // now withdraw
+        await entity.withdrawDividend(etherToken.address, { from: accounts[1] })
+        await entity.getWithdrawableDividend(etherToken.address, accounts[1]).should.eventually.eq(0)
+        await etherToken.balanceOf(accounts[1]).should.eventually.eq(40)
       })
     })
   })

@@ -15,28 +15,18 @@ interface IEntityCoreFacet {
    */
 
 
-  function createPolicyWithTranches(
+  /**
+   * @dev Create policy with tranches].
+   * @return Policy Address.
+   */
+  function createPolicy(
     //Policy Variables
     uint256[] calldata _dates,
     address _unit,
     uint256 _premiumIntervalSeconds,
     uint256[] calldata _commmissionsBP,
     address[] calldata _stakeholders,
-
-    //Tranche variable array
-    // uint256[] calldata _numShares,
-    // uint256[] calldata _pricePerShareAmount,
-    // uint256[][] calldata _premiums
     uint256[][] calldata _trancheData
-
-  ) external;
-
-  function createPolicy(
-    uint256[] calldata _dates,
-    address _unit,
-    uint256 _premiumIntervalSeconds,
-    uint256[] calldata _commmissionsBP,
-    address[] calldata _stakeholders
   ) external returns (address);
 
   /**
@@ -115,11 +105,13 @@ interface IEntityCoreFacet {
    * @param policy The policy address.
    * @param entity The entity which owns the policy.
    * @param deployer The person who deployed it.
+   * @param numTranches The number of tranches.
    */
   event NewPolicy(
     address indexed policy,
     address indexed entity,
-    address indexed deployer
+    address indexed deployer,
+    uint256  numTranches
   );
 
   /**

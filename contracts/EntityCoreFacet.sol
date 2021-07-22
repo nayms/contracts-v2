@@ -52,6 +52,7 @@ import "./Policy.sol";
 
 
   // IEntityCoreFacet
+
   function createPolicy(
     uint256[] calldata _dates,
     address _unit,
@@ -59,45 +60,44 @@ import "./Policy.sol";
     uint256[] calldata _commmissionsBP,
     address[] calldata _stakeholders,
     uint256[][] calldata _trancheData
-  ) external override returns (address) {
+  ) external override {
     require(
       IAccessControl(_stakeholders[2]).aclContext() == aclContext(),
       "underwriter ACL context must match"
     );
 
-  Policy f = new Policy(
-    address(settings()),
-    _dates,
-    _unit,
-    _premiumIntervalSeconds,
-    _commmissionsBP,
-    _stakeholders
-  );
+    Policy f = new Policy(
+      address(settings()),
+      _dates,
+      _unit,
+      _premiumIntervalSeconds,
+      _commmissionsBP,
+      _stakeholders
+    );
 
-  address pAddr = address(f);
-  addPolicyToIndex(pAddr);
+    address pAddr = address(f);
+    addPolicyToIndex(pAddr);
 
-  IPolicy pol = IPolicy(pAddr);
-  uint256 numTranches = _trancheData.length;
-  uint256 trancheDataLength = 0;
-  uint256[] memory premiums;
+    IPolicy pol = IPolicy(pAddr);
 
-  // Outer array represents a tranche. In the inner array, the first value is numShares, the second is pricePerShareAmount and the rest are premiums
-  for (uint256 i = 0; i < numTranches; i++) {
-    trancheDataLength = _trancheData[i].length;
-    premiums = new uint256[](trancheDataLength - 2);
-    for (uint256 j = 2; j < trancheDataLength; ++j) {
-      premiums[j - 2] = _trancheData[i][j];
-    }
+    uint256 numTranches = _trancheData.length;
+
+    for (uint256 i = 0; i < numTranches; i += 1) {
+      uint256 trancheDataLength = _trancheData[i].length;
+      uint256[] memory premiums = new uint256[](trancheDataLength - 2);
+
+      for (uint256 j = 2; j < trancheDataLength; ++j) {
+        premiums[j - 2] = _trancheData[i][j];
+      }
+
       pol.createTranch(
-      _trancheData[i][0], // _numShares
-      _trancheData[i][1], // _pricePerShareAmount
-      premiums
+        _trancheData[i][0], // _numShares
+        _trancheData[i][1], // _pricePerShareAmount
+        premiums
       );
     }
 
-    emit NewPolicy(pAddr, address(this), msg.sender, numTranches);
-    return pAddr;
+    emit NewPolicy(pAddr, address(this), msg.sender);
   }
 
 

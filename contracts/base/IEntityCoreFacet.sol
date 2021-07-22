@@ -7,27 +7,25 @@ pragma experimental ABIEncoderV2;
 interface IEntityCoreFacet {
   /**
    * @dev Create a new policy.
+   *
+   * The `_trancheData` parameter is structured as follows. The outer array represents the list of tranches. The 
+   * inner array represents the `[ number of tranch shares, price per share, ...premium payment amounts ]`.
+   *
    * @param _dates The initiation, start and maturation dates (seconds since epoch).
    * @param _unit The payment unit.
    * @param _premiumIntervalSeconds The time between successive premium payments (seconds).
    * @param _commmissionsBP The commissions (basis points, 1 = 0.1%) to pay the broker, capital provider and Nayms
    * @param _stakeholders The three stakeholders of the policy - capital provider, insured party, broker
-   */
-
-
-  /**
-   * @dev Create policy with tranches].
-   * @return Policy Address.
+   * @param _trancheData Tranch data, where each array item represents a tranch.
    */
   function createPolicy(
-    //Policy Variables
     uint256[] calldata _dates,
     address _unit,
     uint256 _premiumIntervalSeconds,
     uint256[] calldata _commmissionsBP,
     address[] calldata _stakeholders,
     uint256[][] calldata _trancheData
-  ) external returns (address);
+  ) external;
 
   /**
    * @dev Get balance.
@@ -103,13 +101,11 @@ interface IEntityCoreFacet {
    * @param policy The policy address.
    * @param entity The entity which owns the policy.
    * @param deployer The person who deployed it.
-   * @param numTranches The number of tranches.
    */
   event NewPolicy(
     address indexed policy,
     address indexed entity,
-    address indexed deployer,
-    uint256  numTranches
+    address indexed deployer
   );
 
   /**

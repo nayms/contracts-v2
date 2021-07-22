@@ -30,6 +30,8 @@ module.exports = {
     "test/EntityTreasuryTestFacet.sol",
     "test/PolicyTreasuryTestFacet.sol",
     "test/FreezeUpgradesFacet.sol",
+    "test/IDummyMarketObserver.sol",
+    "test/DummyMarketObserver.sol",
     /* build-related stuff */
     "VersionInfo.sol",
     "Migrations.sol",

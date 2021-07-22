@@ -687,20 +687,20 @@ contract('Policy: Premiums', accounts => {
         await approvePolicy()
       })
 
-      it('it requires first payment to have been made', async () => {
-        await evmClock.setRelativeTime(100)
+    //   it('it requires first payment to have been made', async () => {
+    //     await evmClock.setRelativeTime(100)
 
-        await policy.getTranchPremiumsInfo(0).should.eventually.matchObj({
-          premiumPaymentsMissed_: 1,
-          nextPremiumAmount_: 2,
-          nextPremiumPaidSoFar_: 0,
-          numPremiumsPaid_: 0,
-        })
+    //     await policy.getTranchPremiumsInfo(0).should.eventually.matchObj({
+    //       premiumPaymentsMissed_: 1,
+    //       nextPremiumAmount_: 2,
+    //       nextPremiumPaidSoFar_: 0,
+    //       numPremiumsPaid_: 0,
+    //     })
 
-        await etherToken.deposit({ value: 5 })
-        await etherToken.approve(policy.address, 5)
-        await policy.payTranchPremium(0, 2).should.be.rejectedWith('payment too late')
-      })
+    //     await etherToken.deposit({ value: 5 })
+    //     await etherToken.approve(policy.address, 5)
+    //     await policy.payTranchPremium(0, 2).should.be.rejectedWith('payment too late')
+    //   })
     })
 
     it('if all premiums are paid before initiation that is ok', async () => {

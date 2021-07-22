@@ -171,36 +171,21 @@ export const createPolicy = async (entity, attrs = {}, ...callAttrs) => {
     premiumIntervalSeconds = 30,
 
     brokerCommissionBP = 0,
-    underwriterCommissionBP = 0,
     claimsAdminCommissionBP = 0,
     naymsCommissionBP = 0,
 
     broker = ADDRESS_ZERO,
-    // underwriter = entity.address,
+    underwriter = entity.address,
     claimsAdmin = ADDRESS_ZERO,
-    insuredParty = ADDRESS_ZERO
+    insuredParty = ADDRESS_ZERO,
+    trancheData = [],
   } = attrs
-
-  var trancheData = attrs.trancheData
-
-  var underwriter = attrs.underwriter
-
-  if(underwriter == undefined){
-    underwriter = entity.address;
-  }
-
-  //Must pass empty trancheData if not creating tranches
-  if (trancheData === undefined) {
-    trancheData = [];
-  }
-  else {
-  }
 
   return entity.createPolicy(
     [initiationDate, startDate, maturationDate],
     unit,
     premiumIntervalSeconds,
-    [brokerCommissionBP, underwriterCommissionBP, claimsAdminCommissionBP, naymsCommissionBP],
+    [brokerCommissionBP, claimsAdminCommissionBP, naymsCommissionBP],
     [treasury, broker, underwriter, claimsAdmin, insuredParty],
     trancheData,
     ...callAttrs,
@@ -214,7 +199,6 @@ export const preSetupPolicy = async (ctx, createPolicyArgs) => {
     maturationDateDiff,
     premiumIntervalSeconds,
     brokerCommissionBP,
-    underwriterCommissionBP,
     claimsAdminCommissionBP,
     naymsCommissionBP,
     broker,
@@ -235,7 +219,6 @@ export const preSetupPolicy = async (ctx, createPolicyArgs) => {
     unit: ctx.etherToken.address,
     premiumIntervalSeconds,
     brokerCommissionBP,
-    underwriterCommissionBP,
     claimsAdminCommissionBP,
     naymsCommissionBP,
     broker,
@@ -263,13 +246,13 @@ export const calcPremiumsMinusCommissions = ({ premiums, claimsAdminCommissionBP
 
 export const calcCommissions = ({ premiums, claimsAdminCommissionBP, brokerCommissionBP, naymsCommissionBP }) => {
   const ret = {
-    underwriterCommission: 0,
+    claimsAdminCommission: 0,
     brokerCommission: 0,
     naymsCommission: 0,
   }
 
   premiums.forEach(v => {
-    ret.underwriterCommission += (v * claimsAdminCommissionBP / 1000)
+    ret.claimsAdminCommission += (v * claimsAdminCommissionBP / 1000)
     ret.brokerCommission += (v * brokerCommissionBP / 1000)
     ret.naymsCommission += (v * naymsCommissionBP / 1000)
   })

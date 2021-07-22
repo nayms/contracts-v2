@@ -82,6 +82,7 @@ contract('Policy: Tranches', accounts => {
   let POLICY_ATTRS_1
   let POLICY_ATTRS_2
   let POLICY_ATTRS_3
+  let POLICY_ATTRS_4
 
   let setupPolicy
   const policies = new Map()
@@ -140,6 +141,10 @@ contract('Policy: Tranches', accounts => {
       premiumIntervalSeconds: 10,
     })
 
+    POLICY_ATTRS_4 = Object.assign({}, POLICY_ATTRS_1, {
+      trancheData: [[100, 2, 5, 6]]
+    })
+
     // policy
     await acl.assignRole(entityContext, entityManagerAddress, ROLES.ENTITY_MANAGER)
 
@@ -163,6 +168,7 @@ contract('Policy: Tranches', accounts => {
       preSetupPolicy(preSetupPolicyCtx, POLICY_ATTRS_1),
       preSetupPolicy(preSetupPolicyCtx, POLICY_ATTRS_2),
       preSetupPolicy(preSetupPolicyCtx, POLICY_ATTRS_3),
+      preSetupPolicy(preSetupPolicyCtx, POLICY_ATTRS_4),
     ])
 
     setupPolicy = async arg => {
@@ -192,13 +198,31 @@ contract('Policy: Tranches', accounts => {
     describe('basic tests', () => {
       it('cannot be created without correct authorization', async () => {
         await setupPolicy(POLICY_ATTRS_1)
-        await createTranch(policy, {}).should.be.rejectedWith('must be policy owner')
+        await createTranch(policy, {}).should.be.rejectedWith('must be policy owner or original creator')
       })
 
       it('all basic values must be valid', async () => {
         await setupPolicy(POLICY_ATTRS_1)
         await createTranch(policy, { numShares: 0 }, { from: policyOwnerAddress }).should.be.rejectedWith('invalid num of shares')
         await createTranch(policy, { pricePerShareAmount: 0 }, { from: policyOwnerAddress }).should.be.rejectedWith('invalid price')
+      })
+
+      it('create tranches as part of policy creation call', async () => {
+        await setupPolicy(POLICY_ATTRS_4)
+
+        await policy.getInfo().should.eventually.matchObj({
+          numTranches_: 1,
+        })
+
+        await policy.getTranchInfo(0).should.eventually.matchObj({
+          numShares_: 100,
+          initialPricePerShare_: 2
+        })
+
+        await policy.getTranchPremiumsInfo(0).should.eventually.matchObj({
+          numPremiums_: 2,
+          nextPremiumAmount_: 5,
+        })
       })
 
       describe('a valid number of premiums must be provided', () => {
@@ -247,7 +271,7 @@ contract('Policy: Tranches', accounts => {
         expect(log.args.initialBalanceHolder).to.eq(entity.address)
         expect(log.args.index).to.eq('0')
 
-        await policy.getInfo().should.eventually.matchObj({ numTranches: 1 })
+        await policy.getInfo().should.eventually.matchObj({ numTranches_: 1 })
       })
 
       it('can be created and will have state set to CREATED', async () => {

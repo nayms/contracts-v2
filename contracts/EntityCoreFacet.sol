@@ -60,7 +60,10 @@ import "./Policy.sol";
     uint256[] calldata _commmissionsBP,
     address[] calldata _stakeholders,
     uint256[][] calldata _trancheData
-  ) external override {
+  ) 
+    external 
+    override 
+  {
     require(
       IAccessControl(_stakeholders[2]).aclContext() == aclContext(),
       "underwriter ACL context must match"
@@ -68,6 +71,7 @@ import "./Policy.sol";
 
     Policy f = new Policy(
       address(settings()),
+      msg.sender,
       _dates,
       _unit,
       _premiumIntervalSeconds,
@@ -165,7 +169,7 @@ import "./Policy.sol";
       address a1;
 
       // policy's unit
-      (a1, i1, i2, i3, policyUnitAddress, , , , , , ,) = p.getInfo();
+      (a1, i1, i2, i3, policyUnitAddress, , , , , ,) = p.getInfo();
     }
     
     // check balance

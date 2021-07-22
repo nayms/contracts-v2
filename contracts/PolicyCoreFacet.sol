@@ -29,6 +29,11 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     _;
   }
 
+  modifier assertCanCreateTranch () {
+    require(inRoleGroup(msg.sender, ROLEGROUP_POLICY_OWNERS) || msg.sender == dataAddress["creator"], 'must be policy owner or original creator');
+    _;
+  }
+
   modifier assertCreatedState () {
     require(dataUint256["state"] == POLICY_STATE_CREATED, 'must be in created state');
     _;
@@ -67,7 +72,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
   )
     external
     override
-    assertIsOwner
+    assertCanCreateTranch
     assertCreatedState
   {
     require(_numShares > 0, 'invalid num of shares');
@@ -125,6 +130,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     assertCreatedState
     assertIsOwner
   {
+    
     _setPolicyState(POLICY_STATE_READY_FOR_APPROVAL);
   }
 
@@ -141,6 +147,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     uint256 numTranches_,
     uint256 state_
   ) {
+    
     treasury_ = dataAddress["treasury"];
     initiationDate_ = dataUint256["initiationDate"];
     startDate_ = dataUint256["startDate"];

@@ -1,4 +1,5 @@
 pragma solidity 0.6.12;
+pragma experimental ABIEncoderV2;
 
 import "./base/Controller.sol";
 import "./base/EternalStorage.sol";
@@ -57,40 +58,58 @@ import "./Policy.sol";
     address _unit,
     uint256 _premiumIntervalSeconds,
     uint256[] calldata _commmissionsBP,
-    address[] calldata _stakeholders 
-  )
-    external
-    override
+    address[] calldata _stakeholders,
+    uint256[][] calldata _trancheData
+  ) 
+    external 
+    override 
   {
-    address[] memory stakeholders = new address[](6);
-    stakeholders[0] = address(this);
-    stakeholders[1] = msg.sender;
-    stakeholders[2] = _stakeholders[0];
-    stakeholders[3] = _stakeholders[1];
-    stakeholders[4] = _stakeholders[2];
-    stakeholders[5] = _stakeholders[3];
-
     require(
-      IAccessControl(stakeholders[2]).aclContext() == aclContext(), 
-      'underwriter ACL context must match'
+      IAccessControl(_stakeholders[2]).aclContext() == aclContext(),
+      "underwriter ACL context must match"
     );
 
     Policy f = new Policy(
       address(settings()),
-      stakeholders,
+      msg.sender,
       _dates,
       _unit,
       _premiumIntervalSeconds,
-      _commmissionsBP
+      _commmissionsBP,
+      _stakeholders
     );
 
-    uint256 numPolicies = dataUint256["numPolicies"];
     address pAddr = address(f);
-    dataAddress[__i(numPolicies, "policy")] = pAddr;
-    dataUint256["numPolicies"] = numPolicies + 1;
-    dataBool[__a(pAddr, "isPolicy")] = true; // for _isPolicyCreatedByMe() to work
+    addPolicyToIndex(pAddr);
+
+    IPolicy pol = IPolicy(pAddr);
+
+    uint256 numTranches = _trancheData.length;
+
+    for (uint256 i = 0; i < numTranches; i += 1) {
+      uint256 trancheDataLength = _trancheData[i].length;
+      uint256[] memory premiums = new uint256[](trancheDataLength - 2);
+
+      for (uint256 j = 2; j < trancheDataLength; ++j) {
+        premiums[j - 2] = _trancheData[i][j];
+      }
+
+      pol.createTranch(
+        _trancheData[i][0], // _numShares
+        _trancheData[i][1], // _pricePerShareAmount
+        premiums
+      );
+    }
 
     emit NewPolicy(pAddr, address(this), msg.sender);
+  }
+
+
+  function addPolicyToIndex(address _pAddr) private {
+    uint256 numPolicies = dataUint256["numPolicies"];
+    dataAddress[__i(numPolicies, "policy")] = _pAddr;
+    dataUint256["numPolicies"] = numPolicies + 1;
+    dataBool[__a(_pAddr, "isPolicy")] = true; // for _isPolicyCreatedByMe() to work
   }
 
   function getBalance(address _unit) public view override returns (uint256) {

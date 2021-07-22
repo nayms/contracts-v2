@@ -1,4 +1,5 @@
 pragma solidity 0.6.12;
+pragma experimental ABIEncoderV2;
 
 import '../base/IDiamondFacet.sol';
 import '../base/IEntityCoreFacet.sol';
@@ -27,8 +28,10 @@ contract DummyEntityFacet is IDiamondFacet, IEntityCoreFacet {
     address _unit,
     uint256 _premiumIntervalSeconds,
     uint256[] calldata _commmissionsBP,
-    address[] calldata _stakeholders
+    address[] calldata _stakeholders,
+    uint256[][] calldata _trancheData
   ) external override {}
+
   function deposit(address _unit, uint256 _amount) external override {}
   function withdraw(address _unit, uint256 _amount) external override {}
   function payTranchPremium(address _policy, uint256 _tranchIndex, uint256 _amount) external override {}

@@ -1,4 +1,5 @@
 pragma solidity 0.6.12;
+pragma experimental ABIEncoderV2;
 
 /**
  * @dev Entity core logic.
@@ -6,18 +7,24 @@ pragma solidity 0.6.12;
 interface IEntityCoreFacet {
   /**
    * @dev Create a new policy.
+   *
+   * The `_trancheData` parameter is structured as follows. The outer array represents the list of tranches. The 
+   * inner array represents the `[ number of tranch shares, price per share, ...premium payment amounts ]`.
+   *
    * @param _dates The initiation, start and maturation dates (seconds since epoch).
    * @param _unit The payment unit.
    * @param _premiumIntervalSeconds The time between successive premium payments (seconds).
    * @param _commmissionsBP The commissions (basis points, 1 = 0.1%) to pay the broker, capital provider and Nayms
    * @param _stakeholders The three stakeholders of the policy - capital provider, insured party, broker
+   * @param _trancheData Tranch data, where each array item represents a tranch.
    */
   function createPolicy(
     uint256[] calldata _dates,
     address _unit,
     uint256 _premiumIntervalSeconds,
     uint256[] calldata _commmissionsBP,
-    address[] calldata _stakeholders
+    address[] calldata _stakeholders,
+    uint256[][] calldata _trancheData
   ) external;
 
   /**

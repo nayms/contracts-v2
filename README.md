@@ -128,7 +128,7 @@ yarn compile
 
 Setup release config:
 
-```
+```shell
 yarn setup-release-config-for-local
 ```
 
@@ -144,11 +144,17 @@ Now you can run the tests:
 yarn test
 ```
 
+To run a single test:
+
+```shell
+yarn truffle test ./test/testName.js --network test
+```
+
 You can use the admin dapp to interact with your locally deployed contracts. 
 
 First let's build it:
 
-```
+```shell
 yarn build-admin-dapp
 ```
 
@@ -156,7 +162,7 @@ Then open [Metamask](https://metamask.io/) in your browser and configure it to u
 
 Once done, start a lightweight HTTP server to serve up the admin dapp:
 
-```
+```shell
 npx serve ./dapp
 ```
 

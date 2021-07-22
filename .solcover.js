@@ -37,9 +37,5 @@ module.exports = {
     /* stuff that's mostly the Diamond Standard external lib code + has assembly in it */
     "base/DiamondStorageBase.sol",
     "base/DiamondCutter.sol",
-  ],
-  onCompileComplete: () => {
-    console.log('Copying over maker-otc contract artifacts...')
-    fse.copySync(path.join(projectDir, 'maker-otc', 'build', 'contracts', 'MatchingMarket.json'), path.join(projectDir, '.coverage_artifacts', 'contracts', 'MatchingMarket.json'))
-  }
+  ]
 }

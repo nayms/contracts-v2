@@ -15,248 +15,192 @@ import "./Policy.sol";
 /**
  * @dev Business-logic for Entity
  */
- contract EntityCoreFacet is EternalStorage, Controller, EntityFacetBase, IEntityCoreFacet, IDiamondFacet {
-  using SafeMath for uint256;
+contract EntityCoreFacet is
+    EternalStorage,
+    Controller,
+    EntityFacetBase,
+    IEntityCoreFacet,
+    IDiamondFacet
+{
+    using SafeMath for uint256;
 
-  modifier assertCanTradeTranchTokens () {
-    require(inRoleGroup(msg.sender, ROLEGROUP_TRADERS), 'must be trader');
-    _;
-  }
-
-  modifier assertCanPayTranchPremiums (address _policyAddress) {
-    require(inRoleGroup(msg.sender, ROLEGROUP_ENTITY_REPS), 'must be entity rep');
-    _;
-  }
-
-  /**
-   * Constructor
-   */
-  constructor (address _settings) Controller(_settings) public {
-  }
-
-  // IDiamondFacet
-
-  function getSelectors () public pure override returns (bytes memory) {
-    return abi.encodePacked(
-      IEntityCoreFacet.createPolicy.selector,
-      IEntityCoreFacet.getBalance.selector,
-      IEntityCoreFacet.getNumPolicies.selector,
-      IEntityCoreFacet.getPolicy.selector,
-      IEntityCoreFacet.deposit.selector,
-      IEntityCoreFacet.withdraw.selector,
-      IEntityCoreFacet.payTranchPremium.selector,
-      IEntityCoreFacet.trade.selector,
-      IEntityCoreFacet.sellAtBestPrice.selector
-    );
-  }
-
-
-  // IEntityCoreFacet
-  function createPolicyWithTranches(
-    //Policy Variables
-    uint256[] calldata _dates,
-    address _unit,
-    uint256 _premiumIntervalSeconds,
-    uint256[] calldata _commmissionsBP,
-    address[] calldata _stakeholders,
-    //Tranche Variable Arrays
-    // uint256[] calldata _numShares,
-    // uint256[] calldata _pricePerShareAmount,
-    // uint256[][] calldata _premiums
-    uint256[][] calldata _trancheData
-  )
-    external
-    override
-  {
-    // address[] memory stakeholders;
-    // stakeholders = new address[](6);
-    // stakeholders[0] = address(this);
-    // stakeholders[1] = msg.sender;
-    // stakeholders[2] = _stakeholders[0];
-    // stakeholders[3] = _stakeholders[1];
-    // stakeholders[4] = _stakeholders[2];
-    // stakeholders[5] = _stakeholders[3];
-
-    // require(
-    //   IAccessControl(stakeholders[2]).aclContext() == aclContext(), 
-    //   'underwriter ACL context must match'
-    // );
-    address f = this.createPolicy(
-      _dates,
-      _unit,
-      _premiumIntervalSeconds,
-      _commmissionsBP,
-      _stakeholders 
-    );
-
-    uint256[] memory premiums;
-    uint256 trancheDataLength;
-
-    IPolicy pol = IPolicy(f);
-    uint256 numTranches = _trancheData.length;
-    for (uint i=0; i<numTranches; i++) {
-      trancheDataLength = _trancheData[i].length;
-      for (uint j=2; j<trancheDataLength; ++j)
-      {
-        premiums[j-2] = _trancheData[i][j];
-      }
-
-      pol.createTranch (
-      _trancheData[i][0], // _numShares
-      _trancheData[i][1], // __pricePerShareAmount
-      premiums
-      );
+    modifier assertCanTradeTranchTokens() {
+        require(inRoleGroup(msg.sender, ROLEGROUP_TRADERS), "must be trader");
+        _;
     }
-    // uint numTranches = _numShares.length;
-    // for (uint i=0; i<numTranches; i++) {
-    //   pol.createTranch (
-    //   _numShares[i],
-    //   _pricePerShareAmount[i],
-    //   _premiums[i]
-    //   );
-    // }
-  }
 
-
-  function createPolicy(
-    uint256[] calldata _dates,
-    address _unit,
-    uint256 _premiumIntervalSeconds,
-    uint256[] calldata _commmissionsBP,
-    address[] calldata _stakeholders 
-  )
-    external
-    override
-    returns (address)
-  {
-    address[] memory stakeholders;
-    if (_stakeholders[0] == address(this)){
-      stakeholders = _stakeholders;
+    modifier assertCanPayTranchPremiums(address _policyAddress) {
+        require(
+            inRoleGroup(msg.sender, ROLEGROUP_ENTITY_REPS),
+            "must be entity rep"
+        );
+        _;
     }
-    else{
-      stakeholders = new address[](6);
-      stakeholders[0] = address(this);
-      stakeholders[1] = msg.sender;
-      stakeholders[2] = _stakeholders[0];
-      stakeholders[3] = _stakeholders[1];
-      stakeholders[4] = _stakeholders[2];
-      stakeholders[5] = _stakeholders[3];
+
+    /**
+     * Constructor
+     */
+    constructor(address _settings) public Controller(_settings) {}
+
+    // IDiamondFacet
+    function getSelectors() public pure override returns (bytes memory) {
+        return
+            abi.encodePacked(
+                IEntityCoreFacet.createPolicy.selector,
+                IEntityCoreFacet.getBalance.selector,
+                IEntityCoreFacet.getNumPolicies.selector,
+                IEntityCoreFacet.getPolicy.selector,
+                IEntityCoreFacet.deposit.selector,
+                IEntityCoreFacet.withdraw.selector,
+                IEntityCoreFacet.payTranchPremium.selector,
+                IEntityCoreFacet.trade.selector,
+                IEntityCoreFacet.sellAtBestPrice.selector
+            );
     }
-    require(
-      IAccessControl(stakeholders[2]).aclContext() == aclContext(), 
-      'underwriter ACL context must match'
-    );
 
-    Policy f = new Policy(
-      address(settings()),
-      stakeholders,
-      _dates,
-      _unit,
-      _premiumIntervalSeconds,
-      _commmissionsBP
-    );
+    function createPolicy(
+        uint256[] calldata _dates,
+        address _unit,
+        uint256 _premiumIntervalSeconds,
+        uint256[] calldata _commmissionsBP,
+        address[] calldata _stakeholders,
+        uint256[][] calldata _trancheData
+    ) external override returns (address) {
+        require(
+            IAccessControl(_stakeholders[2]).aclContext() == aclContext(),
+            "underwriter ACL context must match"
+        );
 
-    uint256 numPolicies = dataUint256["numPolicies"];
-    address pAddr = address(f);
-    dataAddress[__i(numPolicies, "policy")] = pAddr;
-    dataUint256["numPolicies"] = numPolicies + 1;
-    dataBool[__a(pAddr, "isPolicy")] = true; // for _isPolicyCreatedByMe() to work
+        Policy f = new Policy(
+            address(settings()),
+            _dates,
+            _unit,
+            _premiumIntervalSeconds,
+            _commmissionsBP,
+            _stakeholders
+        );
 
-    emit NewPolicy(pAddr, address(this), msg.sender);
-    return pAddr;
-  }
+        address pAddr = address(f);
+        addPolicyToIndex(pAddr);
 
-  function getBalance(address _unit) public view override returns (uint256) {
-    return dataUint256[__a(_unit, "balance")];
-  }
+        IPolicy pol = IPolicy(pAddr);
+        uint256 numTranches = _trancheData.length;
+        uint256 trancheDataLength = 0;
+        uint256[] memory premiums;
 
-  function getNumPolicies() public view override returns (uint256) {
-    return dataUint256["numPolicies"];
-  }
+        // Outer array represents a tranche. In the inner array, the first value is numShares, the second is pricePerShareAmount and the rest are premiums
+        for (uint256 i = 0; i < numTranches; i++) {
+            trancheDataLength = _trancheData[i].length;
+            premiums = new uint256[](trancheDataLength - 2);
+            for (uint256 j = 2; j < trancheDataLength; ++j) {
+                premiums[j - 2] = _trancheData[i][j];
+            }
+            pol.createTranch(
+                _trancheData[i][0], // _numShares
+                _trancheData[i][1], // _pricePerShareAmount
+                premiums
+            );
+        }
 
-  function getPolicy(uint256 _index) public view override returns (address) {
-    return dataAddress[__i(_index, "policy")];
-  }
+        emit NewPolicy(pAddr, address(this), msg.sender, numTranches);
+        return pAddr;
+    }
 
-  function deposit(address _unit, uint256 _amount) 
-    external 
-    override 
-  {
-    IERC20 tok = IERC20(_unit);
-    tok.transferFrom(msg.sender, address(this), _amount);
-    dataUint256[__a(_unit, "balance")] = dataUint256[__a(_unit, "balance")].add(_amount);
-    
-    emit EntityDeposit(msg.sender, _unit, _amount);
-  }
+    function addPolicyToIndex(address _pAddr) private {
+        uint256 numPolicies = dataUint256["numPolicies"];
+        dataAddress[__i(numPolicies, "policy")] = _pAddr;
+        dataUint256["numPolicies"] = numPolicies + 1;
+        dataBool[__a(_pAddr, "isPolicy")] = true; // for _isPolicyCreatedByMe() to work
+    }
 
-  function withdraw(address _unit, uint256 _amount) 
-    external 
-    override 
-    assertIsEntityAdmin(msg.sender)
-  {
-    require(dataUint256["tokenSupply"] == 0, "cannot withdraw while tokens exist");
+    function getBalance(address _unit) public view override returns (uint256) {
+        return dataUint256[__a(_unit, "balance")];
+    }
 
-    _assertHasEnoughBalance(_unit, _amount);
+    function getNumPolicies() public view override returns (uint256) {
+        return dataUint256["numPolicies"];
+    }
 
-    dataUint256[__a(_unit, "balance")] = dataUint256[__a(_unit, "balance")].sub(_amount);
+    function getPolicy(uint256 _index) public view override returns (address) {
+        return dataAddress[__i(_index, "policy")];
+    }
 
-    IERC20 tok = IERC20(_unit);
-    tok.transfer(msg.sender, _amount);
+    function deposit(address _unit, uint256 _amount) external override {
+        IERC20 tok = IERC20(_unit);
+        tok.transferFrom(msg.sender, address(this), _amount);
+        dataUint256[__a(_unit, "balance")] = dataUint256[__a(_unit, "balance")]
+        .add(_amount);
 
-    emit EntityWithdraw(msg.sender, _unit, _amount);
-  }
+        emit EntityDeposit(msg.sender, _unit, _amount);
+    }
 
-  function payTranchPremium(address _policy, uint256 _tranchIndex, uint256 _amount)
-    external
-    override
-    assertCanPayTranchPremiums(_policy)
-  {
-    address policyUnitAddress;
-
-    IPolicy p = IPolicy(_policy);
-
-    // avoid stack too deep errors
+    function withdraw(address _unit, uint256 _amount)
+        external
+        override
+        assertIsEntityAdmin(msg.sender)
     {
-      uint256 i1;
-      uint256 i2;
-      uint256 i3;
-      address a1;
+        _assertHasEnoughBalance(_unit, _amount);
 
-      // policy's unit
-      (a1, i1, i2, i3, policyUnitAddress, , , , , ,) = p.getInfo();
+        dataUint256[__a(_unit, "balance")] = dataUint256[__a(_unit, "balance")]
+        .sub(_amount);
+
+        IERC20 tok = IERC20(_unit);
+        tok.transfer(msg.sender, _amount);
+
+        emit EntityWithdraw(msg.sender, _unit, _amount);
     }
-    
-    // check balance
-    _assertHasEnoughBalance(policyUnitAddress, _amount);
 
-    // approve transfer
-    IERC20 tok = IERC20(policyUnitAddress);
-    tok.approve(_policy, _amount);
+    function payTranchPremium(
+        address _policy,
+        uint256 _tranchIndex,
+        uint256 _amount
+    ) external override assertCanPayTranchPremiums(_policy) {
+        address policyUnitAddress;
 
-    // do it
-    p.payTranchPremium(_tranchIndex, _amount);
-  }
+        IPolicy p = IPolicy(_policy);
 
-  function trade(address _payUnit, uint256 _payAmount, address _buyUnit, uint256 _buyAmount)
-    external
-    override
-    assertCanTradeTranchTokens
-    returns (uint256)
-  {
-    // check balance
-    _assertHasEnoughBalance(_payUnit, _payAmount);
-    // do it
-    return _tradeOnMarket(_payUnit, _payAmount, _buyUnit, _buyAmount, address(0), "");
-  }
+        // avoid stack too deep errors
+        {
+            uint256 i1;
+            uint256 i2;
+            uint256 i3;
+            address a1;
 
-  function sellAtBestPrice(address _sellUnit, uint256 _sellAmount, address _buyUnit)
-    external
-    override
-    assertCanTradeTranchTokens
-  {
-    // check balance
-    _assertHasEnoughBalance(_sellUnit, _sellAmount);
-    // do it!
-    _sellAtBestPriceOnMarket(_sellUnit, _sellAmount, _buyUnit);
-  }
+            // policy's unit
+            (a1, i1, i2, i3, policyUnitAddress, , , , , , , ) = p.getInfo();
+        }
+
+        // check balance
+        _assertHasEnoughBalance(policyUnitAddress, _amount);
+
+        // approve transfer
+        IERC20 tok = IERC20(policyUnitAddress);
+        tok.approve(_policy, _amount);
+
+        // do it
+        p.payTranchPremium(_tranchIndex, _amount);
+    }
+
+    function trade(
+        address _payUnit,
+        uint256 _payAmount,
+        address _buyUnit,
+        uint256 _buyAmount
+    ) external override assertCanTradeTranchTokens returns (uint256) {
+        // check balance
+        _assertHasEnoughBalance(_payUnit, _payAmount);
+        // do it
+        return _tradeOnMarket(_payUnit, _payAmount, _buyUnit, _buyAmount);
+    }
+
+    function sellAtBestPrice(
+        address _sellUnit,
+        uint256 _sellAmount,
+        address _buyUnit
+    ) external override assertCanTradeTranchTokens returns (uint256) {
+        // check balance
+        _assertHasEnoughBalance(_sellUnit, _sellAmount);
+        // do it!
+        return _sellAtBestPriceOnMarket(_sellUnit, _sellAmount, _buyUnit);
+    }
 }

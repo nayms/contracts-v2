@@ -26,6 +26,7 @@ contract DummyPolicyFacet is IDiamondFacet, IPolicyCoreFacet {
     address unit_,
     uint256 premiumIntervalSeconds_,
     uint256 brokerCommissionBP_,
+    uint256 underwriterCommissionBP_,
     uint256 claimsAdminCommissionBP_,
     uint256 naymsCommissionBP_,
     uint256 numTranches_,

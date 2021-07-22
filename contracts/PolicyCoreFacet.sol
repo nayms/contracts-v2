@@ -25,7 +25,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
   // Modifiers //
 
   modifier assertIsOwner () {
-    require(inRoleGroup(msg.sender, ROLEGROUP_POLICY_OWNERS), 'must be policy owner');
+    require(inRoleGroup(tx.origin, ROLEGROUP_POLICY_OWNERS), 'must be policy owner');
     _;
   }
 
@@ -125,6 +125,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     assertCreatedState
     assertIsOwner
   {
+    
     _setPolicyState(POLICY_STATE_READY_FOR_APPROVAL);
   }
 
@@ -136,11 +137,13 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     address unit_,
     uint256 premiumIntervalSeconds_,
     uint256 brokerCommissionBP_,
+    uint256 underwriterCommissionBP_,
     uint256 claimsAdminCommissionBP_,
     uint256 naymsCommissionBP_,
     uint256 numTranches_,
     uint256 state_
   ) {
+    
     treasury_ = dataAddress["treasury"];
     initiationDate_ = dataUint256["initiationDate"];
     startDate_ = dataUint256["startDate"];
@@ -148,6 +151,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     unit_ = dataAddress["unit"];
     premiumIntervalSeconds_ = dataUint256["premiumIntervalSeconds"];
     brokerCommissionBP_ = dataUint256["brokerCommissionBP"];
+    underwriterCommissionBP_ = dataUint256["underwriterCommissionBP"];
     claimsAdminCommissionBP_ = dataUint256["claimsAdminCommissionBP"];
     naymsCommissionBP_ = dataUint256["naymsCommissionBP"];
     numTranches_ = dataUint256["numTranches"];

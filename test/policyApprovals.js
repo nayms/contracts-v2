@@ -123,6 +123,7 @@ contract('Policy: Approvals', accounts => {
     startDate = initiationDate + 1000
     maturationDate = startDate + 2000
     premiumIntervalSeconds = 500
+    const trancheData = [[100, 2, 10, 20, 30, 40, 50, 60, 70]]
 
     const createPolicyTx = await createPolicy(entity, {
       initiationDate,
@@ -137,6 +138,7 @@ contract('Policy: Approvals', accounts => {
       insuredParty,
       broker,
       claimsAdmin,
+      trancheData
     }, { from: entityManagerAddress })
     const policyAddress = extractEventArgs(createPolicyTx, events.NewPolicy).policy
     policyOwnerAddress = entityManagerAddress
@@ -148,13 +150,7 @@ contract('Policy: Approvals', accounts => {
     // get market address
     market = await ensureMarketIsDeployed({ artifacts, settings })
 
-    // setup two tranches
-    await createTranch(policy, {
-      numShares: 100,
-      pricePerShareAmount: 2,
-      premiums: [10, 20, 30, 40, 50, 60, 70],
-    }, { from: policyOwnerAddress })
-
+    // setup second tranche. First one was set in the createPolicy call
     await createTranch(policy, {
       numShares: 50,
       pricePerShareAmount: 2,

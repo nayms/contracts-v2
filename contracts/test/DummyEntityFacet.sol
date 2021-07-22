@@ -23,27 +23,15 @@ contract DummyEntityFacet is IDiamondFacet, IEntityCoreFacet {
     return address(this);
   }
 
-  function createPolicyWithTranches(
+  function createPolicy(
     //Policy Variables
     uint256[] calldata _dates,
     address _unit,
     uint256 _premiumIntervalSeconds,
     uint256[] calldata _commmissionsBP,
     address[] calldata _stakeholders,
-    //Tranche variable array
-    // uint256[] calldata _numShares,
-    // uint256[] calldata _pricePerShareAmount,
-    // uint256[][] calldata _premiums
+    //Tranche data array
     uint256[][] calldata _trancheData
-  ) external override {}
-
-
-  function createPolicy(
-    uint256[] calldata _dates,
-    address _unit,
-    uint256 _premiumIntervalSeconds,
-    uint256[] calldata _commmissionsBP,
-    address[] calldata _stakeholders
   ) external override returns (address){}
 
   function deposit(address _unit, uint256 _amount) external override {}

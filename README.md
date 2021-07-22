@@ -144,6 +144,12 @@ Now you can run the tests:
 yarn test
 ```
 
+To run a single test:
+
+```shell
+yarn truffle test ./test/testName.js --network test
+```
+
 You can use the admin dapp to interact with your locally deployed contracts. 
 
 First let's build it:

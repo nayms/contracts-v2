@@ -38,18 +38,23 @@ const POLICY_ATTRS_1 = {
   startDateDiff: 2000,
   maturationDateDiff: 3000,
   premiumIntervalSeconds: undefined,
-  claimsAdminCommissionBP: 0,
   brokerCommissionBP: 0,
-  naymsCommissionBP: 0
+  underwriterCommissionBP: 0,
+  claimsAdminCommissionBP: 0,
+  naymsCommissionBP: 0,
 }
 
 const POLICY_ATTRS_2 = Object.assign({}, POLICY_ATTRS_1, {
   premiumIntervalSeconds: 5,
-  claimsAdminCommissionBP: 1,
   brokerCommissionBP: 2,
-  naymsCommissionBP: 3
+  underwriterCommissionBP: 1,
+  claimsAdminCommissionBP: 1,
+  naymsCommissionBP: 3,
 })
 
+const POLICY_ATTRS_3 = Object.assign({}, POLICY_ATTRS_2, {
+  trancheData: [[100, 2, 10, 20, 30, 40, 50, 60, 70], [50, 2, 10, 20, 30, 40, 50, 60, 70]]
+})
 
 contract('Policy: Basic', accounts => {
   const evmSnapshot = new EvmSnapshot()
@@ -113,7 +118,7 @@ contract('Policy: Basic', accounts => {
     await acl.assignRole(systemContext, entityManagerAddress, ROLES.APPROVED_USER)
     await acl.assignRole(entityContext, entityManagerAddress, ROLES.ENTITY_MANAGER, { from: entityAdminAddress })
 
-    ;([ policyCoreAddress ] = await ensurePolicyImplementationsAreDeployed({ artifacts, settings }))
+      ; ([policyCoreAddress] = await ensurePolicyImplementationsAreDeployed({ artifacts, settings }))
 
     const policyStates = await IPolicyStates.at(policyCoreAddress)
     POLICY_STATE_CREATED = await policyStates.POLICY_STATE_CREATED()
@@ -125,13 +130,15 @@ contract('Policy: Basic', accounts => {
     TRANCH_STATE_MATURED = await policyStates.TRANCH_STATE_MATURED()
 
     const preSetupPolicyCtx = { policies, settings, events, etherToken, entity, entityManagerAddress }
+
     await Promise.all([
       preSetupPolicy(preSetupPolicyCtx, POLICY_ATTRS_1),
       preSetupPolicy(preSetupPolicyCtx, POLICY_ATTRS_2),
+      preSetupPolicy(preSetupPolicyCtx, POLICY_ATTRS_3),
     ])
 
     setupPolicy = async arg => {
-      const { attrs, policyAddress } = policies.get(arg)
+      const { attrs, policyAddress } = policies.get(arg)
 
       policyProxy = await Policy.at(policyAddress)
       policy = await IPolicy.at(policyAddress)
@@ -162,9 +169,9 @@ contract('Policy: Basic', accounts => {
       const claimsAdmin = await createEntity({ entityDeployer, adminAddress: claimsAdminRep })
 
       const attrs = Object.assign({}, POLICY_ATTRS_1, {
-        underwriter: entity.address, 
-        insuredParty, 
-        broker, 
+        underwriter: entity.address,
+        insuredParty,
+        broker,
         claimsAdmin
       })
 
@@ -175,7 +182,7 @@ contract('Policy: Basic', accounts => {
     })
 
     it('can return its basic info', async () => {
-      const attrs = await setupPolicy(POLICY_ATTRS_2)
+      const attrs = await setupPolicy(POLICY_ATTRS_3)
 
       await policy.getInfo().should.eventually.matchObj({
         treasury_: entity.address,
@@ -187,7 +194,7 @@ contract('Policy: Basic', accounts => {
         claimsAdminCommissionBP_: 1,
         brokerCommissionBP_: 2,
         naymsCommissionBP_: 3,
-        numTranches_: 0,
+        numTranches_: 2,
         state_: POLICY_STATE_CREATED
       })
     })
@@ -218,11 +225,11 @@ contract('Policy: Basic', accounts => {
     })
 
     it('but not just by anyone', async () => {
-      await policyDelegate.upgrade([ dummyPolicyFacet.address ], { from: accounts[1] }).should.be.rejectedWith('must be admin')
+      await policyDelegate.upgrade([dummyPolicyFacet.address], { from: accounts[1] }).should.be.rejectedWith('must be admin')
     })
 
     it('but not to the existing implementation', async () => {
-      await policyDelegate.upgrade([ policyCoreAddress ]).should.be.rejectedWith('Adding functions failed')
+      await policyDelegate.upgrade([policyCoreAddress]).should.be.rejectedWith('Adding functions failed')
     })
 
     it('and points to the new implementation', async () => {

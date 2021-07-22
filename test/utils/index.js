@@ -35,7 +35,7 @@ chai.use((_chai, utils) => {
       }
     }
 
-    return [ result, val ]
+    return [result, val]
   }
 
   utils.addMethod(_chai.Assertion.prototype, 'eq', function (val) {
@@ -104,10 +104,10 @@ hdWallet.generateAddresses(10)
 export const getBalance = async addr => toBN(await web3.eth.getBalance(addr))
 
 // mul + div by 1000 takes care of upto 3 decimal places (since toBN() doesn't support decimals)
-export const mulBN = (bn, factor) => bn.mul( toBN(factor * 1000) ).div( toBN(1000) )
+export const mulBN = (bn, factor) => bn.mul(toBN(factor * 1000)).div(toBN(1000))
 
 export const parseEvents = (result, e) => {
-  return parseLog(result.receipt.rawLogs, [ e ])
+  return parseLog(result.receipt.rawLogs, [e])
 }
 
 export const extractEventArgs = (result, eventAbi) => {
@@ -157,68 +157,55 @@ export const createEntity = async ({ acl, entityDeployer, adminAddress, entityCo
   return entityAddress
 }
 
-export const createPolicyWithTranches = async (entity, attrs = {}, ...callAttrs) => {
-  const currentTime = ~~(Date.now() / 1000)
-
-  const {
-    initiationDate = currentTime,
-    startDate = currentTime + 120,
-    maturationDate = currentTime + 300,
-    unit = ADDRESS_ZERO,
-    premiumIntervalSeconds = 30,
-    brokerCommissionBP = 0,
-    claimsAdminCommissionBP = 0,
-    naymsCommissionBP = 0,
-    underwriter = entity.address,
-    insuredParty = ADDRESS_ZERO,
-    broker = ADDRESS_ZERO,
-    claimsAdmin = ADDRESS_ZERO,
-  } = attrs
-
-  const {
-    tranche1 = [10, 0.1, 0.1],
-    tranche2 = [5, 0.1, 0.1]
-  } = trancheAtrs
-
-  return entity.createPolicyWithTranches(
-    [initiationDate, startDate, maturationDate],
-    unit,
-    premiumIntervalSeconds,
-    [brokerCommissionBP, claimsAdminCommissionBP, naymsCommissionBP],
-    [underwriter, insuredParty, broker, claimsAdmin],
-    [tranche1, tranche2],
-    ...callAttrs,
-  )
-}
-
+//export const createPolicy = async (entity, attrs = {}, ...callAttrs) => {
 export const createPolicy = async (entity, attrs = {}, ...callAttrs) => {
   const currentTime = ~~(Date.now() / 1000)
+  var ret = '';
 
   const {
+    treasury = entity.address,
     initiationDate = currentTime,
     startDate = currentTime + 120,
     maturationDate = currentTime + 300,
     unit = ADDRESS_ZERO,
     premiumIntervalSeconds = 30,
+
     brokerCommissionBP = 0,
+    underwriterCommissionBP = 0,
     claimsAdminCommissionBP = 0,
     naymsCommissionBP = 0,
-    underwriter = entity.address,
-    insuredParty = ADDRESS_ZERO,
+
     broker = ADDRESS_ZERO,
+    // underwriter = entity.address,
     claimsAdmin = ADDRESS_ZERO,
+    insuredParty = ADDRESS_ZERO
   } = attrs
+
+  var trancheData = attrs.trancheData
+
+  var underwriter = attrs.underwriter
+
+  if(underwriter == undefined){
+    underwriter = entity.address;
+  }
+
+  //Must pass empty trancheData if not creating tranches
+  if (trancheData === undefined) {
+    trancheData = [];
+  }
+  else {
+  }
 
   return entity.createPolicy(
     [initiationDate, startDate, maturationDate],
     unit,
     premiumIntervalSeconds,
-    [brokerCommissionBP, claimsAdminCommissionBP, naymsCommissionBP],
-    [underwriter, insuredParty, broker, claimsAdmin],
+    [brokerCommissionBP, underwriterCommissionBP, claimsAdminCommissionBP, naymsCommissionBP],
+    [treasury, broker, underwriter, claimsAdmin, insuredParty],
+    trancheData,
     ...callAttrs,
   )
 }
-
 
 export const preSetupPolicy = async (ctx, createPolicyArgs) => {
   const {
@@ -227,12 +214,14 @@ export const preSetupPolicy = async (ctx, createPolicyArgs) => {
     maturationDateDiff,
     premiumIntervalSeconds,
     brokerCommissionBP,
+    underwriterCommissionBP,
     claimsAdminCommissionBP,
     naymsCommissionBP,
-    underwriter,
-    insuredParty,
     broker,
+    underwriter,
     claimsAdmin,
+    insuredParty,
+    trancheData
   } = (createPolicyArgs || {})
 
   // get current evm time
@@ -246,16 +235,21 @@ export const preSetupPolicy = async (ctx, createPolicyArgs) => {
     unit: ctx.etherToken.address,
     premiumIntervalSeconds,
     brokerCommissionBP,
+    underwriterCommissionBP,
     claimsAdminCommissionBP,
     naymsCommissionBP,
-    underwriter,
-    insuredParty,
     broker,
+    underwriter,
     claimsAdmin,
+    insuredParty,
+    trancheData
   }
 
-  const createPolicyTx = await createPolicy(ctx.entity, attrs, { from: ctx.entityManagerAddress })
-  const policyAddress = extractEventArgs(createPolicyTx, ctx.events.NewPolicy).policy
+  var createPolicyTx
+  var policyAddress
+
+  createPolicyTx = await createPolicy(ctx.entity, attrs, { from: ctx.entityManagerAddress })
+  policyAddress = extractEventArgs(createPolicyTx, ctx.events.NewPolicy).policy
 
   ctx.policies.set(createPolicyArgs, { attrs, baseTime: currentBlockTime, policyAddress })
 }
@@ -298,18 +292,18 @@ const callJsonRpcMethod = async (method, params = []) => {
 }
 
 const web3EvmIncreaseTime = async ts => {
-  await callJsonRpcMethod('evm_increaseTime', [ ts ])
+  await callJsonRpcMethod('evm_increaseTime', [ts])
   await callJsonRpcMethod('evm_mine')
 }
 
 
 export class EvmClock {
-  constructor (initialTimestamp = 0) {
+  constructor(initialTimestamp = 0) {
     this.originalTimestamp = initialTimestamp
     this.lastTimestamp = initialTimestamp
   }
 
-  async setAbsoluteTime (timestamp) {
+  async setAbsoluteTime(timestamp) {
     if (timestamp <= this.lastTimestamp) {
       throw new Error(`Cannot set to past time: ${timestamp}`)
     }
@@ -326,7 +320,7 @@ export class EvmClock {
     this.lastTimestamp = timestamp
   }
 
-  async moveTime (delta) {
+  async moveTime(delta) {
     if (0 >= delta) {
       throw new Error(`Cannot move into the past: ${delta}`)
     }
@@ -337,21 +331,19 @@ export class EvmClock {
 
 
 export class EvmSnapshot {
-  constructor () {
+  constructor() {
     this._ids = []
   }
 
-  async take () {
+  async take() {
     this._ids.push(await callJsonRpcMethod('evm_snapshot'))
   }
 
-  async restore () {
+  async restore() {
     if (!this._ids.length) {
       throw new Error('No more snapshots to revert to')
     }
 
-    await callJsonRpcMethod('evm_revert', [ this._ids.pop() ])
+    await callJsonRpcMethod('evm_revert', [this._ids.pop()])
   }
 }
-
-

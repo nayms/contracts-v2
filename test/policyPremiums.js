@@ -110,6 +110,8 @@ contract('Policy: Premiums', accounts => {
   let setupPolicy
   const policies = new Map()
 
+  let preSetupPolicyCtx
+
   before(async () => {
     // acl
     acl = await ensureAclIsDeployed({ artifacts })
@@ -165,7 +167,7 @@ contract('Policy: Premiums', accounts => {
     Object.assign(POLICY_ATTRS_2, { underwriter, insuredParty, broker, claimsAdmin })
     Object.assign(POLICY_ATTRS_3, { underwriter, insuredParty, broker, claimsAdmin })
 
-    const preSetupPolicyCtx = { policies, settings, events, etherToken, entity, entityManagerAddress }
+    preSetupPolicyCtx = { policies, settings, events, etherToken, entity, entityManagerAddress }
     await Promise.all([
       preSetupPolicy(preSetupPolicyCtx, POLICY_ATTRS_1),
       preSetupPolicy(preSetupPolicyCtx, POLICY_ATTRS_2),
@@ -688,7 +690,9 @@ contract('Policy: Premiums', accounts => {
       })
 
       it('it requires first payment to have been made', async () => {
-        await evmClock.setRelativeTime(100)
+        const { initiationDate } = preSetupPolicyCtx.policies.get(POLICY_ATTRS_2).attrs
+
+        await evmClock.setAbsoluteTime(initiationDate)
 
         await policy.getTranchPremiumsInfo(0).should.eventually.matchObj({
           premiumPaymentsMissed_: 1,
@@ -765,13 +769,13 @@ contract('Policy: Premiums', accounts => {
         await policy.payTranchPremium(0, 2).should.be.fulfilled
 
         // kick-off sale
-        await evmClock.setRelativeTime(1000)
+        await evmClock.setAbsoluteTime(preSetupPolicyCtx.policies.get(POLICY_ATTRS_3).attrs.initiationDate)
         await policy.checkAndUpdateState()
       })
 
       it('if tranch is already cancelled', async () => {
         // shift to start date
-        await evmClock.setRelativeTime(3000)
+        await evmClock.setAbsoluteTime(preSetupPolicyCtx.policies.get(POLICY_ATTRS_3).attrs.startDate)
         // should auto-call heartbeat in here
         await policy.payTranchPremium(0, 3).should.be.rejectedWith('payment not allowed')
 

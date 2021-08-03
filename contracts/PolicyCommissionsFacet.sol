@@ -56,7 +56,7 @@ contract PolicyCommissionsFacet is EternalStorage, Controller, IDiamondFacet, IP
   {
     address claimsAdmin = _getEntityWithRole(ROLE_CLAIMS_ADMIN);
     address broker = _getEntityWithRole(ROLE_BROKER);
-    address naymsEntity = settings().getRootAddress(SETTING_NAYMS_ENTITY);
+    address feeBank = settings().getRootAddress(SETTING_FEEBANK);
 
     // do payouts and update balances
     IERC20 tkn = IERC20(dataAddress["unit"]);
@@ -72,7 +72,7 @@ contract PolicyCommissionsFacet is EternalStorage, Controller, IDiamondFacet, IP
     }
 
     if (dataUint256["naymsCommissionBalance"] > 0) {
-      tkn.transfer(naymsEntity, dataUint256["naymsCommissionBalance"]);
+      tkn.transfer(feeBank, dataUint256["naymsCommissionBalance"]);
       dataUint256["naymsCommissionBalance"] = 0;
     }
 

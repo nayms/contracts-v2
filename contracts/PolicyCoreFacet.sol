@@ -106,23 +106,25 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     require(numPremiums <= calculateMaxNumOfPremiums(), 'too many premiums');
     dataUint256[__i(i, "numPremiums")] = numPremiums;
 
-    // deploy token contract
-    TranchToken t = new TranchToken(address(this), i);
+    // deploy token contract if SPV
+    if (dataUint256["type"] == POLICY_TYPE_SPV) {
+      TranchToken t = new TranchToken(address(this), i);
 
-    // initial holder
-    address holder = dataAddress["treasury"];
-    string memory initialHolderKey = __i(i, "initialHolder");
-    dataAddress[initialHolderKey] = holder;
+      // initial holder
+      address holder = dataAddress["treasury"];
+      string memory initialHolderKey = __i(i, "initialHolder");
+      dataAddress[initialHolderKey] = holder;
 
-    // set initial holder balance
-    string memory contractBalanceKey = __ia(i, dataAddress[initialHolderKey], "balance");
-    dataUint256[contractBalanceKey] = _numShares;
+      // set initial holder balance
+      string memory contractBalanceKey = __ia(i, dataAddress[initialHolderKey], "balance");
+      dataUint256[contractBalanceKey] = _numShares;
 
-    // save reference
-    string memory addressKey = __i(i, "address");
-    dataAddress[addressKey] = address(t);
+      // save reference
+      string memory addressKey = __i(i, "address");
+      dataAddress[addressKey] = address(t);
+    }
 
-    emit CreateTranch(address(t), dataAddress[initialHolderKey], i);
+    emit CreateTranch(i);
   }
 
   function markAsReadyForApproval() 

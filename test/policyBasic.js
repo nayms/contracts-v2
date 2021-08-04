@@ -201,7 +201,7 @@ contract('Policy: Basic', accounts => {
         naymsCommissionBP_: 3,
         numTranches_: 2,
         state_: POLICY_STATE_CREATED,
-        type: POLICY_TYPE_SPV,
+        type_: POLICY_TYPE_SPV,
       })
     })
   })

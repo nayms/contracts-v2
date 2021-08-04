@@ -116,13 +116,9 @@ interface IPolicyCoreFacet {
 
   /**
    * @dev Emitted when a new tranch has been created.
-   * @param token The tranch token address.
-   * @param initialBalanceHolder For testing purpses. Ignore.
    * @param index The tranch index.
    */
   event CreateTranch(
-    address indexed token,
-    address indexed initialBalanceHolder,
     uint256 index
   );
 }

@@ -21,6 +21,7 @@ import { ensureEtherTokenIsDeployed } from '../migrations/modules/etherToken'
 import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
 import { ensureEntityDeployerIsDeployed } from '../migrations/modules/entityDeployer'
 import { ensureMarketIsDeployed } from '../migrations/modules/market'
+import { ensureFeeBankIsDeployed } from '../migrations/modules/feeBank'
 import { ensureEntityImplementationsAreDeployed } from '../migrations/modules/entityImplementations'
 import { ensurePolicyImplementationsAreDeployed } from '../migrations/modules/policyImplementations'
 
@@ -57,6 +58,7 @@ contract('Policy: Commissions', accounts => {
   let policyContext
   let policyOwnerAddress
   let market
+  let feeBank
   let etherToken
 
   const entityAdminAddress = accounts[0]
@@ -95,6 +97,9 @@ contract('Policy: Commissions', accounts => {
 
     // market
     market = await ensureMarketIsDeployed({ artifacts, settings })
+
+    // fee bank
+    feeBank = await ensureFeeBankIsDeployed({ artifacts, settings })
 
     // registry + wrappedEth
     etherToken = await ensureEtherTokenIsDeployed({ artifacts, settings })
@@ -280,10 +285,8 @@ contract('Policy: Commissions', accounts => {
           expect(postBalance1 - preBalance1).to.eq(5)
           expect(postBalance2 - preBalance2).to.eq(10)
 
-          const naymsEntityAddress = await settings.getRootAddress(SETTINGS.NAYMS_ENTITY)
-          const naymsEntityBalance = (await etherToken.balanceOf(naymsEntityAddress)).toNumber()
-
-          expect(naymsEntityBalance).to.eq(15)
+          const feeBankBalance = (await etherToken.balanceOf(feeBank.address)).toNumber()
+          expect(feeBankBalance).to.eq(15)
         })
 
         it('and updates internal balance values', async () => {
@@ -303,9 +306,8 @@ contract('Policy: Commissions', accounts => {
 
           await policy.payCommissions()
 
-          const naymsEntityAddress = await settings.getRootAddress(SETTINGS.NAYMS_ENTITY)
-          const naymsEntityBalance = (await etherToken.balanceOf(naymsEntityAddress)).toNumber()
-          expect(naymsEntityBalance).to.eq(12)
+          const feeBankBalance = (await etherToken.balanceOf(feeBank.address)).toNumber()
+          expect(feeBankBalance).to.eq(12)
 
           await policy.getCommissionBalances().should.eventually.matchObj({
             claimsAdminCommissionBalance_: 0,

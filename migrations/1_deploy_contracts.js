@@ -9,6 +9,7 @@ const { ADDRESS_ZERO } = require('../utils/constants')
 const { getCurrentAcl, ensureAclIsDeployed, addMultisigAddressAsSystemAdmin } = require('./modules/acl')
 const { getCurrentSettings, ensureSettingsIsDeployed } = require('./modules/settings')
 const { ensureMarketIsDeployed } = require('./modules/market')
+const { ensureFeeBankIsDeployed } = require('./modules/feeBank')
 const { getCurrentEtherToken, ensureEtherTokenIsDeployed } = require('./modules/etherToken')
 const { getCurrentEntityDeployer, ensureEntityDeployerIsDeployed } = require('./modules/entityDeployer')
 const { ensureEntityImplementationsAreDeployed } = require('./modules/entityImplementations')
@@ -135,6 +136,7 @@ module.exports = async (deployer, network, accounts) => {
   }
 
   cfg.market = await ensureMarketIsDeployed(cfg)
+  cfg.feeBank = await ensureFeeBankIsDeployed(cfg)
 
   await ensureEntityImplementationsAreDeployed(cfg)
   await ensurePolicyImplementationsAreDeployed(cfg)

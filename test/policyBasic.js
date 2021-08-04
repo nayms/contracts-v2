@@ -28,6 +28,7 @@ const Proxy = artifacts.require('./base/Proxy')
 const IDiamondProxy = artifacts.require('./base/IDiamondProxy')
 const IDiamondUpgradeFacet = artifacts.require('./base/IDiamondUpgradeFacet')
 const IPolicyStates = artifacts.require("./base/IPolicyStates")
+const IPolicyTypes = artifacts.require("./base/IPolicyTypes")
 const Policy = artifacts.require("./Policy")
 const IPolicy = artifacts.require("./base/IPolicy")
 const DummyPolicyFacet = artifacts.require("./test/DummyPolicyFacet")
@@ -82,6 +83,8 @@ contract('Policy: Basic', accounts => {
   let POLICY_STATE_ACTIVE
   let POLICY_STATE_MATURED
 
+  let POLICY_TYPE_SPV
+
   let TRANCH_STATE_CANCELLED
   let TRANCH_STATE_ACTIVE
   let TRANCH_STATE_MATURED
@@ -128,6 +131,8 @@ contract('Policy: Basic', accounts => {
     TRANCH_STATE_CANCELLED = await policyStates.TRANCH_STATE_CANCELLED()
     TRANCH_STATE_ACTIVE = await policyStates.TRANCH_STATE_ACTIVE()
     TRANCH_STATE_MATURED = await policyStates.TRANCH_STATE_MATURED()
+    const policyTypes = await IPolicyTypes.at(policyCoreAddress)
+    POLICY_TYPE_SPV = await policyTypes.POLICY_TYPE_SPV()
 
     const preSetupPolicyCtx = { policies, settings, events, etherToken, entity, entityManagerAddress }
 
@@ -195,7 +200,8 @@ contract('Policy: Basic', accounts => {
         brokerCommissionBP_: 2,
         naymsCommissionBP_: 3,
         numTranches_: 2,
-        state_: POLICY_STATE_CREATED
+        state_: POLICY_STATE_CREATED,
+        type: POLICY_TYPE_SPV,
       })
     })
   })

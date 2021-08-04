@@ -11,6 +11,7 @@ interface IEntityCoreFacet {
    * The `_trancheData` parameter is structured as follows. The outer array represents the list of tranches. The 
    * inner array represents the `[ number of tranch shares, price per share, ...premium payment amounts ]`.
    *
+   * @param _type Policy type, one of the `POLICY_TYPE_` constants.
    * @param _dates The initiation, start and maturation dates (seconds since epoch).
    * @param _unit The payment unit.
    * @param _premiumIntervalSeconds The time between successive premium payments (seconds).
@@ -19,6 +20,7 @@ interface IEntityCoreFacet {
    * @param _trancheData Tranch data, where each array item represents a tranch.
    */
   function createPolicy(
+    uint256 _type,
     uint256[] calldata _dates,
     address _unit,
     uint256 _premiumIntervalSeconds,

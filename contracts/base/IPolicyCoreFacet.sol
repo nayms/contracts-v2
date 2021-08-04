@@ -37,6 +37,7 @@ interface IPolicyCoreFacet {
    * @return naymsCommissionBP_ Nayms commission rate (1 = 0.1%)
    * @return numTranches_ No. of tranches created.
    * @return state_ Current policy state.
+   * @return type_ Policy type.
    */
   function getInfo () external view returns (
     address treasury_,
@@ -49,7 +50,8 @@ interface IPolicyCoreFacet {
     uint256 claimsAdminCommissionBP_,
     uint256 naymsCommissionBP_,
     uint256 numTranches_,
-    uint256 state_
+    uint256 state_,
+    uint256 type_
   );
 
   /**

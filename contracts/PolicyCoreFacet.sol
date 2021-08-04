@@ -10,7 +10,8 @@ import "./base/IPolicyTreasuryConstants.sol";
 import "./base/IPolicyCoreFacet.sol";
 import "./base/IPolicyTranchTokensFacet.sol";
 import "./base/IMarketObserverDataTypes.sol";
-import ".//PolicyFacetBase.sol";
+import "./base/IPolicyTypes.sol";
+import "./PolicyFacetBase.sol";
 import "./base/SafeMath.sol";
 import "./TranchToken.sol";
 import "./base/ReentrancyGuard.sol";
@@ -18,7 +19,7 @@ import "./base/ReentrancyGuard.sol";
 /**
  * @dev Core policy logic
  */
-contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCoreFacet, PolicyFacetBase, IPolicyTreasuryConstants, ReentrancyGuard, IMarketObserverDataTypes {
+contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCoreFacet, IPolicyTypes, PolicyFacetBase, IPolicyTreasuryConstants, ReentrancyGuard, IMarketObserverDataTypes {
   using SafeMath for uint;
   using Address for address;
 
@@ -145,9 +146,9 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     uint256 claimsAdminCommissionBP_,
     uint256 naymsCommissionBP_,
     uint256 numTranches_,
-    uint256 state_
+    uint256 state_,
+    uint256 type_
   ) {
-    
     treasury_ = dataAddress["treasury"];
     initiationDate_ = dataUint256["initiationDate"];
     startDate_ = dataUint256["startDate"];
@@ -159,6 +160,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     naymsCommissionBP_ = dataUint256["naymsCommissionBP"];
     numTranches_ = dataUint256["numTranches"];
     state_ = dataUint256["state"];
+    type_ = dataUint256["type"];
   }
 
   function getTranchInfo (uint256 _index) public view override returns (
@@ -237,6 +239,12 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
 
   function _beginPolicySaleIfNotYetStarted() private {
     if (dataUint256["state"] == POLICY_STATE_APPROVED) {
+      // skip token sale for portfolio-type of policy
+      if (dataUint256["type"] == POLICY_TYPE_PORTFOLIO) {
+        _setPolicyState(POLICY_STATE_INITIATED);
+        return;
+      }
+
       bool allReady = true;
       // check every tranch
       for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
@@ -313,8 +321,14 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
   function _maturePolicy () private {
     // if no pending claims
     if (0 == dataUint256["claimsPendingCount"] && _getTreasury().isPolicyCollateralized(address(this))) {
-      // if we haven't yet initiated policy buyback then do so
-      if (dataUint256["state"] != POLICY_STATE_BUYBACK) {
+      // if we haven't yet initiated policy buyback
+      if (dataUint256["state"] == POLICY_STATE_ACTIVE || dataUint256["state"] == POLICY_STATE_MATURED) {
+        // if it's portfolio type then straight to closing
+        if (dataUint256["type"] == POLICY_TYPE_PORTFOLIO) {
+          _setPolicyState(POLICY_STATE_CLOSED);
+          return;
+        }
+
         _setPolicyState(POLICY_STATE_BUYBACK);
 
         // buy back all tranch tokens

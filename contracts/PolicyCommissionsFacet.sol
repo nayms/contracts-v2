@@ -40,7 +40,8 @@ contract PolicyCommissionsFacet is EternalStorage, Controller, IDiamondFacet, IP
   function getCommissionBalances() public view override returns (
     uint256 brokerCommissionBalance_,
     uint256 claimsAdminCommissionBalance_,
-    uint256 naymsCommissionBalance_
+    uint256 naymsCommissionBalance_,
+    uint256 underwriterCommissionBalance_
   ) {
     brokerCommissionBalance_ = dataUint256["brokerCommissionBalance"];
     claimsAdminCommissionBalance_ = dataUint256["claimsAdminCommissionBalance"];

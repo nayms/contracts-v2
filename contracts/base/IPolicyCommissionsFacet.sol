@@ -17,11 +17,13 @@ interface IPolicyCommissionsFacet {
    * @return brokerCommissionBalance_ Currently accumulated broker commission.
    * @return claimsAdminCommissionBalance_ Currently accumulated capital provider commission.
    * @return naymsCommissionBalance_ Currently accumulated Nayms commission.
+   * @return underwriterCommissionBalance_ Currently accumulated Underwriter commission.
    */
   function getCommissionBalances() external view returns (
     uint256 brokerCommissionBalance_,
     uint256 claimsAdminCommissionBalance_,
-    uint256 naymsCommissionBalance_
+    uint256 naymsCommissionBalance_,
+    uint256 underwriterCommissionBalance_
   );
 
   // events

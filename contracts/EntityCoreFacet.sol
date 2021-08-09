@@ -169,7 +169,7 @@ import "./Policy.sol";
       address a1;
 
       // policy's unit
-      (a1, i1, i2, i3, policyUnitAddress, , , , , ,) = p.getInfo();
+      (a1, i1, i2, i3, policyUnitAddress, , , , , , ,) = p.getInfo();
     }
     
     // check balance

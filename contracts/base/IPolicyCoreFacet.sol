@@ -35,6 +35,7 @@ interface IPolicyCoreFacet {
    * @return brokerCommissionBP_ Broker's commission rate (1 = 0.1%)
    * @return claimsAdminCommissionBP_ Claims admin commission rate (1 = 0.1%)
    * @return naymsCommissionBP_ Nayms commission rate (1 = 0.1%)
+   * @return underwriterCommissionBP_ Underwriter commission rate (1 = 0.1%)
    * @return numTranches_ No. of tranches created.
    * @return state_ Current policy state.
    */
@@ -48,6 +49,7 @@ interface IPolicyCoreFacet {
     uint256 brokerCommissionBP_,
     uint256 claimsAdminCommissionBP_,
     uint256 naymsCommissionBP_,
+    uint256 underwriterCommissionBP_,
     uint256 numTranches_,
     uint256 state_
   );

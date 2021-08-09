@@ -144,6 +144,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     uint256 brokerCommissionBP_,
     uint256 claimsAdminCommissionBP_,
     uint256 naymsCommissionBP_,
+    uint256 underwriterCommissionBP_,
     uint256 numTranches_,
     uint256 state_
   ) {
@@ -157,7 +158,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     brokerCommissionBP_ = dataUint256["brokerCommissionBP"];
     claimsAdminCommissionBP_ = dataUint256["claimsAdminCommissionBP"];
     naymsCommissionBP_ = dataUint256["naymsCommissionBP"];
-    numTranches_ = dataUint256["numTranches"];
+    underwriterCommissionBP_ = dataUint256["underwriterCommissionBP"];    numTranches_ = dataUint256["numTranches"];
     state_ = dataUint256["state"];
   }
 

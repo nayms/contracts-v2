@@ -125,11 +125,13 @@ contract PolicyPremiumsFacet is EternalStorage, Controller, IDiamondFacet, IPoli
     uint256 brokerCommission = dataUint256["brokerCommissionBP"].mul(_amount).div(1000);
     uint256 claimsAdminCommission = dataUint256["claimsAdminCommissionBP"].mul(_amount).div(1000);
     uint256 naymsCommission = dataUint256["naymsCommissionBP"].mul(_amount).div(1000);
+    uint256 underwriterCommission = dataUint256["underwriterCommissionBP"].mul(_amount).div(1000);
 
     // add to commission balances
     dataUint256["brokerCommissionBalance"] = dataUint256["brokerCommissionBalance"].add(brokerCommission);
     dataUint256["claimsAdminCommissionBalance"] = dataUint256["claimsAdminCommissionBalance"].add(claimsAdminCommission);
     dataUint256["naymsCommissionBalance"] = dataUint256["naymsCommissionBalance"].add(naymsCommission);
+    dataUint256["underwriterCommission"] = dataUint256["underwriterCommission"].add(underwriterCommission);
 
     // add to tranch balance
     uint256 tranchBalanceDelta = _amount.sub(brokerCommission.add(claimsAdminCommission).add(naymsCommission));

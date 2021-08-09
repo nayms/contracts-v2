@@ -45,6 +45,7 @@ contract PolicyCommissionsFacet is EternalStorage, Controller, IDiamondFacet, IP
     brokerCommissionBalance_ = dataUint256["brokerCommissionBalance"];
     claimsAdminCommissionBalance_ = dataUint256["claimsAdminCommissionBalance"];
     naymsCommissionBalance_ = dataUint256["naymsCommissionBalance"];
+    underwriterCommissionBalance_ = dataUint256["underwriterCommissionBalance"];
   }
 
 

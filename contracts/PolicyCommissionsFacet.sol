@@ -77,6 +77,11 @@ contract PolicyCommissionsFacet is EternalStorage, Controller, IDiamondFacet, IP
       dataUint256["naymsCommissionBalance"] = 0;
     }
 
+    if (dataUint256["underwriterCommissionBalance"] > 0) {
+      tkn.transfer(feeBank, dataUint256["underwriterCommissionBalance"]);
+      dataUint256["underwriterCommissionBalance"] = 0;
+    }
+
     emit PaidCommissions(claimsAdmin, broker, msg.sender);
   }
 }

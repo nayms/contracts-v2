@@ -237,4 +237,115 @@ contract('Integration: Portfolio underwriting', accounts => {
       token_: ADDRESS_ZERO,
     })
   })
+
+  describe('even once policy has been approved', () => {
+    beforeEach(async () => {
+      await approvePolicy()
+    })
+
+    describe('once initialisation date has passed', () => {
+      beforeEach(async () => {
+        await etherToken.deposit({ value: 20 })
+        await etherToken.approve(policy.address, 20)
+        await policy.payTranchPremium(0, 10)
+        await policy.payTranchPremium(1, 10)
+        
+        await evmClock.setAbsoluteTime(initiationDate)
+        await policy.checkAndUpdateState()
+        await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_INITIATED })
+      })
+
+      it('tranch tokens are not being sold', async () => {
+        await policy.getTranchInfo(0).should.eventually.matchObj({
+          initialSaleOfferId_: 0,
+        })
+        await policy.getTranchInfo(1).should.eventually.matchObj({
+          initialSaleOfferId_: 0,
+        })
+      })
+
+      it('tranches remain in created state', async () => {
+        await policy.getTranchInfo(0).should.eventually.matchObj({
+          state_: TRANCH_STATE_CREATED,
+        })
+        await policy.getTranchInfo(1).should.eventually.matchObj({
+          state_: TRANCH_STATE_CREATED,
+        })
+      })
+
+      describe('once start date has passed', () => {
+        beforeEach(async () => {
+          // pay all remaining premiums
+          await etherToken.deposit({ value: 540 })
+          await etherToken.approve(policy.address, 540)
+          await policy.payTranchPremium(0, 270)
+          await policy.payTranchPremium(1, 270)
+
+          await evmClock.setAbsoluteTime(startDate)
+          await policy.checkAndUpdateState()
+        })
+
+        it('tranches are in active state', async () => {
+          await policy.getTranchInfo(0).should.eventually.matchObj({
+            state_: TRANCH_STATE_ACTIVE,
+          })
+          await policy.getTranchInfo(1).should.eventually.matchObj({
+            state_: TRANCH_STATE_ACTIVE,
+          })
+        })
+
+        it('policy is active', async () => {
+          await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_ACTIVE })
+        })
+
+        describe('once maturation date has passed', () => {
+          describe('if there are no pending claims', () => {
+            beforeEach(async () => {
+              await evmClock.setAbsoluteTime(maturationDate)
+              await policy.checkAndUpdateState()
+            })
+
+            it('policy is closed', async () => {
+              await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_CLOSED })
+            })
+
+            it('no token buyback is initiated', async () => {
+              await policy.getTranchInfo(0).should.eventually.matchObj({
+                finalBuybackofferId_: 0,
+              })
+              await policy.getTranchInfo(1).should.eventually.matchObj({
+                finalBuybackofferId_: 0,
+              })
+            })
+          })
+
+          describe('if there are pending claims', () => {
+            beforeEach(async () => {
+              await policy.makeClaim(0, 1, { from: insuredPartyRep })
+              await policy.makeClaim(0, 2, { from: insuredPartyRep })
+
+              await evmClock.setAbsoluteTime(maturationDate)
+              await policy.checkAndUpdateState()
+            })
+
+            it('policy is matured', async () => {
+              await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_MATURED })
+            })
+
+            describe('once the claims are paid', () => {
+              beforeEach(async () => {
+                await policy.declineClaim(0, { from: claimsAdminRep })
+                await policy.declineClaim(1, { from: claimsAdminRep })
+              })
+
+              it('it gets closed', async () => {
+                await policy.checkAndUpdateState()
+                await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_CLOSED })
+              })
+            })
+          })
+        })
+      })
+    })
+  })
 })

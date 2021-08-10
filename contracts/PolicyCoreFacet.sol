@@ -291,6 +291,10 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
       // calculate total collateral requried
       uint256 minPolicyCollateral = 0;
       for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
+        if (dataUint256["type"] == POLICY_TYPE_PORTFOLIO) {
+          _setTranchState(i, TRANCH_STATE_ACTIVE);
+        }
+        
         if (dataUint256[__i(i, "state")] == TRANCH_STATE_ACTIVE) {
           minPolicyCollateral += dataUint256[__i(i, "sharesSold")] * dataUint256[__i(i, "pricePerShareAmount")];
         }

@@ -144,9 +144,6 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     uint256 maturationDate_,
     address unit_,
     uint256 premiumIntervalSeconds_,
-    uint256 brokerCommissionBP_,
-    uint256 claimsAdminCommissionBP_,
-    uint256 naymsCommissionBP_,
     uint256 numTranches_,
     uint256 state_,
     uint256 type_
@@ -157,9 +154,6 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     maturationDate_ = dataUint256["maturationDate"];
     unit_ = dataAddress["unit"];
     premiumIntervalSeconds_ = dataUint256["premiumIntervalSeconds"];
-    brokerCommissionBP_ = dataUint256["brokerCommissionBP"];
-    claimsAdminCommissionBP_ = dataUint256["claimsAdminCommissionBP"];
-    naymsCommissionBP_ = dataUint256["naymsCommissionBP"];
     numTranches_ = dataUint256["numTranches"];
     state_ = dataUint256["state"];
     type_ = dataUint256["type"];

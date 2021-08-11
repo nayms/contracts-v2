@@ -32,9 +32,6 @@ interface IPolicyCoreFacet {
    * @return maturationDate_ Maturation date (seconds since epoch).
    * @return unit_ Payment unit (for tranch sale, premiums, claim payouts, etc).
    * @return premiumIntervalSeconds_ Time between premium payments (seconds).
-   * @return brokerCommissionBP_ Broker's commission rate (1 = 0.1%)
-   * @return claimsAdminCommissionBP_ Claims admin commission rate (1 = 0.1%)
-   * @return naymsCommissionBP_ Nayms commission rate (1 = 0.1%)
    * @return numTranches_ No. of tranches created.
    * @return state_ Current policy state.
    * @return type_ Policy type.
@@ -46,9 +43,6 @@ interface IPolicyCoreFacet {
     uint256 maturationDate_,
     address unit_,
     uint256 premiumIntervalSeconds_,
-    uint256 brokerCommissionBP_,
-    uint256 claimsAdminCommissionBP_,
-    uint256 naymsCommissionBP_,
     uint256 numTranches_,
     uint256 state_,
     uint256 type_

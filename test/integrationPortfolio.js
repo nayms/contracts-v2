@@ -222,12 +222,13 @@ contract('Integration: Portfolio underwriting', accounts => {
     await evmSnapshot.restore()
   })
 
-  it('returns the correct type', async () => {
+  it('returns the correct info', async () => {
     await policy.getInfo().should.eventually.matchObj({
+      numTranches_: 2,
       type_: POLICY_TYPE_PORTFOLIO,
     })
   })
-  
+
   it('tranch tokens do not exist', async () => {
     await policy.getTranchInfo(0).should.eventually.matchObj({
       token_: ADDRESS_ZERO,

@@ -196,12 +196,15 @@ contract('Policy: Basic', accounts => {
         maturationDate_: attrs.maturationDate,
         unit_: attrs.unit,
         premiumIntervalSeconds_: 5,
-        claimsAdminCommissionBP_: 1,
-        brokerCommissionBP_: 2,
-        naymsCommissionBP_: 3,
         numTranches_: 2,
         state_: POLICY_STATE_CREATED,
         type_: POLICY_TYPE_SPV,
+      })
+
+      await policy.getCommissionRates().should.eventually.matchObj({
+        claimsAdminCommissionBP_: 1,
+        brokerCommissionBP_: 2,
+        naymsCommissionBP_: 3,
       })
     })
   })

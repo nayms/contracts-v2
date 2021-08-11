@@ -32,6 +32,7 @@ contract Policy is Controller, Proxy, PolicyFacetBase {
     dataUint256["brokerCommissionBP"] = _commmissionsBP[0];
     dataUint256["claimsAdminCommissionBP"] = _commmissionsBP[1];
     dataUint256["naymsCommissionBP"] = _commmissionsBP[2];
+    dataUint256["underwriterCommissionBP"] = _commmissionsBP[3];
 
     // set roles, _stakeholders[0] is the treasury
     acl().assignRole(aclContext(), _caller, ROLE_POLICY_OWNER);

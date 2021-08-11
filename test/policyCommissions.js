@@ -39,7 +39,8 @@ const POLICY_ATTRS_1 = {
   premiumIntervalSeconds: 30,
   claimsAdminCommissionBP: 1,
   brokerCommissionBP: 2,
-  naymsCommissionBP: 3
+  naymsCommissionBP: 3,
+  underwriterCommissionBP: 4,
 }
 
 contract('Policy: Commissions', accounts => {
@@ -192,10 +193,11 @@ contract('Policy: Commissions', accounts => {
         claimsAdminCommissionBalance_: 2, /* 0.1% of 2000 */
         brokerCommissionBalance_: 4, /* 0.2% of 2000 */
         naymsCommissionBalance_: 6, /* 0.3% of 2000 */
+        underwriterCommissionBalance_: 8, /* 0.4% of 2000 */
       })
 
       await policy.getTranchInfo(0).should.eventually.matchObj({
-        balance_: 1988, /* 2000 - (2 + 4 + 6) */
+        balance_: 1980, /* 2000 - (2 + 4 + 6 + 8) */
       })
 
       await policy.payTranchPremium(0, 3000)
@@ -204,9 +206,10 @@ contract('Policy: Commissions', accounts => {
         claimsAdminCommissionBalance_: 5, /* 2 + 3 (=0.1% of 3000) */
         brokerCommissionBalance_: 10, /* 4 + 6 (=0.2% of 3000) */
         naymsCommissionBalance_: 15, /* 6 + 9 (=0.3% of 3000) */
+        underwriterCommissionBalance_: 20, /* 8 + 12 (=0.4% of 3000) */
       })
       await policy.getTranchInfo(0).should.eventually.matchObj({
-        balance_: 4970, /* 1988 + 3000 - (3 + 6 + 9) */
+        balance_: 4950, /* 1980 + 3000 - (3 + 6 + 9 + 12) */
       })
 
       await policy.payTranchPremium(0, 4000)
@@ -215,14 +218,15 @@ contract('Policy: Commissions', accounts => {
         claimsAdminCommissionBalance_: 9, /* 5 + 4 (=0.1% of 4000) */
         brokerCommissionBalance_: 18, /* 10 + 8 (=0.2% of 4000) */
         naymsCommissionBalance_: 27, /* 15 + 12 (=0.3% of 4000) */
+        underwriterCommissionBalance_: 36, /* 20 + 16 (=0.4% of 4000) */
       })
       await policy.getTranchInfo(0).should.eventually.matchObj({
-        balance_: 8946, /* 4970 + 4000 - (4 + 8 + 12) */
+        balance_: 8910, /* 4950 + 4000 - (4 + 8 + 12 + 16) */
       })
 
       // check balances
-      await etherToken.balanceOf(entity.address).should.eventually.eq(8946)
-      await etherToken.balanceOf(policy.address).should.eventually.eq(9 + 18 + 27)
+      await etherToken.balanceOf(entity.address).should.eventually.eq(8910)
+      await etherToken.balanceOf(policy.address).should.eventually.eq(9 + 18 + 27 + 36)
     })
 
     it('updates the balances correctly for batch premium payments too', async () => {
@@ -235,10 +239,11 @@ contract('Policy: Commissions', accounts => {
         claimsAdminCommissionBalance_: 4, /* 0.1% of 4000 */
         brokerCommissionBalance_: 8, /* 0.2% of 4000 */
         naymsCommissionBalance_: 12, /* 0.3% of 4000 */
+        underwriterCommissionBalance_: 16, /* 0.4% of 4000 */
       })
 
       await policy.getTranchInfo(0).should.eventually.matchObj({
-        balance_: 3976, /* 4000 - (4 + 8 + 12) */
+        balance_: 3960, /* 4000 - (4 + 8 + 12 + 16) */
       })
     })
 
@@ -268,6 +273,7 @@ contract('Policy: Commissions', accounts => {
           expect(extractEventArgs(ret, events.PaidCommissions)).to.include({
             claimsAdmin,
             broker,
+            underwriter,
           })
         })
 
@@ -276,14 +282,17 @@ contract('Policy: Commissions', accounts => {
 
           const preBalance1 = (await etherToken.balanceOf(claimsAdmin)).toNumber()
           const preBalance2 = (await etherToken.balanceOf(broker)).toNumber()
+          const preBalance3 = (await etherToken.balanceOf(underwriter)).toNumber()
 
           await policy.payCommissions()
 
           const postBalance1 = (await etherToken.balanceOf(claimsAdmin)).toNumber()
           const postBalance2 = (await etherToken.balanceOf(broker)).toNumber()
+          const postBalance3 = (await etherToken.balanceOf(underwriter)).toNumber()
 
           expect(postBalance1 - preBalance1).to.eq(5)
           expect(postBalance2 - preBalance2).to.eq(10)
+          expect(postBalance3 - preBalance3).to.eq(20)
 
           const feeBankBalance = (await etherToken.balanceOf(feeBank.address)).toNumber()
           expect(feeBankBalance).to.eq(15)
@@ -295,6 +304,7 @@ contract('Policy: Commissions', accounts => {
             claimsAdminCommissionBalance_: 0,
             brokerCommissionBalance_: 0,
             naymsCommissionBalance_: 0,
+            underwriterCommissionBalance_: 0,
           })
         })
 
@@ -313,6 +323,7 @@ contract('Policy: Commissions', accounts => {
             claimsAdminCommissionBalance_: 0,
             brokerCommissionBalance_: 0,
             naymsCommissionBalance_: 0,
+            underwriterCommissionBalance_: 0,
           })
         })
       })

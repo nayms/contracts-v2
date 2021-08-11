@@ -174,6 +174,7 @@ export const createPolicy = async (entity, attrs = {}, ...callAttrs) => {
     brokerCommissionBP = 0,
     claimsAdminCommissionBP = 0,
     naymsCommissionBP = 0,
+    underwriterCommissionBP = 0,
 
     broker = ADDRESS_ZERO,
     underwriter = entity.address,
@@ -187,7 +188,7 @@ export const createPolicy = async (entity, attrs = {}, ...callAttrs) => {
     [initiationDate, startDate, maturationDate],
     unit,
     premiumIntervalSeconds,
-    [brokerCommissionBP, claimsAdminCommissionBP, naymsCommissionBP],
+    [brokerCommissionBP, claimsAdminCommissionBP, naymsCommissionBP, underwriterCommissionBP],
     [treasury, broker, underwriter, claimsAdmin, insuredParty],
     trancheData,
     ...callAttrs,
@@ -204,6 +205,7 @@ export const preSetupPolicy = async (ctx, createPolicyArgs) => {
     brokerCommissionBP,
     claimsAdminCommissionBP,
     naymsCommissionBP,
+    underwriterCommissionBP,
     broker,
     underwriter,
     claimsAdmin,
@@ -225,6 +227,7 @@ export const preSetupPolicy = async (ctx, createPolicyArgs) => {
     brokerCommissionBP,
     claimsAdminCommissionBP,
     naymsCommissionBP,
+    underwriterCommissionBP,
     broker,
     underwriter,
     claimsAdmin,
@@ -241,24 +244,26 @@ export const preSetupPolicy = async (ctx, createPolicyArgs) => {
   ctx.policies.set(createPolicyArgs, { attrs, baseTime: currentBlockTime, policyAddress })
 }
 
-export const calcPremiumsMinusCommissions = ({ premiums, claimsAdminCommissionBP, brokerCommissionBP, naymsCommissionBP }) => (
+export const calcPremiumsMinusCommissions = ({ premiums, claimsAdminCommissionBP, brokerCommissionBP, naymsCommissionBP, underwriterCommissionBP }) => (
   premiums.reduce((m, v) => (
-    m + v - (v * claimsAdminCommissionBP / 1000) - (v * brokerCommissionBP / 1000) - (v * naymsCommissionBP / 1000)
+    m + v - (v * claimsAdminCommissionBP / 1000) - (v * brokerCommissionBP / 1000) - (v * naymsCommissionBP / 1000) - (v * underwriterCommissionBP / 1000)
   ), 0)
 )
 
 
-export const calcCommissions = ({ premiums, claimsAdminCommissionBP, brokerCommissionBP, naymsCommissionBP }) => {
+export const calcCommissions = ({ premiums, claimsAdminCommissionBP, brokerCommissionBP, naymsCommissionBP, underwriterCommissionBP }) => {
   const ret = {
     claimsAdminCommission: 0,
     brokerCommission: 0,
     naymsCommission: 0,
+    underwriterCommissionBP: 0,
   }
 
   premiums.forEach(v => {
     ret.claimsAdminCommission += (v * claimsAdminCommissionBP / 1000)
     ret.brokerCommission += (v * brokerCommissionBP / 1000)
     ret.naymsCommission += (v * naymsCommissionBP / 1000)
+    ret.underwriterCommission += (v * underwriterCommissionBP / 1000)
   })
 
   return ret

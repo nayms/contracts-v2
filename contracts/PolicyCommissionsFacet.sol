@@ -41,21 +41,25 @@ contract PolicyCommissionsFacet is EternalStorage, Controller, IDiamondFacet, IP
   function getCommissionRates() external view override returns (
     uint256 brokerCommissionBP_,
     uint256 claimsAdminCommissionBP_,
-    uint256 naymsCommissionBP_
+    uint256 naymsCommissionBP_,
+    uint256 underwriterCommissionBP_
   ) {
     brokerCommissionBP_ = dataUint256["brokerCommissionBP"];
     claimsAdminCommissionBP_ = dataUint256["claimsAdminCommissionBP"];
     naymsCommissionBP_ = dataUint256["naymsCommissionBP"];
+    underwriterCommissionBP_ = dataUint256["underwriterCommissionBP"];
   }
 
   function getCommissionBalances() external view override returns (
     uint256 brokerCommissionBalance_,
     uint256 claimsAdminCommissionBalance_,
-    uint256 naymsCommissionBalance_
+    uint256 naymsCommissionBalance_,
+    uint256 underwriterCommissionBalance_
   ) {
     brokerCommissionBalance_ = dataUint256["brokerCommissionBalance"];
     claimsAdminCommissionBalance_ = dataUint256["claimsAdminCommissionBalance"];
     naymsCommissionBalance_ = dataUint256["naymsCommissionBalance"];
+    underwriterCommissionBalance_ = dataUint256["underwriterCommissionBalance"];
   }
 
 
@@ -67,6 +71,7 @@ contract PolicyCommissionsFacet is EternalStorage, Controller, IDiamondFacet, IP
   {
     address claimsAdmin = _getEntityWithRole(ROLE_CLAIMS_ADMIN);
     address broker = _getEntityWithRole(ROLE_BROKER);
+    address underwriter = _getEntityWithRole(ROLE_UNDERWRITER);
     address feeBank = settings().getRootAddress(SETTING_FEEBANK);
 
     // do payouts and update balances
@@ -87,6 +92,11 @@ contract PolicyCommissionsFacet is EternalStorage, Controller, IDiamondFacet, IP
       dataUint256["naymsCommissionBalance"] = 0;
     }
 
-    emit PaidCommissions(claimsAdmin, broker, msg.sender);
+    if (dataUint256["underwriterCommissionBalance"] > 0) {
+      tkn.transfer(underwriter, dataUint256["underwriterCommissionBalance"]);
+      dataUint256["underwriterCommissionBalance"] = 0;
+    }
+
+    emit PaidCommissions(claimsAdmin, broker, underwriter);
   }
 }

@@ -35,6 +35,7 @@ contract('Integration: SPV', accounts => {
   const claimsAdminCommissionBP = 100
   const brokerCommissionBP = 200
   const naymsCommissionBP = 300
+  const underwriterCommissionBP = 300
 
   let acl
   let systemContext
@@ -143,6 +144,7 @@ contract('Integration: SPV', accounts => {
       claimsAdminCommissionBP,
       brokerCommissionBP,
       naymsCommissionBP,
+      underwriterCommissionBP,
       underwriter,
       insuredParty,
       broker,
@@ -357,8 +359,8 @@ contract('Integration: SPV', accounts => {
       beforeEach(async () => {
         // check initial balances
         await etherToken.balanceOf(accounts[2]).should.eventually.eq(25)
-        await etherToken.balanceOf(policy.address).should.eventually.eq(12) /* commissions from premium payments: 10 + 10 */
-        await etherToken.balanceOf(entity.address).should.eventually.eq(8) /* premium payments - minus commissions */
+        await etherToken.balanceOf(policy.address).should.eventually.eq(18) /* commissions from premium payments */
+        await etherToken.balanceOf(entity.address).should.eventually.eq(2) /* premium payments - minus commissions */
         await etherToken.balanceOf(market.address).should.eventually.eq(0)
         await tranchToken.balanceOf(accounts[2]).should.eventually.eq(0)
         await tranchToken.balanceOf(entity.address).should.eventually.eq(0)
@@ -370,8 +372,8 @@ contract('Integration: SPV', accounts => {
 
         // check balances again
         await etherToken.balanceOf(accounts[2]).should.eventually.eq(15)
-        await etherToken.balanceOf(policy.address).should.eventually.eq(12)
-        await etherToken.balanceOf(entity.address).should.eventually.eq(8)
+        await etherToken.balanceOf(policy.address).should.eventually.eq(18)
+        await etherToken.balanceOf(entity.address).should.eventually.eq(2)
         await etherToken.balanceOf(market.address).should.eventually.eq(10)
         await tranchToken.balanceOf(accounts[2]).should.eventually.eq(0)
         await tranchToken.balanceOf(entity.address).should.eventually.eq(0)
@@ -391,6 +393,7 @@ contract('Integration: SPV', accounts => {
           claimsAdminCommissionBP,
           brokerCommissionBP,
           naymsCommissionBP,
+          underwriterCommissionBP,
         }))
       })
 
@@ -412,8 +415,8 @@ contract('Integration: SPV', accounts => {
       beforeEach(async () => {
         // check initial balances
         await etherToken.balanceOf(accounts[2]).should.eventually.eq(25)
-        await etherToken.balanceOf(policy.address).should.eventually.eq(12) /* commissions from premium payments: 10 + 10 */
-        await etherToken.balanceOf(entity.address).should.eventually.eq(8) /* premium payments - minus commissions */
+        await etherToken.balanceOf(policy.address).should.eventually.eq(18) /* commissions from premium payments: 10 + 10 */
+        await etherToken.balanceOf(entity.address).should.eventually.eq(2) /* premium payments - minus commissions */
         await etherToken.balanceOf(market.address).should.eventually.eq(0)
         await tranchToken.balanceOf(accounts[2]).should.eventually.eq(0)
         await tranchToken.balanceOf(entity.address).should.eventually.eq(0)
@@ -426,8 +429,8 @@ contract('Integration: SPV', accounts => {
 
         // check balances again
         await etherToken.balanceOf(accounts[2]).should.eventually.eq(15)
-        await etherToken.balanceOf(policy.address).should.eventually.eq(12)
-        await etherToken.balanceOf(entity.address).should.eventually.eq(8 + 10)
+        await etherToken.balanceOf(policy.address).should.eventually.eq(18)
+        await etherToken.balanceOf(entity.address).should.eventually.eq(2 + 10)
         await etherToken.balanceOf(market.address).should.eventually.eq(0)
         await tranchToken.balanceOf(accounts[2]).should.eventually.eq(5)
         await tranchToken.balanceOf(entity.address).should.eventually.eq(0)
@@ -448,6 +451,7 @@ contract('Integration: SPV', accounts => {
           claimsAdminCommissionBP,
           brokerCommissionBP,
           naymsCommissionBP,
+          underwriterCommissionBP,
         }))
       })
 
@@ -510,6 +514,7 @@ contract('Integration: SPV', accounts => {
           claimsAdminCommissionBP,
           brokerCommissionBP,
           naymsCommissionBP,
+          underwriterCommissionBP,
         }))
       })
 
@@ -1258,6 +1263,7 @@ contract('Integration: SPV', accounts => {
             claimsAdminCommissionBP,
             brokerCommissionBP,
             naymsCommissionBP,
+            underwriterCommissionBP,
           })
 
           expect(postBalance - preBalance).to.eq(200 + expectedPremiumBalance) /* 200 = initial sold amount */

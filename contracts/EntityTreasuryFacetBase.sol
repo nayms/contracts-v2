@@ -18,7 +18,7 @@ abstract contract EntityTreasuryFacetBase is EntityFacetBase, IPolicyTreasuryCon
       uint256 i2;
       uint256 i3;
       address a1;
-      (a1, i1, i2, i3, policyUnitAddress, , , , , ,) = IPolicyCoreFacet(_policy).getInfo();
+      (a1, i1, i2, i3, policyUnitAddress, , , ,) = IPolicyCoreFacet(_policy).getInfo();
     }
 
     return policyUnitAddress;

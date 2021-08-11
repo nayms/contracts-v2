@@ -29,7 +29,7 @@ const Policy = artifacts.require("./Policy")
 const IPolicy = artifacts.require("./IPolicy")
 const IERC20 = artifacts.require("./base/IERC20")
 
-contract('Integration: Flow', accounts => {
+contract('Integration: SPV', accounts => {
   const evmSnapshot = new EvmSnapshot()
 
   const claimsAdminCommissionBP = 100

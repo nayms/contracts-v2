@@ -10,12 +10,25 @@ interface IPolicyCommissionsFacet {
   function payCommissions () external;
 
   /**
+   * @dev Get commission rates.
+   *
+   * @return brokerCommissionBP_ Broker commission basis points.
+   * @return claimsAdminCommissionBP_ Claims admin commission basis points.
+   * @return naymsCommissionBP_ Nayms commission basis points.
+   */
+  function getCommissionRates() external view returns (
+    uint256 brokerCommissionBP_,
+    uint256 claimsAdminCommissionBP_,
+    uint256 naymsCommissionBP_
+  );
+
+  /**
    * @dev Get accumulated commission balances.
    *
    * Note that these balances do not include amounts that have already been paid out (see `payCommissions()`).
    *
    * @return brokerCommissionBalance_ Currently accumulated broker commission.
-   * @return claimsAdminCommissionBalance_ Currently accumulated capital provider commission.
+   * @return claimsAdminCommissionBalance_ Currently accumulated claims admin commission.
    * @return naymsCommissionBalance_ Currently accumulated Nayms commission.
    */
   function getCommissionBalances() external view returns (

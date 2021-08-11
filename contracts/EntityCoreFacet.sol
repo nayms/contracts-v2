@@ -54,6 +54,7 @@ import "./Policy.sol";
   // IEntityCoreFacet
 
   function createPolicy(
+    uint256 _type,
     uint256[] calldata _dates,
     address _unit,
     uint256 _premiumIntervalSeconds,
@@ -72,6 +73,7 @@ import "./Policy.sol";
     Policy f = new Policy(
       address(settings()),
       msg.sender,
+      _type,
       _dates,
       _unit,
       _premiumIntervalSeconds,
@@ -169,7 +171,7 @@ import "./Policy.sol";
       address a1;
 
       // policy's unit
-      (a1, i1, i2, i3, policyUnitAddress, , , , , ,) = p.getInfo();
+      (a1, i1, i2, i3, policyUnitAddress, , , ,) = p.getInfo();
     }
     
     // check balance

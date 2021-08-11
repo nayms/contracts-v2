@@ -9,6 +9,7 @@ contract Policy is Controller, Proxy, PolicyFacetBase {
   constructor (
     address _settings,
     address _caller,
+    uint256 _type,
     uint256[] memory _dates,
     address _unit,
     uint256 _premiumIntervalSeconds,
@@ -26,6 +27,7 @@ contract Policy is Controller, Proxy, PolicyFacetBase {
     dataUint256["startDate"] = _dates[1];
     dataUint256["maturationDate"] = _dates[2];
     dataAddress["unit"] = _unit;
+    dataUint256["type"] = _type;
     dataUint256["premiumIntervalSeconds"] = _premiumIntervalSeconds;
     dataUint256["brokerCommissionBP"] = _commmissionsBP[0];
     dataUint256["claimsAdminCommissionBP"] = _commmissionsBP[1];

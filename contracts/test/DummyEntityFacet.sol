@@ -24,6 +24,7 @@ contract DummyEntityFacet is IDiamondFacet, IEntityCoreFacet {
   }
 
   function createPolicy(
+    uint256 _type,
     uint256[] calldata _dates,
     address _unit,
     uint256 _premiumIntervalSeconds,

@@ -32,11 +32,9 @@ interface IPolicyCoreFacet {
    * @return maturationDate_ Maturation date (seconds since epoch).
    * @return unit_ Payment unit (for tranch sale, premiums, claim payouts, etc).
    * @return premiumIntervalSeconds_ Time between premium payments (seconds).
-   * @return brokerCommissionBP_ Broker's commission rate (1 = 0.1%)
-   * @return claimsAdminCommissionBP_ Claims admin commission rate (1 = 0.1%)
-   * @return naymsCommissionBP_ Nayms commission rate (1 = 0.1%)
    * @return numTranches_ No. of tranches created.
    * @return state_ Current policy state.
+   * @return type_ Policy type.
    */
   function getInfo () external view returns (
     address treasury_,
@@ -45,11 +43,9 @@ interface IPolicyCoreFacet {
     uint256 maturationDate_,
     address unit_,
     uint256 premiumIntervalSeconds_,
-    uint256 brokerCommissionBP_,
-    uint256 claimsAdminCommissionBP_,
-    uint256 naymsCommissionBP_,
     uint256 numTranches_,
-    uint256 state_
+    uint256 state_,
+    uint256 type_
   );
 
   /**
@@ -114,13 +110,9 @@ interface IPolicyCoreFacet {
 
   /**
    * @dev Emitted when a new tranch has been created.
-   * @param token The tranch token address.
-   * @param initialBalanceHolder For testing purpses. Ignore.
    * @param index The tranch index.
    */
   event CreateTranch(
-    address indexed token,
-    address indexed initialBalanceHolder,
     uint256 index
   );
 }

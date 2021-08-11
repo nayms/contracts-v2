@@ -163,6 +163,7 @@ export const createPolicy = async (entity, attrs = {}, ...callAttrs) => {
   var ret = '';
 
   const {
+    type = 0,
     treasury = entity.address,
     initiationDate = currentTime,
     startDate = currentTime + 120,
@@ -182,6 +183,7 @@ export const createPolicy = async (entity, attrs = {}, ...callAttrs) => {
   } = attrs
 
   return entity.createPolicy(
+    type,
     [initiationDate, startDate, maturationDate],
     unit,
     premiumIntervalSeconds,
@@ -194,6 +196,7 @@ export const createPolicy = async (entity, attrs = {}, ...callAttrs) => {
 
 export const preSetupPolicy = async (ctx, createPolicyArgs) => {
   const {
+    type,
     initiationDateDiff,
     startDateDiff,
     maturationDateDiff,
@@ -213,6 +216,7 @@ export const preSetupPolicy = async (ctx, createPolicyArgs) => {
   const currentBlockTime = parseInt(t.toString(10))
 
   const attrs = {
+    type,
     initiationDate: currentBlockTime + initiationDateDiff,
     startDate: currentBlockTime + startDateDiff,
     maturationDate: currentBlockTime + maturationDateDiff,

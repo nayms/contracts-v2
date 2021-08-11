@@ -10,7 +10,8 @@ import "./base/IPolicyTreasuryConstants.sol";
 import "./base/IPolicyCoreFacet.sol";
 import "./base/IPolicyTranchTokensFacet.sol";
 import "./base/IMarketObserverDataTypes.sol";
-import ".//PolicyFacetBase.sol";
+import "./base/IPolicyTypes.sol";
+import "./PolicyFacetBase.sol";
 import "./base/SafeMath.sol";
 import "./TranchToken.sol";
 import "./base/ReentrancyGuard.sol";
@@ -18,7 +19,7 @@ import "./base/ReentrancyGuard.sol";
 /**
  * @dev Core policy logic
  */
-contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCoreFacet, PolicyFacetBase, IPolicyTreasuryConstants, ReentrancyGuard, IMarketObserverDataTypes {
+contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCoreFacet, IPolicyTypes, PolicyFacetBase, IPolicyTreasuryConstants, ReentrancyGuard, IMarketObserverDataTypes {
   using SafeMath for uint;
   using Address for address;
 
@@ -105,23 +106,25 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     require(numPremiums <= calculateMaxNumOfPremiums(), 'too many premiums');
     dataUint256[__i(i, "numPremiums")] = numPremiums;
 
-    // deploy token contract
-    TranchToken t = new TranchToken(address(this), i);
+    // deploy token contract if SPV
+    if (dataUint256["type"] == POLICY_TYPE_SPV) {
+      TranchToken t = new TranchToken(address(this), i);
 
-    // initial holder
-    address holder = dataAddress["treasury"];
-    string memory initialHolderKey = __i(i, "initialHolder");
-    dataAddress[initialHolderKey] = holder;
+      // initial holder
+      address holder = dataAddress["treasury"];
+      string memory initialHolderKey = __i(i, "initialHolder");
+      dataAddress[initialHolderKey] = holder;
 
-    // set initial holder balance
-    string memory contractBalanceKey = __ia(i, dataAddress[initialHolderKey], "balance");
-    dataUint256[contractBalanceKey] = _numShares;
+      // set initial holder balance
+      string memory contractBalanceKey = __ia(i, dataAddress[initialHolderKey], "balance");
+      dataUint256[contractBalanceKey] = _numShares;
 
-    // save reference
-    string memory addressKey = __i(i, "address");
-    dataAddress[addressKey] = address(t);
+      // save reference
+      string memory addressKey = __i(i, "address");
+      dataAddress[addressKey] = address(t);
+    }
 
-    emit CreateTranch(address(t), dataAddress[initialHolderKey], i);
+    emit CreateTranch(i);
   }
 
   function markAsReadyForApproval() 
@@ -141,24 +144,19 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     uint256 maturationDate_,
     address unit_,
     uint256 premiumIntervalSeconds_,
-    uint256 brokerCommissionBP_,
-    uint256 claimsAdminCommissionBP_,
-    uint256 naymsCommissionBP_,
     uint256 numTranches_,
-    uint256 state_
+    uint256 state_,
+    uint256 type_
   ) {
-    
     treasury_ = dataAddress["treasury"];
     initiationDate_ = dataUint256["initiationDate"];
     startDate_ = dataUint256["startDate"];
     maturationDate_ = dataUint256["maturationDate"];
     unit_ = dataAddress["unit"];
     premiumIntervalSeconds_ = dataUint256["premiumIntervalSeconds"];
-    brokerCommissionBP_ = dataUint256["brokerCommissionBP"];
-    claimsAdminCommissionBP_ = dataUint256["claimsAdminCommissionBP"];
-    naymsCommissionBP_ = dataUint256["naymsCommissionBP"];
     numTranches_ = dataUint256["numTranches"];
     state_ = dataUint256["state"];
+    type_ = dataUint256["type"];
   }
 
   function getTranchInfo (uint256 _index) public view override returns (
@@ -237,6 +235,12 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
 
   function _beginPolicySaleIfNotYetStarted() private {
     if (dataUint256["state"] == POLICY_STATE_APPROVED) {
+      // skip token sale for portfolio-type of policy
+      if (dataUint256["type"] == POLICY_TYPE_PORTFOLIO) {
+        _setPolicyState(POLICY_STATE_INITIATED);
+        return;
+      }
+
       bool allReady = true;
       // check every tranch
       for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
@@ -281,6 +285,10 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
       // calculate total collateral requried
       uint256 minPolicyCollateral = 0;
       for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
+        if (dataUint256["type"] == POLICY_TYPE_PORTFOLIO) {
+          _setTranchState(i, TRANCH_STATE_ACTIVE);
+        }
+        
         if (dataUint256[__i(i, "state")] == TRANCH_STATE_ACTIVE) {
           minPolicyCollateral += dataUint256[__i(i, "sharesSold")] * dataUint256[__i(i, "pricePerShareAmount")];
         }
@@ -313,8 +321,14 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
   function _maturePolicy () private {
     // if no pending claims
     if (0 == dataUint256["claimsPendingCount"] && _getTreasury().isPolicyCollateralized(address(this))) {
-      // if we haven't yet initiated policy buyback then do so
-      if (dataUint256["state"] != POLICY_STATE_BUYBACK) {
+      // if we haven't yet initiated policy buyback
+      if (dataUint256["state"] == POLICY_STATE_ACTIVE || dataUint256["state"] == POLICY_STATE_MATURED) {
+        // if it's portfolio type then straight to closing
+        if (dataUint256["type"] == POLICY_TYPE_PORTFOLIO) {
+          _setPolicyState(POLICY_STATE_CLOSED);
+          return;
+        }
+
         _setPolicyState(POLICY_STATE_BUYBACK);
 
         // buy back all tranch tokens

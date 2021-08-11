@@ -25,11 +25,9 @@ contract DummyPolicyFacet is IDiamondFacet, IPolicyCoreFacet {
     uint256 maturationDate_,
     address unit_,
     uint256 premiumIntervalSeconds_,
-    uint256 brokerCommissionBP_,
-    uint256 claimsAdminCommissionBP_,
-    uint256 naymsCommissionBP_,
     uint256 numTranches_,
-    uint256 state_
+    uint256 state_,
+    uint256 type_
   ) {}
 
   function getTranchInfo (uint256 _index) external view override returns (

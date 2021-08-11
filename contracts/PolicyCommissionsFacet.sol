@@ -31,13 +31,24 @@ contract PolicyCommissionsFacet is EternalStorage, Controller, IDiamondFacet, IP
   function getSelectors () public pure override returns (bytes memory) {
     return abi.encodePacked(
       IPolicyCommissionsFacet.payCommissions.selector,
-      IPolicyCommissionsFacet.getCommissionBalances.selector
+      IPolicyCommissionsFacet.getCommissionBalances.selector,
+      IPolicyCommissionsFacet.getCommissionRates.selector
     );
   }
 
   // IPolicyCommissionsFacet
 
-  function getCommissionBalances() public view override returns (
+  function getCommissionRates() external view override returns (
+    uint256 brokerCommissionBP_,
+    uint256 claimsAdminCommissionBP_,
+    uint256 naymsCommissionBP_
+  ) {
+    brokerCommissionBP_ = dataUint256["brokerCommissionBP"];
+    claimsAdminCommissionBP_ = dataUint256["claimsAdminCommissionBP"];
+    naymsCommissionBP_ = dataUint256["naymsCommissionBP"];
+  }
+
+  function getCommissionBalances() external view override returns (
     uint256 brokerCommissionBalance_,
     uint256 claimsAdminCommissionBalance_,
     uint256 naymsCommissionBalance_

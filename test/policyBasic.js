@@ -48,9 +48,9 @@ const POLICY_ATTRS_1 = {
 const POLICY_ATTRS_2 = Object.assign({}, POLICY_ATTRS_1, {
   premiumIntervalSeconds: 5,
   brokerCommissionBP: 2,
-  underwriterCommissionBP: 1,
   claimsAdminCommissionBP: 1,
   naymsCommissionBP: 3,
+  underwriterCommissionBP: 4,
 })
 
 const POLICY_ATTRS_3 = Object.assign({}, POLICY_ATTRS_2, {
@@ -205,6 +205,7 @@ contract('Policy: Basic', accounts => {
         claimsAdminCommissionBP_: 1,
         brokerCommissionBP_: 2,
         naymsCommissionBP_: 3,
+        underwriterCommissionBP_: 4,
       })
     })
   })

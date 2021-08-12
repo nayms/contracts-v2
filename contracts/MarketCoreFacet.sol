@@ -8,11 +8,12 @@ import "./base/Controller.sol";
 import "./base/SafeMath.sol";
 import "./base/IERC20.sol";
 import "./base/ReentrancyGuard.sol";
+import "./MarketFacetBase.sol";
 
 /**
  * Forked from https://github.com/nayms/maker-otc/blob/master/contracts/matching_market.sol
  */
-contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCoreFacet, ReentrancyGuard {
+contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamondFacet, IMarketCoreFacet, ReentrancyGuard {
   using SafeMath for uint256;
 
   modifier assertIsActive (uint256 _offerId) {
@@ -34,51 +35,11 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
       IMarketCoreFacet.executeLimitOfferWithObserver.selector,
       IMarketCoreFacet.executeMarketOffer.selector,
       IMarketCoreFacet.buy.selector,
-      IMarketCoreFacet.cancel.selector,
-      IMarketCoreFacet.getBestOfferId.selector,
-      IMarketCoreFacet.getLastOfferId.selector,
-      IMarketCoreFacet.isActive.selector,
-      IMarketCoreFacet.getOffer.selector
+      IMarketCoreFacet.cancel.selector
     );
   }
 
   // IMarketCoreFacet
-
-  function isActive(uint256 _offerId) public view override returns (bool) {
-    return dataBool[__i(_offerId, "isActive")];
-  }
-
-  function getOffer(uint256 _offerId) external view override returns ( 
-    address creator_,
-    address sellToken_, 
-    uint256 sellAmount_, 
-    address buyToken_, 
-    uint256 buyAmount_,
-    address notify_,
-    bytes memory notifyData_,
-    bool isActive_,
-    uint256 nextOfferId_,
-    uint256 prevOfferId_
-  ) {
-    creator_ = dataAddress[__i(_offerId, "creator")];
-    sellToken_ = dataAddress[__i(_offerId, "sellToken")];
-    sellAmount_ = dataUint256[__i(_offerId, "sellAmount")];
-    buyToken_ = dataAddress[__i(_offerId, "buyToken")];
-    buyAmount_ = dataUint256[__i(_offerId, "buyAmount")];
-    notify_ = dataAddress[__i(_offerId, "notify")];
-    notifyData_ = dataBytes[__i(_offerId, "notifyData")];
-    isActive_ = dataBool[__i(_offerId, "isActive")];
-    nextOfferId_ = dataUint256[__i(_offerId, "rankNext")];
-    prevOfferId_ = dataUint256[__i(_offerId, "rankPrev")];
-  }
-
-  function getLastOfferId() external view override returns (uint256) {
-    return dataUint256["lastOfferId"];
-  }
-
-  function getBestOfferId(address _sellToken, address _buyToken) public view override returns (uint256) {
-    return dataUint256[__iaa(0, _sellToken, _buyToken, "bestOfferId")];
-  }
 
   function cancel(uint256 _offerId) 
     assertIsActive(_offerId)
@@ -167,7 +128,7 @@ contract MarketCoreFacet is EternalStorage, Controller, IDiamondFacet, IMarketCo
     uint256 soldAmount;
 
     while (sellAmount > 0) {
-      id = getBestOfferId(_buyToken, _sellToken);
+      id = _getBestOfferId(_buyToken, _sellToken);
       require(id != 0, "not enough orders in market");
 
       uint256 offerBuyAmount = dataUint256[__i(id, "buyAmount")];

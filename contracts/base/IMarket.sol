@@ -4,12 +4,12 @@ import "./IDiamondUpgradeFacet.sol";
 import "./IAccessControl.sol";
 import "./ISettingsControl.sol";
 import "./IMarketCoreFacet.sol";
-import "./IMarketConfigFacet.sol";
+import "./IMarketDataFacet.sol";
 
 abstract contract IMarket is 
   IDiamondUpgradeFacet,
   IAccessControl,
   ISettingsControl,
   IMarketCoreFacet,
-  IMarketConfigFacet
+  IMarketDataFacet
   {}

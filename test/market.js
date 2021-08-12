@@ -57,6 +57,29 @@ contract('Market', accounts => {
     })
   })
 
+  describe('config', () => {
+    it('can be fetched', async () => {
+      await matchingMarketInstance.getConfig().should.eventually.matchObj({
+        dust_: 1,
+        feeBP_: 0,
+      })
+    })
+  })
+
+  describe('fee can be changed', () => {
+    it('but not by anyone', async () => {
+      await matchingMarketInstance.setFee(2, { from: accounts[1] }).should.be.rejectedWith('must be admin')
+    })
+
+    it('by admin', async () => {
+      await matchingMarketInstance.setFee(2).should.be.fulfilled
+
+      await matchingMarketInstance.getConfig().should.eventually.matchObj({
+        feeBP_: 2,
+      })
+    })
+  })
+
   describe('last offer id', () => {
     it('get correct last offer id before creation of offers', async () => {
       await matchingMarketInstance.getLastOfferId().should.eventually.eq(0)

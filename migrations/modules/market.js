@@ -15,10 +15,12 @@ export const ensureMarketIsDeployed = async (cfg) => {
   await log.task(`Deploy Market implementations`, async task => {
     const CommonUpgradeFacet = artifacts.require('./CommonUpgradeFacet')
     const MarketCoreFacet = artifacts.require('./MarketCoreFacet')
+    const MarketConfigFacet = artifacts.require('./MarketConfigFacet')
 
     addresses = [
       await deploy(deployer, getTxParams(), CommonUpgradeFacet, settings.address),
       await deploy(deployer, getTxParams(), MarketCoreFacet, settings.address),
+      await deploy(deployer, getTxParams(), MarketConfigFacet, settings.address),
     ]
 
     for (let f of extraFacets) {

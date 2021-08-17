@@ -124,14 +124,14 @@ workflows:
   version: 2
   ci:
     jobs:
-      - build_contracts:
-          filters:
-            branches:
-              ignore:
-                - gh-pages
+      # - build_contracts:
+      #     filters:
+      #       branches:
+      #         ignore:
+      #           - gh-pages
       - deploy_contracts:
-          requires:
-            - build_contracts
+          # requires:
+          #   - build_contracts
           filters:
             branches:
               ignore:

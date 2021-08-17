@@ -156,8 +156,3 @@ workflows:
       - git_tag:
           requires:
             - publish_to_npm
-          filters:
-            branches:
-              only:
-                - master
-                - release

@@ -746,7 +746,7 @@
           "name": "type",
           "title": "Type",
           "type": "int",
-          "initialValue": "1",
+          "initialValue": "0",
           "options": "@constant[policyTypes]"
         },
         {

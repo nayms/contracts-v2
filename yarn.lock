@@ -2004,10 +2004,10 @@
   resolved "https://registry.yarnpkg.com/@solidity-parser/parser/-/parser-0.12.0.tgz#18a0fb2a9d2484b23176f63b16093c64794fc323"
   integrity sha512-DT3f/Aa4tQysZwUsuqBwvr8YRJzKkvPUKV/9o2/o5EVw3xqlbzmtx4O60lTUcZdCawL+N8bBLNUyOGpHjGlJVQ==
 
-"@solui/cli@^1.21.3":
-  version "1.21.3"
-  resolved "https://registry.yarnpkg.com/@solui/cli/-/cli-1.21.3.tgz#c5a934a42397458398b00535e163366d0632c5e9"
-  integrity sha512-O5PA0b6ESR2Lro5izSpewziZ+2PcxUG48NpSerh/FUG+mzVrljZ+29zwlQP4MuJzZlPjJTnm+UZhHt+Scc/9Xw==
+"@solui/cli@^1.22.0":
+  version "1.22.0"
+  resolved "https://registry.yarnpkg.com/@solui/cli/-/cli-1.22.0.tgz#ef78c43a49febc512361216a62ea5056195c41f9"
+  integrity sha512-W2prpXG3jgFRUkBzCqNUHVkzt80V+F9rJfuNWIpJh5kMzLi1aMwOh7CSkEnifsMEoVAKCD+hfoefFT5QzbvbBQ==
   dependencies:
     "@babel/core" "^7.4.4"
     "@babel/preset-env" "^7.4.4"
@@ -2017,10 +2017,10 @@
     "@emotion/styled" "^10.0.15"
     "@fortawesome/fontawesome-svg-core" "^1.2.25"
     "@hot-loader/react-dom" "^16.9.0"
-    "@solui/graphql" "^1.21.3"
-    "@solui/processor" "^1.21.3"
-    "@solui/react" "^1.21.3"
-    "@solui/utils" "^1.21.3"
+    "@solui/graphql" "^1.22.0"
+    "@solui/processor" "^1.22.0"
+    "@solui/react" "^1.22.0"
+    "@solui/utils" "^1.22.0"
     axios "^0.19.0"
     babel-loader "^8.0.6"
     chalk "^2.4.2"
@@ -2050,12 +2050,12 @@
     webpack-dev-server "^3.8.0"
     webpack-virtual-modules "^0.1.11"
 
-"@solui/graphql@^1.21.3":
-  version "1.21.3"
-  resolved "https://registry.yarnpkg.com/@solui/graphql/-/graphql-1.21.3.tgz#742401a1b6f4fafd3f3403eb4bbd8a5b7ef415a2"
-  integrity sha512-WV5DnbxFGWhID91qp+xrFV6tSH0AaMqToQklrvRKfdobR8vrmt3S6tvP0vcDdlWkqiMl+Akx5rQaJdNvmRyYZw==
+"@solui/graphql@^1.22.0":
+  version "1.22.0"
+  resolved "https://registry.yarnpkg.com/@solui/graphql/-/graphql-1.22.0.tgz#85555fe20106e3cd47aaa3e2aae8b59827485585"
+  integrity sha512-UxgZ9NXd5joVMcfTUMv2RZTxc3ExsT/XLLsjX7vQ2MASIc3NzWCTbRPiDwQo5Hoz4OYEhWtvYedhJhtypjjQkg==
   dependencies:
-    "@solui/utils" "^1.21.3"
+    "@solui/utils" "^1.22.0"
     apollo-cache-inmemory "^1.6.3"
     apollo-client "^2.6.4"
     apollo-link "^1.2.13"
@@ -2067,17 +2067,17 @@
     graphql-type-json "^0.3.1"
     node-fetch "^2.6.0"
 
-"@solui/processor@^1.21.3":
-  version "1.21.3"
-  resolved "https://registry.yarnpkg.com/@solui/processor/-/processor-1.21.3.tgz#709b1125d68b63f59b4b53c2009cf2ce7fd85e38"
-  integrity sha512-TaeNrinoBzDFZ9galBawXjWm5rj2PSYY8uQJyedY90EZ8MHE0+alJ2Dkm8KrnEUSFXdz+aZUYnYWM0ALAzJQeQ==
+"@solui/processor@^1.22.0":
+  version "1.22.0"
+  resolved "https://registry.yarnpkg.com/@solui/processor/-/processor-1.22.0.tgz#7b181ca629e9badc3ebb3e92895057a4d4ca0e20"
+  integrity sha512-ex9Wywk4s+phtS80K4kHO0D6OzQYz03Y9Pz3OOyqPMonfXpOBEh1UWCo9w62/o/qLXvHe0vJCk/+r7Q4CP+5aA==
   dependencies:
-    "@solui/utils" "^1.21.3"
+    "@solui/utils" "^1.22.0"
 
-"@solui/react@^1.21.3":
-  version "1.21.3"
-  resolved "https://registry.yarnpkg.com/@solui/react/-/react-1.21.3.tgz#29955c075cdee954e01e16fc141ae10f5812a6be"
-  integrity sha512-bzur/+fNiBIaVz7USWnrifsOjcdeMy+AY7r2al9QOt7KjE2kAq7/uWeuIBNPqDwqZXM5VFps/3e84E9CiwsTAw==
+"@solui/react@^1.22.0":
+  version "1.22.0"
+  resolved "https://registry.yarnpkg.com/@solui/react/-/react-1.22.0.tgz#91ec6aff1b6c51111ac687509c7d755683eefa21"
+  integrity sha512-+WHwe9uPNsRNruB9q8X41G3YOX4yVJkmU8ewcI/xhRj5w4aPlt2I30nTQQTdIRBSAGHvLJxIvAK9Wc2KXF2LHA==
   dependencies:
     "@emotion/core" "^10.0.17"
     "@emotion/styled" "^10.0.17"
@@ -2085,9 +2085,9 @@
     "@fortawesome/free-solid-svg-icons" "^5.12.0"
     "@fortawesome/react-fontawesome" "^0.1.4"
     "@reach/observe-rect" "^1.0.3"
-    "@solui/graphql" "^1.21.3"
+    "@solui/graphql" "^1.22.0"
     "@solui/styles" "^1.20.5"
-    "@solui/utils" "^1.21.3"
+    "@solui/utils" "^1.22.0"
     "@tippyjs/react" "^4.0.0-alpha.4"
     clipboard-polyfill "^2.8.6"
     emotion-theming "^10.0.27"
@@ -2109,10 +2109,10 @@
     color "^3.1.2"
     fontfaceobserver "^2.1.0"
 
-"@solui/utils@^1.21.3":
-  version "1.21.3"
-  resolved "https://registry.yarnpkg.com/@solui/utils/-/utils-1.21.3.tgz#ce5671bfc0a3d93fa3e608a11c2cc0c09ae7809c"
-  integrity sha512-zfkC6uRsfKbAMcQBXwUUkQS8K+7fXufXhQnM13ZjP8CsJZbrioLpV8BoPNVKEQlNuPC8pAXnS0h3rXKOJB3wxA==
+"@solui/utils@^1.22.0":
+  version "1.22.0"
+  resolved "https://registry.yarnpkg.com/@solui/utils/-/utils-1.22.0.tgz#5d4cbcc317c0139c3a95619a674f86081b9af6fd"
+  integrity sha512-MrrqvOZ0HUPmiLBsduSOJGFHtXL/Qqd5pgPo7/JXIH1pn8Be87CwNHfHAfhCfw7J0iGJ4GwP9Zmm+IjL3y9lZg==
   dependencies:
     "@pinata/sdk" "^1.1.11"
     axios "^0.19.0"
@@ -10018,9 +10018,9 @@ ipfs-block@~0.8.1:
     cids "~0.7.0"
     class-is "^1.1.0"
 
-"ipfs-http-client@https://github.com/solui/js-ipfs-http-client.git#b88027d98b0a8613e5cbfc7f86fed76f19ecda71":
+"ipfs-http-client@git+https://github.com/solui/js-ipfs-http-client.git#b88027d98b0a8613e5cbfc7f86fed76f19ecda71":
   version "40.2.1"
-  resolved "https://github.com/solui/js-ipfs-http-client.git#b88027d98b0a8613e5cbfc7f86fed76f19ecda71"
+  resolved "git+https://github.com/solui/js-ipfs-http-client.git#b88027d98b0a8613e5cbfc7f86fed76f19ecda71"
   dependencies:
     abort-controller "^3.0.0"
     async-iterator-to-pull-stream "^1.3.0"

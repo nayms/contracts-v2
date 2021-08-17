@@ -1,6 +1,6 @@
 {
   "name": "@nayms/contracts",
-  "version": "1.0.0-local.1626957185098",
+  "version": "1.0.0-pr.118.build.1299",
   "description": "Nayms smart contracts",
   "main": "index.js",
   "publishConfig": {
@@ -47,7 +47,7 @@
     "@commitlint/cli": "^12.1.1",
     "@commitlint/config-conventional": "^12.1.1",
     "@gnosis.pm/safe-contracts": "^1.2.0",
-    "@solui/cli": "^1.21.3",
+    "@solui/cli": "^1.22.0",
     "@truffle/hdwallet-provider": "^1.4.0",
     "argv": "0.0.2",
     "babel-cli": "^6.26.0",

@@ -32,6 +32,18 @@
           "value": "invalid"
         }
       ]
+    },
+    "policyTypes": {
+      "default": [
+        {
+          "label": "SPV",
+          "value": "0"
+        },
+        {
+          "label": "Portfolio",
+          "value": "1"
+        }
+      ]
     }
   },
   "panels": [
@@ -615,8 +627,9 @@
         },
         {
           "name": "entityContext",
-          "title": "Entity context (optional)",
-          "type": "bytes32"
+          "title": "Entity context",
+          "type": "bytes32",
+          "optional": true
         }
       ],
       "execs": [
@@ -730,6 +743,13 @@
           ]
         },
         {
+          "name": "type",
+          "title": "Type",
+          "type": "int",
+          "initialValue": "0",
+          "options": "@constant[policyTypes]"
+        },
+        {
           "name": "dates",
           "title": "Dates",
           "type": "int[]",
@@ -767,25 +787,34 @@
           "name": "commissions",
           "title": "Commissions",
           "type": "int[]",
+          "helpText": "Broker, claims admin, nayms, underwriter",
           "validation": [
             {
               "type": "listSize",
-              "min": "3",
-              "max": "3"
+              "min": "4",
+              "max": "4"
             }
           ]
         },
         {
           "name": "stakeholders",
-          "title": "Stakeholders (capital provider, insured party, broker)",
+          "title": "Stakeholders",
+          "helpText": "Treasury, broker, underwriter, claims admin, insured party",
           "type": "address[]",
           "validation": [
             {
               "type": "listSize",
-              "min": "3",
-              "max": "3"
+              "min": "5",
+              "max": "5"
             }
           ]
+        },
+        {
+          "name": "trancheData",
+          "title": "Tranche data",
+          "type": "int[]",
+          "optional": true,
+          "helpText": "LEAVE THIS EMPTY!"
         }
       ],
       "execs": [
@@ -798,9 +827,9 @@
             "_dates": "@input[dates]",
             "_unit": "@input[unit]",
             "_premiumIntervalSeconds": "@input[premiumIntervalSeconds]",
-            "_commmissionsBP": "@input[dates]",
+            "_commmissionsBP": "@input[commissions]",
             "_stakeholders": "@input[stakeholders]",
-            "_trancheData": ""
+            "_trancheData": "@input[trancheData]"
           }
         }
       ]

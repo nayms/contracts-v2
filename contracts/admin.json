@@ -774,6 +774,18 @@
               "max": "3"
             }
           ]
+        },
+        {
+          "name": "stakeholders",
+          "title": "Stakeholders (capital provider, insured party, broker)",
+          "type": "address[]",
+          "validation": [
+            {
+              "type": "listSize",
+              "min": "3",
+              "max": "3"
+            }
+          ]
         }
       ],
       "execs": [
@@ -786,7 +798,9 @@
             "_dates": "@input[dates]",
             "_unit": "@input[unit]",
             "_premiumIntervalSeconds": "@input[premiumIntervalSeconds]",
-            "_commmissionsBP": "@input[dates]"
+            "_commmissionsBP": "@input[dates]",
+            "_stakeholders": "@input[stakeholders]",
+            "_trancheData": ""
           }
         }
       ]

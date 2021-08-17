@@ -112,13 +112,13 @@ jobs:
           command: git commit -am "Release $(./scripts/outputVersion.js)"
       - run:
           name: Git tag
-          command: git tag v$(./scripts/outputVersion.js) -m 'v$(./scripts/outputVersion.js)'
+          command: git tag v$(./scripts/outputVersion.js) -f -m 'v$(./scripts/outputVersion.js)'
       - run:
           name: Avoid hosts unknown for github
           command: mkdir ~/.ssh/ && echo -e "Host github.com\n\tStrictHostKeyChecking no\n" > ~/.ssh/config          
       - run:
           name: Git push tags
-          command: git push --tags
+          command: git push -f origin v$(./scripts/outputVersion.js)
 
 workflows:
   version: 2
@@ -156,8 +156,3 @@ workflows:
       - git_tag:
           requires:
             - publish_to_npm
-          filters:
-            branches:
-              only:
-                - master
-                - release

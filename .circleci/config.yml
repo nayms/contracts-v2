@@ -47,15 +47,15 @@ jobs:
       - run:
           name: Deploy contracts to test chain
           command: yarn deploy:local
-      - run:
-          name: Run tests with coverage
-          command: yarn coverage
-      - store_artifacts:
-          path: ~/repo/coverage
-          destination: coverage
-      - run:
-          name: Upload coverage report to coveralls
-          command: cat ./coverage/lcov.info | yarn coveralls
+      # - run:
+      #     name: Run tests with coverage
+      #     command: yarn coverage
+      # - store_artifacts:
+      #     path: ~/repo/coverage
+      #     destination: coverage
+      # - run:
+      #     name: Upload coverage report to coveralls
+      #     command: cat ./coverage/lcov.info | yarn coveralls
       - persist_to_workspace:
           root: ~/repo
           paths: .
@@ -124,14 +124,14 @@ workflows:
   version: 2
   ci:
     jobs:
-      # - build_contracts:
-      #     filters:
-      #       branches:
-      #         ignore:
-      #           - gh-pages
+      - build_contracts:
+          filters:
+            branches:
+              ignore:
+                - gh-pages
       - deploy_contracts:
-          # requires:
-          #   - build_contracts
+          requires:
+            - build_contracts
           filters:
             branches:
               ignore:

@@ -5,7 +5,7 @@ interface IMarketDataFacet {
    * @dev Get market config.
    *
    * @return dust_ The dist value.
-   * @return feeBP_ The fee value in basis points.
+   * @return feeBP_ The fee value in basis points (1 point = 0.01%).
    */
   function getConfig() external view returns (
     uint256 dust_,
@@ -18,6 +18,27 @@ interface IMarketDataFacet {
    * @param _feeBP The fee value in basis points.
    */
   function setFee(uint256 _feeBP) external;
+
+  /**
+   * @dev Calculate the fee that must be paid for placing the given order.
+   *
+   * Assuming that the given order will be matched immediately to existing orders, 
+   * this method returns the fee the caller will have to pay as a taker.
+   *
+   * @param _sellToken The sell unit.
+   * @param _sellAmount The sell amount.
+   * @param _buyToken The buy unit.
+   * @param _buyAmount The buy amount.
+   *
+   * @return feeToken_ The unit in which the fees are denominated.
+   * @return feeAmount_ The fee required to place the order.
+   */
+  function calculateFee(
+    address _sellToken, 
+    uint256 _sellAmount, 
+    address _buyToken, 
+    uint256 _buyAmount
+  ) external view returns (address feeToken_, uint256 feeAmount_);
 
   /**
    * @dev Get current best offer for given token pair.

@@ -37,10 +37,10 @@ const POLICY_ATTRS_1 = {
   startDateDiff: 2000,
   maturationDateDiff: 3000,
   premiumIntervalSeconds: 30,
-  claimsAdminCommissionBP: 1,
-  brokerCommissionBP: 2,
-  naymsCommissionBP: 3,
-  underwriterCommissionBP: 4,
+  claimsAdminCommissionBP: 10, /* 0.1% */
+  brokerCommissionBP: 20, /* 0.2% */
+  naymsCommissionBP: 30, /* 0.3% */
+  underwriterCommissionBP: 40, /* 0.4% */
 }
 
 contract('Policy: Commissions', accounts => {

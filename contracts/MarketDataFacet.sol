@@ -22,7 +22,8 @@ contract MarketDataFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
       IMarketDataFacet.getBestOfferId.selector,
       IMarketDataFacet.getLastOfferId.selector,
       IMarketDataFacet.isActive.selector,
-      IMarketDataFacet.getOffer.selector
+      IMarketDataFacet.getOffer.selector,
+      IMarketDataFacet.calculateFee.selector
     );
   }
 
@@ -75,4 +76,14 @@ contract MarketDataFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
   function getBestOfferId(address _sellToken, address _buyToken) public view override returns (uint256) {
     return _getBestOfferId(_sellToken, _buyToken);
   }  
+
+  function calculateFee(
+    address _sellToken, 
+    uint256 _sellAmount, 
+    address _buyToken, 
+    uint256 _buyAmount
+  ) external view override returns (address feeToken_, uint256 feeAmount_) {
+    TokenAmount memory fee = _calculateFee(_sellToken, _sellAmount, _buyToken, _buyAmount);
+    return (fee.token, fee.amount);
+  }
 }

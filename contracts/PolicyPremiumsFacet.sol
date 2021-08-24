@@ -122,10 +122,10 @@ contract PolicyPremiumsFacet is EternalStorage, Controller, IDiamondFacet, IPoli
 
   function _applyPremiumPaymentAmount (uint256 _index, uint256 _amount) private returns (uint256) {
     // calculate commissions
-    uint256 brokerCommission = dataUint256["brokerCommissionBP"].mul(_amount).div(1000);
-    uint256 claimsAdminCommission = dataUint256["claimsAdminCommissionBP"].mul(_amount).div(1000);
-    uint256 naymsCommission = dataUint256["naymsCommissionBP"].mul(_amount).div(1000);
-    uint256 underwriterCommission = dataUint256["underwriterCommissionBP"].mul(_amount).div(1000);
+    uint256 brokerCommission = dataUint256["brokerCommissionBP"].mul(_amount).div(10000);
+    uint256 claimsAdminCommission = dataUint256["claimsAdminCommissionBP"].mul(_amount).div(10000);
+    uint256 naymsCommission = dataUint256["naymsCommissionBP"].mul(_amount).div(10000);
+    uint256 underwriterCommission = dataUint256["underwriterCommissionBP"].mul(_amount).div(10000);
 
     // add to commission balances
     dataUint256["brokerCommissionBalance"] = dataUint256["brokerCommissionBalance"].add(brokerCommission);

@@ -247,7 +247,7 @@ contract('Integration: Acceptance criteria', accounts => {
         maturationDate: await calcTime(25 * 60),
         unit: etherToken.address,
         premiumIntervalSeconds: 5 * 60,
-        /* basis points: 1 = 0.1% */
+        /* basis points: 1 = 0.01% */
         brokerCommissionBP: 1,
         claimsAdminCommissionBP: 2,
         naymsCommissionBP: 3,

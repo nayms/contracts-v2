@@ -2,11 +2,12 @@ pragma solidity 0.6.12;
 
 import './base/IERC20.sol';
 import './base/IEntityTokensFacet.sol';
+import './base/PlatformToken.sol';
 
 /**
  * @dev An entity token.
  */
-contract EntityToken is IERC20 {
+contract EntityToken is IERC20, PlatformToken {
   IEntityTokensFacet public impl;
 
   constructor (address _impl) public {

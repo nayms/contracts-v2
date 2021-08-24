@@ -8,13 +8,6 @@ contract DummyMarketObserver is IMarketObserver, IDummyMarketObserver {
     mapping(uint256 => ORDER_TYPE) private order;
     mapping(uint256 => bytes) private notifyData;
 
-    /**
-     * @dev Get order details.
-     *
-     * @param orderId The order id.
-     * @return _type trade or closure.
-     * @return _data passed optional data.
-     */
     function getOrder(uint256 orderId)
         external view override
         returns (ORDER_TYPE _type, bytes memory _data)
@@ -22,24 +15,14 @@ contract DummyMarketObserver is IMarketObserver, IDummyMarketObserver {
         return (order[orderId], notifyData[orderId]);
     }
 
-    /**
-     * @dev Handle a trade notification.
-     *
-     * @param _offerId Order id.
-     * @param _sellToken Token sold.
-     * @param _soldAmount Amount sold.
-     * @param _buyToken Token bought.
-     * @param _boughtAmount Amount bought.
-     * @param _seller Order seller.
-     * @param _buyer Order buyer.
-     * @param _data Extra metadata that is being passed through.
-     */
     function handleTrade(
         uint256 _offerId,
         address _sellToken,
         uint256 _soldAmount,
         address _buyToken,
         uint256 _boughtAmount,
+        address _feeToken,
+        uint256 _feeAmount,
         address _seller,
         address _buyer,
         bytes memory _data
@@ -49,17 +32,6 @@ contract DummyMarketObserver is IMarketObserver, IDummyMarketObserver {
         emit TRADE(_offerId);
     }
 
-    /**
-     * @dev Handle an order cancellation or closure.
-     *
-     * @param _offerId Order id.
-     * @param _sellToken Token sold.
-     * @param _unsoldAmount Amount remaining unsold.
-     * @param _buyToken Token bought.
-     * @param _unboughtAmount Amount remaining unbought.
-     * @param _seller Order seller.
-     * @param _data Extra metadata that is being passed through.
-     */
     function handleClosure(
         uint256 _offerId,
         address _sellToken,

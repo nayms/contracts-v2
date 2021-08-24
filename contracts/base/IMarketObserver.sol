@@ -12,6 +12,8 @@ abstract contract IMarketObserver {
    * @param _soldAmount Amount sold.
    * @param _buyToken Token bought.
    * @param _boughtAmount Amount bought.
+   * @param _feeToken Fee token.
+   * @param _feeAmount Fee paid.
    * @param _seller Order seller.
    * @param _buyer Order buyer.
    * @param _data Extra metadata that is being passed through.
@@ -22,6 +24,8 @@ abstract contract IMarketObserver {
     uint256 _soldAmount, 
     address _buyToken, 
     uint256 _boughtAmount,
+    address _feeToken, 
+    uint256 _feeAmount,
     address _seller,
     address _buyer,
     bytes memory _data

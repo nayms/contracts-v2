@@ -112,6 +112,8 @@ contract PolicyTranchTokensFacet is EternalStorage, Controller, IDiamondFacet, I
     uint256 _soldAmount, 
     address _buyToken, 
     uint256 _boughtAmount,
+    address _feeToken, 
+    uint256 _feeAmount,
     address _seller,
     address _buyer,
     bytes memory _data

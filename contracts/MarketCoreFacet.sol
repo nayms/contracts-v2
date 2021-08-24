@@ -395,12 +395,30 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     dataUint256[__i(_offerId, "sellAmount")] = offerSellAmount.sub(thisSaleSellAmount);
     dataUint256[__i(_offerId, "buyAmount")] = offerBuyAmount.sub(_requestedBuyAmount);
 
+    // calculate and take out fees
+    (
+      uint256 finalSellAmount,
+      TokenAmount memory fee
+    ) = _takeFees(
+      offerBuyToken,
+      _requestedBuyAmount,
+      offerSellToken,
+      thisSaleSellAmount
+    );
+
     // do the transfer
     require(IERC20(offerBuyToken).transferFrom(msg.sender, creator, _requestedBuyAmount), "sender -> creator transfer failed");
-    require(IERC20(offerSellToken).transfer(msg.sender, thisSaleSellAmount), "market -> sender transfer failed");    
+    require(IERC20(offerSellToken).transfer(msg.sender, finalSellAmount), "market -> sender transfer failed");    
 
     // notify observers
-    _notifyObserversOfTrade(_offerId, thisSaleSellAmount, _requestedBuyAmount, _buyNotify, _buyNotifyData);
+    _notifyObserversOfTrade(
+      _offerId, 
+      thisSaleSellAmount, 
+      _requestedBuyAmount, 
+      fee,
+      _buyNotify, 
+      _buyNotifyData
+    );
 
     // cancel offer if it has become dust
     if (dataUint256[__i(_offerId, "sellAmount")] < dataUint256["dust"]) {
@@ -408,10 +426,30 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     }
   }
 
+  function _takeFees(address _buyToken, uint256 _buyAmount, address _sellToken, uint256 _sellAmount) private 
+    returns (uint256 finalSellAmount_, TokenAmount memory fee_)
+  {
+    address feeBank = _getFeeBank();
+    
+    finalSellAmount_ = _sellAmount;
+
+    fee_ = _calculateFee(_buyToken, _buyAmount, _sellToken, _sellAmount);
+
+    if (fee_.token == _buyToken) {
+      // if fee is to be paid in the buy token then it must be paid on top of buy amount
+      require(IERC20(_buyToken).transferFrom(msg.sender, feeBank, fee_.amount), "sender -> feebank fee transfer failed");
+    } else {
+      // if fee is to be paid in the sell token then it must be paid from the received amount
+      finalSellAmount_ = finalSellAmount_.sub(fee_.amount);
+      require(IERC20(_sellToken).transfer(feeBank, fee_.amount), "market -> feebank fee transfer failed");    
+    }
+  }
+
   function _notifyObserversOfTrade(
     uint256 _offerId,
     uint256 _soldAmount,
     uint256 _boughtAmount,
+    TokenAmount memory _fee,
     address _buyNotify,
     bytes memory _buyNotifyData
   ) private {
@@ -428,6 +466,8 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
         _soldAmount, 
         offerBuyToken, 
         _boughtAmount, 
+        _fee.token,
+        _fee.amount,
         creator, 
         msg.sender, 
         _buyNotifyData
@@ -441,6 +481,8 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
         _soldAmount, 
         offerBuyToken, 
         _boughtAmount, 
+        _fee.token,
+        _fee.amount,
         creator, 
         msg.sender, 
         offerNotifyData

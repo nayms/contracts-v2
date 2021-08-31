@@ -18,10 +18,10 @@ import { ROLES, ROLEGROUPS, SETTINGS } from '../utils/constants'
 
 import { ensureAclIsDeployed } from '../migrations/modules/acl'
 
-import { ensureEtherTokenIsDeployed } from '../migrations/modules/etherToken'
 import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
 import { ensureEntityDeployerIsDeployed } from '../migrations/modules/entityDeployer'
 import { ensureMarketIsDeployed } from '../migrations/modules/market'
+import { ensureFeeBankIsDeployed } from '../migrations/modules/feeBank'
 import { ensureEntityImplementationsAreDeployed } from '../migrations/modules/entityImplementations'
 import { ensurePolicyImplementationsAreDeployed } from '../migrations/modules/policyImplementations'
 
@@ -32,6 +32,7 @@ const IDiamondProxy = artifacts.require('./base/IDiamondProxy')
 const IPolicyStates = artifacts.require("./base/IPolicyStates")
 const IPolicyClaimsFacet = artifacts.require("./base/IPolicyClaimsFacet")
 const Policy = artifacts.require("./Policy")
+const DummyToken = artifacts.require("./DummyToken")
 const IPolicy = artifacts.require("./base/IPolicy")
 const DummyPolicyFacet = artifacts.require("./test/DummyPolicyFacet")
 const FreezeUpgradesFacet = artifacts.require("./test/FreezeUpgradesFacet")
@@ -137,7 +138,10 @@ contract('Policy: Claims', accounts => {
     market = await ensureMarketIsDeployed({ artifacts, settings })
 
     // registry + wrappedEth
-    etherToken = await ensureEtherTokenIsDeployed({ artifacts, settings })
+    etherToken = await DummyToken.new('Token 1', 'TOK1', 18, 0, false)
+
+    // fee bank
+    ensureFeeBankIsDeployed({ artifacts, settings })
 
     // entity
     entityDeployer = await ensureEntityDeployerIsDeployed({ artifacts, settings })

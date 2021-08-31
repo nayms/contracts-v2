@@ -18,7 +18,6 @@ export const updateDeployedAddressesJson = async cfg => {
       ACL: 'acl',
       Settings: 'settings',
       EntityDeployer: 'entityDeployer',
-      EtherToken: 'etherToken',
       Market: 'market',
     }
 

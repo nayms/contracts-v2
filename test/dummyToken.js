@@ -1,4 +1,4 @@
-import { extractEventArgs, ADDRESS_ZERO, EvmSnapshot } from './utils'
+import { extractEventArgs, ADDRESS_ZERO, getBalance } from './utils'
 import { events } from '../'
 
 const IERC20 = artifacts.require("./base/IERC20")
@@ -8,26 +8,70 @@ contract('DummyToken', accounts => {
   let dummyToken
 
   beforeEach(async () => {
-    dummyToken = await DummyToken.new('Dummy token', 'DUM', 8, '100000000')
+    dummyToken = await DummyToken.new('Dummy token', 'DUM', 18, 0, false)
   })
 
   it('sets up default values', async () => {
+    dummyToken = await DummyToken.new('Dummy token', 'DUM', 8, '100000000', false)
+
     await dummyToken.name().should.eventually.eq('Dummy token')
     await dummyToken.symbol().should.eventually.eq('DUM')
     await dummyToken.decimals().should.eventually.eq('8')
     await dummyToken.totalSupply().should.eventually.eq('100000000')
     await dummyToken.balanceOf(accounts[0]).should.eventually.eq('100000000')
+    await dummyToken.isNaymsPlatformToken().should.eventually.eq(false)
   })
 
-  describe('mint', () => {
-    it('mint()', async () => {
-      const ret = await dummyToken.mint(23)
+  it('can overwrite platform token boolean', async () => {
+    dummyToken = await DummyToken.new('Dummy token', 'DUM', 8, '100000000', true)
+    await dummyToken.isNaymsPlatformToken().should.eventually.eq(true)
+  })
 
-      await dummyToken.balanceOf(accounts[0]).should.eventually.eq('100000023')
-      await dummyToken.totalSupply().should.eventually.eq('100000023')
+  describe('mint and burn', () => {
+    it('deposit()', async () => {
+      const bal0 = await getBalance(accounts[0])
+      const bal1 = await getBalance(accounts[1])
 
-      const eventArgs = extractEventArgs(ret, events.Mint)
-      expect(eventArgs).to.include({ sender: accounts[0], amount: '23' })
+      const ret = await dummyToken.deposit({ value: 23 })
+
+      const eventArgs = extractEventArgs(ret, events.Deposit)
+      expect(eventArgs).to.include({ sender: accounts[0], value: '23' })
+
+      await dummyToken.balanceOf(accounts[0]).should.eventually.eq('23')
+      await dummyToken.totalSupply().should.eventually.eq('23')
+      await web3.eth.getBalance(dummyToken.address).should.eventually.eq('23')
+
+      await dummyToken.deposit({ from: accounts[1], value: 101 })
+      await dummyToken.balanceOf(accounts[0]).should.eventually.eq('23')
+      await dummyToken.balanceOf(accounts[1]).should.eventually.eq('101')
+      await dummyToken.totalSupply().should.eventually.eq('124')
+      await web3.eth.getBalance(dummyToken.address).should.eventually.eq('124')
+
+      const newBal0 = await getBalance(accounts[0])
+      const newBal1 = await getBalance(accounts[1])
+
+      expect(bal0.sub(newBal0).gt(23)).to.eq(true)
+      expect(bal1.sub(newBal1).gt(101)).to.eq(true)
+    })
+
+    it('withdraw()', async () => {
+      await dummyToken.deposit({ value: 23 })
+      await dummyToken.deposit({ from: accounts[1], value: 9 })
+
+      const ret = await dummyToken.withdraw(12)
+
+      const eventArgs = extractEventArgs(ret, events.Withdrawal)
+      expect(eventArgs).to.include({ receiver: accounts[0], value: '12' })
+
+      await dummyToken.withdraw(4, { from: accounts[1] })
+
+      await dummyToken.totalSupply().should.eventually.eq(16)
+      await web3.eth.getBalance(dummyToken.address).should.eventually.eq('16')
+    })
+
+    it('withdraw() fails if insufficent balance', async () => {
+      await dummyToken.deposit({ value: 23 })
+      await dummyToken.withdraw(24).should.be.rejectedWith('DummyToken: insufficient balance')
     })
   })
 
@@ -36,7 +80,7 @@ contract('DummyToken', accounts => {
     let tknSupply
 
     beforeEach(async () => {
-      await dummyToken.mint(1000)
+      await dummyToken.deposit({ value: 1000 })
       tkn = await IERC20.at(dummyToken.address)
       tknSupply = await tkn.totalSupply()
     })

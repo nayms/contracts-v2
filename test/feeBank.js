@@ -3,10 +3,10 @@ import { extractEventArgs, ADDRESS_ZERO, EvmSnapshot } from './utils'
 import { events } from '..'
 import { ensureAclIsDeployed } from '../migrations/modules/acl'
 import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
-import { deployNewEtherToken } from '../migrations/modules/etherToken'
 import { ensureFeeBankIsDeployed } from '../migrations/modules/feeBank'
 
 const IERC20 = artifacts.require("./base/IERC20")
+const DummyToken = artifacts.require("./DummyToken")
 
 contract('Fee bank', accounts => {
   const evmSnapshot = new EvmSnapshot()
@@ -20,8 +20,8 @@ contract('Fee bank', accounts => {
   before(async () => {
     acl = await ensureAclIsDeployed({ artifacts })
     settings = await ensureSettingsIsDeployed({ artifacts, acl })
-    token1 = await deployNewEtherToken({ artifacts, settings })
-    token2 = await deployNewEtherToken({ artifacts, settings })
+    token1 = await DummyToken.new('Token 1', 'TOK1', 18, 0, false)
+    token2 = await DummyToken.new('Token 2', 'TOK2', 18, 0, false)
     feeBank = await ensureFeeBankIsDeployed({ artifacts, settings })
   })
 

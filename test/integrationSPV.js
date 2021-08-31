@@ -10,7 +10,6 @@ import {
 } from './utils'
 
 import { events } from '..'
-import { ensureEtherTokenIsDeployed } from '../migrations/modules/etherToken'
 import { ROLES, ROLEGROUPS, SETTINGS } from '../utils/constants'
 import { ensureAclIsDeployed } from '../migrations/modules/acl'
 import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
@@ -26,6 +25,7 @@ const IPolicyTreasury = artifacts.require('./base/IPolicyTreasury')
 const Entity = artifacts.require('./Entity')
 const IPolicyStates = artifacts.require("./base/IPolicyStates")
 const Policy = artifacts.require("./Policy")
+const DummyToken = artifacts.require("./DummyToken")
 const IPolicy = artifacts.require("./IPolicy")
 const IERC20 = artifacts.require("./base/IERC20")
 
@@ -99,7 +99,7 @@ contract('Integration: SPV', accounts => {
     settings = await ensureSettingsIsDeployed({ artifacts, acl })
 
     // wrappedEth
-    etherToken = await ensureEtherTokenIsDeployed({ artifacts, settings })
+    etherToken = await DummyToken.new('Token 1', 'TOK1', 18, 0, false)
 
     // entity
     entityDeployer = await ensureEntityDeployerIsDeployed({ artifacts, settings })

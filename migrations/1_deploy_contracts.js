@@ -10,7 +10,6 @@ const { getCurrentAcl, ensureAclIsDeployed, addMultisigAddressAsSystemAdmin } = 
 const { getCurrentSettings, ensureSettingsIsDeployed } = require('./modules/settings')
 const { ensureMarketIsDeployed } = require('./modules/market')
 const { ensureFeeBankIsDeployed } = require('./modules/feeBank')
-const { getCurrentEtherToken, ensureEtherTokenIsDeployed } = require('./modules/etherToken')
 const { getCurrentEntityDeployer, ensureEntityDeployerIsDeployed } = require('./modules/entityDeployer')
 const { ensureEntityImplementationsAreDeployed } = require('./modules/entityImplementations')
 const { ensurePolicyImplementationsAreDeployed } = require('./modules/policyImplementations')
@@ -119,18 +118,16 @@ module.exports = async (deployer, network, accounts) => {
       cfg.acl = await ensureAclIsDeployed(cfg)
       cfg.settings = await ensureSettingsIsDeployed(cfg)
 
-      ;[ cfg.entityDeployer, cfg.etherToken ] = await Promise.all([
+      ;[ cfg.entityDeployer ] = await Promise.all([
         ensureEntityDeployerIsDeployed(cfg),
-        ensureEtherTokenIsDeployed(cfg),
       ])
     })
   } else {
     await log.task('Deploying upgrades only', async () => {
-      ;[ cfg.acl, cfg.settings, cfg.entityDeployer, cfg.etherToken ] = await Promise.all([
+      ;[ cfg.acl, cfg.settings, cfg.entityDeployer ] = await Promise.all([
         getCurrentAcl(cfg),
         getCurrentSettings(cfg),
         getCurrentEntityDeployer(cfg),
-        getCurrentEtherToken(cfg),
       ])
     })
   }

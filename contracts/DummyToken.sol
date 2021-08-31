@@ -64,9 +64,17 @@ contract DummyToken is IDummyToken, PlatformToken {
 
   // IDummyToken
 
-  function mint(uint256 _amount) public override {
-      balances[msg.sender] = balances[msg.sender].add(_amount);
-      totalSupply = totalSupply.add(_amount);
-      emit Mint(msg.sender, _amount);
+  function deposit() public payable override {
+      balances[msg.sender] = balances[msg.sender].add(msg.value);
+      totalSupply = totalSupply.add(msg.value);
+      emit Deposit(msg.sender, msg.value);
+  }
+
+  function withdraw(uint value) public override {
+      // Balance covers value
+      balances[msg.sender] = balances[msg.sender].sub(value, 'DummyToken: insufficient balance');
+      totalSupply = totalSupply.sub(value);
+      msg.sender.transfer(value);
+      emit Withdrawal(msg.sender, value);
   }
 }

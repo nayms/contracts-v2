@@ -13,7 +13,6 @@ import {
 
 import { events } from '..'
 import { ROLES, SETTINGS } from '../utils/constants'
-import { ensureEtherTokenIsDeployed, deployNewEtherToken } from '../migrations/modules/etherToken'
 import { ensureEntityDeployerIsDeployed } from '../migrations/modules/entityDeployer'
 import { ensureAclIsDeployed } from '../migrations/modules/acl'
 import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
@@ -36,6 +35,7 @@ const FreezeUpgradesFacet = artifacts.require("./test/FreezeUpgradesFacet")
 const Entity = artifacts.require("./Entity")
 const IPolicy = artifacts.require("./IPolicy")
 const Policy = artifacts.require("./Policy")
+const DummyToken = artifacts.require("./DummyToken")
 
 contract('Treasury', accounts => {
   const evmSnapshot = new EvmSnapshot()
@@ -71,8 +71,8 @@ contract('Treasury', accounts => {
     settings = await ensureSettingsIsDeployed({ artifacts, acl })
     market = await ensureMarketIsDeployed({ artifacts, settings })
     entityDeployer = await ensureEntityDeployerIsDeployed({ artifacts, settings })
-    etherToken = await ensureEtherTokenIsDeployed({ artifacts, settings })
-    etherToken2 = await deployNewEtherToken({ artifacts, settings })
+    etherToken = await DummyToken.new('Token 1', 'TOK1', 18, 0, false)
+    etherToken2 = await DummyToken.new('Token 2', 'TOK2', 18, 0, true)
     await ensurePolicyImplementationsAreDeployed({ artifacts, settings, extraFacets: [ PolicyTreasuryTestFacet ] })
     await ensureEntityImplementationsAreDeployed({ artifacts, settings, extraFacets: [ EntityTreasuryTestFacet ] })
 

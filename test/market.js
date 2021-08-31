@@ -5,6 +5,7 @@ import { events } from '..'
 import { ensureAclIsDeployed } from '../migrations/modules/acl'
 import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
 import { ensureMarketIsDeployed } from '../migrations/modules/market'
+import { ensureFeeBankIsDeployed } from '../migrations/modules/feeBank'
 
 const DummyToken = artifacts.require("./DummyToken")
 const DummyMarketObserver = artifacts.require("./DummyMarketObserver")
@@ -19,17 +20,25 @@ contract('Market', accounts => {
 
   let matchingMarketInstance
   let erc20WETH
+  let erc20WETH2
   let erc20DAI
+  let erc20DAI2
   let mintAmount
 
   before(async () => {
-    erc20WETH = await DummyToken.new('Wrapped ETH', 'WETH', 18, 0, { from: accounts[0] })
-    erc20DAI = await DummyToken.new('Dai Stablecoin', 'DAI', 18, 0, { from: accounts[0] })
+    erc20WETH = await DummyToken.new('Wrapped ETH', 'WETH', 18, 0, true, { from: accounts[0] })
+    erc20WETH2 = await DummyToken.new('Wrapped ETH 2', 'WETH2', 18, 0, true, { from: accounts[0] })
+
+    erc20DAI = await DummyToken.new('Dai Stablecoin', 'DAI', 18, 0, false, { from: accounts[0] })
+    erc20DAI2 = await DummyToken.new('Dai Stablecoin 2', 'DAI2', 18, 0, false, { from: accounts[0] })
+
     mintAmount = toWei('1000')
 
     for (let i = 1; i <= 4; i++) {
       await erc20WETH.mint(mintAmount, { from: accounts[i] })
+      await erc20WETH2.mint(mintAmount, { from: accounts[i] })
       await erc20DAI.mint(mintAmount, { from: accounts[i] })
+      await erc20DAI2.mint(mintAmount, { from: accounts[i] })
     }
 
     // acl
@@ -39,8 +48,9 @@ contract('Market', accounts => {
     // settings
     settings = await ensureSettingsIsDeployed({ artifacts, acl })
 
-    // market
+    // market and fee bank
     matchingMarketInstance = await ensureMarketIsDeployed({ artifacts, settings })
+    await ensureFeeBankIsDeployed({ artifacts, settings })
   })
 
   beforeEach(async () => {
@@ -77,6 +87,79 @@ contract('Market', accounts => {
       await matchingMarketInstance.getConfig().should.eventually.matchObj({
         feeBP_: 2,
       })
+    })
+  })
+
+  describe('platform token check', () => {    
+    it('does not allow 2 non-platform tokens', async () => {
+      const pay_amt = toWei('10')
+      const buy_amt = toWei('10')
+
+      await erc20DAI.approve(
+        matchingMarketInstance.address,
+        pay_amt,
+        { from: accounts[2] }
+      ).should.be.fulfilled
+
+      await matchingMarketInstance.executeLimitOffer(
+        erc20DAI.address,
+        pay_amt,
+        erc20DAI2.address,
+        buy_amt,
+        { from: accounts[2] }
+      ).should.be.rejectedWith('must be one platform token')
+    })
+
+    it('does not allow 2 platform tokens', async () => {
+      const pay_amt = toWei('10')
+      const buy_amt = toWei('10')
+
+      await erc20WETH.approve(
+        matchingMarketInstance.address,
+        pay_amt,
+        { from: accounts[2] }
+      ).should.be.fulfilled
+
+      await matchingMarketInstance.executeLimitOffer(
+        erc20WETH.address,
+        pay_amt,
+        erc20WETH2.address,
+        buy_amt,
+        { from: accounts[2] }
+      ).should.be.rejectedWith('must be one platform token')
+    })
+
+    it('does allow 1 platform token', async () => {
+      const pay_amt = toWei('10')
+      const buy_amt = toWei('10')
+
+      await erc20WETH.approve(
+        matchingMarketInstance.address,
+        pay_amt,
+        { from: accounts[2] }
+      ).should.be.fulfilled
+
+      await matchingMarketInstance.executeLimitOffer(
+        erc20WETH.address,
+        pay_amt,
+        erc20DAI.address,
+        buy_amt,
+        { from: accounts[2] }
+      ).should.be.fulfilled
+
+      await erc20DAI.approve(
+        matchingMarketInstance.address,
+        pay_amt,
+        { from: accounts[2] }
+      ).should.be.fulfilled
+
+      await matchingMarketInstance.executeLimitOffer(
+        erc20DAI.address,
+        pay_amt,
+        erc20WETH.address,
+        buy_amt,
+        { from: accounts[2] }
+      ).should.be.fulfilled
     })
   })
 

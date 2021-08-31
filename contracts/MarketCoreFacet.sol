@@ -101,6 +101,14 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
       _buyAmount
     );
 
+    // check that fee calculation works
+    _calculateFee(
+      _sellToken,
+      _sellAmount,
+      _buyToken,
+      _buyAmount
+    );
+
     return _matchToExistingOffers(
       _sellToken,
       _sellAmount,
@@ -376,39 +384,28 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     address _buyNotify,
     bytes memory _buyNotifyData
   ) private {
-    address creator = dataAddress[__i(_offerId, "creator")];
-    address offerSellToken = dataAddress[__i(_offerId, "sellToken")];
-    uint256 offerSellAmount = dataUint256[__i(_offerId, "sellAmount")];
-    address offerBuyToken = dataAddress[__i(_offerId, "buyToken")];
-    uint256 offerBuyAmount = dataUint256[__i(_offerId, "buyAmount")];
+    (TokenAmount memory offerSell, TokenAmount memory offerBuy) = _getOfferTokenAmounts(_offerId);
 
     // (a / b) * c = c * a / b  -> do multiplication first to avoid underflow
-    uint256 thisSaleSellAmount = _requestedBuyAmount.mul(offerSellAmount).div(offerBuyAmount);
+    uint256 thisSaleSellAmount = _requestedBuyAmount.mul(offerSell.amount).div(offerBuy.amount);
 
-    require(uint128(_requestedBuyAmount) == _requestedBuyAmount, "buy amount exceeds int limit");    
-    require(uint128(thisSaleSellAmount) == thisSaleSellAmount, "sell amount exceeds int limit");
-
-    // check bounds
-    _checkTradeBounds(offerBuyAmount, _requestedBuyAmount, offerSellAmount, thisSaleSellAmount);
-
-    // update balances
-    dataUint256[__i(_offerId, "sellAmount")] = offerSellAmount.sub(thisSaleSellAmount);
-    dataUint256[__i(_offerId, "buyAmount")] = offerBuyAmount.sub(_requestedBuyAmount);
+    // check bounds and update balances
+    _checkBoundsAndUpdateBalances(_offerId, thisSaleSellAmount, _requestedBuyAmount);
 
     // calculate and take out fees
     (
       uint256 finalSellAmount,
       TokenAmount memory fee
     ) = _takeFees(
-      offerBuyToken,
+      offerBuy.token,
       _requestedBuyAmount,
-      offerSellToken,
+      offerSell.token,
       thisSaleSellAmount
     );
 
     // do the transfer
-    require(IERC20(offerBuyToken).transferFrom(msg.sender, creator, _requestedBuyAmount), "sender -> creator transfer failed");
-    require(IERC20(offerSellToken).transfer(msg.sender, finalSellAmount), "market -> sender transfer failed");    
+    require(IERC20(offerBuy.token).transferFrom(msg.sender, dataAddress[__i(_offerId, "creator")], _requestedBuyAmount), "sender -> creator transfer failed");
+    require(IERC20(offerSell.token).transfer(msg.sender, finalSellAmount), "market -> sender transfer failed");    
 
     // notify observers
     _notifyObserversOfTrade(
@@ -424,6 +421,22 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     if (dataUint256[__i(_offerId, "sellAmount")] < dataUint256["dust"]) {
       _cancel(_offerId);
     }
+  }
+
+  function _checkBoundsAndUpdateBalances(uint256 _offerId, uint256 _sellAmount, uint256 _buyAmount) private {
+    (TokenAmount memory offerSell, TokenAmount memory offerBuy) = _getOfferTokenAmounts(_offerId);
+
+    require(uint128(_buyAmount) == _buyAmount, "buy amount exceeds int limit");    
+    require(uint128(_sellAmount) == _sellAmount, "sell amount exceeds int limit");
+
+    require(_buyAmount > 0, "requested buy amount is 0");
+    require(_buyAmount <= offerBuy.amount, "requested buy amount too large");
+    require(_sellAmount > 0, "calculated sell amount is 0");
+    require(_sellAmount <= offerSell.amount, "calculated sell amount too large");
+
+    // update balances
+    dataUint256[__i(_offerId, "sellAmount")] = offerSell.amount.sub(_sellAmount);
+    dataUint256[__i(_offerId, "buyAmount")] = offerBuy.amount.sub(_buyAmount);
   }
 
   function _takeFees(address _buyToken, uint256 _buyAmount, address _sellToken, uint256 _sellAmount) private 
@@ -462,13 +475,10 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     if (_buyNotify != address(0)) {
       IMarketObserver(_buyNotify).handleTrade(
         _offerId, 
-        offerSellToken, 
         _soldAmount, 
-        offerBuyToken, 
         _boughtAmount, 
         _fee.token,
         _fee.amount,
-        creator, 
         msg.sender, 
         _buyNotifyData
       );
@@ -477,13 +487,10 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     if (offerNotify != address(0)) {
       IMarketObserver(offerNotify).handleTrade(
         _offerId, 
-        offerSellToken, 
         _soldAmount, 
-        offerBuyToken, 
         _boughtAmount, 
         _fee.token,
         _fee.amount,
-        creator, 
         msg.sender, 
         offerNotifyData
       );
@@ -519,11 +526,8 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     if (notify != address(0)) {
       IMarketObserver(notify).handleClosure(
         _offerId, 
-        sellToken, 
         sellAmount, 
-        buyToken, 
         buyAmount, 
-        creator, 
         notifyData
       );
     }

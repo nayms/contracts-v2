@@ -24,6 +24,14 @@ abstract contract MarketFacetBase is EternalStorage, Controller {
     return dataUint256[__iaa(0, _sellToken, _buyToken, "bestOfferId")];
   }  
 
+  function _getOfferTokenAmounts(uint256 _offerId) internal view returns (TokenAmount memory sell_, TokenAmount memory buy_) {
+    sell_.token = dataAddress[__i(_offerId, "sellToken")];
+    sell_.amount = dataUint256[__i(_offerId, "sellAmount")];
+    buy_.token = dataAddress[__i(_offerId, "buyToken")];
+    buy_.amount = dataUint256[__i(_offerId, "buyAmount")];
+  }  
+
+
   function _calculateFee(
     address _sellToken, 
     uint256 _sellAmount, 
@@ -37,7 +45,7 @@ abstract contract MarketFacetBase is EternalStorage, Controller {
     // XOR: trade is valid iff one token is platform token
     require(
       (sellTokenIsPlatformToken || buyTokenIsPlatformToken) && !(sellTokenIsPlatformToken && buyTokenIsPlatformToken), 
-      "only platform tokens supported"
+      "must be one platform token"
     );
 
     uint256 feeBP = dataUint256["feeBP"];

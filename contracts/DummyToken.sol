@@ -1,9 +1,10 @@
 pragma solidity 0.6.12;
 
 import "./base/IDummyToken.sol";
+import "./base/PlatformToken.sol";
 import "./base/SafeMath.sol";
 
-contract DummyToken is IDummyToken {
+contract DummyToken is IDummyToken, PlatformToken {
   using SafeMath for *;
 
   mapping (address => uint256) private balances;
@@ -13,12 +14,13 @@ contract DummyToken is IDummyToken {
   uint8 public override decimals;
   uint256 public override totalSupply;
 
-  constructor (string memory _name, string memory _symbol, uint8 _decimals, uint256 _initialSupply) public {
+  constructor (string memory _name, string memory _symbol, uint8 _decimals, uint256 _initialSupply, bool _isPlatformToken) public {
     name = _name;
     symbol = _symbol;
     decimals = _decimals;
     totalSupply = _initialSupply;
     balances[msg.sender] = _initialSupply;
+    isPlatformToken = _isPlatformToken;
   }
 
   function balanceOf(address account) public view override returns (uint256) {

@@ -4,7 +4,6 @@ import {
   createTranch,
   createPolicy,
   EvmClock,
-  calcPremiumsMinusCommissions,
   EvmSnapshot,
   createEntity,
 } from './utils'

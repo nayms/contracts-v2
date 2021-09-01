@@ -19,6 +19,7 @@ export const updateDeployedAddressesJson = async cfg => {
       Settings: 'settings',
       EntityDeployer: 'entityDeployer',
       Market: 'market',
+      FeeBank: 'feeBank'
     }
 
     Object.keys(MAP).forEach(name => {

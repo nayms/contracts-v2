@@ -14,6 +14,7 @@ import { ROLES, ROLEGROUPS, SETTINGS } from '../utils/constants'
 import { ensureAclIsDeployed } from '../migrations/modules/acl'
 import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
 import { ensureMarketIsDeployed } from '../migrations/modules/market'
+import { ensureFeeBankIsDeployed } from '../migrations/modules/feeBank'
 import { ensureEntityDeployerIsDeployed } from '../migrations/modules/entityDeployer'
 import { ensureEntityImplementationsAreDeployed } from '../migrations/modules/entityImplementations'
 import { ensurePolicyImplementationsAreDeployed } from '../migrations/modules/policyImplementations'
@@ -32,7 +33,7 @@ const IERC20 = artifacts.require("./base/IERC20")
 contract('Integration: SPV', accounts => {
   const evmSnapshot = new EvmSnapshot()
 
-  const claimsAdminCommissionBP = 100
+  const claimsAdminCommissionBP = 100 /* 1% */
   const brokerCommissionBP = 200
   const naymsCommissionBP = 300
   const underwriterCommissionBP = 300
@@ -97,6 +98,9 @@ contract('Integration: SPV', accounts => {
 
     // settings
     settings = await ensureSettingsIsDeployed({ artifacts, acl })
+
+    // fee bank
+    await ensureFeeBankIsDeployed({ artifacts, settings })
 
     // wrappedEth
     etherToken = await DummyToken.new('Token 1', 'TOK1', 18, 0, false)
@@ -166,13 +170,13 @@ contract('Integration: SPV', accounts => {
     await createTranch(policy, {
       numShares: 100,
       pricePerShareAmount: 2,
-      premiums: [10, 20, 30, 40, 50, 60, 70],
+      premiums: [1000, 2000, 3000, 4000, 5000, 6000, 7000],
     }, { from: policyOwnerAddress })
 
     await createTranch(policy, {
       numShares: 50,
       pricePerShareAmount: 2,
-      premiums: [10, 20, 30, 40, 50, 60, 70],
+      premiums: [1000, 2000, 3000, 4000, 5000, 6000, 7000],
     }, { from: policyOwnerAddress })
 
     getTranchToken = async idx => {
@@ -236,12 +240,12 @@ contract('Integration: SPV', accounts => {
         })
 
         it('but not if tranch premiums have not been paid', async () => {
-          await etherToken.deposit({ value: 100 })
-          await etherToken.approve(policy.address, 100)
+          await etherToken.deposit({ value: 100000 })
+          await etherToken.approve(policy.address, 100000)
 
           // pay all tranches except the second one
-          await policy.payTranchPremium(0, 10)
-          await policy.payTranchPremium(2, 10)
+          await policy.payTranchPremium(0, 1000)
+          await policy.payTranchPremium(2, 1000)
 
           await evmClock.setAbsoluteTime(initiationDate)
 
@@ -254,10 +258,10 @@ contract('Integration: SPV', accounts => {
 
         describe('once tranch premiums are up-to-date', () => {
           beforeEach(async () => {
-            await etherToken.deposit({ value: 100 })
-            await etherToken.approve(policy.address, 100)
-            await policy.payTranchPremium(0, 10)
-            await policy.payTranchPremium(1, 10)
+            await etherToken.deposit({ value: 100000 })
+            await etherToken.approve(policy.address, 100000)
+            await policy.payTranchPremium(0, 1000)
+            await policy.payTranchPremium(1, 1000)
             await evmClock.setAbsoluteTime(initiationDate)
           })
 
@@ -328,13 +332,17 @@ contract('Integration: SPV', accounts => {
     beforeEach(async () => {
       await approvePolicy()
 
-      await etherToken.deposit({ value: 100 })
-      await etherToken.approve(policy.address, 100)
-      await policy.payTranchPremium(0, 10)
-      await policy.payTranchPremium(1, 10)
+      await etherToken.deposit({ value: 100000 })
+      await etherToken.approve(policy.address, 10000)
+      await policy.payTranchPremium(0, 1000)
+      await policy.payTranchPremium(1, 1000)
 
       await evmClock.setAbsoluteTime(initiationDate)
       await policy.checkAndUpdateState()
+
+      await policy.getInfo().should.eventually.matchObj({
+        state_: POLICY_STATE_INITIATED
+      })
 
       await policy.getTranchInfo(0).should.eventually.matchObj({
         sharesSold_: 0,
@@ -359,8 +367,8 @@ contract('Integration: SPV', accounts => {
       beforeEach(async () => {
         // check initial balances
         await etherToken.balanceOf(accounts[2]).should.eventually.eq(25)
-        await etherToken.balanceOf(policy.address).should.eventually.eq(18) /* commissions from premium payments */
-        await etherToken.balanceOf(entity.address).should.eventually.eq(2) /* premium payments - minus commissions */
+        await etherToken.balanceOf(policy.address).should.eventually.eq(180) /* commissions from premium payments = 9% of 2000 */
+        await etherToken.balanceOf(entity.address).should.eventually.eq(1820) /* premium payments - minus commissions */
         await etherToken.balanceOf(market.address).should.eventually.eq(0)
         await tranchToken.balanceOf(accounts[2]).should.eventually.eq(0)
         await tranchToken.balanceOf(entity.address).should.eventually.eq(0)
@@ -372,8 +380,8 @@ contract('Integration: SPV', accounts => {
 
         // check balances again
         await etherToken.balanceOf(accounts[2]).should.eventually.eq(15)
-        await etherToken.balanceOf(policy.address).should.eventually.eq(18)
-        await etherToken.balanceOf(entity.address).should.eventually.eq(2)
+        await etherToken.balanceOf(policy.address).should.eventually.eq(180)
+        await etherToken.balanceOf(entity.address).should.eventually.eq(1820)
         await etherToken.balanceOf(market.address).should.eventually.eq(10)
         await tranchToken.balanceOf(accounts[2]).should.eventually.eq(0)
         await tranchToken.balanceOf(entity.address).should.eventually.eq(0)
@@ -389,7 +397,7 @@ contract('Integration: SPV', accounts => {
       it('and tranch balance is unchanged', async () => {
         const b = (await policy.getTranchInfo(0)).balance_
         expect(b.toNumber()).to.eq(calcPremiumsMinusCommissions({
-          premiums: [10],
+          premiums: [1000],
           claimsAdminCommissionBP,
           brokerCommissionBP,
           naymsCommissionBP,
@@ -415,8 +423,8 @@ contract('Integration: SPV', accounts => {
       beforeEach(async () => {
         // check initial balances
         await etherToken.balanceOf(accounts[2]).should.eventually.eq(25)
-        await etherToken.balanceOf(policy.address).should.eventually.eq(18) /* commissions from premium payments: 10 + 10 */
-        await etherToken.balanceOf(entity.address).should.eventually.eq(2) /* premium payments - minus commissions */
+        await etherToken.balanceOf(policy.address).should.eventually.eq(180) /* commissions from premium payments: 10 + 10 */
+        await etherToken.balanceOf(entity.address).should.eventually.eq(1820) /* premium payments - minus commissions */
         await etherToken.balanceOf(market.address).should.eventually.eq(0)
         await tranchToken.balanceOf(accounts[2]).should.eventually.eq(0)
         await tranchToken.balanceOf(entity.address).should.eventually.eq(0)
@@ -429,8 +437,8 @@ contract('Integration: SPV', accounts => {
 
         // check balances again
         await etherToken.balanceOf(accounts[2]).should.eventually.eq(15)
-        await etherToken.balanceOf(policy.address).should.eventually.eq(18)
-        await etherToken.balanceOf(entity.address).should.eventually.eq(2 + 10)
+        await etherToken.balanceOf(policy.address).should.eventually.eq(180)
+        await etherToken.balanceOf(entity.address).should.eventually.eq(1820 + 10)
         await etherToken.balanceOf(market.address).should.eventually.eq(0)
         await tranchToken.balanceOf(accounts[2]).should.eventually.eq(5)
         await tranchToken.balanceOf(entity.address).should.eventually.eq(0)
@@ -447,7 +455,7 @@ contract('Integration: SPV', accounts => {
       it('and tranch balance has been updated', async () => {
         const b = (await policy.getTranchInfo(0)).balance_
         expect(b.toNumber()).to.eq(10 + calcPremiumsMinusCommissions({
-          premiums: [10],
+          premiums: [1000],
           claimsAdminCommissionBP,
           brokerCommissionBP,
           naymsCommissionBP,
@@ -510,7 +518,7 @@ contract('Integration: SPV', accounts => {
       it('then tranch balance has been updated', async () => {
         const b = (await policy.getTranchInfo(0)).balance_
         expect(b.toNumber()).to.eq(200 + calcPremiumsMinusCommissions({
-          premiums: [10],
+          premiums: [1000],
           claimsAdminCommissionBP,
           brokerCommissionBP,
           naymsCommissionBP,
@@ -578,10 +586,10 @@ contract('Integration: SPV', accounts => {
     })
 
     it('but not if start date has not passed', async () => {
-      await etherToken.deposit({ value: 100 })
-      await etherToken.approve(policy.address, 100)
-      await policy.payTranchPremium(0, 10)
-      await policy.payTranchPremium(1, 10)
+      await etherToken.deposit({ value: 100000 })
+      await etherToken.approve(policy.address, 1000000)
+      await policy.payTranchPremium(0, 1000)
+      await policy.payTranchPremium(1, 1000)
 
       await evmClock.setAbsoluteTime(initiationDate)
       await policy.checkAndUpdateState()
@@ -596,11 +604,11 @@ contract('Integration: SPV', accounts => {
 
       beforeEach(async () => {
         // approve
-        await etherToken.deposit({ value: 1000 })
-        await etherToken.approve(policy.address, 1000)
+        await etherToken.deposit({ value: 1000000 })
+        await etherToken.approve(policy.address, 1000000)
 
-        await policy.payTranchPremium(0, 20)
-        await policy.payTranchPremium(1, 20)
+        await policy.payTranchPremium(0, 2000)
+        await policy.payTranchPremium(1, 2000)
 
         await evmClock.setAbsoluteTime(initiationDate)
 
@@ -674,7 +682,7 @@ contract('Integration: SPV', accounts => {
           const tranchToken = await getTranchToken(0)
 
           // buy the whole tranch to make it active
-          await etherToken.deposit({ from: accounts[2], value: 1000 })
+          await etherToken.deposit({ from: accounts[2], value: 1000000 })
           await etherToken.approve(market.address, 200, { from: accounts[2] })
           await market.executeLimitOffer(etherToken.address, 200, tranchToken.address, 100, { from: accounts[2] })
         })
@@ -714,7 +722,7 @@ contract('Integration: SPV', accounts => {
           const tranchToken = await getTranchToken(0)
 
           // buy the whole tranch to make it active
-          await etherToken.deposit({ from: accounts[2], value: 1000 })
+          await etherToken.deposit({ from: accounts[2], value: 1000000 })
           await etherToken.approve(market.address, 200, { from: accounts[2] })
           const ret = await market.executeLimitOffer(etherToken.address, 200, tranchToken.address, 100, { from: accounts[2] })
 
@@ -723,10 +731,10 @@ contract('Integration: SPV', accounts => {
           expect(ev.state).to.eq(TRANCH_STATE_ACTIVE.toString())
 
           // pay its premiums upto start date
-          await etherToken.approve(policy.address, 1000, { from: accounts[2] })
+          await etherToken.approve(policy.address, 1000000, { from: accounts[2] })
           let toPay = 0
           for (let i = 0; (startDate - initiationDate) / premiumIntervalSeconds >= i; i += 1) {
-            toPay += (20 + 10 * i)
+            toPay += (2000 + 1000 * i)
           }
           await policy.payTranchPremium(0, toPay, { from: accounts[2] })
         })
@@ -765,14 +773,14 @@ contract('Integration: SPV', accounts => {
         const tranchToken = await getTranchToken(0)
 
         // buy the whole tranch to make it active
-        await etherToken.deposit({ from: accounts[2], value: 1000 })
+        await etherToken.deposit({ from: accounts[2], value: 2000000 })
         await etherToken.approve(market.address, 200, { from: accounts[2] })
         await market.executeLimitOffer(etherToken.address, 200, tranchToken.address, 100, { from: accounts[2] })
         // pay all premiums upto start date
-        await etherToken.approve(policy.address, 1000, { from: accounts[2] })
+        await etherToken.approve(policy.address, 1000000, { from: accounts[2] })
         let toPay = 0
         for (let i = 0; (startDate - initiationDate) / premiumIntervalSeconds >= i; i += 1) {
-          toPay += (20 + 10 * i)
+          toPay += (2000 + 1000 * i)
         }
         await policy.payTranchPremium(0, toPay, { from: accounts[2] })
 
@@ -796,10 +804,10 @@ contract('Integration: SPV', accounts => {
       await approvePolicy()
 
       // pay first premiums
-      await etherToken.deposit({ value: 2000 })
-      await etherToken.approve(policy.address, 2000)
-      await policy.payTranchPremium(0, 10)
-      await policy.payTranchPremium(1, 10)
+      await etherToken.deposit({ value: 1000000 })
+      await etherToken.approve(policy.address, 1000000)
+      await policy.payTranchPremium(0, 1000)
+      await policy.payTranchPremium(1, 1000)
 
       // pass the inititation date
       await evmClock.setAbsoluteTime(initiationDate)
@@ -808,8 +816,8 @@ contract('Integration: SPV', accounts => {
       await policy.checkAndUpdateState()
 
       // sell-out the tranches
-      await etherToken.deposit({ value: 2000, from: accounts[2] })
-      await etherToken.approve(market.address, 2000, { from: accounts[2] })
+      await etherToken.deposit({ value: 2000000, from: accounts[2] })
+      await etherToken.approve(market.address, 2000000, { from: accounts[2] })
 
       const tranch0Address = ((await getTranchToken(0))).address
       await market.executeLimitOffer(etherToken.address, 200, tranch0Address, 100, { from: accounts[2] })
@@ -820,12 +828,12 @@ contract('Integration: SPV', accounts => {
       // pay premiums upto start date
       let toPay = 0
       for (let i = 0; (startDate - initiationDate) / premiumIntervalSeconds > i; i += 1) {
-        nextPremium = (20 + 10 * i)
+        nextPremium = (2000 + 1000 * i)
         toPay += nextPremium
       }
       await policy.payTranchPremium(0, toPay)
       await policy.payTranchPremium(1, toPay)
-      nextPremium += 10
+      nextPremium += 1000
 
       // pass the start date
       await evmClock.setAbsoluteTime(startDate)
@@ -1055,7 +1063,7 @@ contract('Integration: SPV', accounts => {
           let toPay0 = 0
           for (let i = numPremiumsPaid0 + 1; numPremiums0 >= i; i += 1) {
             toPay0 += nextPremiumAmount0
-            nextPremiumAmount0 += 10
+            nextPremiumAmount0 += 1000
           }
           await policy.payTranchPremium(0, toPay0)
 
@@ -1066,7 +1074,7 @@ contract('Integration: SPV', accounts => {
           let toPay1 = 0
           for (let i = numPremiumsPaid1 + 1; numPremiums1 >= i; i += 1) {
             toPay1 += nextPremiumAmount1
-            nextPremiumAmount1 += 10
+            nextPremiumAmount1 += 1000
           }
           await policy.payTranchPremium(1, toPay1)
         })
@@ -1219,7 +1227,7 @@ contract('Integration: SPV', accounts => {
           let toPay0 = 0
           for (let i = numPremiumsPaid0 + 1; numPremiums0 >= i; i += 1) {          
             toPay0 += nextPremiumAmount0
-            nextPremiumAmount0 += 10
+            nextPremiumAmount0 += 1000
           }
           await policy.payTranchPremium(0, toPay0)
 
@@ -1230,7 +1238,7 @@ contract('Integration: SPV', accounts => {
           let toPay1 = 0
           for (let i = numPremiumsPaid1 + 1; numPremiums1 >= i; i += 1) {
             toPay1 += nextPremiumAmount1
-            nextPremiumAmount1 += 10  
+            nextPremiumAmount1 += 1000  
           }
           await policy.payTranchPremium(1, toPay1)
 
@@ -1259,7 +1267,7 @@ contract('Integration: SPV', accounts => {
           const postBalance = (await etherToken.balanceOf(accounts[2])).toNumber()
 
           const expectedPremiumBalance = calcPremiumsMinusCommissions({
-            premiums: [10, 20, 30, 40, 50, 60, 70],
+            premiums: [1000, 2000, 3000, 4000, 5000, 6000, 7000],
             claimsAdminCommissionBP,
             brokerCommissionBP,
             naymsCommissionBP,

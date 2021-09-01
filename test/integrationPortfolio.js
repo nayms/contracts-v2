@@ -5,7 +5,6 @@ import {
   createPolicy,
   createEntity,
   EvmClock,
-  calcPremiumsMinusCommissions,
   EvmSnapshot,
   ADDRESS_ZERO,
 } from './utils'

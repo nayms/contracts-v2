@@ -16,8 +16,6 @@ import { events } from '..'
 import { ROLES, ROLEGROUPS, SETTINGS } from '../utils/constants'
 
 import { ensureAclIsDeployed } from '../migrations/modules/acl'
-
-import { ensureEtherTokenIsDeployed } from '../migrations/modules/etherToken'
 import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
 import { ensureEntityDeployerIsDeployed } from '../migrations/modules/entityDeployer'
 import { ensureMarketIsDeployed } from '../migrations/modules/market'
@@ -30,6 +28,7 @@ const IEntity = artifacts.require('./base/IEntity')
 const Entity = artifacts.require('./Entity')
 const IPolicyStates = artifacts.require("./base/IPolicyStates")
 const Policy = artifacts.require("./Policy")
+const DummyToken = artifacts.require("./DummyToken")
 const IPolicy = artifacts.require("./base/IPolicy")
 
 const POLICY_ATTRS_1 = {
@@ -37,10 +36,10 @@ const POLICY_ATTRS_1 = {
   startDateDiff: 2000,
   maturationDateDiff: 3000,
   premiumIntervalSeconds: 30,
-  claimsAdminCommissionBP: 1,
-  brokerCommissionBP: 2,
-  naymsCommissionBP: 3,
-  underwriterCommissionBP: 4,
+  claimsAdminCommissionBP: 10, /* 0.1% */
+  brokerCommissionBP: 20, /* 0.2% */
+  naymsCommissionBP: 30, /* 0.3% */
+  underwriterCommissionBP: 40, /* 0.4% */
 }
 
 contract('Policy: Commissions', accounts => {
@@ -103,7 +102,7 @@ contract('Policy: Commissions', accounts => {
     feeBank = await ensureFeeBankIsDeployed({ artifacts, settings })
 
     // registry + wrappedEth
-    etherToken = await ensureEtherTokenIsDeployed({ artifacts, settings })
+    etherToken = await DummyToken.new('Token 1', 'TOK1', 18, 0, false)
 
     // entity
     entityDeployer = await ensureEntityDeployerIsDeployed({ artifacts, settings })

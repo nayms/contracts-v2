@@ -1,9 +1,10 @@
 pragma solidity 0.6.12;
 
 import "./base/IDummyToken.sol";
+import "./base/PlatformToken.sol";
 import "./base/SafeMath.sol";
 
-contract DummyToken is IDummyToken {
+contract DummyToken is IDummyToken, PlatformToken {
   using SafeMath for *;
 
   mapping (address => uint256) private balances;
@@ -13,12 +14,13 @@ contract DummyToken is IDummyToken {
   uint8 public override decimals;
   uint256 public override totalSupply;
 
-  constructor (string memory _name, string memory _symbol, uint8 _decimals, uint256 _initialSupply) public {
+  constructor (string memory _name, string memory _symbol, uint8 _decimals, uint256 _initialSupply, bool _isPlatformToken) public {
     name = _name;
     symbol = _symbol;
     decimals = _decimals;
     totalSupply = _initialSupply;
     balances[msg.sender] = _initialSupply;
+    isPlatformToken = _isPlatformToken;
   }
 
   function balanceOf(address account) public view override returns (uint256) {
@@ -62,9 +64,17 @@ contract DummyToken is IDummyToken {
 
   // IDummyToken
 
-  function mint(uint256 _amount) public override {
-      balances[msg.sender] = balances[msg.sender].add(_amount);
-      totalSupply = totalSupply.add(_amount);
-      emit Mint(msg.sender, _amount);
+  function deposit() public payable override {
+      balances[msg.sender] = balances[msg.sender].add(msg.value);
+      totalSupply = totalSupply.add(msg.value);
+      emit Deposit(msg.sender, msg.value);
+  }
+
+  function withdraw(uint value) public override {
+      // Balance covers value
+      balances[msg.sender] = balances[msg.sender].sub(value, 'DummyToken: insufficient balance');
+      totalSupply = totalSupply.sub(value);
+      msg.sender.transfer(value);
+      emit Withdrawal(msg.sender, value);
   }
 }

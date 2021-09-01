@@ -12,16 +12,17 @@ import {
 
 import { events } from '../'
 import { ROLES, SETTINGS } from '../utils/constants'
-import { ensureEtherTokenIsDeployed, deployNewEtherToken } from '../migrations/modules/etherToken'
 import { ensureAclIsDeployed } from '../migrations/modules/acl'
 import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
 import { ensureMarketIsDeployed } from '../migrations/modules/market'
+import { ensureFeeBankIsDeployed } from '../migrations/modules/feeBank'
 import { ensureEntityImplementationsAreDeployed } from '../migrations/modules/entityImplementations'
 import { ensurePolicyImplementationsAreDeployed } from '../migrations/modules/policyImplementations'
 
 const IEntity = artifacts.require("./base/IEntity")
 const Proxy = artifacts.require('./base/Proxy')
 const IERC20 = artifacts.require('./base/IERC20')
+const DummyToken = artifacts.require('./DummyToken')
 const IDiamondUpgradeFacet = artifacts.require('./base/IDiamondUpgradeFacet')
 const IDiamondProxy = artifacts.require('./base/IDiamondProxy')
 const AccessControl = artifacts.require('./base/AccessControl')
@@ -52,23 +53,24 @@ contract('Entity', accounts => {
     acl = await ensureAclIsDeployed({ artifacts })
     settings = await ensureSettingsIsDeployed({ artifacts, acl })
     market = await ensureMarketIsDeployed({ artifacts, settings })
-    etherToken = await ensureEtherTokenIsDeployed({ artifacts, settings })
+    await ensureFeeBankIsDeployed({ artifacts, settings })
     await ensurePolicyImplementationsAreDeployed({ artifacts, settings })
     await ensureEntityImplementationsAreDeployed({ artifacts, settings })
-
+    
     DOES_NOT_HAVE_ROLE = (await acl.DOES_NOT_HAVE_ROLE()).toNumber()
     HAS_ROLE_CONTEXT = (await acl.HAS_ROLE_CONTEXT()).toNumber()
-
+    
     entityAdmin = accounts[9]
-
+    
     entityProxy = await Entity.new(settings.address, entityAdmin, BYTES32_ZERO)
     // now let's speak to Entity contract using EntityImpl ABI
     entity = await IEntity.at(entityProxy.address)
     entityContext = await entityProxy.aclContext()
-
+    
     ;([ entityCoreAddress ] = await settings.getRootAddresses(SETTINGS.ENTITY_IMPL))
-
-    etherToken2 = await deployNewEtherToken({ artifacts, settings })
+    
+    etherToken = await DummyToken.new('Wrapped ETH', 'WETH', 18, 0, false)
+    etherToken2 = await DummyToken.new('Wrapped ETH 2', 'WETH2', 18, 0, true)
   })
 
   beforeEach(async () => {

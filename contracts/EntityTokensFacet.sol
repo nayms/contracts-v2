@@ -142,11 +142,10 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
 
   function handleTrade(
     uint256 _offerId,
-    address _sellToken, 
     uint256 _soldAmount, 
-    address _buyToken, 
     uint256 _boughtAmount,
-    address _seller,
+    address _feeToken, 
+    uint256 _feeAmount,
     address _buyer,
     bytes memory _data
   ) external override {
@@ -165,11 +164,12 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
       // if we created this offer
       if (entity == address(this)) {
         // check entity token matches sell token
+        (, address sellToken, , address buyToken, , , , , ,) = _getMarket().getOffer(_offerId);
         address tokenAddress = dataAddress["token"];
-        require(tokenAddress == _sellToken, "sell token must be entity token");
+        require(tokenAddress == sellToken, "sell token must be entity token");
 
         // add bought amount to balance
-        string memory balKey = __a(_buyToken, "balance");
+        string memory balKey = __a(buyToken, "balance");
         dataUint256[balKey] = dataUint256[balKey].add(_boughtAmount);
       }
     }    
@@ -177,11 +177,8 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
 
   function handleClosure(
     uint256 _offerId,
-    address _sellToken, 
     uint256 _unsoldAmount, 
-    address _buyToken, 
     uint256 _unboughtAmount,
-    address _seller,
     bytes memory _data
   ) external override {
     if (_data.length == 0) {
@@ -199,8 +196,9 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
       // if we created this offer
       if (entity == address(this)) {
         // check entity token matches sell token
+        (, address sellToken, , , , , , , ,) = _getMarket().getOffer(_offerId);
         address tokenAddress = dataAddress["token"];
-        require(tokenAddress == _sellToken, "sell token must be entity token");
+        require(tokenAddress == sellToken, "sell token must be entity token");
 
         // burn the unsold amount (currently owned by the entity since the market has already sent it back)
         if (_unsoldAmount > 0) {

@@ -246,7 +246,7 @@ export const preSetupPolicy = async (ctx, createPolicyArgs) => {
 
 export const calcPremiumsMinusCommissions = ({ premiums, claimsAdminCommissionBP, brokerCommissionBP, naymsCommissionBP, underwriterCommissionBP }) => (
   premiums.reduce((m, v) => (
-    m + v - (v * claimsAdminCommissionBP / 1000) - (v * brokerCommissionBP / 1000) - (v * naymsCommissionBP / 1000) - (v * underwriterCommissionBP / 1000)
+    m + v - (v * claimsAdminCommissionBP / 10000) - (v * brokerCommissionBP / 10000) - (v * naymsCommissionBP / 10000) - (v * underwriterCommissionBP / 10000)
   ), 0)
 )
 

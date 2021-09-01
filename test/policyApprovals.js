@@ -4,13 +4,11 @@ import {
   createTranch,
   createPolicy,
   EvmClock,
-  calcPremiumsMinusCommissions,
   EvmSnapshot,
   createEntity,
 } from './utils'
 
 import { events } from '..'
-import { ensureEtherTokenIsDeployed } from '../migrations/modules/etherToken'
 import { ROLES, ROLEGROUPS } from '../utils/constants'
 import { ensureAclIsDeployed } from '../migrations/modules/acl'
 import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
@@ -24,6 +22,7 @@ const Entity = artifacts.require('./Entity')
 const IPolicyStates = artifacts.require("./base/IPolicyStates")
 const Policy = artifacts.require("./Policy")
 const IPolicy = artifacts.require("./IPolicy")
+const DummyToken = artifacts.require("./DummyToken")
 const IERC20 = artifacts.require("./base/IERC20")
 
 contract('Policy: Approvals', accounts => {
@@ -90,7 +89,7 @@ contract('Policy: Approvals', accounts => {
     settings = await ensureSettingsIsDeployed({ artifacts, acl })
 
     // wrappedEth
-    etherToken = await ensureEtherTokenIsDeployed({ artifacts, settings })
+    etherToken = await DummyToken.new('Token 1', 'TOK1', 18, 0, false)
 
     // entity
     entityDeployer = await ensureEntityDeployerIsDeployed({ artifacts, settings })

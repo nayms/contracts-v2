@@ -1,24 +1,34 @@
-const path = require('path')
 const got = require('got')
 const ethUtil = require('ethereumjs-util')
 
-const { ADDRESS_ZERO, BYTES32_ZERO } = require('../../utils/constants')
+const { ADDRESS_ZERO } = require('../../utils/constants')
 const { createLog } = require('./log')
 const { networks } = require('../../truffle-config.js')
 const addresses = require('../../deployedAddresses.json')
 const packageJson = require('../../package.json')
 
-const MNEMONIC = (packageJson.scripts.devnet.match(/\'(.+)\'/))[1]
+export const getLiveGasPrice = async ({ log }) => {
+  let gwei
 
-exports.defaultGetTxParams = (txParamsOverride = {}) => Object.assign({
+  await log.task('Fetching live fast gas price', async task => {
+    const { body } = await got('https://www.ethgasstationapi.com/api/fast', { rejectUnauthorized: false })
+    const fast = parseFloat(body)
+    gwei = fast + 1
+    task.log(`${gwei} GWEI`)
+  })
+
+  return gwei
+}
+
+export const defaultGetTxParams = (txParamsOverride = {}) => Object.assign({
   gasPrice: 1 * 1000000000, // 1 GWEI
 }, txParamsOverride)
 
 
 let safeNonce // keep track of ongoing nonce
 
-exports.execCall = async ({ task, contract, method, args, cfg }) => {
-  const { web3, artifacts, accounts, getTxParams = exports.defaultGetTxParams, networkInfo, multisig, hdWallet, onlyDeployingUpgrades } = cfg
+export const execCall = async ({ task, contract, method, args, cfg }) => {
+  const { web3, artifacts, accounts, getTxParams = defaultGetTxParams, networkInfo, multisig, hdWallet, onlyDeployingUpgrades } = cfg
 
   if (multisig && onlyDeployingUpgrades) {
     await task.log(`   QUEUE: ${method}() on ${contract.address} (multisig: ${multisig})`, 'green')
@@ -112,7 +122,7 @@ exports.execCall = async ({ task, contract, method, args, cfg }) => {
   }
 }
 
-exports.deploy = async (deployer, txParams, Contract, ...constructorArgs) => {
+export const deploy = async (deployer, txParams, Contract, ...constructorArgs) => {
   Contract.synchronization_timeout = 300 // 2mins
 
   if (deployer) {
@@ -123,7 +133,7 @@ exports.deploy = async (deployer, txParams, Contract, ...constructorArgs) => {
   }
 }
 
-exports.getCurrentInstance = async ({ artifacts, lookupType, type, networkInfo, log }) => {
+export const getCurrentInstance = async ({ artifacts, lookupType, type, networkInfo, log }) => {
   log = createLog(log)
 
   const Type = artifacts.require(`./${type}`)
@@ -139,7 +149,7 @@ exports.getCurrentInstance = async ({ artifacts, lookupType, type, networkInfo, 
 }
 
 
-exports.getMatchingNetwork = ({ network_id, name }) => {
+export const getMatchingNetwork = ({ network_id, name }) => {
   let match
 
   if (name) {

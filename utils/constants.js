@@ -1,5 +1,7 @@
 const { keccak256 } = require('./functions')
 
+exports.TEST_MNEMONIC = 'funny door sample enrich female wedding stereo crane setup shop dwarf dismiss'
+
 exports.ADDRESS_ZERO = '0x0000000000000000000000000000000000000000'
 exports.BYTES32_ZERO = '0x0000000000000000000000000000000000000000000000000000000000000000'
 exports.BYTES_ZERO = '0x0'

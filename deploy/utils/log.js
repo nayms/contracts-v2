@@ -1,7 +1,7 @@
 const _ = require('lodash')
 const chalk = require('chalk')
 
-exports.createLog = logger => {
+export const createLog = logger => {
   if (_.get(logger, 'task')) {
     return logger
   }

@@ -6,7 +6,7 @@ export const getCurrentSettings = async ({ networkInfo, log }) => {
 }
 
 export const ensureSettingsIsDeployed = async (ctx) => {
-  const { acl, getTxParams } = ctx
+  const { acl } = ctx
 
   const log = createLog(ctx.log)
 

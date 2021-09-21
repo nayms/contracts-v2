@@ -3,6 +3,8 @@ import { createLog, getMatchingNetwork, buildGetTxParamsHandler, updateDeployedA
 import { getCurrentAcl, ensureAclIsDeployed, addMultisigAddressAsSystemAdmin } from './modules/acl'
 import { getCurrentSettings, ensureSettingsIsDeployed } from './modules/settings'
 import { getCurrentEntityDeployer, ensureEntityDeployerIsDeployed } from './modules/entityDeployer'
+import { ensureMarketIsDeployed } from './modules/market'
+import { ensureFeeBankIsDeployed } from './modules/feeBank'
 
 async function main() {
   // setup logger
@@ -81,8 +83,8 @@ async function main() {
     })
   }
 
-  // ctx.market = await ensureMarketIsDeployed(ctx)
-  // ctx.feeBank = await ensureFeeBankIsDeployed(ctx)
+  ctx.market = await ensureMarketIsDeployed(ctx)
+  ctx.feeBank = await ensureFeeBankIsDeployed(ctx)
 
   // await ensureEntityImplementationsAreDeployed(ctx)
   // await ensurePolicyImplementationsAreDeployed(ctx)

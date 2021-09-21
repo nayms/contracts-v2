@@ -1,30 +1,30 @@
 const { createLog } = require('../utils/log')
-const { deploy, defaultGetTxParams, execCall } = require('../utils')
+const { deploy, execCall } = require('../utils')
 const { SETTINGS, ADDRESS_ZERO } = require('../../utils/constants')
 
-export const ensureMarketIsDeployed = async (cfg) => {
-  const { deployer, artifacts, log: baseLog, accounts, settings, entityDeployer, getTxParams = defaultGetTxParams, extraFacets = [] } = cfg
+export const ensureMarketIsDeployed = async (ctx) => {
+  const { log: baseLog, accounts, settings, entityDeployer, getTxParams, extraFacets = [] } = ctx
   const log = createLog(baseLog)
 
   let addresses
 
-  const Market = artifacts.require('./Market')
-  const IMarket = artifacts.require('./IMarket')
-  const IDiamondUpgradeFacet = artifacts.require('./base/IDiamondUpgradeFacet')
+  const Market = await getContractFactory('./Market')
+  const IMarket = await getContractFactory('./IMarket')
+  const IDiamondUpgradeFacet = await getContractFactory('./base/IDiamondUpgradeFacet')
 
   await log.task(`Deploy Market implementations`, async task => {
-    const CommonUpgradeFacet = artifacts.require('./CommonUpgradeFacet')
-    const MarketCoreFacet = artifacts.require('./MarketCoreFacet')
-    const MarketDataFacet = artifacts.require('./MarketDataFacet')
+    const CommonUpgradeFacet = await getContractFactory('./CommonUpgradeFacet')
+    const MarketCoreFacet = await getContractFactory('./MarketCoreFacet')
+    const MarketDataFacet = await getContractFactory('./MarketDataFacet')
 
     addresses = [
-      await deploy(deployer, getTxParams(), CommonUpgradeFacet, settings.address),
-      await deploy(deployer, getTxParams(), MarketCoreFacet, settings.address),
-      await deploy(deployer, getTxParams(), MarketDataFacet, settings.address),
+      await deploy(getTxParams(), CommonUpgradeFacet, settings.address),
+      await deploy(getTxParams(), MarketCoreFacet, settings.address),
+      await deploy(getTxParams(), MarketDataFacet, settings.address),
     ]
 
     for (let f of extraFacets) {
-      addresses.push(await deploy(deployer, getTxParams(), f, settings.address))
+      addresses.push(await deploy(getTxParams(), f, settings.address))
     }
 
     addresses = addresses.map(c => c.address)
@@ -46,7 +46,7 @@ export const ensureMarketIsDeployed = async (cfg) => {
 
   if (marketAddress === ADDRESS_ZERO) {
     await log.task(`Deploy market`, async task => {
-      market = await deploy(deployer, getTxParams(), Market, settings.address)
+      market = await deploy(getTxParams(), Market, settings.address)
       task.log(`Deployed at ${market.address}`)
     })
 
@@ -55,17 +55,17 @@ export const ensureMarketIsDeployed = async (cfg) => {
     })
   } else {
     await log.task(`Upgrade market at ${marketAddress} with new facets`, async task => {
-      market = await IDiamondUpgradeFacet.at(marketAddress)
+      market = await IDiamondUpgradeFacet.attach(marketAddress)
 
       await execCall({
         task,
         contract: market,
         method: 'upgrade',
         args: [addresses],
-        cfg,
+        ctx,
       })
     })
   }
 
-  return await IMarket.at(market.address)
+  return await IMarket.attach(market.address)
 }

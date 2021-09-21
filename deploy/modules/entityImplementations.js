@@ -1,35 +1,35 @@
 const { createLog } = require('../utils/log')
-const { deploy, defaultGetTxParams, execCall } = require('../utils')
+const { deploy, execCall } = require('../utils')
 const { SETTINGS, BYTES32_ZERO, ADDRESS_ZERO } = require('../../utils/constants')
 
-export const ensureEntityImplementationsAreDeployed = async (cfg) => {
-  const { deployer, artifacts, log: baseLog, accounts, settings, entityDeployer, getTxParams = defaultGetTxParams, extraFacets = [] } = cfg
+export const ensureEntityImplementationsAreDeployed = async (ctx) => {
+  const { log: baseLog, accounts, settings, entityDeployer, getTxParams, extraFacets = [] } = ctx
   const log = createLog(baseLog)
 
   let addresses
 
-  const EntityDelegate = artifacts.require('./EntityDelegate')
-  const IDiamondUpgradeFacet = artifacts.require('./base/IDiamondUpgradeFacet')
+  const EntityDelegate = await getContractFactory('./EntityDelegate')
+  const IDiamondUpgradeFacet = await getContractFactory('./base/IDiamondUpgradeFacet')
 
   await log.task(`Deploy Entity implementations`, async task => {
-    const CommonUpgradeFacet = artifacts.require('./CommonUpgradeFacet')
-    const EntityCoreFacet = artifacts.require('./EntityCoreFacet')
-    const EntityTokensFacet = artifacts.require('./EntityTokensFacet')
-    const EntityDividendsFacet = artifacts.require('./EntityDividendsFacet')
-    const EntityTreasuryFacet = artifacts.require('./EntityTreasuryFacet')
-    const EntityTreasuryBridgeFacet = artifacts.require('./EntityTreasuryBridgeFacet')    
+    const CommonUpgradeFacet = await getContractFactory('./CommonUpgradeFacet')
+    const EntityCoreFacet = await getContractFactory('./EntityCoreFacet')
+    const EntityTokensFacet = await getContractFactory('./EntityTokensFacet')
+    const EntityDividendsFacet = await getContractFactory('./EntityDividendsFacet')
+    const EntityTreasuryFacet = await getContractFactory('./EntityTreasuryFacet')
+    const EntityTreasuryBridgeFacet = await getContractFactory('./EntityTreasuryBridgeFacet')    
 
     addresses = [
-      await deploy(deployer, getTxParams(), CommonUpgradeFacet, settings.address),
-      await deploy(deployer, getTxParams(), EntityCoreFacet, settings.address),
-      await deploy(deployer, getTxParams(), EntityTokensFacet, settings.address),
-      await deploy(deployer, getTxParams(), EntityDividendsFacet, settings.address),
-      await deploy(deployer, getTxParams(), EntityTreasuryFacet, settings.address),
-      await deploy(deployer, getTxParams(), EntityTreasuryBridgeFacet, settings.address),
+      await deploy(getTxParams(), CommonUpgradeFacet, settings.address),
+      await deploy(getTxParams(), EntityCoreFacet, settings.address),
+      await deploy(getTxParams(), EntityTokensFacet, settings.address),
+      await deploy(getTxParams(), EntityDividendsFacet, settings.address),
+      await deploy(getTxParams(), EntityTreasuryFacet, settings.address),
+      await deploy(getTxParams(), EntityTreasuryBridgeFacet, settings.address),
     ]
     
     for (let f of extraFacets) {
-      addresses.push(await deploy(deployer, getTxParams(), f, settings.address))
+      addresses.push(await deploy(getTxParams(), f, settings.address))
     }
 
     addresses = addresses.map(c => c.address)
@@ -50,7 +50,7 @@ export const ensureEntityImplementationsAreDeployed = async (cfg) => {
 
   if (entityDelegateAddress === ADDRESS_ZERO) {
     await log.task(`Deploy entity delegate`, async task => {
-      const { address } = await deploy(deployer, getTxParams(), EntityDelegate, settings.address)
+      const { address } = await deploy(getTxParams(), EntityDelegate, settings.address)
       entityDelegateAddress = address
       task.log(`Deployed at ${entityDelegateAddress}`)
     })
@@ -60,14 +60,14 @@ export const ensureEntityImplementationsAreDeployed = async (cfg) => {
     })
   } else {
     await log.task(`Upgrade entity delegate at ${entityDelegateAddress} with new facets`, async task => {
-      const entityDelegate = await IDiamondUpgradeFacet.at(entityDelegateAddress)
+      const entityDelegate = await IDiamondUpgradeFacet.attach(entityDelegateAddress)
 
       await execCall({
         task,
         contract: entityDelegate,
         method: 'upgrade',
         args: [addresses],
-        cfg,
+        ctx,
       })
     })
   }

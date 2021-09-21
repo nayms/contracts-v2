@@ -1,4 +1,7 @@
 require('@babel/register')
+require("core-js/stable")
+require("regenerator-runtime/runtime")
+require("@nomiclabs/hardhat-ethers")
 require('solidity-coverage')
 
 const { TEST_MNEMONIC } = require('./utils/constants')
@@ -21,6 +24,7 @@ module.exports = {
 
   networks: {
     hardhat: {
+      chainId: 31337,
       blockGasLimit: 30000000,
       accounts: {
         mnemonic: TEST_MNEMONIC,
@@ -31,6 +35,7 @@ module.exports = {
       },
     },
     mainnet: {
+      chainId: 1,
       url: `https://mainnet.infura.io/v3/${infuraKey}`,
       accounts: {
         mnemonic,
@@ -38,6 +43,7 @@ module.exports = {
       timeout: 60000,
     },
     rinkeby: {
+      chainId: 4,
       url: `https://rinkeby.infura.io/v3/${infuraKey}`,
       accounts: {
         mnemonic,

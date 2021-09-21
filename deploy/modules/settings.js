@@ -1,22 +1,21 @@
 const { createLog } = require('../utils/log')
-const { deploy, getCurrentInstance, defaultGetTxParams } = require('../utils')
+const { getCurrentInstance, deployContract, getContractAt } = require('../utils')
 
-export const getCurrentSettings = async ({ artifacts, networkInfo, log }) => {
-  return getCurrentInstance({ networkInfo, log, artifacts, type: 'ISettings', lookupType: 'Settings' })
+export const getCurrentSettings = async ({ networkInfo, log }) => {
+  return getCurrentInstance({ networkInfo, log, type: 'ISettings', lookupType: 'Settings' })
 }
 
-export const ensureSettingsIsDeployed = async ({ deployer, artifacts, log, acl, getTxParams = defaultGetTxParams }) => {
-  log = createLog(log)
+export const ensureSettingsIsDeployed = async (ctx) => {
+  const { acl, getTxParams } = ctx
+
+  const log = createLog(ctx.log)
 
   let settings
 
   await log.task(`Deploy Settings`, async task => {
-    const Settings = artifacts.require('./Settings')
-    settings = await deploy(deployer, getTxParams(), Settings, acl.address)
+    settings = await deployContract(ctx, 'Settings', acl.address)
     task.log(`Deployed at ${settings.address}`)
   })
 
-  const ISettings = artifacts.require('./ISettings')
-
-  return await ISettings.at(settings.address)
+  return await getContractAt('ISettings', settings.address)
 }

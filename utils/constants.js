@@ -1,14 +1,14 @@
 const { keccak256 } = require('./functions')
 
-exports.TEST_MNEMONIC = 'funny door sample enrich female wedding stereo crane setup shop dwarf dismiss'
+export const TEST_MNEMONIC = 'funny door sample enrich female wedding stereo crane setup shop dwarf dismiss'
 
-exports.ADDRESS_ZERO = '0x0000000000000000000000000000000000000000'
-exports.BYTES32_ZERO = '0x0000000000000000000000000000000000000000000000000000000000000000'
-exports.BYTES_ZERO = '0x0'
+export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000'
+export const BYTES32_ZERO = '0x0000000000000000000000000000000000000000000000000000000000000000'
+export const BYTES_ZERO = '0x0'
 
-exports.ROLES = {}
-exports.ROLEGROUPS = {}
-exports.SETTINGS = {}
+export const ROLES = {}
+export const ROLEGROUPS = {}
+export const SETTINGS = {}
 
 ;[
   'APPROVED_USER',
@@ -30,7 +30,7 @@ exports.SETTINGS = {}
   'SYSTEM_MANAGER',
   'UNDERWRITER',
 ].forEach(r => {
-  exports.ROLES[r] = keccak256(`ROLE_${r}`)
+  ROLES[r] = keccak256(`ROLE_${r}`)
 })
 
 ;[
@@ -49,7 +49,7 @@ exports.SETTINGS = {}
   'TRADERS',
   'UNDERWRITERS',
 ].forEach(r => {
-  exports.ROLEGROUPS[r] = keccak256(`ROLEGROUP_${r}`)
+  ROLEGROUPS[r] = keccak256(`ROLEGROUP_${r}`)
 })
 
 
@@ -66,6 +66,6 @@ exports.SETTINGS = {}
   'ENTITY_DELEGATE',
   'POLICY_DELEGATE',
 ].forEach(r => {
-  exports.SETTINGS[r] = keccak256(`SETTING_${r}`)
+  SETTINGS[r] = keccak256(`SETTING_${r}`)
 })
 

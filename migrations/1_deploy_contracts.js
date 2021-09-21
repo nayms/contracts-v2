@@ -4,7 +4,7 @@ const got = require('got')
 const { EthHdWallet } = require('eth-hd-wallet')
 
 const { createLog } = require('./utils/log')
-const { getMatchingNetwork, defaultGetTxParams, execCall } = require('./utils')
+const { getMatchingNetwork, execCall } = require('./utils')
 const { ADDRESS_ZERO } = require('../utils/constants')
 const { getCurrentAcl, ensureAclIsDeployed, addMultisigAddressAsSystemAdmin } = require('./modules/acl')
 const { getCurrentSettings, ensureSettingsIsDeployed } = require('./modules/settings')

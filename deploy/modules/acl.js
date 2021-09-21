@@ -1,21 +1,21 @@
-const _ = require('lodash')
-const { deploy, getCurrentInstance, defaultGetTxParams } = require('../utils')
-const { createLog } = require('../utils/log')
+import _ from 'lodash'
+import { getCurrentInstance, deployContract, getContractAt, createLog } from '../utils'
 
-const { ROLES, ROLEGROUPS } = require('../../utils/constants')
+import { ROLES, ROLEGROUPS } from '../../utils/constants'
 
-export const getCurrentAcl = async ({ artifacts, networkInfo, log }) => {
-  return getCurrentInstance({ networkInfo, log, artifacts, type: 'IACL', lookupType: 'ACL' })
+export const getCurrentAcl = async ({ networkInfo, log }) => {
+  return getCurrentInstance({ networkInfo, log, type: 'IACL', lookupType: 'ACL' })
 }
 
-export const ensureAclIsDeployed = async ({ deployer, artifacts, log, getTxParams = defaultGetTxParams }) => {
-  log = createLog(log)
+export const ensureAclIsDeployed = async (ctx) => {
+  const { getTxParams } = ctx
+
+  const log = createLog(ctx.log)
 
   let acl
 
   await log.task('Deploy ACL', async task => {
-    const ACL = artifacts.require("./ACL")
-    acl = await deploy(deployer, getTxParams(), ACL, ROLES.SYSTEM_ADMIN, ROLEGROUPS.SYSTEM_ADMINS)
+    acl = await deployContract(ctx, 'ACL', ROLES.SYSTEM_ADMIN, ROLEGROUPS.SYSTEM_ADMINS)
     task.log(`Deployed at ${acl.address}`)
   })
 
@@ -52,11 +52,12 @@ export const ensureAclIsDeployed = async ({ deployer, artifacts, log, getTxParam
     ])
   })
 
-  return acl
+
+  return await getContractAt('IACL', acl.address)
 }
 
 
-export const addMultisigAddressAsSystemAdmin = async ({ accounts, log, getTxParams = defaultGetTxParams, acl }, { multisig, replaceExisting = false }) => {
+export const addMultisigAddressAsSystemAdmin = async ({ accounts, log, getTxParams, acl }, { multisig, replaceExisting = false }) => {
   log = createLog(log)
 
   if (acl && multisig) { 

@@ -1,5 +1,5 @@
-const _ = require('lodash')
-const chalk = require('chalk')
+import _ from 'lodash'
+import chalk from 'chalk'
 
 export const createLog = logger => {
   if (_.get(logger, 'task')) {

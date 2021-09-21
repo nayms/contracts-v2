@@ -1,11 +1,32 @@
-const got = require('got')
-const ethUtil = require('ethereumjs-util')
+import got from 'got'
+import ethUtil from 'ethereumjs-util'
+import { ADDRESS_ZERO } from '../../utils/constants'
+import { createLog } from './log'
+import { networks } from '../../hardhat.config.js'
+import addresses from '../../deployedAddresses.json'
 
-const { ADDRESS_ZERO } = require('../../utils/constants')
-const { createLog } = require('./log')
-const { networks } = require('../../truffle-config.js')
-const addresses = require('../../deployedAddresses.json')
-const packageJson = require('../../package.json')
+export { createLog }
+
+export const deployContract = async ({ getTxParams }, name, ...args) => {
+  const C = await hre.ethers.getContractFactory(name)
+  return await C.deploy(...args, getTxParams())
+}
+export const getContractAt = async (p, a) => await hre.ethers.getContractAt(p, a)
+
+export const getMatchingNetwork = ({ chainId: id }) => {
+  const match = Object.keys(networks).find(k => networks[k].chainId == id)
+
+  if (!match) {
+    throw new Error(`Could not find matching network with id ${id}`)
+  }
+
+  return Object.assign({
+    name: match,
+    id,
+  }, networks[match], {
+    isLocal: (id > 100)
+  })
+}
 
 export const getLiveGasPrice = async ({ log }) => {
   let gwei
@@ -20,15 +41,46 @@ export const getLiveGasPrice = async ({ log }) => {
   return gwei
 }
 
-export const defaultGetTxParams = (txParamsOverride = {}) => Object.assign({
-  gasPrice: 1 * 1000000000, // 1 GWEI
-}, txParamsOverride)
+export const buildGetTxParamsHandler = async (accounts, network, { log }) => {
+  // additional tx params (used to ensure enough gas is supplied alongside the correct nonce)
+  let getTxParams = (txParamsOverride = {}) => Object.assign({
+    gasPrice: 1 * 1000000000, // 1 GWEI
+  }, txParamsOverride)
+
+  if (!network.isLocal) {
+    /*
+    - On mainnet, use live gas price for max speed,
+    - do manual nonce tracking to avoid infura issues (https://ethereum.stackexchange.com/questions/44349/truffle-infura-on-mainnet-nonce-too-low-error)
+    */
+    let gwei
+    if ('mainnet' === network.name) {
+      gwei = await getLiveGasPrice({ log })
+    } else {
+      gwei = 1
+    }
+
+    let nonce = await accounts[0].getTransactionCount()
+
+    getTxParams = (txParamsOverride = {}) => {
+      log.log(`Nonce: ${nonce}`)
+
+      nonce += 1
+
+      return defaultGetTxParams(Object.assign({
+        gasPrice: gwei * 1000000000,
+        nonce: nonce - 1,
+      }, txParamsOverride))
+    }
+  }
+
+  return getTxParams
+}
 
 
 let safeNonce // keep track of ongoing nonce
 
-export const execCall = async ({ task, contract, method, args, cfg }) => {
-  const { web3, artifacts, accounts, getTxParams = defaultGetTxParams, networkInfo, multisig, hdWallet, onlyDeployingUpgrades } = cfg
+export const execCall = async ({ task, contract, method, args, ctx }) => {
+  const { accounts, getTxParams, networkInfo, multisig, hdWallet, onlyDeployingUpgrades } = ctx
 
   if (multisig && onlyDeployingUpgrades) {
     await task.log(`   QUEUE: ${method}() on ${contract.address} (multisig: ${multisig})`, 'green')
@@ -45,8 +97,8 @@ export const execCall = async ({ task, contract, method, args, cfg }) => {
         throw new Error(`Cannot use multisig for network ${JSON.stringify(networkInfo)}`)
     }
 
-    const GnosisSafe = await artifacts.require('./GnosisSafe')
-    const safe = await GnosisSafe.at(multisig)
+    const GnosisSafe = await await getContractFactory('./GnosisSafe')
+    const safe = await GnosisSafe.attach(multisig)
 
     const cm = contract.contract.methods
 
@@ -122,26 +174,15 @@ export const execCall = async ({ task, contract, method, args, cfg }) => {
   }
 }
 
-export const deploy = async (deployer, txParams, Contract, ...constructorArgs) => {
-  Contract.synchronization_timeout = 300 // 2mins
-
-  if (deployer) {
-    await deployer.deploy(Contract, ...constructorArgs.concat(txParams))
-    return await Contract.deployed()
-  } else {
-    return await Contract.new(...constructorArgs.concat(txParams))
-  }
-}
-
-export const getCurrentInstance = async ({ artifacts, lookupType, type, networkInfo, log }) => {
+export const getCurrentInstance = async ({ lookupType, type, networkInfo, log }) => {
   log = createLog(log)
 
-  const Type = artifacts.require(`./${type}`)
+  const Type = await getContractFactory(`./${type}`)
 
   let inst
 
   await log.task(`Loading ${lookupType} address from deployed address list for network ${networkInfo.id}`, async task => {
-    inst = await Type.at(_.get(addresses, `${lookupType}.${networkInfo.id}.address`))
+    inst = await Type.attach(_.get(addresses, `${lookupType}.${networkInfo.id}.address`))
     task.log(`Instance: ${inst.address}`)
   })
 
@@ -149,26 +190,6 @@ export const getCurrentInstance = async ({ artifacts, lookupType, type, networkI
 }
 
 
-export const getMatchingNetwork = ({ network_id, name }) => {
-  let match
-
-  if (name) {
-    match = Object.keys(networks).find(k => k === name)
-  } else if (network_id) {
-    match = Object.keys(networks).find(k => networks[k].network_id == network_id)
-  }
-
-  if (!match) {
-    throw new Error(`Could not find matching network for either ${network_id} OR ${name}`)
-  }
-
-  return Object.assign({
-    name: match,
-    id: networks[match].network_id,
-  }, networks[match], {
-    isLocal: (networks[match].network_id == '*' || networks[match].network_id > 50)
-  })
-}
 
 
 const padWithZeroes = (number, length) => {

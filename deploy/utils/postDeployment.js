@@ -1,10 +1,9 @@
-const fs = require('fs')
-const path = require('path')
+import fs from 'fs'
+import path from 'path'
+import { createLog } from './log'
 
-const { createLog } = require('./log')
-
-export const updateDeployedAddressesJson = async cfg => {
-  const { log: baseLog, networkInfo: { id: networkId } } = cfg
+export const updateDeployedAddressesJson = async ctx => {
+  const { log: baseLog, networkInfo: { id: networkId } } = ctx
 
   const log = createLog(baseLog)
 
@@ -25,10 +24,10 @@ export const updateDeployedAddressesJson = async cfg => {
     Object.keys(MAP).forEach(name => {
       final[name] = final[name] || {}
 
-      task.log(`Updating ${name} address for network ${networkId} to: ${cfg[MAP[name]].address}`)
+      task.log(`Updating ${name} address for network ${networkId} to: ${ctx[MAP[name]].address}`)
 
       final[name][networkId] = Object.assign({}, final[name][networkId], {
-        address: cfg[MAP[name]].address,
+        address: ctx[MAP[name]].address,
       })
     })
 

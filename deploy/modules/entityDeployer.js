@@ -1,9 +1,9 @@
 const { createLog } = require('../utils/log')
-const { getCurrentInstance, deployContract, getContractAt } = require('../utils')
+const { getDeployedContractInstance, deployContract, getContractAt } = require('../utils')
 const { SETTINGS } = require('../../utils/constants')
 
-export const getCurrentEntityDeployer = async ({ networkInfo, log }) => {
-  return getCurrentInstance({ networkInfo, log, type: 'IEntityDeployer', lookupType: 'EntityDeployer' })
+export const getCurrentEntityDeployer = async ({ network, log }) => {
+  return getDeployedContractInstance({ network, log, type: 'IEntityDeployer', lookupType: 'EntityDeployer' })
 }
 
 export const ensureEntityDeployerIsDeployed = async (ctx) => {

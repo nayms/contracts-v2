@@ -1,14 +1,14 @@
 const { keccak256 } = require('./functions')
 
-export const TEST_MNEMONIC = 'funny door sample enrich female wedding stereo crane setup shop dwarf dismiss'
+exports.TEST_MNEMONIC = 'funny door sample enrich female wedding stereo crane setup shop dwarf dismiss'
 
-export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000'
-export const BYTES32_ZERO = '0x0000000000000000000000000000000000000000000000000000000000000000'
-export const BYTES_ZERO = '0x0'
+exports.ADDRESS_ZERO = '0x0000000000000000000000000000000000000000'
+exports.BYTES32_ZERO = '0x0000000000000000000000000000000000000000000000000000000000000000'
+exports.BYTES_ZERO = '0x0'
 
-export const ROLES = {}
-export const ROLEGROUPS = {}
-export const SETTINGS = {}
+exports.ROLES = {}
+exports.ROLEGROUPS = {}
+exports.SETTINGS = {}
 
 ;[
   'APPROVED_USER',
@@ -30,7 +30,7 @@ export const SETTINGS = {}
   'SYSTEM_MANAGER',
   'UNDERWRITER',
 ].forEach(r => {
-  ROLES[r] = keccak256(`ROLE_${r}`)
+  exports.ROLES[r] = keccak256(`ROLE_${r}`)
 })
 
 ;[
@@ -49,7 +49,7 @@ export const SETTINGS = {}
   'TRADERS',
   'UNDERWRITERS',
 ].forEach(r => {
-  ROLEGROUPS[r] = keccak256(`ROLEGROUP_${r}`)
+  exports.ROLEGROUPS[r] = keccak256(`ROLEGROUP_${r}`)
 })
 
 
@@ -62,10 +62,9 @@ export const SETTINGS = {}
   'MARKET_IMPL',
   'FEEBANK_IMPL',
   'ENTITY_DEPLOYER',
-  'NAYMS_ENTITY',
   'ENTITY_DELEGATE',
   'POLICY_DELEGATE',
 ].forEach(r => {
-  SETTINGS[r] = keccak256(`SETTING_${r}`)
+  exports.SETTINGS[r] = keccak256(`SETTING_${r}`)
 })
 

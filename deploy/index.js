@@ -5,6 +5,8 @@ import { getCurrentSettings, ensureSettingsIsDeployed } from './modules/settings
 import { getCurrentEntityDeployer, ensureEntityDeployerIsDeployed } from './modules/entityDeployer'
 import { ensureMarketIsDeployed } from './modules/market'
 import { ensureFeeBankIsDeployed } from './modules/feeBank'
+import { ensureEntityImplementationsAreDeployed } from './modules/entityImplementations'
+import { ensurePolicyImplementationsAreDeployed } from './modules/policyImplementations'
 
 async function main() {
   // setup logger
@@ -86,21 +88,21 @@ async function main() {
   ctx.market = await ensureMarketIsDeployed(ctx)
   ctx.feeBank = await ensureFeeBankIsDeployed(ctx)
 
-  // await ensureEntityImplementationsAreDeployed(ctx)
-  // await ensurePolicyImplementationsAreDeployed(ctx)
+  await ensureEntityImplementationsAreDeployed(ctx)
+  await ensurePolicyImplementationsAreDeployed(ctx)
 
-  // if (releaseConfig.extractDeployedAddresses) {
-  //   await updateDeployedAddressesJson(ctx)
-  // }
+  if (releaseConfig.extractDeployedAddresses) {
+    await updateDeployedAddressesJson(ctx)
+  }
 
-  // // add multisig as sysadmin
-  // if (releaseConfig.freshDeployment && releaseConfig.multisig) {
-  //   await addMultisigAddressAsSystemAdmin(ctx, {
-  //     multisig: releaseConfig.multisig,
-  //     // on rinkeby we append, on mainnet we replace
-  //     replaceExisting: (releaseConfig.deployNetwork === 'mainnet'),
-  //   })
-  // }
+  // add multisig as sysadmin
+  if (releaseConfig.freshDeployment && releaseConfig.multisig) {
+    await addMultisigAddressAsSystemAdmin(ctx, {
+      multisig: releaseConfig.multisig,
+      // on rinkeby we append, on mainnet we replace
+      replaceExisting: (releaseConfig.deployNetwork === 'mainnet'),
+    })
+  }
 }
 
 main()

@@ -3,7 +3,7 @@ import path from 'path'
 import { createLog } from './log'
 
 export const updateDeployedAddressesJson = async ctx => {
-  const { log: baseLog, networkInfo: { id: networkId } } = ctx
+  const { log: baseLog, network: { id: networkId } } = ctx
 
   const log = createLog(baseLog)
 

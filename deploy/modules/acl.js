@@ -1,10 +1,10 @@
 import _ from 'lodash'
-import { getCurrentInstance, deployContract, getContractAt, createLog } from '../utils'
+import { getDeployedContractInstance, deployContract, getContractAt, createLog } from '../utils'
 
 import { ROLES, ROLEGROUPS } from '../../utils/constants'
 
-export const getCurrentAcl = async ({ networkInfo, log }) => {
-  return getCurrentInstance({ networkInfo, log, type: 'IACL', lookupType: 'ACL' })
+export const getCurrentAcl = async ({ network, log }) => {
+  return getDeployedContractInstance({ network, log, type: 'IACL', lookupType: 'ACL' })
 }
 
 export const ensureAclIsDeployed = async (ctx) => {
@@ -67,18 +67,18 @@ export const addMultisigAddressAsSystemAdmin = async ({ accounts, log, getTxPara
       if (replaceExisting) {
         await task.log('Removing existing ACL admin...')
 
-        await acl.removeAdmin(accounts[0], getTxParams())
+        await acl.removeAdmin(accounts[0].address, getTxParams())
       }
     })
 
     await log.task('Check ACL admin assignments', async task => {
       const check = await Promise.all([
         acl.isAdmin(multisig),
-        acl.isAdmin(accounts[0])
+        acl.isAdmin(accounts[0].address)
       ])
 
       await task.log(`isAdmin(multisig - ${multisig}): ${check[0]}`)
-      await task.log(`isAdmin(account0 - ${accounts[0]}): ${check[1]}`)
+      await task.log(`isAdmin(account0 - ${accounts[0].address}): ${check[1]}`)
     })
   }
 }

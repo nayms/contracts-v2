@@ -1,8 +1,8 @@
-const { createLog } = require('../utils/log')
-const { getCurrentInstance, deployContract, getContractAt } = require('../utils')
+import { createLog } from '../utils/log'
+import { getDeployedContractInstance, deployContract, getContractAt } from '../utils'
 
-export const getCurrentSettings = async ({ networkInfo, log }) => {
-  return getCurrentInstance({ networkInfo, log, type: 'ISettings', lookupType: 'Settings' })
+export const getCurrentSettings = async ({ network, log }) => {
+  return getDeployedContractInstance({ network, log, type: 'ISettings', lookupType: 'Settings' })
 }
 
 export const ensureSettingsIsDeployed = async (ctx) => {

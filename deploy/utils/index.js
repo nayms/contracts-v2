@@ -1,17 +1,19 @@
+import _ from 'lodash'
 import got from 'got'
 import ethUtil from 'ethereumjs-util'
 import { ADDRESS_ZERO } from '../../utils/constants'
 import { createLog } from './log'
 import { networks } from '../../hardhat.config.js'
-import addresses from '../../deployedAddresses.json'
+import deployedAddresses from '../../deployedAddresses.json'
 
 export { createLog }
+export * from './postDeployment'
 
 export const deployContract = async ({ getTxParams }, name, ...args) => {
   const C = await hre.ethers.getContractFactory(name)
   return await C.deploy(...args, getTxParams())
 }
-export const getContractAt = async (p, a) => await hre.ethers.getContractAt(p, a)
+export const getContractAt = async (p, a, s) => await hre.ethers.getContractAt(p, a, s)
 
 export const getMatchingNetwork = ({ chainId: id }) => {
   const match = Object.keys(networks).find(k => networks[k].chainId == id)
@@ -79,14 +81,14 @@ export const buildGetTxParamsHandler = async (accounts, network, { log }) => {
 
 let safeNonce // keep track of ongoing nonce
 
-export const execCall = async ({ task, contract, method, args, ctx }) => {
-  const { accounts, getTxParams, networkInfo, multisig, hdWallet, onlyDeployingUpgrades } = ctx
+export const execCall = async ({ ctx, task, contract, method, args }) => {
+  const { accounts, getTxParams, network, multisig, hdWallet, onlyDeployingUpgrades } = ctx
 
   if (multisig && onlyDeployingUpgrades) {
     await task.log(`   QUEUE: ${method}() on ${contract.address} (multisig: ${multisig})`, 'green')
 
     let baseUrl 
-    switch (networkInfo.id) {
+    switch (network.id) {
       case 1:
         baseUrl = `https://safe-transaction.mainnet.gnosis.io`
         break
@@ -94,18 +96,15 @@ export const execCall = async ({ task, contract, method, args, ctx }) => {
         baseUrl = `https://safe-transaction.rinkeby.gnosis.io`
         break
       default:
-        throw new Error(`Cannot use multisig for network ${JSON.stringify(networkInfo)}`)
+        throw new Error(`Cannot use multisig for network ${JSON.stringify(network)}`)
     }
 
-    const GnosisSafe = await await getContractFactory('./GnosisSafe')
-    const safe = await GnosisSafe.attach(multisig)
+    const safe = getContractAt('GnosisSafe', multsig, multsig)
 
-    const cm = contract.contract.methods
-
-    const data = cm[method].apply(cm, args).encodeABI()
+    const data = contract.interface.encodeFunctionData(method, args)
     await task.log(`     --> Data: ${data}`, 'green')
 
-    const safeTxGas = await cm[method].apply(cm, args).estimateGas({ from: multisig })
+    const safeTxGas = await contract.estimateGas[method](...args)
     await task.log(`     --> Gas estimate: ${safeTxGas}`, 'green')
 
     if (!safeNonce) {
@@ -174,22 +173,20 @@ export const execCall = async ({ task, contract, method, args, ctx }) => {
   }
 }
 
-export const getCurrentInstance = async ({ lookupType, type, networkInfo, log }) => {
-  log = createLog(log)
 
-  const Type = await getContractFactory(`./${type}`)
+
+export const getDeployedContractInstance = async ({ lookupType, type, network, log }) => {
+  log = createLog(log)
 
   let inst
 
-  await log.task(`Loading ${lookupType} address from deployed address list for network ${networkInfo.id}`, async task => {
-    inst = await Type.attach(_.get(addresses, `${lookupType}.${networkInfo.id}.address`))
+  await log.task(`Loading ${lookupType} address from deployed address list for network ${network.id}`, async task => {
+    inst = await getContractAt(type, _.get(deployedAddresses, `${lookupType}.${network.id}.address`))
     task.log(`Instance: ${inst.address}`)
   })
 
   return inst
 }
-
-
 
 
 const padWithZeroes = (number, length) => {

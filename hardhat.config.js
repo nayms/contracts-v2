@@ -40,7 +40,7 @@ module.exports = {
       accounts: {
         mnemonic,
       },
-      timeout: 60000,
+      timeout: 120000,
     },
     rinkeby: {
       chainId: 4,
@@ -48,7 +48,7 @@ module.exports = {
       accounts: {
         mnemonic,
       },
-      timeout: 60000,
+      timeout: 120000,
     }
   },
 

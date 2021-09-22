@@ -9,6 +9,9 @@ import { ensureEntityImplementationsAreDeployed } from './modules/entityImplemen
 import { ensurePolicyImplementationsAreDeployed } from './modules/policyImplementations'
 
 async function main() {
+  // copy artifacts
+  require('../scripts/copyArtifacts')
+
   // setup logger
   const log = createLog(console.log.bind(console))
 
@@ -71,9 +74,9 @@ async function main() {
       ctx.acl = await ensureAclIsDeployed(ctx)
       ctx.settings = await ensureSettingsIsDeployed(ctx)
 
-        ;[ctx.entityDeployer] = await Promise.all([
-          ensureEntityDeployerIsDeployed(ctx),
-        ])
+      ;[ctx.entityDeployer] = await Promise.all([
+        ensureEntityDeployerIsDeployed(ctx),
+      ])
     })
   } else {
     await log.task('Deploying upgrades only', async () => {

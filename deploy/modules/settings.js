@@ -13,7 +13,7 @@ export const ensureSettingsIsDeployed = async (ctx) => {
   let settings
 
   await log.task(`Deploy Settings`, async task => {
-    settings = await deployContract(ctx, 'Settings', acl.address)
+    settings = await deployContract(ctx, 'Settings', [acl.address])
     task.log(`Deployed at ${settings.address}`)
   })
 

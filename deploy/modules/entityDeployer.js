@@ -1,5 +1,5 @@
 const { createLog } = require('../utils/log')
-const { getDeployedContractInstance, deployContract, getContractAt } = require('../utils')
+const { getDeployedContractInstance, deployContract, getContractAt, execMethod } = require('../utils')
 const { SETTINGS } = require('../../utils/constants')
 
 export const getCurrentEntityDeployer = async ({ network, log }) => {
@@ -14,13 +14,13 @@ export const ensureEntityDeployerIsDeployed = async (ctx) => {
   let entityDeployer
 
   await log.task(`Deploy EntityDeployer`, async task => {
-    entityDeployer = await deployContract(ctx, 'EntityDeployer', settings.address)
+    entityDeployer = await deployContract(ctx, 'EntityDeployer', [settings.address], { gasLimit: 7000000 })
     task.log(`Deployed at ${entityDeployer.address}`)
   })
 
 
-  await log.task(`Saving entity deployer address to settings`, async () => {
-    await settings.setAddress(settings.address, SETTINGS.ENTITY_DEPLOYER, entityDeployer.address, getTxParams())
+  await log.task(`Saving entity deployer address to settings`, async task => {
+    await execMethod({ ctx, task, contract: settings }, 'setAddress', settings.address, SETTINGS.ENTITY_DEPLOYER, entityDeployer.address)
   })
 
   return await getContractAt('IEntityDeployer', entityDeployer.address)

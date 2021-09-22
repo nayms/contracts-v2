@@ -2,38 +2,26 @@
   "ACL": {
     "4": {
       "address": "0x6E0890Ec45B49B71ba929b744D92952623b66539"
-    },
-    "31337": {
-      "address": "0xc5ACF4116B253e7BBf2195e2ec57B43FbAaD9Bb9"
     }
   },
   "Settings": {
     "4": {
       "address": "0x9f57cF11bFC4F87739e269475D6BFAb6D28A726E"
-    },
-    "31337": {
-      "address": "0xaCCE78fC0c9B7FB940c6ef74ce49A67B9bCbaA6e"
     }
   },
   "EntityDeployer": {
     "4": {
       "address": "0x13950A32eDBAcF634d219FA3EAB3E1b5FEe338dd"
-    },
-    "31337": {
-      "address": "0xcF9848324f364E1b6D115a151b49D6D53b45D519"
+    }
+  },
+  "EtherToken": {
+    "4": {
+      "address": "0xB8Cc93e568C6350694daF80c1065c62f80870837"
     }
   },
   "Market": {
     "4": {
       "address": "0xd983eF0D2eC6Ce4175A80bC2c373b1f19F328396"
-    },
-    "31337": {
-      "address": "0xbcC59C52349682a69A443F7f9D6C94B8c7E96696"
-    }
-  },
-  "FeeBank": {
-    "31337": {
-      "address": "0xc612D90Ca5c80E5b0F2Aed1f34AD68569E251c23"
     }
   }
 }

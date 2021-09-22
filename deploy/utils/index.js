@@ -1,6 +1,6 @@
 import _ from 'lodash'
 import got from 'got'
-import ethUtil from 'ethereumjs-util'
+import * as ethUtil from 'ethereumjs-util'
 import { ADDRESS_ZERO } from '../../utils/constants'
 import { createLog } from './log'
 import { networks } from '../../hardhat.config.js'
@@ -9,17 +9,20 @@ import deployedAddresses from '../../deployedAddresses.json'
 export { createLog }
 export * from './postDeployment'
 
-export const deployContract = async ({ getTxParams }, name, ...args) => {
+export const deployContract = async ({ getTxParams }, name, args, overrides = {}) => {
   const C = await hre.ethers.getContractFactory(name)
-  return await C.deploy(...args, getTxParams())
+  const c = await C.deploy(...args, { ...getTxParams(), ...overrides })
+  await c.deployTransaction.wait()
+  return c
 }
+
 export const getContractAt = async (p, a, s) => await hre.ethers.getContractAt(p, a, s)
 
 export const getMatchingNetwork = ({ chainId: id }) => {
   const match = Object.keys(networks).find(k => networks[k].chainId == id)
 
   if (!match) {
-    throw new Error(`Could not find matching network with id ${id}`)
+  throw new Error(`Could not find matching network with id ${id}`)
   }
 
   return Object.assign({
@@ -43,11 +46,13 @@ export const getLiveGasPrice = async ({ log }) => {
   return gwei
 }
 
+const defaultGetTxParams = (txParamsOverride = {}) => Object.assign({
+  gasPrice: 1 * 1000000000, // 1 GWEI,
+}, txParamsOverride)
+
 export const buildGetTxParamsHandler = async (accounts, network, { log }) => {
   // additional tx params (used to ensure enough gas is supplied alongside the correct nonce)
-  let getTxParams = (txParamsOverride = {}) => Object.assign({
-    gasPrice: 1 * 1000000000, // 1 GWEI
-  }, txParamsOverride)
+  let getTxParams = defaultGetTxParams
 
   if (!network.isLocal) {
     /*
@@ -79,10 +84,19 @@ export const buildGetTxParamsHandler = async (accounts, network, { log }) => {
 }
 
 
+export const execMethod = async ({ ctx, task, contract }, method, ...args) => {
+  await task.task(`CALL ${method}() on ${contract.address}`, async () => {
+    const tx = await contract[method].apply(contract, args.concat(ctx.getTxParams()))
+    await tx.wait()
+  }, { col: 'yellow' })
+}
+
+export const getMethodExecutor = ({ ctx, task, contract }) => (method, ...args) => execMethod({ ctx, task, contract }, method, ...args)
+
 let safeNonce // keep track of ongoing nonce
 
-export const execCall = async ({ ctx, task, contract, method, args }) => {
-  const { accounts, getTxParams, network, multisig, hdWallet, onlyDeployingUpgrades } = ctx
+export const execMultisigCall = async ({ ctx, task, contract, method, args }) => {
+  const { accounts, network, multisig, hdWallet, onlyDeployingUpgrades } = ctx
 
   if (multisig && onlyDeployingUpgrades) {
     await task.log(`   QUEUE: ${method}() on ${contract.address} (multisig: ${multisig})`, 'green')
@@ -99,12 +113,12 @@ export const execCall = async ({ ctx, task, contract, method, args }) => {
         throw new Error(`Cannot use multisig for network ${JSON.stringify(network)}`)
     }
 
-    const safe = getContractAt('GnosisSafe', multsig, multsig)
+    const safe = await getContractAt('GnosisSafe', multisig, multisig)
 
     const data = contract.interface.encodeFunctionData(method, args)
     await task.log(`     --> Data: ${data}`, 'green')
 
-    const safeTxGas = await contract.estimateGas[method](...args)
+    const safeTxGas = (await contract.estimateGas[method](...args)).toNumber()
     await task.log(`     --> Gas estimate: ${safeTxGas}`, 'green')
 
     if (!safeNonce) {
@@ -153,7 +167,7 @@ export const execCall = async ({ ctx, task, contract, method, args }) => {
       refundReceiver: ADDRESS_ZERO,
       contractTransactionHash,
       transactionHash: null,
-      sender: accounts[0],
+      sender: accounts[0].address,
       origin: null,    
       signature,  
     }
@@ -168,8 +182,7 @@ export const execCall = async ({ ctx, task, contract, method, args }) => {
 
     await task.log(`     --> Successfully added to web GUI`, 'green')
   } else {
-    await task.log(`   CALL ${method}() on ${contract.address}`, 'yellow')
-    return await contract[method].apply(contract, args.concat(getTxParams()))
+    await execMethod({ ctx, task, contract }, method, ...args)
   }
 }
 

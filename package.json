@@ -1,6 +1,6 @@
 {
   "name": "@nayms/contracts",
-  "version": "1.0.0-local.1632234076510",
+  "version": "1.0.0-local.1632322239949",
   "description": "Nayms smart contracts",
   "main": "index.js",
   "publishConfig": {
@@ -32,8 +32,8 @@
     "build-admin-dapp": "./scripts/generateAdminDapp.js && node_modules/.bin/solui publish-folder --spec ./dapp-generated.json --artifacts ./build/contracts --folder ./dapp",
     "compile": "rm -rf build && yarn truffle compile --network test && yarn copy-artifacts && yarn generate-index",
     "deploy:local": "yarn hardhat run --network localhost ./deploy",
-    "deploy:rinkeby": "yarn truffle migrate --network rinkeby",
-    "deploy:mainnet": "yarn truffle migrate --network mainnet",
+    "deploy:rinkeby": "yarn hardhat run --network rinkeby ./deploy",
+    "deploy:mainnet": "yarn hardhat run --network mainnet ./deploy",
     "deploy-admin-dapp": "yarn build-admin-dapp && gh-pages -t -d dapp -e $(./scripts/outputVersion.js) -u \"Nayms Engineering <engineering@nayms.io>\"",
     "publish-to-npm": "echo \"Publishing version: $(./scripts/outputVersion.js)\" && echo \"Publishing to tag: $(./scripts/outputNpmTag.js)\" && npm publish --tag $(./scripts/outputNpmTag.js)",
     "lint": "solhint --config ./.solhint.json contracts/**/*.sol",

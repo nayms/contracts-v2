@@ -5,15 +5,11 @@ import { parseLog } from 'ethereum-event-logs'
 import chaiAsPromised from 'chai-as-promised'
 
 import { events } from '../..'
-import packageJson from '../../package.json'
 import { toBN, isBN } from './web3'
 import { ADDRESS_ZERO, BYTES32_ZERO, BYTES_ZERO } from '../../utils/constants'
-import { ROLES } from '../../utils/constants'
+import { ROLES, TEST_MNEMONIC } from '../../utils/constants'
 
 export { ADDRESS_ZERO, BYTES32_ZERO, BYTES_ZERO }
-
-const MNEMONIC = (packageJson.scripts.devnet.match(/\'(.+)\'/))[1]
-console.log(`Mnemonic: [ ${MNEMONIC} ]`)
 
 chai.use((_chai, utils) => {
   const sanitizeResultVal = (result, val) => {
@@ -98,7 +94,7 @@ chai.use(chaiAsPromised)
 
 chai.should()
 
-export const hdWallet = EthHdWallet.fromMnemonic(MNEMONIC)
+export const hdWallet = EthHdWallet.fromMnemonic(TEST_MNEMONIC)
 hdWallet.generateAddresses(10)
 
 export const getBalance = async addr => toBN(await web3.eth.getBalance(addr))
@@ -269,25 +265,12 @@ export const calcCommissions = ({ premiums, claimsAdminCommissionBP, brokerCommi
   return ret
 }
 
-const callJsonRpcMethod = async (method, params = []) => {
-  return new Promise((resolve, reject) => {
-    return web3.currentProvider.send({
-      jsonrpc: '2.0',
-      method,
-      params,
-      id: new Date().getTime()
-    }, (err, { result }) => {
-      if (err) { return reject(err) }
-      return resolve(result)
-    })
-  })
-}
+const callJsonRpcMethod = async (method, params = []) => hre.network.provider.send(method, params)
 
 const web3EvmIncreaseTime = async ts => {
   await callJsonRpcMethod('evm_increaseTime', [ts])
   await callJsonRpcMethod('evm_mine')
 }
-
 
 export class EvmClock {
   constructor(initialTimestamp = 0) {

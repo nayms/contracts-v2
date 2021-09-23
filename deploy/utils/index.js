@@ -9,7 +9,19 @@ import deployedAddresses from '../../deployedAddresses.json'
 export { createLog }
 export * from './postDeployment'
 
-export const deployContract = async ({ getTxParams }, name, args, overrides = {}) => {
+const defaultGetTxParams = (txParamsOverride = {}) => Object.assign({
+  gasPrice: 1 * 1000000000, // 1 GWEI,
+}, txParamsOverride)
+
+let accounts
+export const getAccounts = async () => {
+  if (!accounts) {
+    accounts = (await hre.ethers.getSigners()).map(a => a.address)
+  }
+  return accounts
+}
+
+export const deployContract = async ({ getTxParams = defaultGetTxParams }, name, args, overrides = {}) => {
   const C = await hre.ethers.getContractFactory(name)
   const c = await C.deploy(...args, { ...getTxParams(), ...overrides })
   await c.deployTransaction.wait()
@@ -46,13 +58,10 @@ export const getLiveGasPrice = async ({ log }) => {
   return gwei
 }
 
-const defaultGetTxParams = (txParamsOverride = {}) => Object.assign({
-  gasPrice: 1 * 1000000000, // 1 GWEI,
-}, txParamsOverride)
 
-export const buildGetTxParamsHandler = async (accounts, network, { log }) => {
+export const buildGetTxParamsHandler = async (network, { log }) => {
   // additional tx params (used to ensure enough gas is supplied alongside the correct nonce)
-  let getTxParams = defaultGetTxParams
+  let getTxParams
 
   if (!network.isLocal) {
     /*
@@ -66,7 +75,7 @@ export const buildGetTxParamsHandler = async (accounts, network, { log }) => {
       gwei = 1
     }
 
-    let nonce = await accounts[0].getTransactionCount()
+    let nonce = await (await hre.ethers.getSigners())[0].getTransactionCount()
 
     getTxParams = (txParamsOverride = {}) => {
       log.log(`Nonce: ${nonce}`)
@@ -85,8 +94,10 @@ export const buildGetTxParamsHandler = async (accounts, network, { log }) => {
 
 
 export const execMethod = async ({ ctx, task, contract }, method, ...args) => {
+  const { getTxParams = defaultGetTxParams } = ctx
+
   await task.task(`CALL ${method}() on ${contract.address}`, async () => {
-    const tx = await contract[method].apply(contract, args.concat(ctx.getTxParams()))
+    const tx = await contract[method].apply(contract, args.concat(getTxParams()))
     await tx.wait()
   }, { col: 'yellow' })
 }

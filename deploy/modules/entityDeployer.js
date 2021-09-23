@@ -6,8 +6,8 @@ export const getCurrentEntityDeployer = async ({ network, log }) => {
   return getDeployedContractInstance({ network, log, type: 'IEntityDeployer', lookupType: 'EntityDeployer' })
 }
 
-export const ensureEntityDeployerIsDeployed = async (ctx) => {
-  const { settings, getTxParams } = ctx
+export const ensureEntityDeployerIsDeployed = async (ctx = {}) => {
+  const { settings } = ctx
 
   const log = createLog(ctx.log)
 

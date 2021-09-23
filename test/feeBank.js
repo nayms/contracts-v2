@@ -8,7 +8,7 @@ import { ensureFeeBankIsDeployed } from '../migrations/modules/feeBank'
 const IERC20 = artifacts.require("./base/IERC20")
 const DummyToken = artifacts.require("./DummyToken")
 
-contract('Fee bank', accounts => {
+describe('Fee bank', accounts => {
   const evmSnapshot = new EvmSnapshot()
 
   let acl

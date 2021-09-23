@@ -10,7 +10,7 @@ import { ensureFeeBankIsDeployed } from '../migrations/modules/feeBank'
 const DummyToken = artifacts.require("./DummyToken")
 const DummyMarketObserver = artifacts.require("./DummyMarketObserver")
 
-contract('Market', accounts => {
+describe('Market', accounts => {
   const evmSnapshot = new EvmSnapshot()
 
   let settings

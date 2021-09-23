@@ -4,7 +4,7 @@ import { keccak256 } from './utils/web3'
 import { ensureAclIsDeployed } from '../migrations/modules/acl'
 import { ROLES } from '../utils/constants'
 
-contract('ACL', accounts => {
+describe('ACL', accounts => {
   const evmSnapshot = new EvmSnapshot()
 
   const role1 = keccak256('testrole1')

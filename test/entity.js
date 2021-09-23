@@ -31,7 +31,7 @@ const FreezeUpgradesFacet = artifacts.require("./test/FreezeUpgradesFacet")
 const Entity = artifacts.require("./Entity")
 const IPolicy = artifacts.require("./IPolicy")
 
-contract('Entity', accounts => {
+describe('Entity', accounts => {
   const evmSnapshot = new EvmSnapshot()
 
   let acl

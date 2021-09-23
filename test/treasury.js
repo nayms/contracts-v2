@@ -37,7 +37,7 @@ const IPolicy = artifacts.require("./IPolicy")
 const Policy = artifacts.require("./Policy")
 const DummyToken = artifacts.require("./DummyToken")
 
-contract('Treasury', accounts => {
+describe('Treasury', accounts => {
   const evmSnapshot = new EvmSnapshot()
 
   let acl

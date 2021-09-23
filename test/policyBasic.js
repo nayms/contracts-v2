@@ -56,7 +56,7 @@ const POLICY_ATTRS_3 = Object.assign({}, POLICY_ATTRS_2, {
   trancheData: [[100, 2, 10, 20, 30, 40, 50, 60, 70], [50, 2, 10, 20, 30, 40, 50, 60, 70]]
 })
 
-contract('Policy: Basic', accounts => {
+describe('Policy: Basic', accounts => {
   const evmSnapshot = new EvmSnapshot()
 
   let acl

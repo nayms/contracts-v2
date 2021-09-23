@@ -10,7 +10,7 @@ const projectDir = path.join(__dirname, '..')
 const contractsFolder = path.join(projectDir, 'artifacts', 'contracts')
 
 const files = glob.sync(path.join(contractsFolder, '**/*.json'))
-  .filter(f => !f.includes('.dbg.json'))
+  .filter(f => !f.includes('.dbg.json') && !f.includes('GnosisSafe'))
 
 const json = files.map(f => {
   const relPath = path.relative(contractsFolder, f)

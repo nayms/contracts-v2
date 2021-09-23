@@ -42,7 +42,7 @@ const POLICY_ATTRS_1 = {
   underwriterCommissionBP: 40, /* 0.4% */
 }
 
-contract('Policy: Commissions', accounts => {
+describe('Policy: Commissions', accounts => {
   const evmSnapshot = new EvmSnapshot()
 
   let acl

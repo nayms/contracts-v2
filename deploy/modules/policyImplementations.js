@@ -1,7 +1,7 @@
 import { deployUpgradeableContract } from './lib'
 import { SETTINGS } from '../../utils/constants'
 
-export const ensurePolicyImplementationsAreDeployed = async (ctx) => {
+export const ensurePolicyImplementationsAreDeployed = async (ctx = {}) => {
   const { extraFacets = [] } = ctx
 
   return await deployUpgradeableContract({

@@ -30,7 +30,7 @@ const DummyToken = artifacts.require("./DummyToken")
 const IPolicy = artifacts.require("./IPolicy")
 const IERC20 = artifacts.require("./base/IERC20")
 
-contract('Integration: Portfolio underwriting', accounts => {
+describe('Integration: Portfolio underwriting', accounts => {
   const evmSnapshot = new EvmSnapshot()
 
   const claimsAdminCommissionBP = 100

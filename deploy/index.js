@@ -1,5 +1,5 @@
 import { EthHdWallet } from 'eth-hd-wallet'
-import { createLog, getMatchingNetwork, buildGetTxParamsHandler, updateDeployedAddressesJson } from './utils'
+import { createLog, getMatchingNetwork, buildGetTxParamsHandler, updateDeployedAddressesJson, getAccounts } from './utils'
 import { getCurrentAcl, ensureAclIsDeployed, addMultisigAddressAsSystemAdmin } from './modules/acl'
 import { getCurrentSettings, ensureSettingsIsDeployed } from './modules/settings'
 import { getCurrentEntityDeployer, ensureEntityDeployerIsDeployed } from './modules/entityDeployer'
@@ -53,10 +53,10 @@ async function main() {
     multisig = releaseConfig.multisig
   }
 
-  const accounts = await hre.ethers.getSigners()
+  const accounts = await getAccounts()
 
   // getTxParams() handler
-  const getTxParams = await buildGetTxParamsHandler(accounts, network, { log })
+  const getTxParams = await buildGetTxParamsHandler(network, { log })
 
   // context ctx
   const ctx = {

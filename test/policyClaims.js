@@ -68,7 +68,7 @@ const POLICY_ATTRS_4 = Object.assign({}, POLICY_ATTRS_1, {
   premiumIntervalSeconds: 1000,
 })
 
-contract('Policy: Claims', accounts => {
+describe('Policy: Claims', accounts => {
   const evmSnapshot = new EvmSnapshot()
   let evmClock
 

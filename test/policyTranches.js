@@ -36,7 +36,7 @@ const FreezeUpgradesFacet = artifacts.require("./test/FreezeUpgradesFacet")
 
 
 
-contract('Policy: Tranches', accounts => {
+describe('Policy: Tranches', accounts => {
   const evmSnapshot = new EvmSnapshot()
 
   let acl

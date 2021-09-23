@@ -25,7 +25,7 @@ const IPolicy = artifacts.require("./IPolicy")
 const DummyToken = artifacts.require("./DummyToken")
 const IERC20 = artifacts.require("./base/IERC20")
 
-contract('Policy: Approvals', accounts => {
+describe('Policy: Approvals', accounts => {
   const evmSnapshot = new EvmSnapshot()
 
   const claimsAdminCommissionBP = 100

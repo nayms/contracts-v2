@@ -15,7 +15,7 @@ import { events } from '../'
 const ISettings = artifacts.require("./base/ISettings")
 const Settings = artifacts.require("./Settings")
 
-contract('Settings', accounts => {
+describe('Settings', accounts => {
   const evmSnapshot = new EvmSnapshot()
 
   let acl

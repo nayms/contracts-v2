@@ -4,7 +4,7 @@ import { events } from '../'
 const IERC20 = artifacts.require("./base/IERC20")
 const DummyToken = artifacts.require("./DummyToken")
 
-contract('DummyToken', accounts => {
+describe('DummyToken', accounts => {
   let dummyToken
 
   beforeEach(async () => {

@@ -1,7 +1,7 @@
 import { deployUpgradeableContract } from './lib'
 import { SETTINGS } from '../../utils/constants'
 
-export const ensureEntityImplementationsAreDeployed = async (ctx) => {
+export const ensureEntityImplementationsAreDeployed = async (ctx = {}) => {
   const { extraFacets = [] } = ctx
 
   return await deployUpgradeableContract({

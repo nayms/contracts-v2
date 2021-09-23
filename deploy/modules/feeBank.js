@@ -1,7 +1,7 @@
 import { deployUpgradeableContract } from './lib'
 import { SETTINGS } from '../../utils/constants'
 
-export const ensureFeeBankIsDeployed = async (ctx) => {
+export const ensureFeeBankIsDeployed = async (ctx = {}) => {
   const { extraFacets = [] } = ctx
 
   return await deployUpgradeableContract({

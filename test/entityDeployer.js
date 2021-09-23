@@ -9,7 +9,7 @@ const Entity = artifacts.require("./Entity")
 const IEntity = artifacts.require("./base/IEntity")
 const EntityDeployer = artifacts.require("./EntityDeployer")
 
-contract('EntityDeployer', accounts => {
+describe('EntityDeployer', accounts => {
   const evmSnapshot = new EvmSnapshot()
 
   let acl

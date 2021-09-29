@@ -1,13 +1,15 @@
 import { EvmSnapshot } from './utils'
+import { getAccounts } from '../deploy/utils'
 import { ensureAclIsDeployed } from '../deploy/modules/acl'
 import { ensureSettingsIsDeployed } from '../deploy/modules/settings'
-import { deployContract, getAccounts } from '../deploy/utils'
 import { ROLES, ROLEGROUPS } from '../utils/constants'
+
+const AccessControl = artifacts.require("./base/AccessControl")
 
 describe('AccessControl', () => {
   const evmSnapshot = new EvmSnapshot()
-
   let accounts
+
   let acl
   let settings
   let accessControl
@@ -16,9 +18,9 @@ describe('AccessControl', () => {
 
   before(async () => {
     accounts = await getAccounts()
-    acl = await ensureAclIsDeployed()
-    settings = await ensureSettingsIsDeployed({ acl })
-    accessControl = await deployContract({}, 'AccessControl', [settings.address])
+    acl = await ensureAclIsDeployed({ artifacts })
+    settings = await ensureSettingsIsDeployed({ artifacts, acl })
+    accessControl = await AccessControl.new(settings.address)
     accessControlContext = await accessControl.aclContext()
     otherContext = await acl.generateContextFromAddress(accounts[5])
   })

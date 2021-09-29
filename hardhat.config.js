@@ -2,6 +2,7 @@ require('@babel/register')
 require("core-js/stable")
 require("regenerator-runtime/runtime")
 require("@nomiclabs/hardhat-ethers")
+require("@nomiclabs/hardhat-truffle5")
 require('solidity-coverage')
 
 const { TEST_MNEMONIC } = require('./utils/constants')

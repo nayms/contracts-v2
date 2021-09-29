@@ -1,20 +1,20 @@
-import { extractEventArgs, ADDRESS_ZERO, BYTES_ZERO, EvmSnapshot } from './utils/index'
+import { ADDRESS_ZERO, BYTES_ZERO, EvmSnapshot } from './utils/index'
 import { toBN, toWei, toHex } from './utils/web3'
-import { events } from '..'
 
-import { ensureAclIsDeployed } from '../migrations/modules/acl'
-import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
-import { ensureMarketIsDeployed } from '../migrations/modules/market'
-import { ensureFeeBankIsDeployed } from '../migrations/modules/feeBank'
+import { getAccounts } from '../deploy/utils'
+import { ensureAclIsDeployed } from '../deploy/modules/acl'
+import { ensureSettingsIsDeployed } from '../deploy/modules/settings'
+import { ensureMarketIsDeployed } from '../deploy/modules/market'
+import { ensureFeeBankIsDeployed } from '../deploy/modules/feeBank'
 
-const DummyToken = artifacts.require("./DummyToken")
-const DummyMarketObserver = artifacts.require("./DummyMarketObserver")
+const DummyToken = artifacts.require("DummyToken")
+const DummyMarketObserver = artifacts.require("DummyMarketObserver")
 
-describe('Market', accounts => {
+describe('Market', () => {
   const evmSnapshot = new EvmSnapshot()
 
+  let accounts
   let settings
-  //let market
   let acl
   let systemContext
 
@@ -26,6 +26,7 @@ describe('Market', accounts => {
   let mintAmount
 
   before(async () => {
+    accounts = await getAccounts()
     erc20WETH = await DummyToken.new('Wrapped ETH', 'WETH', 18, 0, true, { from: accounts[0] })
     erc20WETH2 = await DummyToken.new('Wrapped ETH 2', 'WETH2', 18, 0, true, { from: accounts[0] })
 

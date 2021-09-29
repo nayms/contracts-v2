@@ -1,6 +1,4 @@
-
-import { keccak256, asciiToHex } from './utils/web3'
-
+import _ from 'lodash'
 import {
   parseEvents,
   extractEventArgs,
@@ -12,15 +10,14 @@ import {
   EvmSnapshot,
 } from './utils'
 import { events } from '..'
-
 import { ROLES, ROLEGROUPS, SETTINGS } from '../utils/constants'
-
-import { ensureAclIsDeployed } from '../migrations/modules/acl'
-import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
-import { ensureEntityDeployerIsDeployed } from '../migrations/modules/entityDeployer'
-import { ensureMarketIsDeployed } from '../migrations/modules/market'
-import { ensureEntityImplementationsAreDeployed } from '../migrations/modules/entityImplementations'
-import { ensurePolicyImplementationsAreDeployed } from '../migrations/modules/policyImplementations'
+import { ensureAclIsDeployed } from '../deploy/modules/acl'
+import { ensureSettingsIsDeployed } from '../deploy/modules/settings'
+import { ensureEntityDeployerIsDeployed } from '../deploy/modules/entityDeployer'
+import { ensureMarketIsDeployed } from '../deploy/modules/market'
+import { ensureEntityImplementationsAreDeployed } from '../deploy/modules/entityImplementations'
+import { ensurePolicyImplementationsAreDeployed } from '../deploy/modules/policyImplementations'
+import { getAccounts } from '../deploy/utils'
 
 const IERC20 = artifacts.require("./base/IERC20")
 const IEntity = artifacts.require('./base/IEntity')
@@ -36,9 +33,10 @@ const FreezeUpgradesFacet = artifacts.require("./test/FreezeUpgradesFacet")
 
 
 
-describe('Policy: Tranches', accounts => {
+describe('Policy: Tranches', () => {
   const evmSnapshot = new EvmSnapshot()
 
+  let accounts
   let acl
   let systemContext
   let settings
@@ -54,12 +52,12 @@ describe('Policy: Tranches', accounts => {
   let market
   let etherToken
 
-  const entityAdminAddress = accounts[1]
-  const entityManagerAddress = accounts[2]
-  const insuredPartyRep = accounts[4]
-  const underwriterRep = accounts[5]
-  const brokerRep = accounts[6]
-  const claimsAdminRep = accounts[7]
+  let entityAdminAddress
+  let entityManagerAddress
+  let insuredPartyRep
+  let underwriterRep
+  let brokerRep
+  let claimsAdminRep
 
   let insuredParty
   let underwriter
@@ -87,6 +85,14 @@ describe('Policy: Tranches', accounts => {
   const policies = new Map()
 
   before(async () => {
+    accounts = await getAccounts()
+    entityAdminAddress = accounts[1]
+    entityManagerAddress = accounts[2]
+    insuredPartyRep = accounts[4]
+    underwriterRep = accounts[5]
+    brokerRep = accounts[6]
+    claimsAdminRep = accounts[7]
+
     // acl
     acl = await ensureAclIsDeployed({ artifacts })
     systemContext = await acl.systemContext()
@@ -147,7 +153,7 @@ describe('Policy: Tranches', accounts => {
     // policy
     await acl.assignRole(entityContext, entityManagerAddress, ROLES.ENTITY_MANAGER)
 
-    ;([ policyCoreAddress ] = await ensurePolicyImplementationsAreDeployed({ artifacts, settings }))
+    ;({ facets: [ policyCoreAddress ] } = await ensurePolicyImplementationsAreDeployed({ artifacts, settings }))
 
     const policyStates = await IPolicyStates.at(policyCoreAddress)
     POLICY_STATE_CREATED = await policyStates.POLICY_STATE_CREATED()

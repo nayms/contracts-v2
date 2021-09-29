@@ -60,6 +60,7 @@ async function main() {
 
   // context ctx
   const ctx = {
+    artifacts,
     accounts,
     log,
     network,

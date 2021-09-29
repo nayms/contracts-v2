@@ -1,22 +1,25 @@
 import { extractEventArgs, EvmSnapshot, BYTES32_ZERO } from './utils'
 import { events } from '../'
-import { ensureAclIsDeployed } from '../migrations/modules/acl'
-import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
-import { ensureEntityImplementationsAreDeployed } from '../migrations/modules/entityImplementations'
+import { ensureAclIsDeployed } from '../deploy/modules/acl'
+import { ensureSettingsIsDeployed } from '../deploy/modules/settings'
+import { ensureEntityImplementationsAreDeployed } from '../deploy/modules/entityImplementations'
+import { getAccounts } from '../deploy/utils'
 import { ROLES } from '../utils/constants'
 
-const Entity = artifacts.require("./Entity")
-const IEntity = artifacts.require("./base/IEntity")
-const EntityDeployer = artifacts.require("./EntityDeployer")
+const Entity = artifacts.require("Entity")
+const IEntity = artifacts.require("base/IEntity")
+const EntityDeployer = artifacts.require("EntityDeployer")
 
-describe('EntityDeployer', accounts => {
+describe('EntityDeployer', () => {
   const evmSnapshot = new EvmSnapshot()
 
+  let accounts
   let acl
   let settings
   let deployer
 
   before(async () => {
+    accounts = await getAccounts()
     acl = await ensureAclIsDeployed({ artifacts })
     settings = await ensureSettingsIsDeployed({ artifacts, acl })
     await ensureEntityImplementationsAreDeployed({ artifacts, settings })

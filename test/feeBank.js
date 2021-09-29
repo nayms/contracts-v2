@@ -1,16 +1,15 @@
-import EthVal from 'ethval'
-import { extractEventArgs, ADDRESS_ZERO, EvmSnapshot } from './utils'
-import { events } from '..'
-import { ensureAclIsDeployed } from '../migrations/modules/acl'
-import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
-import { ensureFeeBankIsDeployed } from '../migrations/modules/feeBank'
+import { EvmSnapshot } from './utils'
+import { ensureAclIsDeployed } from '../deploy/modules/acl'
+import { ensureSettingsIsDeployed } from '../deploy/modules/settings'
+import { ensureFeeBankIsDeployed } from '../deploy/modules/feeBank'
+import { getAccounts } from '../deploy/utils'
 
-const IERC20 = artifacts.require("./base/IERC20")
 const DummyToken = artifacts.require("./DummyToken")
 
-describe('Fee bank', accounts => {
+describe('Fee bank', () => {
   const evmSnapshot = new EvmSnapshot()
 
+  let accounts
   let acl
   let settings
   let token1
@@ -18,6 +17,7 @@ describe('Fee bank', accounts => {
   let feeBank
 
   before(async () => {
+    accounts = await getAccounts()
     acl = await ensureAclIsDeployed({ artifacts })
     settings = await ensureSettingsIsDeployed({ artifacts, acl })
     token1 = await DummyToken.new('Token 1', 'TOK1', 18, 0, false)

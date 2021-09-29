@@ -6,7 +6,7 @@ export const getCurrentEntityDeployer = async ({ network, log }) => {
   return getDeployedContractInstance({ network, log, type: 'IEntityDeployer', lookupType: 'EntityDeployer' })
 }
 
-export const ensureEntityDeployerIsDeployed = async (ctx = {}) => {
+export const ensureEntityDeployerIsDeployed = async ctx => {
   const { settings } = ctx
 
   const log = createLog(ctx.log)
@@ -23,5 +23,5 @@ export const ensureEntityDeployerIsDeployed = async (ctx = {}) => {
     await execMethod({ ctx, task, contract: settings }, 'setAddress', settings.address, SETTINGS.ENTITY_DEPLOYER, entityDeployer.address)
   })
 
-  return await getContractAt('IEntityDeployer', entityDeployer.address)
+  return await getContractAt(ctx, 'IEntityDeployer', entityDeployer.address)
 }

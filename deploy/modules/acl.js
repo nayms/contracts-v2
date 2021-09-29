@@ -66,7 +66,7 @@ export const ensureAclIsDeployed = async (ctx = {}) => {
     })
   })
 
-  return await getContractAt('IACL', acl.address)
+  return await getContractAt(ctx, 'ACL', acl.address)
 }
 
 

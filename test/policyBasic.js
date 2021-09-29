@@ -12,26 +12,27 @@ import { events } from '../'
 
 import { ROLES, ROLEGROUPS, SETTINGS } from '../utils/constants'
 
-import { ensureAclIsDeployed } from '../migrations/modules/acl'
-import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
-import { ensureEntityDeployerIsDeployed } from '../migrations/modules/entityDeployer'
-import { ensureMarketIsDeployed } from '../migrations/modules/market'
-import { ensureEntityImplementationsAreDeployed } from '../migrations/modules/entityImplementations'
-import { ensurePolicyImplementationsAreDeployed } from '../migrations/modules/policyImplementations'
+import { getAccounts } from '../deploy/utils'
+import { ensureAclIsDeployed } from '../deploy/modules/acl'
+import { ensureSettingsIsDeployed } from '../deploy/modules/settings'
+import { ensureEntityDeployerIsDeployed } from '../deploy/modules/entityDeployer'
+import { ensureMarketIsDeployed } from '../deploy/modules/market'
+import { ensureEntityImplementationsAreDeployed } from '../deploy/modules/entityImplementations'
+import { ensurePolicyImplementationsAreDeployed } from '../deploy/modules/policyImplementations'
 
-const IERC20 = artifacts.require("./base/IERC20")
-const IEntity = artifacts.require('./base/IEntity')
-const Entity = artifacts.require('./Entity')
-const Proxy = artifacts.require('./base/Proxy')
-const IDiamondProxy = artifacts.require('./base/IDiamondProxy')
-const IDiamondUpgradeFacet = artifacts.require('./base/IDiamondUpgradeFacet')
-const IPolicyStates = artifacts.require("./base/IPolicyStates")
-const IPolicyTypes = artifacts.require("./base/IPolicyTypes")
-const Policy = artifacts.require("./Policy")
-const DummyToken = artifacts.require("./DummyToken")
-const IPolicy = artifacts.require("./base/IPolicy")
-const DummyPolicyFacet = artifacts.require("./test/DummyPolicyFacet")
-const FreezeUpgradesFacet = artifacts.require("./test/FreezeUpgradesFacet")
+const IERC20 = artifacts.require("base/IERC20")
+const IEntity = artifacts.require('base/IEntity')
+const Entity = artifacts.require('Entity')
+const Proxy = artifacts.require('base/Proxy')
+const IDiamondProxy = artifacts.require('base/IDiamondProxy')
+const IDiamondUpgradeFacet = artifacts.require('base/IDiamondUpgradeFacet')
+const IPolicyStates = artifacts.require("base/IPolicyStates")
+const IPolicyTypes = artifacts.require("base/IPolicyTypes")
+const Policy = artifacts.require("Policy")
+const DummyToken = artifacts.require("DummyToken")
+const IPolicy = artifacts.require("base/IPolicy")
+const DummyPolicyFacet = artifacts.require("test/DummyPolicyFacet")
+const FreezeUpgradesFacet = artifacts.require("test/FreezeUpgradesFacet")
 
 const POLICY_ATTRS_1 = {
   initiationDateDiff: 1000,
@@ -56,9 +57,10 @@ const POLICY_ATTRS_3 = Object.assign({}, POLICY_ATTRS_2, {
   trancheData: [[100, 2, 10, 20, 30, 40, 50, 60, 70], [50, 2, 10, 20, 30, 40, 50, 60, 70]]
 })
 
-describe('Policy: Basic', accounts => {
+describe('Policy: Basic', () => {
   const evmSnapshot = new EvmSnapshot()
 
+  let accounts
   let acl
   let systemContext
   let settings
@@ -74,8 +76,8 @@ describe('Policy: Basic', accounts => {
   let market
   let etherToken
 
-  const entityAdminAddress = accounts[1]
-  const entityManagerAddress = accounts[2]
+  let entityAdminAddress
+  let entityManagerAddress
 
   let POLICY_STATE_CREATED
   let POLICY_STATE_INITIATED
@@ -92,6 +94,10 @@ describe('Policy: Basic', accounts => {
   let setupPolicy
 
   before(async () => {
+    accounts = await getAccounts()
+    entityAdminAddress = accounts[1]
+    entityManagerAddress = accounts[2]
+
     // acl
     acl = await ensureAclIsDeployed({ artifacts })
     systemContext = await acl.systemContext()
@@ -120,7 +126,7 @@ describe('Policy: Basic', accounts => {
     await acl.assignRole(systemContext, entityManagerAddress, ROLES.APPROVED_USER)
     await acl.assignRole(entityContext, entityManagerAddress, ROLES.ENTITY_MANAGER, { from: entityAdminAddress })
 
-      ; ([policyCoreAddress] = await ensurePolicyImplementationsAreDeployed({ artifacts, settings }))
+    ;({ facets: [ policyCoreAddress ]} = await ensurePolicyImplementationsAreDeployed({ artifacts, settings }))
 
     const policyStates = await IPolicyStates.at(policyCoreAddress)
     POLICY_STATE_CREATED = await policyStates.POLICY_STATE_CREATED()

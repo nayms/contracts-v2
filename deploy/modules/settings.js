@@ -5,7 +5,7 @@ export const getCurrentSettings = async ({ network, log }) => {
   return getDeployedContractInstance({ network, log, type: 'ISettings', lookupType: 'Settings' })
 }
 
-export const ensureSettingsIsDeployed = async (ctx = {}) => {
+export const ensureSettingsIsDeployed = async ctx => {
   const { acl } = ctx
 
   const log = createLog(ctx.log)
@@ -17,5 +17,5 @@ export const ensureSettingsIsDeployed = async (ctx = {}) => {
     task.log(`Deployed at ${settings.address}`)
   })
 
-  return await getContractAt('ISettings', settings.address)
+  return await getContractAt(ctx, 'ISettings', settings.address)
 }

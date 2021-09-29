@@ -11,26 +11,26 @@ import {
 
 import { events } from '..'
 import { ROLES, ROLEGROUPS, SETTINGS } from '../utils/constants'
-import { ensureAclIsDeployed } from '../migrations/modules/acl'
-import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
-import { ensureMarketIsDeployed } from '../migrations/modules/market'
-import { ensureFeeBankIsDeployed } from '../migrations/modules/feeBank'
-import { ensureEntityDeployerIsDeployed } from '../migrations/modules/entityDeployer'
-import { ensureEntityImplementationsAreDeployed } from '../migrations/modules/entityImplementations'
-import { ensurePolicyImplementationsAreDeployed } from '../migrations/modules/policyImplementations'
+import { ensureAclIsDeployed } from '../deploy/modules/acl'
+import { ensureSettingsIsDeployed } from '../deploy/modules/settings'
+import { ensureMarketIsDeployed } from '../deploy/modules/market'
+import { ensureFeeBankIsDeployed } from '../deploy/modules/feeBank'
+import { ensureEntityDeployerIsDeployed } from '../deploy/modules/entityDeployer'
+import { ensureEntityImplementationsAreDeployed } from '../deploy/modules/entityImplementations'
+import { ensurePolicyImplementationsAreDeployed } from '../deploy/modules/policyImplementations'
+import { getAccounts } from '../deploy/utils'
 
-const EntityTreasuryTestFacet = artifacts.require("./test/EntityTreasuryTestFacet")
-const IEntityTreasuryTestFacet = artifacts.require("./test/IEntityTreasuryTestFacet")
-const IEntity = artifacts.require('./base/IEntity')
-const IPolicyTreasury = artifacts.require('./base/IPolicyTreasury')
-const Entity = artifacts.require('./Entity')
-const IPolicyStates = artifacts.require("./base/IPolicyStates")
-const Policy = artifacts.require("./Policy")
-const DummyToken = artifacts.require("./DummyToken")
-const IPolicy = artifacts.require("./IPolicy")
-const IERC20 = artifacts.require("./base/IERC20")
+const IEntityTreasuryTestFacet = artifacts.require("test/IEntityTreasuryTestFacet")
+const IEntity = artifacts.require('base/IEntity')
+const IPolicyTreasury = artifacts.require('base/IPolicyTreasury')
+const Entity = artifacts.require('Entity')
+const IPolicyStates = artifacts.require("base/IPolicyStates")
+const Policy = artifacts.require("Policy")
+const DummyToken = artifacts.require("DummyToken")
+const IPolicy = artifacts.require("IPolicy")
+const IERC20 = artifacts.require("base/IERC20")
 
-describe('Integration: SPV', accounts => {
+describe('Integration: SPV', () => {
   const evmSnapshot = new EvmSnapshot()
 
   const claimsAdminCommissionBP = 100 /* 1% */
@@ -38,6 +38,7 @@ describe('Integration: SPV', accounts => {
   const naymsCommissionBP = 300
   const underwriterCommissionBP = 300
 
+  let accounts
   let acl
   let systemContext
   let settings
@@ -54,13 +55,13 @@ describe('Integration: SPV', accounts => {
   let etherToken
   let policyOwnerAddress
 
-  const systemManager = accounts[0]
-  const entityManagerAddress = accounts[1]
-  const entityAdminAddress = accounts[2]
-  const insuredPartyRep = accounts[4]
-  const underwriterRep = accounts[5]
-  const brokerRep = accounts[6]
-  const claimsAdminRep = accounts[7]
+  let systemManager
+  let entityManagerAddress
+  let entityAdminAddress
+  let insuredPartyRep
+  let underwriterRep
+  let brokerRep
+  let claimsAdminRep
 
   let insuredParty
   let underwriter
@@ -92,6 +93,15 @@ describe('Integration: SPV', accounts => {
   let evmClock
 
   before(async () => {
+    accounts = await getAccounts()
+    systemManager = accounts[0]
+    entityManagerAddress = accounts[1]
+    entityAdminAddress = accounts[2]
+    insuredPartyRep = accounts[4]
+    underwriterRep = accounts[5]
+    brokerRep = accounts[6]
+    claimsAdminRep = accounts[7]
+
     // acl
     acl = await ensureAclIsDeployed({ artifacts })
     systemContext = await acl.systemContext()
@@ -107,7 +117,7 @@ describe('Integration: SPV', accounts => {
 
     // entity
     entityDeployer = await ensureEntityDeployerIsDeployed({ artifacts, settings })
-    await ensureEntityImplementationsAreDeployed({ artifacts, settings, entityDeployer, extraFacets: [ EntityTreasuryTestFacet ] })
+    await ensureEntityImplementationsAreDeployed({ artifacts, settings, entityDeployer, extraFacets: [ 'test/EntityTreasuryTestFacet' ] })
     
     await acl.assignRole(systemContext, systemManager, ROLES.SYSTEM_MANAGER)
 
@@ -122,7 +132,7 @@ describe('Integration: SPV', accounts => {
     // entity manager
     await acl.assignRole(entityContext, entityManagerAddress, ROLES.ENTITY_MANAGER)
 
-    const [ policyCoreAddress ] = await ensurePolicyImplementationsAreDeployed({ artifacts, settings })
+    const { facets: [ policyCoreAddress ] } = await ensurePolicyImplementationsAreDeployed({ artifacts, settings })
 
     // get current evm time
     baseDate = parseInt((await settings.getTime()).toString(10))
@@ -540,7 +550,11 @@ describe('Integration: SPV', accounts => {
       })
 
       describe('tranch tokens support ERC-20 operations', () => {
-        const tokenHolder = accounts[2]
+        let tokenHolder
+        
+        beforeEach(async () => {
+          tokenHolder = accounts[2]
+        })
 
         it('but sending one\'s own tokens is not possible', async () => {
           await tranchToken.transfer(accounts[3], 1, { from: tokenHolder }).should.be.rejectedWith('only nayms market is allowed to transfer')

@@ -33,7 +33,7 @@ export const deployProxy = async ({
       })
     } else {
       await task.task(`Upgrade contract at ${proxyAddress} with latest facets`, async task => {
-        proxy = await getContractAt('IDiamondUpgradeFacet', proxyAddress)
+        proxy = await getContractAt(ctx, 'IDiamondUpgradeFacet', proxyAddress)
 
         await execMultisigCall({
           task,
@@ -46,7 +46,9 @@ export const deployProxy = async ({
     }
   })
 
-  return await getContractAt(interfaceName, proxy.address)
+  const c = await getContractAt(ctx, interfaceName, proxy.address)
+  c.facets = facetAddresses
+  return c
 }
 
 export const deployFacets = async ({

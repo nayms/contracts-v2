@@ -1,5 +1,3 @@
-import { keccak256 } from './utils/web3'
-
 import {
   EvmSnapshot,
   extractEventArgs,
@@ -12,27 +10,30 @@ import {
 
 import { events } from '../'
 import { ROLES, SETTINGS } from '../utils/constants'
-import { ensureAclIsDeployed } from '../migrations/modules/acl'
-import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
-import { ensureMarketIsDeployed } from '../migrations/modules/market'
-import { ensureFeeBankIsDeployed } from '../migrations/modules/feeBank'
-import { ensureEntityImplementationsAreDeployed } from '../migrations/modules/entityImplementations'
-import { ensurePolicyImplementationsAreDeployed } from '../migrations/modules/policyImplementations'
+import { ensureAclIsDeployed } from '../deploy/modules/acl'
+import { ensureSettingsIsDeployed } from '../deploy/modules/settings'
+import { ensureMarketIsDeployed } from '../deploy/modules/market'
+import { ensureFeeBankIsDeployed } from '../deploy/modules/feeBank'
+import { ensureEntityImplementationsAreDeployed } from '../deploy/modules/entityImplementations'
+import { ensurePolicyImplementationsAreDeployed } from '../deploy/modules/policyImplementations'
+import { getAccounts } from '../deploy/utils'
 
-const IEntity = artifacts.require("./base/IEntity")
-const Proxy = artifacts.require('./base/Proxy')
-const IERC20 = artifacts.require('./base/IERC20')
-const DummyToken = artifacts.require('./DummyToken')
-const IDiamondUpgradeFacet = artifacts.require('./base/IDiamondUpgradeFacet')
-const IDiamondProxy = artifacts.require('./base/IDiamondProxy')
-const AccessControl = artifacts.require('./base/AccessControl')
-const DummyEntityFacet = artifacts.require("./test/DummyEntityFacet")
-const FreezeUpgradesFacet = artifacts.require("./test/FreezeUpgradesFacet")
-const Entity = artifacts.require("./Entity")
-const IPolicy = artifacts.require("./IPolicy")
+const IEntity = artifacts.require("base/IEntity")
+const Proxy = artifacts.require('base/Proxy')
+const IERC20 = artifacts.require('base/IERC20')
+const DummyToken = artifacts.require('DummyToken')
+const IDiamondUpgradeFacet = artifacts.require('base/IDiamondUpgradeFacet')
+const IDiamondProxy = artifacts.require('base/IDiamondProxy')
+const AccessControl = artifacts.require('base/AccessControl')
+const DummyEntityFacet = artifacts.require("test/DummyEntityFacet")
+const FreezeUpgradesFacet = artifacts.require("test/FreezeUpgradesFacet")
+const Entity = artifacts.require("Entity")
+const IPolicy = artifacts.require("IPolicy")
 
-describe('Entity', accounts => {
+describe('Entity', () => {
   const evmSnapshot = new EvmSnapshot()
+
+  let accounts
 
   let acl
   let settings
@@ -50,6 +51,7 @@ describe('Entity', accounts => {
   let HAS_ROLE_CONTEXT
 
   before(async () => {
+    accounts = await getAccounts()
     acl = await ensureAclIsDeployed({ artifacts })
     settings = await ensureSettingsIsDeployed({ artifacts, acl })
     market = await ensureMarketIsDeployed({ artifacts, settings })
@@ -340,9 +342,10 @@ describe('Entity', accounts => {
   })
 
   describe('entity tokens', () => {
-    const entityManager = accounts[2]
+    let entityManager
 
     beforeEach(async () => {
+      entityManager = accounts[2]
       await acl.assignRole(entityContext, entityManager, ROLES.ENTITY_MANAGER)
     })
 
@@ -597,10 +600,12 @@ describe('Entity', accounts => {
   })
 
   describe('token holder tracking', () => {
-    const entityManager = accounts[2]
+    let entityManager
     let entityToken
 
     beforeEach(async () => {
+      entityManager = accounts[2]
+
       await acl.assignRole(entityContext, entityManager, ROLES.ENTITY_MANAGER)
 
       await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager })
@@ -703,10 +708,12 @@ describe('Entity', accounts => {
   })
 
   describe('dividend payouts', () => {
-    const entityManager = accounts[2]
+    let entityManager
     let entityToken
 
     beforeEach(async () => {
+      entityManager = accounts[2]
+      
       await acl.assignRole(entityContext, entityManager, ROLES.ENTITY_MANAGER)
 
       await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager })
@@ -818,10 +825,13 @@ describe('Entity', accounts => {
   })
 
   describe('policies can be created', () => {
-    const entityManager = accounts[2]
-    const entityRep = accounts[3]
+    let entityManager
+    let entityRep
 
     beforeEach(async () => {
+      entityManager = accounts[2]
+      entityRep = accounts[3]
+
       await acl.assignRole(entityContext, entityManager, ROLES.ENTITY_MANAGER)
       await acl.assignRole(entityContext, entityRep, ROLES.ENTITY_REP)
     })

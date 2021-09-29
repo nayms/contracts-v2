@@ -21,14 +21,16 @@ export const getAccounts = async () => {
   return accounts
 }
 
-export const deployContract = async ({ getTxParams = defaultGetTxParams }, name, args, overrides = {}) => {
-  const C = await hre.ethers.getContractFactory(name)
-  const c = await C.deploy(...args, { ...getTxParams(), ...overrides })
-  await c.deployTransaction.wait()
+export const deployContract = async ({ artifacts, getTxParams = defaultGetTxParams }, name, args, overrides = {}) => {
+  const C = artifacts.require(name)
+  const c = await C.new(...args, { ...getTxParams(), ...overrides })
   return c
 }
 
-export const getContractAt = async (p, a, s) => await hre.ethers.getContractAt(p, a, s)
+export const getContractAt = async ({ artifacts }, name, addr) => {
+  const C = artifacts.require(name)
+  return C.at(addr)
+}
 
 export const getMatchingNetwork = ({ chainId: id }) => {
   const match = Object.keys(networks).find(k => networks[k].chainId == id)
@@ -97,8 +99,7 @@ export const execMethod = async ({ ctx, task, contract }, method, ...args) => {
   const { getTxParams = defaultGetTxParams } = ctx
 
   await task.task(`CALL ${method}() on ${contract.address}`, async () => {
-    const tx = await contract[method].apply(contract, args.concat(getTxParams()))
-    await tx.wait()
+    return await contract[method].apply(contract, args.concat(getTxParams()))
   }, { col: 'yellow' })
 }
 

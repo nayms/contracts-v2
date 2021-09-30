@@ -26,6 +26,7 @@ module.exports = {
   networks: {
     hardhat: {
       chainId: 31337,
+      initialBaseFeePerGas: 0,
       blockGasLimit: 30000000,
       accounts: {
         mnemonic: TEST_MNEMONIC,

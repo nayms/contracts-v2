@@ -328,7 +328,7 @@ describe('Integration: SPV', () => {
           })
 
           it('claims cannot yet be made', async () => {
-            await policy.makeClaim(0, 1, { from: insuredParty }).should.be.rejectedWith('must be in active state')
+            await policy.makeClaim(0, 1, { from: underwriterRep }).should.be.rejectedWith('must be in active state')
           })
         })
       })

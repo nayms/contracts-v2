@@ -608,7 +608,7 @@ describe('Policy: Claims', () => {
           })
 
           it('but not if not underwriter', async () => {
-            await policy.disputeClaim(0, { from: insuredParty }).should.be.rejectedWith('not a rep of associated entity')
+            await policy.disputeClaim(0, { from: insuredPartyRep }).should.be.rejectedWith('not a rep of associated entity')
           })
 
           it('but not if claim is invalid', async () => {

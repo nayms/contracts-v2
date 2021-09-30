@@ -31,7 +31,7 @@
     "setup-release-config-for-local": "NETWORK=local ./scripts/setupReleaseConfig.js",
     "build-admin-dapp": "./scripts/generateAdminDapp.js && node_modules/.bin/solui publish-folder --spec ./dapp-generated.json --artifacts ./build/contracts --folder ./dapp",
     "compile": "rm -rf build && yarn truffle compile --network test && yarn copy-artifacts && yarn generate-index",
-    "deploy:local": "yarn hardhat run --network localhost ./deploy",
+    "deploy:local": "yarn hardhat run ./deploy",
     "deploy:rinkeby": "yarn hardhat run --network rinkeby ./deploy",
     "deploy:mainnet": "yarn hardhat run --network mainnet ./deploy",
     "deploy-admin-dapp": "yarn build-admin-dapp && gh-pages -t -d dapp -e $(./scripts/outputVersion.js) -u \"Nayms Engineering <engineering@nayms.io>\"",

@@ -1,3 +1,5 @@
+const spawn = require('cross-spawn')
+
 module.exports = {
   istanbulFolder: './coverage',
   istanbulReporter: [ 'lcov', 'html' ],
@@ -22,5 +24,8 @@ module.exports = {
     /* stuff that's mostly the Diamond Standard external lib code + has assembly in it */
     "base/DiamondStorageBase.sol",
     "base/DiamondCutter.sol",
-  ]
+  ],
+  onCompileComplete: async () => {
+    await spawn('yarn', ['generate-index'], { cwd: __dirname })
+  }
 }

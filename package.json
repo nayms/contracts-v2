@@ -30,7 +30,7 @@
     "setup-release-config-for-mainnet": "NETWORK=mainnet ./scripts/setupReleaseConfig.js",
     "setup-release-config-for-local": "NETWORK=local ./scripts/setupReleaseConfig.js",
     "build-admin-dapp": "./scripts/generateAdminDapp.js && node_modules/.bin/solui publish-folder --spec ./dapp-generated.json --artifacts ./build/contracts --folder ./dapp",
-    "compile": "yearn clean && yarn truffle compile --network test && yarn copy-artifacts && yarn generate-index",
+    "compile": "yarn clean && yarn truffle compile --network test && yarn copy-artifacts && yarn generate-index",
     "deploy:local": "yarn hardhat run ./deploy",
     "deploy:rinkeby": "yarn hardhat run --network rinkeby ./deploy",
     "deploy:mainnet": "yarn hardhat run --network mainnet ./deploy",

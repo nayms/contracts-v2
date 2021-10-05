@@ -7,12 +7,13 @@ const glob = require('glob')
 const path = require('path')
 
 const projectDir = path.join(__dirname, '..')
-const contractsFolder = path.join(projectDir, 'build', 'contracts')
+const contractsFolder = path.join(projectDir, 'artifacts', 'contracts')
 
-const files = glob.sync(path.join(contractsFolder, '*.json'))
+const files = glob.sync(path.join(contractsFolder, '**/*.json'))
+  .filter(f => !f.includes('.dbg.json'))
 
 files.forEach(f => {
   const fileName = path.basename(f, '.json')
-  const { contractName, bytecode, deployedBytecode } = require(path.join(contractsFolder, fileName))
+  const { contractName, bytecode } = require(f)
   console.log(`${contractName.padEnd(30)} ${`${bytecode.length}`.padStart(7)} bytes`)
 })

@@ -8,30 +8,32 @@ import {
   createEntity,
 } from './utils'
 
+import { getAccounts } from '../deploy/utils'
 import { events } from '..'
-import { ROLES, ROLEGROUPS } from '../utils/constants'
-import { ensureAclIsDeployed } from '../migrations/modules/acl'
-import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
-import { ensureMarketIsDeployed } from '../migrations/modules/market'
-import { ensureEntityDeployerIsDeployed } from '../migrations/modules/entityDeployer'
-import { ensureEntityImplementationsAreDeployed } from '../migrations/modules/entityImplementations'
-import { ensurePolicyImplementationsAreDeployed } from '../migrations/modules/policyImplementations'
+import { ROLES } from '../utils/constants'
+import { ensureAclIsDeployed } from '../deploy/modules/acl'
+import { ensureSettingsIsDeployed } from '../deploy/modules/settings'
+import { ensureMarketIsDeployed } from '../deploy/modules/market'
+import { ensureEntityDeployerIsDeployed } from '../deploy/modules/entityDeployer'
+import { ensureEntityImplementationsAreDeployed } from '../deploy/modules/entityImplementations'
+import { ensurePolicyImplementationsAreDeployed } from '../deploy/modules/policyImplementations'
 
-const IEntity = artifacts.require('./base/IEntity')
-const Entity = artifacts.require('./Entity')
-const IPolicyStates = artifacts.require("./base/IPolicyStates")
-const Policy = artifacts.require("./Policy")
-const IPolicy = artifacts.require("./IPolicy")
-const DummyToken = artifacts.require("./DummyToken")
-const IERC20 = artifacts.require("./base/IERC20")
+const IEntity = artifacts.require('base/IEntity')
+const Entity = artifacts.require('Entity')
+const IPolicyStates = artifacts.require("base/IPolicyStates")
+const Policy = artifacts.require("Policy")
+const IPolicy = artifacts.require("IPolicy")
+const DummyToken = artifacts.require("DummyToken")
+const IERC20 = artifacts.require("base/IERC20")
 
-contract('Policy: Approvals', accounts => {
+describe('Policy: Approvals', () => {
   const evmSnapshot = new EvmSnapshot()
 
   const claimsAdminCommissionBP = 100
   const brokerCommissionBP = 200
   const naymsCommissionBP = 300
 
+  let accounts
   let acl
   let systemContext
   let settings
@@ -49,12 +51,12 @@ contract('Policy: Approvals', accounts => {
   let etherToken
   let policyOwnerAddress
 
-  const entityAdminAddress = accounts[0]
-  const entityManagerAddress = accounts[1]
-  const insuredPartyRep = accounts[4]
-  const underwriterRep = accounts[5]
-  const brokerRep = accounts[6]
-  const claimsAdminRep = accounts[7]
+  let entityAdminAddress
+  let entityManagerAddress
+  let insuredPartyRep
+  let underwriterRep
+  let brokerRep
+  let claimsAdminRep
 
   let insuredParty
   let underwriter
@@ -76,11 +78,17 @@ contract('Policy: Approvals', accounts => {
   let TRANCH_STATE_MATURED
   let TRANCH_STATE_CANCELLED
 
-  let getTranchToken
-
   let evmClock
 
   before(async () => {
+    accounts = await getAccounts()
+    entityAdminAddress = accounts[0]
+    entityManagerAddress = accounts[1]
+    insuredPartyRep = accounts[4]
+    underwriterRep = accounts[5]
+    brokerRep = accounts[6]
+    claimsAdminRep = accounts[7]
+
     // acl
     acl = await ensureAclIsDeployed({ artifacts })
     systemContext = await acl.systemContext()
@@ -101,12 +109,12 @@ contract('Policy: Approvals', accounts => {
     const entityProxy = await Entity.at(entityAddress)
     entity = await IEntity.at(entityAddress)
     const entityContext = await entityProxy.aclContext()
-
+    
     // entity manager
     await acl.assignRole(systemContext, entityManagerAddress, ROLES.APPROVED_USER)
     await acl.assignRole(entityContext, entityManagerAddress, ROLES.ENTITY_MANAGER, { from: entityAdminAddress })
     
-    const [ policyCoreAddress ] = await ensurePolicyImplementationsAreDeployed({ artifacts, settings })
+    const { facets: [ policyCoreAddress ] } = await ensurePolicyImplementationsAreDeployed({ artifacts, settings })
 
     // get current evm time
     baseDate = parseInt((await settings.getTime()).toString(10))
@@ -155,11 +163,6 @@ contract('Policy: Approvals', accounts => {
       pricePerShareAmount: 2,
       premiums: [10, 20, 30, 40, 50, 60, 70],
     }, { from: policyOwnerAddress })
-
-    getTranchToken = async idx => {
-      const { token_: tt } = await policy.getTranchInfo(idx)
-      return await IERC20.at(tt)
-    }
 
     const policyStates = await IPolicyStates.at(policyCoreAddress)
 

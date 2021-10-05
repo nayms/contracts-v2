@@ -5,24 +5,23 @@ import {
 } from './utils'
 
 import { SETTINGS } from '../utils/constants'
-
-import {
-  ensureAclIsDeployed,
-} from '../migrations/modules/acl'
-
+import { ensureAclIsDeployed, } from '../deploy/modules/acl'
 import { events } from '../'
+import { getAccounts } from '../deploy/utils'
 
 const ISettings = artifacts.require("./base/ISettings")
 const Settings = artifacts.require("./Settings")
 
-contract('Settings', accounts => {
+describe('Settings', () => {
   const evmSnapshot = new EvmSnapshot()
 
+  let accounts
   let acl
   let settingsImpl
   let settings
 
   before(async () => {
+    accounts = await getAccounts()
     acl = await ensureAclIsDeployed({ artifacts })
     settingsImpl = await Settings.new(acl.address)
     settings = await ISettings.at(settingsImpl.address)

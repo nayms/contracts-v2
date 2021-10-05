@@ -1,10 +1,11 @@
 import { extractEventArgs, EvmSnapshot } from './utils'
 import { events } from '../'
 import { keccak256 } from './utils/web3'
-import { ensureAclIsDeployed } from '../migrations/modules/acl'
+import { ensureAclIsDeployed } from '../deploy/modules/acl'
+import { getAccounts } from '../deploy/utils'
 import { ROLES } from '../utils/constants'
 
-contract('ACL', accounts => {
+describe('ACL', () => {
   const evmSnapshot = new EvmSnapshot()
 
   const role1 = keccak256('testrole1')
@@ -20,6 +21,8 @@ contract('ACL', accounts => {
   const context2 = keccak256('test2')
   const context3 = keccak256('test3')
 
+  let accounts
+
   let acl
   let systemContext
   let adminRole
@@ -34,6 +37,7 @@ contract('ACL', accounts => {
   let HAS_ROLE_SYSTEM_CONTEXT
 
   before(async () => {
+    accounts = await getAccounts()
     acl = await ensureAclIsDeployed({ artifacts })
     systemContext = await acl.systemContext()
     adminRole = await acl.adminRole()

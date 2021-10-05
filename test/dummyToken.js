@@ -1,13 +1,19 @@
 import { extractEventArgs, ADDRESS_ZERO, getBalance } from './utils'
 import { events } from '../'
+import { getAccounts } from '../deploy/utils'
 
-const IERC20 = artifacts.require("./base/IERC20")
-const DummyToken = artifacts.require("./DummyToken")
+const IERC20 = artifacts.require("base/IERC20")
+const DummyToken = artifacts.require("DummyToken")
 
-contract('DummyToken', accounts => {
+describe('DummyToken', () => {
   let dummyToken
+  let accounts
 
-  beforeEach(async () => {
+  before(async () => {
+    accounts = await getAccounts()
+  })
+
+  beforeEach(async () => {    
     dummyToken = await DummyToken.new('Dummy token', 'DUM', 18, 0, false)
   })
 

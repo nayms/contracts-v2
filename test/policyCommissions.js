@@ -1,6 +1,4 @@
 
-import { keccak256, asciiToHex } from './utils/web3'
-
 import {
   parseEvents,
   extractEventArgs,
@@ -12,16 +10,15 @@ import {
   EvmSnapshot,
 } from './utils'
 import { events } from '..'
-
 import { ROLES, ROLEGROUPS, SETTINGS } from '../utils/constants'
-
-import { ensureAclIsDeployed } from '../migrations/modules/acl'
-import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
-import { ensureEntityDeployerIsDeployed } from '../migrations/modules/entityDeployer'
-import { ensureMarketIsDeployed } from '../migrations/modules/market'
-import { ensureFeeBankIsDeployed } from '../migrations/modules/feeBank'
-import { ensureEntityImplementationsAreDeployed } from '../migrations/modules/entityImplementations'
-import { ensurePolicyImplementationsAreDeployed } from '../migrations/modules/policyImplementations'
+import { getAccounts } from '../deploy/utils'
+import { ensureAclIsDeployed } from '../deploy/modules/acl'
+import { ensureSettingsIsDeployed } from '../deploy/modules/settings'
+import { ensureEntityDeployerIsDeployed } from '../deploy/modules/entityDeployer'
+import { ensureMarketIsDeployed } from '../deploy/modules/market'
+import { ensureFeeBankIsDeployed } from '../deploy/modules/feeBank'
+import { ensureEntityImplementationsAreDeployed } from '../deploy/modules/entityImplementations'
+import { ensurePolicyImplementationsAreDeployed } from '../deploy/modules/policyImplementations'
 
 const IERC20 = artifacts.require("./base/IERC20")
 const IEntity = artifacts.require('./base/IEntity')
@@ -42,9 +39,10 @@ const POLICY_ATTRS_1 = {
   underwriterCommissionBP: 40, /* 0.4% */
 }
 
-contract('Policy: Commissions', accounts => {
+describe('Policy: Commissions', () => {
   const evmSnapshot = new EvmSnapshot()
 
+  let accounts
   let acl
   let systemContext
   let settings
@@ -61,12 +59,12 @@ contract('Policy: Commissions', accounts => {
   let feeBank
   let etherToken
 
-  const entityAdminAddress = accounts[0]
-  const entityManagerAddress = accounts[1]
-  const insuredPartyRep = accounts[4]
-  const underwriterRep = accounts[5]
-  const brokerRep = accounts[6]
-  const claimsAdminRep = accounts[7]
+  let entityAdminAddress
+  let entityManagerAddress
+  let insuredPartyRep
+  let underwriterRep
+  let brokerRep
+  let claimsAdminRep
 
   let insuredParty
   let underwriter
@@ -88,6 +86,14 @@ contract('Policy: Commissions', accounts => {
   const policies = new Map()
 
   before(async () => {
+    accounts = await getAccounts()
+    entityAdminAddress = accounts[0]
+    entityManagerAddress = accounts[1]
+    insuredPartyRep = accounts[4]
+    underwriterRep = accounts[5]
+    brokerRep = accounts[6]
+    claimsAdminRep = accounts[7]
+
     // acl
     acl = await ensureAclIsDeployed({ artifacts })
     systemContext = await acl.systemContext()
@@ -119,7 +125,7 @@ contract('Policy: Commissions', accounts => {
     // policy
     await acl.assignRole(entityContext, entityManagerAddress, ROLES.ENTITY_MANAGER, { from: entityAdminAddress })
 
-    ;([ policyCoreAddress ] = await ensurePolicyImplementationsAreDeployed({ artifacts, settings }))
+    ;({ facets: [ policyCoreAddress ] } = await ensurePolicyImplementationsAreDeployed({ artifacts, settings }))
 
     // roles
     underwriter = await createEntity({ entityDeployer, adminAddress: underwriterRep, entityContext, acl })

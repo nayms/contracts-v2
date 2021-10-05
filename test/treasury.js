@@ -13,33 +13,33 @@ import {
 
 import { events } from '..'
 import { ROLES, SETTINGS } from '../utils/constants'
-import { ensureEntityDeployerIsDeployed } from '../migrations/modules/entityDeployer'
-import { ensureAclIsDeployed } from '../migrations/modules/acl'
-import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
-import { ensureMarketIsDeployed } from '../migrations/modules/market'
-import { ensureEntityImplementationsAreDeployed } from '../migrations/modules/entityImplementations'
-import { ensurePolicyImplementationsAreDeployed } from '../migrations/modules/policyImplementations'
+import { ensureEntityDeployerIsDeployed } from '../deploy/modules/entityDeployer'
+import { ensureAclIsDeployed } from '../deploy/modules/acl'
+import { ensureSettingsIsDeployed } from '../deploy/modules/settings'
+import { ensureMarketIsDeployed } from '../deploy/modules/market'
+import { ensureEntityImplementationsAreDeployed } from '../deploy/modules/entityImplementations'
+import { ensurePolicyImplementationsAreDeployed } from '../deploy/modules/policyImplementations'
+import { getAccounts } from '../deploy/utils'
 
-const IEntity = artifacts.require("./base/IEntity")
-const IDiamondProxy = artifacts.require('./base/IDiamondProxy')
-const AccessControl = artifacts.require('./base/AccessControl')
-const DummyEntityFacet = artifacts.require("./test/DummyEntityFacet")
-const EntityTreasuryTestFacet = artifacts.require("./test/EntityTreasuryTestFacet")
-const IEntityTreasuryTestFacet = artifacts.require("./test/IEntityTreasuryTestFacet")
-const PolicyTreasuryTestFacet = artifacts.require("./test/PolicyTreasuryTestFacet")
-const IPolicyTreasuryTestFacet = artifacts.require("./test/IPolicyTreasuryTestFacet")
-const EntityTreasuryFacet = artifacts.require("./test/EntityTreasuryFacet")
-const IPolicyTreasury = artifacts.require("./base/IPolicyTreasury")
-const IPolicyTreasuryConstants = artifacts.require("./base/IPolicyTreasuryConstants")
-const FreezeUpgradesFacet = artifacts.require("./test/FreezeUpgradesFacet")
-const Entity = artifacts.require("./Entity")
-const IPolicy = artifacts.require("./IPolicy")
-const Policy = artifacts.require("./Policy")
-const DummyToken = artifacts.require("./DummyToken")
+const IEntity = artifacts.require("base/IEntity")
+const IDiamondProxy = artifacts.require('base/IDiamondProxy')
+const AccessControl = artifacts.require('base/AccessControl')
+const DummyEntityFacet = artifacts.require("test/DummyEntityFacet")
+const IEntityTreasuryTestFacet = artifacts.require("test/IEntityTreasuryTestFacet")
+const IPolicyTreasuryTestFacet = artifacts.require("test/IPolicyTreasuryTestFacet")
+const EntityTreasuryFacet = artifacts.require("test/EntityTreasuryFacet")
+const IPolicyTreasury = artifacts.require("base/IPolicyTreasury")
+const IPolicyTreasuryConstants = artifacts.require("base/IPolicyTreasuryConstants")
+const FreezeUpgradesFacet = artifacts.require("test/FreezeUpgradesFacet")
+const Entity = artifacts.require("Entity")
+const IPolicy = artifacts.require("IPolicy")
+const Policy = artifacts.require("Policy")
+const DummyToken = artifacts.require("DummyToken")
 
-contract('Treasury', accounts => {
+describe('Treasury', () => {
   const evmSnapshot = new EvmSnapshot()
 
+  let accounts
   let acl
   let settings
   let etherToken
@@ -52,7 +52,7 @@ contract('Treasury', accounts => {
   let entityCoreAddress
   let entityContext
 
-  const entityAdminAddress = accounts[0]
+  let entityAdminAddress
 
   let treasury
   
@@ -67,14 +67,17 @@ contract('Treasury', accounts => {
   let ORDER_TYPE_TOKEN_SALE
 
   before(async () => {
+    accounts = await getAccounts()
+    entityAdminAddress = accounts[0]
+
     acl = await ensureAclIsDeployed({ artifacts })
     settings = await ensureSettingsIsDeployed({ artifacts, acl })
     market = await ensureMarketIsDeployed({ artifacts, settings })
     entityDeployer = await ensureEntityDeployerIsDeployed({ artifacts, settings })
     etherToken = await DummyToken.new('Token 1', 'TOK1', 18, 0, false)
     etherToken2 = await DummyToken.new('Token 2', 'TOK2', 18, 0, true)
-    await ensurePolicyImplementationsAreDeployed({ artifacts, settings, extraFacets: [ PolicyTreasuryTestFacet ] })
-    await ensureEntityImplementationsAreDeployed({ artifacts, settings, extraFacets: [ EntityTreasuryTestFacet ] })
+    await ensurePolicyImplementationsAreDeployed({ artifacts, settings, extraFacets: [ 'test/PolicyTreasuryTestFacet' ] })
+    await ensureEntityImplementationsAreDeployed({ artifacts, settings, extraFacets: [ 'test/EntityTreasuryTestFacet' ] })
 
     DOES_NOT_HAVE_ROLE = (await acl.DOES_NOT_HAVE_ROLE()).toNumber()
     HAS_ROLE_CONTEXT = (await acl.HAS_ROLE_CONTEXT()).toNumber()

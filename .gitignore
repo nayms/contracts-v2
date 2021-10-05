@@ -6,6 +6,8 @@ yarn-error.log
 .node*
 archive/*
 build/
+artifacts/
+cache/
 coverage
 coverageEnv
 .coverage_contracts

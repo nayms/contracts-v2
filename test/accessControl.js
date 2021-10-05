@@ -1,12 +1,14 @@
 import { EvmSnapshot } from './utils'
-import { ensureAclIsDeployed } from '../migrations/modules/acl'
-import { ensureSettingsIsDeployed } from '../migrations/modules/settings'
+import { getAccounts } from '../deploy/utils'
+import { ensureAclIsDeployed } from '../deploy/modules/acl'
+import { ensureSettingsIsDeployed } from '../deploy/modules/settings'
 import { ROLES, ROLEGROUPS } from '../utils/constants'
 
 const AccessControl = artifacts.require("./base/AccessControl")
 
-contract('AccessControl', accounts => {
+describe('AccessControl', () => {
   const evmSnapshot = new EvmSnapshot()
+  let accounts
 
   let acl
   let settings
@@ -15,6 +17,7 @@ contract('AccessControl', accounts => {
   let otherContext
 
   before(async () => {
+    accounts = await getAccounts()
     acl = await ensureAclIsDeployed({ artifacts })
     settings = await ensureSettingsIsDeployed({ artifacts, acl })
     accessControl = await AccessControl.new(settings.address)

@@ -57,7 +57,7 @@ interface IMarketDataFacet {
   function getLastOfferId() external view returns (uint256);
 
   /**
-   * @dev Check if offer is active.
+   * @dev Get if offer is active.
    *
    * @param _offerId offer id.
    *
@@ -73,23 +73,37 @@ interface IMarketDataFacet {
    * @return creator_ owner/creator.
    * @return sellToken_ sell token.
    * @return sellAmount_ sell amount.
+   * @return sellAmountInitial_ initial sell amount.
    * @return buyToken_ buy token.
    * @return buyAmount_ buy amount.
+   * @return buyAmountInitial_ initial buy amount.
    * @return notify_ Contract to notify when a trade takes place and/or order gets cancelled.
    * @return notifyData_ Data to pass through to the notified contract.
-   * @return isActive_ whether offer is active.
-   * @return nextOfferId_ id of the next offer in the sorted list of offers for this token pair.
-   * @return prevOfferId_ id of the previous offer in the sorted list of offers for this token pair.
+   * @return state_ offer state.
    */
   function getOffer(uint256 _offerId) external view returns ( 
     address creator_,
     address sellToken_, 
     uint256 sellAmount_, 
+    uint256 sellAmountInitial_,
     address buyToken_, 
     uint256 buyAmount_,
+    uint256 buyAmountInitial_,
     address notify_,
     bytes memory notifyData_,
-    bool isActive_,
+    uint256 state_
+  );
+
+
+  /**
+   * @dev Get offer ranked siblings in the sorted offer list.
+   *
+   * @param _offerId offer id.
+   *
+   * @return nextOfferId_ id of the next offer in the sorted list of offers for this token pair.
+   * @return prevOfferId_ id of the previous offer in the sorted list of offers for this token pair.
+   */
+  function getOfferSiblings(uint256 _offerId) external view returns ( 
     uint256 nextOfferId_,
     uint256 prevOfferId_
   );

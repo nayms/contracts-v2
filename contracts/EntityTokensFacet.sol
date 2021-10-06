@@ -164,7 +164,7 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
       // if we created this offer
       if (entity == address(this)) {
         // check entity token matches sell token
-        (, address sellToken, , address buyToken, , , , , ,) = _getMarket().getOffer(_offerId);
+        (, address sellToken, , , address buyToken, , , , ,) = _getMarket().getOffer(_offerId);
         address tokenAddress = dataAddress["token"];
         require(tokenAddress == sellToken, "sell token must be entity token");
 

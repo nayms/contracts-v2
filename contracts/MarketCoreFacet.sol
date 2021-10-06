@@ -3,6 +3,7 @@ pragma solidity 0.6.12;
 import "./base/EternalStorage.sol";
 import "./base/IMarketCoreFacet.sol";
 import "./base/IMarketObserver.sol";
+import "./base/IMarketOfferStates.sol";
 import "./base/IDiamondFacet.sol";
 import "./base/Controller.sol";
 import "./base/SafeMath.sol";
@@ -13,11 +14,11 @@ import "./MarketFacetBase.sol";
 /**
  * Forked from https://github.com/nayms/maker-otc/blob/master/contracts/matching_market.sol
  */
-contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamondFacet, IMarketCoreFacet, ReentrancyGuard {
+contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamondFacet, IMarketCoreFacet, IMarketOfferStates, ReentrancyGuard {
   using SafeMath for uint256;
 
   modifier assertIsActive (uint256 _offerId) {
-    require(dataBool[__i(_offerId, "isActive")], "offer not active");
+    require(dataUint256[__i(_offerId, "state")] == OFFER_STATE_ACTIVE, "offer not active");
     _;
   }
 
@@ -49,6 +50,7 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
   {
     address creator = dataAddress[__i(_offerId, "creator")];
     require(creator == msg.sender, "only creator can cancel");
+    dataUint256[__i(_offerId, "state")] = OFFER_STATE_CANCELLED;
     _cancel(_offerId);
   }
 
@@ -362,11 +364,13 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     dataAddress[__i(id, "creator")] = msg.sender;
     dataAddress[__i(id, "sellToken")] = _sellToken;
     dataUint256[__i(id, "sellAmount")] = _sellAmount;
+    dataUint256[__i(id, "sellAmountInitial")] = _sellAmount;
     dataAddress[__i(id, "buyToken")] = _buyToken;
     dataUint256[__i(id, "buyAmount")] = _buyAmount;
+    dataUint256[__i(id, "buyAmountInitial")] = _buyAmount;
     dataAddress[__i(id, "notify")] = _notify;
     dataBytes[__i(id, "notifyData")] = _notifyData;
-    dataBool[__i(id, "isActive")] = true;
+    dataUint256[__i(id, "state")] = OFFER_STATE_ACTIVE;
 
     // escrow the tokens
     require(IERC20(_sellToken).transferFrom(msg.sender, address(this), _sellAmount), "unable to escrow tokens");
@@ -419,6 +423,7 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
 
     // cancel offer if it has become dust
     if (dataUint256[__i(_offerId, "sellAmount")] < dataUint256["dust"]) {
+      dataUint256[__i(_offerId, "state")] = OFFER_STATE_FULFILLED;
       _cancel(_offerId);
     }
   }
@@ -531,8 +536,6 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
         notifyData
       );
     }
-
-    dataBool[__i(_offerId, "isActive")] = false;
   }
 
   function _assertValidOffer(address _sellToken, uint256 _sellAmount, address _buyToken, uint256 _buyAmount) private {

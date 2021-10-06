@@ -2,11 +2,12 @@ pragma solidity 0.6.12;
 
 import "./base/EternalStorage.sol";
 import "./base/IMarketDataFacet.sol";
+import "./base/IMarketOfferStates.sol";
 import "./base/IDiamondFacet.sol";
 import "./base/Controller.sol";
 import "./MarketFacetBase.sol";
 
-contract MarketDataFacet is EternalStorage, Controller, MarketFacetBase, IDiamondFacet, IMarketDataFacet {
+contract MarketDataFacet is EternalStorage, Controller, MarketFacetBase, IDiamondFacet, IMarketDataFacet, IMarketOfferStates {
   /**
    * Constructor
    */
@@ -23,6 +24,7 @@ contract MarketDataFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
       IMarketDataFacet.getLastOfferId.selector,
       IMarketDataFacet.isActive.selector,
       IMarketDataFacet.getOffer.selector,
+      IMarketDataFacet.getOfferSiblings.selector,
       IMarketDataFacet.calculateFee.selector
     );
   }
@@ -41,30 +43,38 @@ contract MarketDataFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     dataUint256["feeBP"] = _feeBP;
   }
 
-  function isActive(uint256 _offerId) public view override returns (bool) {
-    return dataBool[__i(_offerId, "isActive")];
+  function isActive(uint256 _offerId) external view override returns (bool) {
+    return dataUint256[__i(_offerId, "state")] == OFFER_STATE_ACTIVE;
   }
 
   function getOffer(uint256 _offerId) external view override returns ( 
     address creator_,
     address sellToken_, 
     uint256 sellAmount_, 
+    uint256 sellAmountInitial_,
     address buyToken_, 
     uint256 buyAmount_,
+    uint256 buyAmountInitial_,
     address notify_,
     bytes memory notifyData_,
-    bool isActive_,
-    uint256 nextOfferId_,
-    uint256 prevOfferId_
+    uint256 state_
   ) {
     creator_ = dataAddress[__i(_offerId, "creator")];
     sellToken_ = dataAddress[__i(_offerId, "sellToken")];
     sellAmount_ = dataUint256[__i(_offerId, "sellAmount")];
+    sellAmountInitial_ = dataUint256[__i(_offerId, "sellAmountInitial")];
     buyToken_ = dataAddress[__i(_offerId, "buyToken")];
     buyAmount_ = dataUint256[__i(_offerId, "buyAmount")];
+    buyAmountInitial_ = dataUint256[__i(_offerId, "buyAmountInitial")];
     notify_ = dataAddress[__i(_offerId, "notify")];
     notifyData_ = dataBytes[__i(_offerId, "notifyData")];
-    isActive_ = dataBool[__i(_offerId, "isActive")];
+    state_ = dataUint256[__i(_offerId, "state")];
+  }
+
+  function getOfferSiblings(uint256 _offerId) external view override returns ( 
+    uint256 nextOfferId_,
+    uint256 prevOfferId_
+  ) {
     nextOfferId_ = dataUint256[__i(_offerId, "rankNext")];
     prevOfferId_ = dataUint256[__i(_offerId, "rankPrev")];
   }

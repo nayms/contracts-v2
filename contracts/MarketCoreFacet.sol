@@ -548,10 +548,6 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     require(_sellToken != _buyToken, "sell token and buy token must be different");
   }
 
-  // These are from https://github.com/nayms/maker-otc/blob/master/contracts/math.sol
-  function wdiv(uint x, uint y) private pure returns (uint z) {
-    z = SafeMath.add(SafeMath.mul(x, (10 ** 18)), y.div(2)).div(y);
-  }
   function min(uint x, uint y) private pure returns (uint z) {
     z = (x < y ? x : y);
   }

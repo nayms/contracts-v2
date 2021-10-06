@@ -58,4 +58,9 @@ abstract contract MarketFacetBase is EternalStorage, Controller {
       fee_.amount = feeBP.mul(_sellAmount).div(10000);
     }
   }
+
+  // These are from https://github.com/nayms/maker-otc/blob/master/contracts/math.sol
+  function wdiv(uint x, uint y) internal pure returns (uint z) {
+    z = SafeMath.add(SafeMath.mul(x, (10 ** 18)), y.div(2)).div(y);
+  }
 }

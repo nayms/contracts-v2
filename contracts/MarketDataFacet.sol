@@ -25,7 +25,8 @@ contract MarketDataFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
       IMarketDataFacet.isActive.selector,
       IMarketDataFacet.getOffer.selector,
       IMarketDataFacet.getOfferSiblings.selector,
-      IMarketDataFacet.calculateFee.selector
+      IMarketDataFacet.calculateFee.selector,
+      IMarketDataFacet.calculateMarketOfferFinalAmounts.selector
     );
   }
 
@@ -95,5 +96,39 @@ contract MarketDataFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
   ) external view override returns (address feeToken_, uint256 feeAmount_) {
     TokenAmount memory fee = _calculateFee(_sellToken, _sellAmount, _buyToken, _buyAmount);
     return (fee.token, fee.amount);
+  }
+
+  function calculateMarketOfferFinalAmounts(
+    address _sellToken, 
+    uint256 _sellAmount, 
+    address _buyToken
+  ) external view override returns (uint256 soldAmount_, uint256 boughtAmount_) {
+    uint256 sellAmount = _sellAmount;
+    uint256 id;
+
+    while (sellAmount > 0) {
+      id = _getBestOfferId(_buyToken, _sellToken);
+
+      uint256 offerBuyAmount = dataUint256[__i(id, "buyAmount")];
+      uint256 offerSellAmount = dataUint256[__i(id, "sellAmount")];
+
+      // There is a chance that pay_amt is smaller than 1 wei of the other token
+      if (sellAmount * 1 ether < wdiv(offerBuyAmount, offerSellAmount)) {
+        break; // We consider that all amount is sold
+      }
+
+      // if sell amount >= offer buy amount then lets buy the whole offer
+      if (sellAmount >= offerBuyAmount) {
+        soldAmount_ = soldAmount_.add(offerBuyAmount);
+        boughtAmount_ = boughtAmount_.add(offerSellAmount);
+        sellAmount = sellAmount.sub(offerBuyAmount);
+      } 
+      // otherwise, let's just buy what we can
+      else {
+        soldAmount_ = soldAmount_.add(sellAmount);
+        boughtAmount_ = boughtAmount_.add(sellAmount.mul(offerSellAmount).div(offerBuyAmount));
+        sellAmount = 0;
+      }
+    }
   }
 }

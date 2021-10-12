@@ -502,13 +502,6 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     }
   }
 
-  function _checkTradeBounds(uint256 _maxBuyAmount, uint256 _buyAmount, uint256 _maxSellAmount, uint256 _sellAmount) private {
-    require(_buyAmount > 0, "requested buy amount is 0");
-    require(_buyAmount <= _maxBuyAmount, "requested buy amount too large");
-    require(_sellAmount > 0, "calculated sell amount is 0");
-    require(_sellAmount <= _maxSellAmount, "calculated sell amount too large");
-  }
-
   function _cancel(uint256 _offerId) private {
     if (_isOfferInSortedList(_offerId)) {
       _removeOfferFromSortedList(_offerId);

@@ -26,7 +26,7 @@ contract MarketDataFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
       IMarketDataFacet.getOffer.selector,
       IMarketDataFacet.getOfferSiblings.selector,
       IMarketDataFacet.calculateFee.selector,
-      IMarketDataFacet.calculateMarketOfferFinalAmounts.selector
+      IMarketDataFacet.simulateMarketOffer.selector
     );
   }
 
@@ -98,19 +98,20 @@ contract MarketDataFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     return (fee.token, fee.amount);
   }
 
-  function calculateMarketOfferFinalAmounts(
+  function simulateMarketOffer(
     address _sellToken, 
     uint256 _sellAmount, 
     address _buyToken
-  ) external view override returns (uint256 soldAmount_, uint256 boughtAmount_) {
+  ) external view override returns (uint256) {
+    uint256 boughtAmount_;
+    uint256 soldAmount_;
     uint256 sellAmount = _sellAmount;
-    uint256 id;
+    
+    uint256 bestOfferId = dataUint256[__iaa(0, _buyToken, _sellToken, "bestOfferId")];
 
-    while (sellAmount > 0) {
-      id = _getBestOfferId(_buyToken, _sellToken);
-
-      uint256 offerBuyAmount = dataUint256[__i(id, "buyAmount")];
-      uint256 offerSellAmount = dataUint256[__i(id, "sellAmount")];
+    while (sellAmount > 0 && bestOfferId > 0) {
+      uint256 offerBuyAmount = dataUint256[__i(bestOfferId, "buyAmount")];
+      uint256 offerSellAmount = dataUint256[__i(bestOfferId, "sellAmount")];
 
       // There is a chance that pay_amt is smaller than 1 wei of the other token
       if (sellAmount * 1 ether < wdiv(offerBuyAmount, offerSellAmount)) {
@@ -129,6 +130,13 @@ contract MarketDataFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
         boughtAmount_ = boughtAmount_.add(sellAmount.mul(offerSellAmount).div(offerBuyAmount));
         sellAmount = 0;
       }
+
+      // move to next best offer
+      bestOfferId = dataUint256[__i(bestOfferId, "rankPrev")];
     }
+
+    require(_sellAmount <= soldAmount_, "not enough orders in market");
+
+    return boughtAmount_;
   }
 }

@@ -41,24 +41,23 @@ interface IMarketDataFacet {
   ) external view returns (address feeToken_, uint256 feeAmount_);
 
   /**
-   * @dev Calculate the final amounts sold and bought if the given market order were to be executed.
+   * @dev Simulate a market offer and calculate the final amount bought.
    *
    * This complements the `executeMarketOffer` method and is useful for when you want to display the average 
-   * trade price to the user prior to executing the transaction. Note that if the final amount sold 
-   * is less than the requested `_sellAmount` then it means that the equivalent call to `executeMarketOffer` would fail.
+   * trade price to the user prior to executing the transaction. Note that if the requested `_sellAmount` cannot 
+   * be sold then the function will throw.
    *
    * @param _sellToken The sell unit.
    * @param _sellAmount The sell amount.
    * @param _buyToken The buy unit.
    *
-   * @return soldAmount_ The amount that would get sold.
-   * @return boughtAmount_ The amount that would get bought.
+   * @return The amount that would get bought.
    */
-  function calculateMarketOfferFinalAmounts(
+  function simulateMarketOffer(
     address _sellToken, 
     uint256 _sellAmount, 
     address _buyToken
-  ) external view returns (uint256 soldAmount_, uint256 boughtAmount_);
+  ) external view returns (uint256);
 
   /**
    * @dev Get current best offer for given token pair.

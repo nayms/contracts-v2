@@ -6,6 +6,7 @@ import { ensureAclIsDeployed } from '../deploy/modules/acl'
 import { ensureSettingsIsDeployed } from '../deploy/modules/settings'
 import { ensureMarketIsDeployed } from '../deploy/modules/market'
 import { ensureFeeBankIsDeployed } from '../deploy/modules/feeBank'
+import { expect } from 'chai'
 
 const DummyToken = artifacts.require("DummyToken")
 const DummyMarketObserver = artifacts.require("DummyMarketObserver")
@@ -539,48 +540,49 @@ describe('Market', () => {
   })
 
   describe('supports executeMarketOffer to sell all amount', () => {
-    let pay_amt;
-    let buy_amt;
-    let second_offerTx;
-
     beforeEach(async () => {
-      pay_amt = toWei('20');
-      buy_amt = toWei('10');
-
-      await erc20DAI.approve(
-        market.address,
-        pay_amt,
-        { from: accounts[3] }
-      ).should.be.fulfilled
-
-      second_offerTx = await market.executeLimitOffer(
-        erc20DAI.address,
-        pay_amt,
-
-        erc20WETH.address,
-        buy_amt,
-
-        { from: accounts[3] }
-      )
+      await erc20DAI.approve( market.address, toWei('30'), { from: accounts[3] } )
+      // 20 DAI <-> 10 WETH (2 DAI per WETH)
+      await market.executeLimitOffer( erc20DAI.address, toWei('20'), erc20WETH.address, toWei('10'), { from: accounts[3] } )
+      // 10 DAI <-> 10 WETH (1 DAI per WETH)
+      await market.executeLimitOffer( erc20DAI.address, toWei('10'), erc20WETH.address, toWei('10'), { from: accounts[3] } )
     })
 
     it('should revert if amount to sell cannot be transferred from user', async () => {
-      await erc20WETH.approve(
-        market.address,
-        toBN(5e18),
-        { from: accounts[1] }
-      ).should.be.fulfilled
+      await erc20WETH.approve( market.address, toBN(5e18), { from: accounts[1] } )
 
       await market.executeMarketOffer(erc20WETH.address,
         toBN(11e18), erc20DAI.address, { from: accounts[1] }).should.be.rejectedWith('DummyToken: transfer amount exceeds allowance')
     });
 
-    it('should revert if not enough orders in market to fill amount to sell', async () => {
-      await erc20WETH.approve(
-        market.address,
-        toBN(5e18),
-        { from: accounts[1] }
-      ).should.be.fulfilled
+    describe('pre-calculation', () => {
+      it('when there are no orders in market to match', async () => {
+        await market.simulateMarketOffer(erc20DAI.address, toBN(11e18), erc20WETH.address).should.be.rejectedWith('not enough orders in market');
+      })
+
+      it('when there are not enough orders in market to match', async () => {
+        await market.simulateMarketOffer(erc20WETH.address, toBN(50e18), erc20DAI.address).should.be.rejectedWith('not enough orders in market')
+      })
+
+      it('when it can partially match an existing offer', async () => {
+        await market.simulateMarketOffer(erc20WETH.address, toBN(5e18), erc20DAI.address).should.eventually.eq(toBN(10e18))
+      })
+
+      it('when it fully matches an existing offer', async () => {
+        await market.simulateMarketOffer(erc20WETH.address, toBN(10e18), erc20DAI.address).should.eventually.eq(toBN(20e18))
+      })
+
+      it('when it fully matches an existing offer and partially matches a second offer', async () => {
+        await market.simulateMarketOffer(erc20WETH.address, toBN(12e18), erc20DAI.address).should.eventually.eq(toBN(22e18))
+      })
+
+      it('when it fully matches existing offers', async () => {
+        await market.simulateMarketOffer(erc20WETH.address, toBN(20e18), erc20DAI.address).should.eventually.eq(toBN(30e18))
+      })
+    })
+
+    it('should revert if there are no orders in market to match', async () => {
+      await erc20WETH.approve( market.address, toBN(5e18), { from: accounts[1] } )
 
       await market.executeMarketOffer(erc20DAI.address,
         toBN(11e18), erc20WETH.address, { from: accounts[1] }).should.be.rejectedWith('not enough orders in market')
@@ -588,57 +590,92 @@ describe('Market', () => {
       await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('1000').toString())
       await erc20WETH.balanceOf(accounts[1]).should.eventually.eq(toWei('1000').toString())
 
-      await erc20DAI.balanceOf(accounts[3]).should.eventually.eq(toWei('980').toString())
+      await erc20DAI.balanceOf(accounts[3]).should.eventually.eq(toWei('970').toString())
       await erc20WETH.balanceOf(accounts[3]).should.eventually.eq(toWei('1000').toString())
-
     })
 
-    it('should match market offers partly when offer cannot be fully matched by counter offer', async () => {
+    it('should revert if there are not enough orders in market to match', async () => {
+      await erc20WETH.approve(market.address, toBN(50e18), { from: accounts[1] })
+      await market.executeMarketOffer(erc20WETH.address, toBN(50e18), erc20DAI.address, { from: accounts[1] }).should.be.rejectedWith('not enough orders in market')
+    })
+
+    it('should match top market offer partly when offer cannot be fully matched by counter offer', async () => {
       // buyer must have approved WETH to get DAI at best offer
-      await erc20WETH.approve(
-        market.address,
-        toBN(5e18),
-        { from: accounts[1] }
-      ).should.be.fulfilled
+      await erc20WETH.approve( market.address, toBN(5e18), { from: accounts[1] } )
+      await market.executeMarketOffer(erc20WETH.address, toBN(5e18), erc20DAI.address, { from: accounts[1] })
 
-      // caller must approve amount to give
-      // calls buy function
-      // Transfers funds from caller to offer maker, and from market to caller.
-      await market.executeMarketOffer(erc20WETH.address,
-        toBN(5e18), erc20DAI.address, { from: accounts[1] }).should.be.fulfilled
-
-      const firstOffer = await market.getOffer(1)
-      expect(firstOffer.sellAmount_.toString()).to.eq(toWei('10')) // previously 20
-      expect(firstOffer.buyAmount_.toString()).to.eq(toWei('5')) // previously 10
+      await market.getOffer(1).should.eventually.matchObj({
+        sellAmount_: toBN(10e18), // prev 20
+        buyAmount_: toBN(5e18), // prev 10
+      })
 
       await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('1010').toString())
       await erc20WETH.balanceOf(accounts[1]).should.eventually.eq(toWei('995').toString())
 
-      await erc20DAI.balanceOf(accounts[3]).should.eventually.eq(toWei('980').toString())
+      await erc20DAI.balanceOf(accounts[3]).should.eventually.eq(toWei('970').toString())
       await erc20WETH.balanceOf(accounts[3]).should.eventually.eq(toWei('1005').toString())
     })
 
-    it('should match market offers fully when an offer can be fully matched by counter offer', async () => {
-      await erc20WETH.approve(
-        market.address,
-        toBN(10e18),
-        { from: accounts[1] }
-      ).should.be.fulfilled
+    it('should match top market offers partly when offer cannot be fully matched by all offers', async () => {
+      // buyer must have approved WETH to get DAI at best offer
+      await erc20WETH.approve( market.address, toBN(15e18), { from: accounts[1] } )
+      await market.executeMarketOffer(erc20WETH.address, toBN(15e18), erc20DAI.address, { from: accounts[1] })
 
-      await market.executeMarketOffer(erc20WETH.address,
-        toBN(10e18), erc20DAI.address, { from: accounts[1] }).should.be.fulfilled
+      await market.getOffer(1).should.eventually.matchObj({
+        sellAmount_: toBN(0),
+        buyAmount_: toBN(0),
+      })
 
-      const firstOffer = await market.getOffer(1)
-      expect(firstOffer.sellAmount_.toNumber()).to.eq(0) // previously 20
-      expect(firstOffer.buyAmount_.toNumber()).to.eq(0) // previously 10
+      await market.getOffer(2).should.eventually.matchObj({
+        sellAmount_: toBN(5e18),
+        buyAmount_: toBN(5e18),
+      })
+
+      await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('1025').toString())
+      await erc20WETH.balanceOf(accounts[1]).should.eventually.eq(toWei('985').toString())
+
+      await erc20DAI.balanceOf(accounts[3]).should.eventually.eq(toWei('970').toString())
+      await erc20WETH.balanceOf(accounts[3]).should.eventually.eq(toWei('1015').toString())
+    })
+
+    it('should match top market offer fully when an offer can be fully matched by counter offer', async () => {
+      await erc20WETH.approve( market.address, toBN(10e18), { from: accounts[1] } )
+
+      await market.executeMarketOffer(erc20WETH.address, toBN(10e18), erc20DAI.address, { from: accounts[1] })
+
+      await market.getOffer(1).should.eventually.matchObj({
+        sellAmount_: toBN(0), // prev 20
+        buyAmount_: toBN(0), // prev 10
+      })
 
       await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('1020').toString())
       await erc20WETH.balanceOf(accounts[1]).should.eventually.eq(toWei('990').toString())
 
-      await erc20DAI.balanceOf(accounts[3]).should.eventually.eq(toWei('980').toString())
+      await erc20DAI.balanceOf(accounts[3]).should.eventually.eq(toWei('970').toString())
       await erc20WETH.balanceOf(accounts[3]).should.eventually.eq(toWei('1010').toString())
     })
 
+    it('should match top market offers fully when offer can be fully matched by all offers', async () => {
+      // buyer must have approved WETH to get DAI at best offer
+      await erc20WETH.approve(market.address, toBN(20e18), { from: accounts[1] })
+      await market.executeMarketOffer(erc20WETH.address, toBN(20e18), erc20DAI.address, { from: accounts[1] })
+
+      await market.getOffer(1).should.eventually.matchObj({
+        sellAmount_: toBN(0), // prev 20
+        buyAmount_: toBN(0), // prev 10
+      })
+
+      await market.getOffer(2).should.eventually.matchObj({
+        sellAmount_: toBN(0), // prev 10
+        buyAmount_: toBN(0), // prev 10
+      })
+
+      await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('1030').toString())
+      await erc20WETH.balanceOf(accounts[1]).should.eventually.eq(toWei('980').toString())
+
+      await erc20DAI.balanceOf(accounts[3]).should.eventually.eq(toWei('970').toString())
+      await erc20WETH.balanceOf(accounts[3]).should.eventually.eq(toWei('1020').toString())
+    })
   })
 
   describe('can match a pair of matching offers', () => {

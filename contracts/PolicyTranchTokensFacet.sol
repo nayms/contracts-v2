@@ -174,7 +174,7 @@ contract PolicyTranchTokensFacet is EternalStorage, Controller, IDiamondFacet, I
         // if we are in the policy buyback state
         if (dataUint256["state"] == POLICY_STATE_BUYBACK) {
           // check tranch token matches buy token
-          (, , , address buyToken, , , , , ,) = _getMarket().getOffer(_offerId);
+          (, , , , address buyToken, , , , ,) = _getMarket().getOffer(_offerId);
           address tranchAddress = dataAddress[__i(tranchId, "address")];
           require(tranchAddress == buyToken, "buy token must be tranch token");
 

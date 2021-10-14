@@ -4,12 +4,13 @@ pragma solidity 0.6.12;
 import "./base/EternalStorage.sol";
 import "./base/Controller.sol";
 import "./base/IMarket.sol";
+import "./base/IMarketFeeSchedules.sol";
 import "./base/IERC20.sol";
 
 /**
  * @dev Entity facet base class
  */
-abstract contract EntityFacetBase is EternalStorage, Controller {
+abstract contract EntityFacetBase is EternalStorage, Controller, IMarketFeeSchedules {
   modifier assertIsEntityAdmin (address _addr) {
     require(inRoleGroup(_addr, ROLEGROUP_ENTITY_ADMINS), 'must be entity admin');
     _;
@@ -46,7 +47,7 @@ abstract contract EntityFacetBase is EternalStorage, Controller {
     IERC20 tok = IERC20(_sellUnit);
     tok.approve(address(mkt), _sellAmount);
     // make the offer
-    return mkt.executeLimitOfferWithObserver(_sellUnit, _sellAmount, _buyUnit, _buyAmount, _notify, _notifyData);
+    return mkt.executeLimitOfferWithObserver(_sellUnit, _sellAmount, _buyUnit, _buyAmount, FEE_SCHEDULE_STANDARD, _notify, _notifyData);
   }  
 
   function _sellAtBestPriceOnMarket(address _sellUnit, uint256 _sellAmount, address _buyUnit) internal {

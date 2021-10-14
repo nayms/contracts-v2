@@ -11,6 +11,7 @@ import "./base/IPolicyTreasuryConstants.sol";
 import "./base/IPolicyCoreFacet.sol";
 import "./base/IPolicyTranchTokensFacet.sol";
 import "./base/IMarketObserverDataTypes.sol";
+import "./base/IMarketFeeSchedules.sol";
 import "./base/IPolicyTypes.sol";
 import "./PolicyFacetBase.sol";
 import "./base/SafeMath.sol";
@@ -20,7 +21,7 @@ import "./base/ReentrancyGuard.sol";
 /**
  * @dev Core policy logic
  */
-contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCoreFacet, IPolicyTypes, PolicyFacetBase, IPolicyTreasuryConstants, ReentrancyGuard, IMarketObserverDataTypes {
+contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCoreFacet, IPolicyTypes, PolicyFacetBase, IPolicyTreasuryConstants, ReentrancyGuard, IMarketObserverDataTypes, IMarketFeeSchedules {
   using SafeMath for uint;
   using Address for address;
 
@@ -270,6 +271,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
           totalSupply, 
           dataAddress["unit"], 
           totalPrice,
+          FEE_SCHEDULE_PLATFORM_ACTION,
           address(this),
           abi.encode(MODT_TRANCH_SALE, address(this), i)
         );

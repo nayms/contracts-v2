@@ -68,7 +68,8 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     address _sellToken, 
     uint256 _sellAmount, 
     address _buyToken, 
-    uint256 _buyAmount
+    uint256 _buyAmount,
+    uint256 _feeSchedule
   ) 
     external
     override 
@@ -79,6 +80,7 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
       _sellAmount,
       _buyToken,
       _buyAmount,
+      _feeSchedule,
       address(0),
       ""
     );
@@ -89,6 +91,7 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     uint256 _sellAmount, 
     address _buyToken, 
     uint256 _buyAmount,
+    uint256 _feeSchedule,
     address _notify,
     bytes memory _notifyData
   ) 
@@ -104,12 +107,12 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
       _buyAmount
     );
 
-    // check that fee calculation works
     _calculateFee(
       _sellToken,
       _sellAmount,
       _buyToken,
-      _buyAmount
+      _buyAmount,
+      _feeSchedule
     );
 
     return _matchToExistingOffers(
@@ -117,6 +120,7 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
       _sellAmount,
       _buyToken,
       _buyAmount,
+      _feeSchedule,
       _notify,
       _notifyData
     );
@@ -270,6 +274,7 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     uint256 _sellAmount, 
     address _buyToken, 
     uint256 _buyAmount,
+    uint256 _feeSchedule,
     address _notify,
     bytes memory _notifyData
   ) 
@@ -309,6 +314,7 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
         _buyWithObserver(
           bestOfferId, 
           finalSellAmount,
+          _feeSchedule,
           _notify,
           _notifyData
         );
@@ -335,6 +341,7 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
         sellAmount, 
         _buyToken, 
         buyAmount,
+        _feeSchedule,
         _notify,
         _notifyData
       );
@@ -353,6 +360,7 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     uint256 _sellAmount, 
     address _buyToken, 
     uint256 _buyAmount,
+    uint256 _feeSchedule,
     address _notify,
     bytes memory _notifyData
   ) 
@@ -369,6 +377,7 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     dataAddress[__i(id, "buyToken")] = _buyToken;
     dataUint256[__i(id, "buyAmount")] = _buyAmount;
     dataUint256[__i(id, "buyAmountInitial")] = _buyAmount;
+    dataUint256[__i(id, "feeSchedule")] = _feeSchedule;
     dataAddress[__i(id, "notify")] = _notify;
     dataBytes[__i(id, "notifyData")] = _notifyData;
     dataUint256[__i(id, "state")] = OFFER_STATE_ACTIVE;
@@ -386,6 +395,7 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
   function _buyWithObserver(
     uint256 _offerId, 
     uint256 _requestedBuyAmount,
+    uint256 _feeSchedule,
     address _buyNotify,
     bytes memory _buyNotifyData
   ) private {
@@ -402,6 +412,7 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
       uint256 finalSellAmount,
       TokenAmount memory fee
     ) = _takeFees(
+      _feeSchedule,
       offerBuy.token,
       _requestedBuyAmount,
       offerSell.token,
@@ -445,14 +456,20 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     dataUint256[__i(_offerId, "buyAmount")] = offerBuy.amount.sub(_buyAmount);
   }
 
-  function _takeFees(address _buyToken, uint256 _buyAmount, address _sellToken, uint256 _sellAmount) private 
+  function _takeFees(
+    address _buyToken, 
+    uint256 _buyAmount, 
+    address _sellToken, 
+    uint256 _sellAmount,
+    uint256 _feeSchedule
+  ) private 
     returns (uint256 finalSellAmount_, TokenAmount memory fee_)
   {
     address feeBank = _getFeeBank();
     
     finalSellAmount_ = _sellAmount;
 
-    fee_ = _calculateFee(_buyToken, _buyAmount, _sellToken, _sellAmount);
+    fee_ = _calculateFee(_buyToken, _buyAmount, _sellToken, _sellAmount, _feeSchedule);
 
     if (fee_.token == _buyToken) {
       // if fee is to be paid in the buy token then it must be paid on top of buy amount

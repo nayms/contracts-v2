@@ -91,6 +91,7 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
       _amount, 
       _priceUnit, 
       _totalPrice, 
+      FEE_SCHEDULE_PLATFORM_ACTION,
       address(this), 
       abi.encode(MODT_ENTITY_SALE, address(this))
     );

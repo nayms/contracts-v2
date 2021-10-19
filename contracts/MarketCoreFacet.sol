@@ -104,7 +104,8 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
       _sellToken,
       _sellAmount,
       _buyToken,
-      _buyAmount
+      _buyAmount,
+      _feeSchedule
     );
 
     _calculateFee(
@@ -162,7 +163,8 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
       _sellToken,
       _sellAmount,
       _buyToken,
-      1
+      1,
+      FEE_SCHEDULE_STANDARD
     );
 
     uint256 sellAmount = _sellAmount;
@@ -557,7 +559,7 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     }
   }
 
-  function _assertValidOffer(address _sellToken, uint256 _sellAmount, address _buyToken, uint256 _buyAmount) private pure {
+  function _assertValidOffer(address _sellToken, uint256 _sellAmount, address _buyToken, uint256 _buyAmount, uint256 _feeSchedule) private pure {
     require(uint128(_sellAmount) == _sellAmount, "sell amount must be uint128");
     require(uint128(_buyAmount) == _buyAmount, "buy amount must be uint128");
     require(_sellAmount > 0, "sell amount must be >0");
@@ -565,6 +567,8 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     require(_buyAmount > 0, "buy amount must be >0");
     require(_buyToken != address(0), "buy token must be valid");
     require(_sellToken != _buyToken, "cannot sell and buy same token");
+
+    // TODO: check that fee schedule is allowed
   }
 
   function min(uint x, uint y) private pure returns (uint z) {

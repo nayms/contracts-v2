@@ -127,7 +127,7 @@ describe('Entity', () => {
 
     it('and adds the new implementation as a facet', async () => {
       await entityDelegate.upgrade([ dummyEntityTestFacet.address ]).should.be.fulfilled
-      await entity.getNumPolicies().should.eventually.eq(666);
+      await entity.getBalance(accounts[0]).should.eventually.eq(123);
     })
 
     it('and can be frozen', async () => {
@@ -881,19 +881,21 @@ describe('Entity', () => {
     })
 
     it('and the entity records get updated accordingly', async () => {
-      await entity.getNumPolicies().should.eventually.eq(0)
+      await entity.getNumChildren().should.eventually.eq(0)
 
       const result = await createPolicy(entity, {}, { from: entityRep })
       const eventArgs = extractEventArgs(result, events.NewPolicy)
 
-      await entity.getNumPolicies().should.eventually.eq(1)
-      await entity.getPolicy(0).should.eventually.eq(eventArgs.policy)
+      await entity.getNumChildren().should.eventually.eq(1)
+      await entity.getChild(1).should.eventually.eq(eventArgs.policy)
+      await entity.isParentOf(eventArgs.policy).should.eventually.eq(true)
 
       const result2 = await createPolicy(entity, {}, { from: entityRep })
       const eventArgs2 = extractEventArgs(result2, events.NewPolicy)
 
-      await entity.getNumPolicies().should.eventually.eq(2)
-      await entity.getPolicy(1).should.eventually.eq(eventArgs2.policy)
+      await entity.getNumChildren().should.eventually.eq(2)
+      await entity.getChild(2).should.eventually.eq(eventArgs2.policy)
+      await entity.isParentOf(eventArgs2.policy).should.eventually.eq(true)
     })
 
     it('and have their properties set', async () => {

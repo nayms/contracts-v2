@@ -4,12 +4,13 @@ pragma solidity 0.6.12;
 import './base/EternalStorage.sol';
 import './base/Destructible.sol';
 import './base/IEntityDeployer.sol';
+import './base/Parent.sol';
 import './Entity.sol';
 
 /**
  * This is responsible for deploying a new Entity.
  */
-contract EntityDeployer is EternalStorage, Destructible, IEntityDeployer {
+contract EntityDeployer is EternalStorage, Destructible, IEntityDeployer, Parent {
   modifier assertCanCreateEntity () {
     require(isAdmin(msg.sender) || inRoleGroup(msg.sender, ROLEGROUP_SYSTEM_MANAGERS), 'must be system manager');
     _;
@@ -32,16 +33,8 @@ contract EntityDeployer is EternalStorage, Destructible, IEntityDeployer {
     dataAddress[__i(numEntities, "entity")] = address(f);
     dataUint256["numEntities"] = numEntities + 1;
 
+    _addChild(address(f));
+
     emit NewEntity(address(f), msg.sender);
-  }
-
-
-  function getNumEntities() public view override returns (uint256) {
-    return dataUint256["numEntities"];
-  }
-
-
-  function getEntity(uint256 _index) public view override returns (address) {
-    return dataAddress[__i(_index, "entity")];
   }
 }

@@ -5,6 +5,7 @@ pragma experimental ABIEncoderV2;
 import "./IDiamondUpgradeFacet.sol";
 import "./IAccessControl.sol";
 import "./ISettingsControl.sol";
+import "./IParent.sol";
 import "./IEntityCoreFacet.sol";
 import "./IEntityTokensFacet.sol";
 import "./IEntityDividendsFacet.sol";
@@ -18,6 +19,7 @@ abstract contract IEntity is
   IDiamondUpgradeFacet,
   IAccessControl,
   ISettingsControl,
+  IParent,
   IEntityCoreFacet,
   IEntityTokensFacet,
   IEntityDividendsFacet,

@@ -46,7 +46,7 @@ describe('Market', () => {
 
     mintAmount = toWei('1000')
 
-    for (let i = 1; i <= 4; i++) {
+    for (let i = 0; i <= 4; i++) {
       await erc20WETH.deposit({ value: mintAmount, from: accounts[i] })
       await erc20WETH2.deposit({ value: mintAmount, from: accounts[i] })
       await erc20DAI.deposit({ value: mintAmount, from: accounts[i] })
@@ -221,6 +221,135 @@ describe('Market', () => {
         FEE_SCHEDULE_STANDARD,
         { from: accounts[2] }
       ).should.be.fulfilled
+    })
+  })
+
+  describe('fee schedule check', () => {
+    const pay_amt = toWei('10')
+    const buy_amt = toWei('10')
+
+    describe('schedule: platform action', () => {
+      it('disallow arbitrary caller', async () => {
+        await market.executeLimitOffer(
+          erc20WETH.address,
+          pay_amt,
+          erc20DAI.address,
+          buy_amt,
+          FEE_SCHEDULE_PLATFORM_ACTION
+        ).should.be.rejected
+      })
+
+      it('disallow with invalid parent', async () => {
+        const child = await DummyMarketCaller.new(market.address, ADDRESS_ZERO)
+        
+        await erc20WETH.transfer(child.address, pay_amt)
+        await child.trade(
+          erc20WETH.address,
+          pay_amt,
+          erc20DAI.address,
+          buy_amt,
+          FEE_SCHEDULE_PLATFORM_ACTION
+        ).should.be.rejected
+      })
+
+      it('disallow with parent that does not recognize child', async () => {
+        const child1 = await DummyMarketCaller.new(market.address, ADDRESS_ZERO)
+        const child2 = await DummyMarketCaller.new(market.address, child1.address)
+
+        await erc20WETH.transfer(child2.address, pay_amt)
+        await child2.trade(
+          erc20WETH.address,
+          pay_amt,
+          erc20DAI.address,
+          buy_amt,
+          FEE_SCHEDULE_PLATFORM_ACTION
+        ).should.be.rejectedWith('bad parent')
+      })
+
+      it('disallow with good parent that is NOT entity deployer', async () => {
+        const child1 = await DummyMarketCaller.new(market.address, ADDRESS_ZERO)
+        const child2 = await DummyMarketCaller.new(market.address, child1.address)
+        await child1.addChild(child2.address)
+
+        await erc20WETH.transfer(child2.address, pay_amt)
+        await child2.trade(
+          erc20WETH.address,
+          pay_amt,
+          erc20DAI.address,
+          buy_amt,
+          FEE_SCHEDULE_PLATFORM_ACTION
+        ).should.be.rejected
+      })
+
+      it('disallow with good parent but bad grandparent', async () => {
+        const child1 = await DummyMarketCaller.new(market.address, ADDRESS_ZERO)
+        const child2 = await DummyMarketCaller.new(market.address, child1.address)
+        // await child1.addChild(child2.address)
+        const child3 = await DummyMarketCaller.new(market.address, child2.address)
+        await child2.addChild(child3.address)
+
+        await erc20WETH.transfer(child3.address, pay_amt)
+        await child3.trade(
+          erc20WETH.address,
+          pay_amt,
+          erc20DAI.address,
+          buy_amt,
+          FEE_SCHEDULE_PLATFORM_ACTION
+        ).should.be.rejectedWith('bad grandparent')
+      })
+
+      it('disallow with good grandparent that is NOT entity deployer', async () => {
+        const child1 = await DummyMarketCaller.new(market.address, ADDRESS_ZERO)
+        const child2 = await DummyMarketCaller.new(market.address, child1.address)
+        await child1.addChild(child2.address)
+        const child3 = await DummyMarketCaller.new(market.address, child2.address)
+        await child2.addChild(child3.address)
+
+        await erc20WETH.transfer(child3.address, pay_amt)
+        await child3.trade(
+          erc20WETH.address,
+          pay_amt,
+          erc20DAI.address,
+          buy_amt,
+          FEE_SCHEDULE_PLATFORM_ACTION
+        ).should.be.rejectedWith('bad deployment')
+      })
+
+      it('allow with good parent that is entity deployer', async () => {
+        const child1 = await DummyMarketCaller.new(market.address, ADDRESS_ZERO)
+        await settings.setAddress(settings.address, SETTINGS.ENTITY_DEPLOYER, child1.address)
+
+        const child2 = await DummyMarketCaller.new(market.address, child1.address)
+        await child1.addChild(child2.address)
+
+        await erc20WETH.transfer(child2.address, pay_amt)
+        await child2.trade(
+          erc20WETH.address,
+          pay_amt,
+          erc20DAI.address,
+          buy_amt,
+          FEE_SCHEDULE_PLATFORM_ACTION
+        ).should.be.fulfilled
+      })
+
+      it('allow with good grandparent that is entity deployer', async () => {
+        const child1 = await DummyMarketCaller.new(market.address, ADDRESS_ZERO)
+        await settings.setAddress(settings.address, SETTINGS.ENTITY_DEPLOYER, child1.address)
+
+        const child2 = await DummyMarketCaller.new(market.address, child1.address)
+        await child1.addChild(child2.address)
+        const child3 = await DummyMarketCaller.new(market.address, child2.address)
+        await child2.addChild(child3.address)
+
+        await erc20WETH.transfer(child3.address, pay_amt)
+        await child3.trade(
+          erc20WETH.address,
+          pay_amt,
+          erc20DAI.address,
+          buy_amt,
+          FEE_SCHEDULE_PLATFORM_ACTION
+        ).should.be.fulfilled
+      })
     })
   })
 
@@ -1589,14 +1718,17 @@ describe('Market', () => {
         await settings.setAddress(settings.address, SETTINGS.ENTITY_DEPLOYER, entityDeployer.address)
 
         entity1 = await DummyMarketCaller.new(market.address, entityDeployer.address)
+        entityDeployer.addChild(entity1.address)
         await erc20WETH.transfer(entity1.address, toWei('1000'), { from: accounts[1] })
         await erc20DAI.transfer(entity1.address, toWei('1000'), { from: accounts[1] })
 
         entity2 = await DummyMarketCaller.new(market.address, entityDeployer.address)
+        entityDeployer.addChild(entity2.address)
         await erc20WETH.transfer(entity2.address, toWei('1000'), { from: accounts[2] })
         await erc20DAI.transfer(entity2.address, toWei('1000'), { from: accounts[2] })
 
         entity3 = await DummyMarketCaller.new(market.address, entityDeployer.address)
+        entityDeployer.addChild(entity3.address)
         await erc20WETH.transfer(entity3.address, toWei('1000'), { from: accounts[3] })
         await erc20DAI.transfer(entity3.address, toWei('1000'), { from: accounts[3] })
       })

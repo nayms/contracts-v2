@@ -18,10 +18,7 @@ contract DummyMarketCaller is Child, DummyParent {
 
   constructor (address _market, address _parent) public {
     market = _market;
-    if (_parent != address(0)) {
-      _setParent(_parent);
-      DummyParent(_parent).addChild(address(this));
-    }
+    _setParent(_parent);
   }
 
   function trade(

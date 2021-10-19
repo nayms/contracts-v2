@@ -98,9 +98,9 @@ describe('Treasury', () => {
 
     // policy
     policies = []
-    for (let i = 0; 3 > i; i += 1) {
-      await createPolicy(entity, { unit: (i < 2 ? etherToken.address : etherToken2.address) })
-      const policyAddress = await entity.getPolicy(i)
+    for (let i = 1; 3 >= i; i += 1) {
+      await createPolicy(entity, { unit: (i <= 2 ? etherToken.address : etherToken2.address) })
+      const policyAddress = await entity.getChild(i)
       const proxy = await Policy.at(policyAddress)
       policies.push({
         address: policyAddress,

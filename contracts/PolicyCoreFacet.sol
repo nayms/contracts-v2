@@ -350,6 +350,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
             tranchBalance,
             dataAddress[__i(i, "address")],
             dataUint256[__i(i, "sharesSold")],
+            FEE_SCHEDULE_PLATFORM_ACTION,
             address(this),
             abi.encode(MODT_TRANCH_BUYBACK, address(this), i)
           );

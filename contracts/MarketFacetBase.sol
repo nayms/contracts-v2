@@ -62,7 +62,7 @@ abstract contract MarketFacetBase is EternalStorage, Controller, IMarketFeeSched
 
     // if fee schedule is "platform action" then no fee is to be charged
     if (_feeSchedule == FEE_SCHEDULE_PLATFORM_ACTION) {
-      fee_.amount = 0;
+      // fee_.amount = 0;
     }
   }
 

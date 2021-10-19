@@ -195,7 +195,7 @@ import "./Policy.sol";
     // check balance
     _assertHasEnoughBalance(_payUnit, _payAmount);
     // do it
-    return _tradeOnMarket(_payUnit, _payAmount, _buyUnit, _buyAmount, address(0), "");
+    return _tradeOnMarket(_payUnit, _payAmount, _buyUnit, _buyAmount, FEE_SCHEDULE_STANDARD, address(0), "");
   }
 
   function sellAtBestPrice(address _sellUnit, uint256 _sellAmount, address _buyUnit)

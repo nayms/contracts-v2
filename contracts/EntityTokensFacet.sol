@@ -144,11 +144,11 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
 
   function handleTrade(
     uint256 _offerId,
-    uint256 _soldAmount, 
+    uint256 /*_soldAmount*/, 
     uint256 _boughtAmount,
-    address _feeToken, 
-    uint256 _feeAmount,
-    address _buyer,
+    address /*_feeToken*/, 
+    uint256 /*_feeAmount*/,
+    address /*_buyer*/,
     bytes memory _data
   ) external override {
     if (_data.length == 0) {
@@ -166,7 +166,7 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
       // if we created this offer
       if (entity == address(this)) {
         // check entity token matches sell token
-        (, address sellToken, , , address buyToken, , , , ,) = _getMarket().getOffer(_offerId);
+        (, address sellToken, , , address buyToken, , , , , ,) = _getMarket().getOffer(_offerId);
         address tokenAddress = dataAddress["token"];
         require(tokenAddress == sellToken, "sell token must be entity token");
 
@@ -180,7 +180,7 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
   function handleClosure(
     uint256 _offerId,
     uint256 _unsoldAmount, 
-    uint256 _unboughtAmount,
+    uint256 /*_unboughtAmount*/,
     bytes memory _data
   ) external override {
     if (_data.length == 0) {
@@ -198,7 +198,7 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
       // if we created this offer
       if (entity == address(this)) {
         // check entity token matches sell token
-        (, address sellToken, , , , , , , ,) = _getMarket().getOffer(_offerId);
+        (, address sellToken, , , , , , , , ,) = _getMarket().getOffer(_offerId);
         address tokenAddress = dataAddress["token"];
         require(tokenAddress == sellToken, "sell token must be entity token");
 

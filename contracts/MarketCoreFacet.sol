@@ -115,15 +115,41 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
       _feeSchedule
     );
 
-    return _matchToExistingOffers(
+    uint256 remainingBuyAmount_;
+    uint256 remainingSellAmount_;
+
+    (remainingBuyAmount_, remainingSellAmount_) = _matchToExistingOffers(
       _sellToken,
       _sellAmount,
       _buyToken,
       _buyAmount,
-      _feeSchedule,
       _notify,
       _notifyData
     );
+
+    // if still some left
+    if (remainingBuyAmount_ > 0 
+      && remainingSellAmount_ > 0 
+      && remainingSellAmount_ >= dataUint256["dust"]
+    ) {
+      // new offer should be created
+      uint256 id = _createLimitOffer(
+        _sellToken, 
+        remainingSellAmount_, 
+        _buyToken, 
+        remainingBuyAmount_,
+        _feeSchedule,
+        _notify,
+        _notifyData
+      );
+
+      // ensure it's in the right position in the list
+      _insertOfferIntoSortedList(id);
+
+      return id;
+    }
+
+    return 0; // no limit offer created, fully matched
   }
 
   function executeMarketOffer(address _sellToken, uint256 _sellAmount, address _buyToken) 
@@ -274,15 +300,14 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     uint256 _sellAmount, 
     address _buyToken, 
     uint256 _buyAmount,
-    uint256 _feeSchedule,
     address _notify,
     bytes memory _notifyData
   ) 
     private 
-    returns (uint256) 
+    returns (uint256 remainingBuyAmount_, uint256 remainingSellAmount_) 
   {
-    uint256 buyAmount = _buyAmount;
-    uint256 sellAmount = _sellAmount;
+    remainingBuyAmount_ = _buyAmount;
+    remainingSellAmount_ = _sellAmount;
 
     // there is at least one offer stored for token pair
     uint256 bestOfferId = dataUint256[__iaa(0, _buyToken, _sellToken, "bestOfferId")];
@@ -299,7 +324,7 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
       //
       // (For detailed breakdown see https://hiddentao.com/archives/2019/09/08/maker-otc-on-chain-orderbook-deep-dive)
       //
-      if (bestBuyAmount.mul(buyAmount) > sellAmount.mul(bestSellAmount).add(bestBuyAmount).add(buyAmount).add(sellAmount).add(bestSellAmount)) {
+      if (bestBuyAmount.mul(remainingBuyAmount_) > remainingSellAmount_.mul(bestSellAmount).add(bestBuyAmount).add(remainingBuyAmount_).add(remainingSellAmount_).add(bestSellAmount)) {
         break;
       }
 
@@ -309,50 +334,28 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
       // avoid stack-too-deep
       {
         // do the buy     
-        uint256 finalSellAmount = min(bestBuyAmount, sellAmount); 
+        uint256 finalSellAmount = min(bestBuyAmount, remainingSellAmount_); 
 
         _buyWithObserver(
           bestOfferId, 
           finalSellAmount,
-          _feeSchedule,
           _notify,
           _notifyData
         );
 
         // calculate how much is left to buy/sell
-        uint256 sellAmountOld = sellAmount;
-        sellAmount = sellAmount.sub(finalSellAmount);
-        buyAmount = sellAmount.mul(buyAmount).div(sellAmountOld);
+        uint256 sellAmountOld = remainingSellAmount_;
+        remainingSellAmount_ = remainingSellAmount_.sub(finalSellAmount);
+        remainingBuyAmount_ = remainingSellAmount_.mul(remainingBuyAmount_).div(sellAmountOld);
       }
 
       // if nothing left to sell or buy then we're done
-      if (sellAmount == 0 || buyAmount == 0) {
+      if (remainingSellAmount_ == 0 || remainingBuyAmount_ == 0) {
         break;
       }
 
       bestOfferId = dataUint256[__iaa(0, _buyToken, _sellToken, "bestOfferId")];
     }
-
-    // if still some left
-    if (buyAmount > 0 && sellAmount > 0 && sellAmount >= dataUint256["dust"]) {
-      // new offer should be created
-      uint256 id = _createLimitOffer(
-        _sellToken, 
-        sellAmount, 
-        _buyToken, 
-        buyAmount,
-        _feeSchedule,
-        _notify,
-        _notifyData
-      );
-
-      // ensure it's in the right position in the list
-      _insertOfferIntoSortedList(id);
-
-      return id;
-    }
-
-    return 0;
   }
 
   function _createLimitOffer(
@@ -395,7 +398,6 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
   function _buyWithObserver(
     uint256 _offerId, 
     uint256 _requestedBuyAmount,
-    uint256 _feeSchedule,
     address _buyNotify,
     bytes memory _buyNotifyData
   ) private {
@@ -411,12 +413,12 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     (
       uint256 finalSellAmount,
       TokenAmount memory fee
-    ) = _takeFees(
-      _feeSchedule,
+    ) = _takeFees(      
       offerBuy.token,
       _requestedBuyAmount,
       offerSell.token,
-      thisSaleSellAmount
+      thisSaleSellAmount,
+      dataUint256[__i(_offerId, "feeSchedule")]
     );
 
     // do the transfer
@@ -489,9 +491,6 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     address _buyNotify,
     bytes memory _buyNotifyData
   ) private {
-    address creator = dataAddress[__i(_offerId, "creator")];
-    address offerSellToken = dataAddress[__i(_offerId, "sellToken")];
-    address offerBuyToken = dataAddress[__i(_offerId, "buyToken")];
     address offerNotify = dataAddress[__i(_offerId, "notify")];
     bytes memory offerNotifyData = dataBytes[__i(_offerId, "notifyData")];
 
@@ -528,14 +527,13 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     address creator = dataAddress[__i(_offerId, "creator")];
     address sellToken = dataAddress[__i(_offerId, "sellToken")];
     uint256 sellAmount = dataUint256[__i(_offerId, "sellAmount")];
-    address buyToken = dataAddress[__i(_offerId, "buyToken")];
     uint256 buyAmount = dataUint256[__i(_offerId, "buyAmount")];
     address notify = dataAddress[__i(_offerId, "notify")];
     bytes memory notifyData = dataBytes[__i(_offerId, "notifyData")];
 
     // transfer remaining sell amount back to creator
     if (sellAmount > 0) {
-      require(IERC20(sellToken).transfer(creator, sellAmount));
+      require(IERC20(sellToken).transfer(creator, sellAmount), "refund creator failed");
     }
 
     // notify observers
@@ -549,14 +547,14 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     }
   }
 
-  function _assertValidOffer(address _sellToken, uint256 _sellAmount, address _buyToken, uint256 _buyAmount) private {
+  function _assertValidOffer(address _sellToken, uint256 _sellAmount, address _buyToken, uint256 _buyAmount) private pure {
     require(uint128(_sellAmount) == _sellAmount, "sell amount must be uint128");
     require(uint128(_buyAmount) == _buyAmount, "buy amount must be uint128");
-    require(_sellAmount > 0, "sell amount must be greater than 0");
+    require(_sellAmount > 0, "sell amount must be >0");
     require(_sellToken != address(0), "sell token must be valid");
-    require(_buyAmount > 0, "buy amount must be greater than 0");
+    require(_buyAmount > 0, "buy amount must be >0");
     require(_buyToken != address(0), "buy token must be valid");
-    require(_sellToken != _buyToken, "sell token and buy token must be different");
+    require(_sellToken != _buyToken, "cannot sell and buy same token");
   }
 
   function min(uint x, uint y) private pure returns (uint z) {

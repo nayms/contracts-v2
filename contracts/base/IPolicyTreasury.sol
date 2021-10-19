@@ -74,6 +74,7 @@ interface IPolicyTreasury {
    * @param _sellAmount Amount to sell.
    * @param _buyUnit Unit to buy.
    * @param _buyAmount Amount to buy.
+   * @param _feeSchedule Fee schedule to use.
    * @param _notify Observer to notify of trade and/or closure.
    * @param _notifyData Extra metadata to pass to observer.
    *
@@ -85,6 +86,7 @@ interface IPolicyTreasury {
     uint256 _sellAmount, 
     address _buyUnit, 
     uint256 _buyAmount,
+    uint256 _feeSchedule,
     address _notify,
     bytes calldata _notifyData
   ) external returns (uint256);

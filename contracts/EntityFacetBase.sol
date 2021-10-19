@@ -38,6 +38,7 @@ abstract contract EntityFacetBase is EternalStorage, Controller, IMarketFeeSched
     uint256 _sellAmount, 
     address _buyUnit, 
     uint256 _buyAmount,
+    uint256 _feeSchedule,
     address _notify,
     bytes memory _notifyData
   ) internal returns (uint256) {
@@ -47,7 +48,7 @@ abstract contract EntityFacetBase is EternalStorage, Controller, IMarketFeeSched
     IERC20 tok = IERC20(_sellUnit);
     tok.approve(address(mkt), _sellAmount);
     // make the offer
-    return mkt.executeLimitOfferWithObserver(_sellUnit, _sellAmount, _buyUnit, _buyAmount, FEE_SCHEDULE_STANDARD, _notify, _notifyData);
+    return mkt.executeLimitOfferWithObserver(_sellUnit, _sellAmount, _buyUnit, _buyAmount, _feeSchedule, _notify, _notifyData);
   }  
 
   function _sellAtBestPriceOnMarket(address _sellUnit, uint256 _sellAmount, address _buyUnit) internal {

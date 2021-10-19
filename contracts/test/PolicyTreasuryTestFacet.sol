@@ -3,7 +3,8 @@ pragma solidity 0.6.12;
 
 import "../base/EternalStorage.sol";
 import "../base/IDiamondFacet.sol";
-import "..//PolicyFacetBase.sol";
+import "../base/IMarketFeeSchedules.sol";
+import "../PolicyFacetBase.sol";
 import "../base/Controller.sol";
 
 interface IPolicyTreasuryTestFacet is IDiamondFacet {
@@ -14,7 +15,7 @@ interface IPolicyTreasuryTestFacet is IDiamondFacet {
   function treasuryCancelOrder (uint256 _orderId) external;
 }
 
-contract PolicyTreasuryTestFacet is EternalStorage, PolicyFacetBase, IPolicyTreasuryTestFacet, Controller {
+contract PolicyTreasuryTestFacet is EternalStorage, PolicyFacetBase, IPolicyTreasuryTestFacet, Controller, IMarketFeeSchedules {
   constructor (address _settings) Controller(_settings) public {
     // nothing
   }
@@ -42,7 +43,7 @@ contract PolicyTreasuryTestFacet is EternalStorage, PolicyFacetBase, IPolicyTrea
   }
 
   function treasuryCreateOrder (bytes32 _type, address _sellUnit, uint256 _sellAmount, address _buyUnit, uint256 _buyAmount) public override {
-    _getTreasury().createOrder(_type, _sellUnit, _sellAmount, _buyUnit, _buyAmount, address(0), "");
+    _getTreasury().createOrder(_type, _sellUnit, _sellAmount, _buyUnit, _buyAmount, FEE_SCHEDULE_STANDARD, address(0), "");
   }
 
   function treasuryCancelOrder (uint256 _orderId) public override {

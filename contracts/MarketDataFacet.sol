@@ -27,7 +27,6 @@ contract MarketDataFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
       IMarketDataFacet.getOffer.selector,
       IMarketDataFacet.getOfferSiblings.selector,
       IMarketDataFacet.calculateFee.selector,
-      IMarketDataFacet.getOfferFeeSchedule.selector,
       IMarketDataFacet.simulateMarketOffer.selector
     );
   }
@@ -64,13 +63,13 @@ contract MarketDataFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     uint256 state_
   ) {
     creator_ = dataAddress[__i(_offerId, "creator")];
-    feeSchedule_ = dataAddress[__i(_offerId, "feeSchedule")];
     sellToken_ = dataAddress[__i(_offerId, "sellToken")];
     sellAmount_ = dataUint256[__i(_offerId, "sellAmount")];
     sellAmountInitial_ = dataUint256[__i(_offerId, "sellAmountInitial")];
     buyToken_ = dataAddress[__i(_offerId, "buyToken")];
     buyAmount_ = dataUint256[__i(_offerId, "buyAmount")];
     buyAmountInitial_ = dataUint256[__i(_offerId, "buyAmountInitial")];
+    feeSchedule_ = dataUint256[__i(_offerId, "feeSchedule")];
     notify_ = dataAddress[__i(_offerId, "notify")];
     notifyData_ = dataBytes[__i(_offerId, "notifyData")];
     state_ = dataUint256[__i(_offerId, "state")];

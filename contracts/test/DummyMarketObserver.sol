@@ -18,11 +18,11 @@ contract DummyMarketObserver is IMarketObserver, IDummyMarketObserver {
 
     function handleTrade(
         uint256 _offerId,
-        uint256 _soldAmount,
-        uint256 _boughtAmount,
-        address _feeToken,
-        uint256 _feeAmount,
-        address _buyer,
+        uint256 /*_soldAmount*/,
+        uint256 /*_boughtAmount*/,
+        address /*_feeToken*/,
+        uint256 /*_feeAmount*/,
+        address /*_buyer*/,
         bytes memory _data
     ) external override {
         order[_offerId] = ORDER_TYPE.TRADE;
@@ -32,8 +32,8 @@ contract DummyMarketObserver is IMarketObserver, IDummyMarketObserver {
 
     function handleClosure(
         uint256 _offerId,
-        uint256 _unsoldAmount,
-        uint256 _unboughtAmount,
+        uint256 /*_unsoldAmount*/,
+        uint256 /*_unboughtAmount*/,
         bytes memory _data
     ) external override {
         order[_offerId] = ORDER_TYPE.CLOSURE;

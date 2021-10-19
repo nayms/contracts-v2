@@ -126,7 +126,6 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
       _sellAmount,
       _buyToken,
       _buyAmount,
-      _feeSchedule,
       _notify,
       _notifyData
     );
@@ -305,7 +304,6 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     uint256 _sellAmount, 
     address _buyToken, 
     uint256 _buyAmount,
-    uint256 _feeSchedule,
     address _notify,
     bytes memory _notifyData
   ) 
@@ -345,7 +343,6 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
         _buyWithObserver(
           bestOfferId, 
           finalSellAmount,
-          _feeSchedule,
           _notify,
           _notifyData
         );
@@ -402,7 +399,6 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     _buyWithObserver(
       _offerId, 
       _requestedBuyAmount, 
-      dataUint256[__i(_offerId, "feeSchedule")],
       address(0), 
       ""
     );
@@ -411,7 +407,6 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
   function _buyWithObserver(
     uint256 _offerId, 
     uint256 _requestedBuyAmount,
-    uint256 _feeSchedule,
     address _buyNotify,
     bytes memory _buyNotifyData
   ) private {
@@ -432,7 +427,7 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
       _requestedBuyAmount,
       offerSell.token,
       thisSaleSellAmount,
-      _feeSchedule
+      dataUint256[__i(_offerId, "feeSchedule")]
     );
 
     // do the transfer

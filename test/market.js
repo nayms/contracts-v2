@@ -1,4 +1,4 @@
-import { ADDRESS_ZERO, BYTES_ZERO, EvmSnapshot } from './utils/index'
+import { expect, ADDRESS_ZERO, BYTES_ZERO, EvmSnapshot } from './utils/index'
 import { toBN, toWei, toHex } from './utils/web3'
 
 import { getAccounts } from '../deploy/utils'
@@ -6,10 +6,11 @@ import { ensureAclIsDeployed } from '../deploy/modules/acl'
 import { ensureSettingsIsDeployed } from '../deploy/modules/settings'
 import { ensureMarketIsDeployed } from '../deploy/modules/market'
 import { ensureFeeBankIsDeployed } from '../deploy/modules/feeBank'
-import { expect } from 'chai'
+import { SETTINGS } from '../utils/constants'
 
 const DummyToken = artifacts.require("DummyToken")
 const DummyMarketObserver = artifacts.require("DummyMarketObserver")
+const DummyMarketCaller = artifacts.require("DummyMarketCaller")
 const IMarketOfferStates = artifacts.require("base/IMarketOfferStates")
 const IMarketFeeSchedules = artifacts.require("base/IMarketFeeSchedules")
 
@@ -1575,6 +1576,86 @@ describe('Market', () => {
       await erc20DAI.balanceOf(accounts[3]).should.eventually.eq(toWei('1004').toString()) /* paid 1 DAI taker fee */
       await erc20WETH.balanceOf(market.address).should.eventually.eq(toWei('0').toString())
       await erc20DAI.balanceOf(market.address).should.eventually.eq(toWei('0').toString())
+    })
+
+    describe('for the "platform action" fee schedule', async () => {
+      let entityDeployer
+      let entity1
+      let entity2
+      let entity3
+
+      beforeEach(async () => {
+        entityDeployer = await DummyMarketCaller.new(market.address, ADDRESS_ZERO)
+        await settings.setAddress(settings.address, SETTINGS.ENTITY_DEPLOYER, entityDeployer.address)
+
+        entity1 = await DummyMarketCaller.new(market.address, entityDeployer.address)
+        await erc20WETH.transfer(entity1.address, toWei('1000'), { from: accounts[1] })
+        await erc20DAI.transfer(entity1.address, toWei('1000'), { from: accounts[1] })
+
+        entity2 = await DummyMarketCaller.new(market.address, entityDeployer.address)
+        await erc20WETH.transfer(entity2.address, toWei('1000'), { from: accounts[2] })
+        await erc20DAI.transfer(entity2.address, toWei('1000'), { from: accounts[2] })
+
+        entity3 = await DummyMarketCaller.new(market.address, entityDeployer.address)
+        await erc20WETH.transfer(entity3.address, toWei('1000'), { from: accounts[3] })
+        await erc20DAI.transfer(entity3.address, toWei('1000'), { from: accounts[3] })
+      })
+
+      it('takes no fees', async () => {
+        // make order: 10 WETH for 5 DAI
+        await entity1.trade(
+          erc20WETH.address,
+          toWei('10'),
+          erc20DAI.address,
+          toWei('5'),
+          FEE_SCHEDULE_PLATFORM_ACTION
+        )
+
+        // check balances
+        await erc20WETH.balanceOf(entity1.address).should.eventually.eq(toWei('990').toString())
+        await erc20DAI.balanceOf(entity1.address).should.eventually.eq(toWei('1000').toString())
+        await erc20WETH.balanceOf(market.address).should.eventually.eq(toWei('10').toString())
+        await erc20DAI.balanceOf(market.address).should.eventually.eq(toWei('0').toString())
+
+        // take order: 10 DAI for 20 WETH
+        await entity2.trade(
+          erc20DAI.address,
+          toWei('10'),
+          erc20WETH.address,
+          toWei('20'),
+          FEE_SCHEDULE_STANDARD
+        )
+
+        // check balances
+        await erc20WETH.balanceOf(entity1.address).should.eventually.eq(toWei('990').toString())
+        await erc20DAI.balanceOf(entity1.address).should.eventually.eq(toWei('1005').toString())
+        await erc20WETH.balanceOf(entity2.address).should.eventually.eq(toWei('1010').toString())
+        await erc20DAI.balanceOf(entity2.address).should.eventually.eq(toWei('990').toString())
+        await erc20WETH.balanceOf(market.address).should.eventually.eq(toWei('0').toString())
+        await erc20DAI.balanceOf(market.address).should.eventually.eq(toWei('5').toString())
+
+        // at this point a second limit order should have been created from the remainder
+        // - and this should have the standard fee schedule set since that was requested
+
+        // now take second order with: 10 WETH for 5 DAI
+        await entity3.trade(
+          erc20WETH.address,
+          toWei('10'),
+          erc20DAI.address,
+          toWei('5'),
+          FEE_SCHEDULE_STANDARD
+        )
+
+        // check balances
+        await erc20WETH.balanceOf(entity1.address).should.eventually.eq(toWei('990').toString())
+        await erc20DAI.balanceOf(entity1.address).should.eventually.eq(toWei('1005').toString())
+        await erc20WETH.balanceOf(entity2.address).should.eventually.eq(toWei('1020').toString())
+        await erc20DAI.balanceOf(entity2.address).should.eventually.eq(toWei('990').toString())
+        await erc20WETH.balanceOf(entity3.address).should.eventually.eq(toWei('990').toString())
+        await erc20DAI.balanceOf(entity3.address).should.eventually.eq(toWei('1004').toString()) /* fee of 1 DAI taken */
+        await erc20WETH.balanceOf(market.address).should.eventually.eq(toWei('0').toString())
+        await erc20DAI.balanceOf(market.address).should.eventually.eq(toWei('0').toString())
+      })
     })
   })
 })

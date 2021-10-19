@@ -29,6 +29,7 @@ const Policy = artifacts.require("Policy")
 const DummyToken = artifacts.require("DummyToken")
 const IPolicy = artifacts.require("IPolicy")
 const IERC20 = artifacts.require("base/IERC20")
+const IMarketFeeSchedules = artifacts.require("base/IMarketFeeSchedules")
 
 describe('Integration: SPV', () => {
   const evmSnapshot = new EvmSnapshot()
@@ -86,6 +87,9 @@ describe('Integration: SPV', () => {
   let TRANCH_STATE_ACTIVE
   let TRANCH_STATE_MATURED
   let TRANCH_STATE_CANCELLED
+
+  let FEE_SCHEDULE_STANDARD
+  let FEE_SCHEDULE_PLATFORM_ACTION
 
   let getTranchToken
   let approvePolicy
@@ -219,6 +223,11 @@ describe('Integration: SPV', () => {
     TRANCH_STATE_ACTIVE = await policyStates.TRANCH_STATE_ACTIVE()
     TRANCH_STATE_MATURED = await policyStates.TRANCH_STATE_MATURED()
     TRANCH_STATE_CANCELLED = await policyStates.TRANCH_STATE_CANCELLED()
+
+    const { facets: [marketCoreAddress] } = market
+    const mktFeeSchedules = await IMarketFeeSchedules.at(marketCoreAddress)
+    FEE_SCHEDULE_STANDARD = await mktFeeSchedules.FEE_SCHEDULE_STANDARD()
+    FEE_SCHEDULE_PLATFORM_ACTION = await mktFeeSchedules.FEE_SCHEDULE_PLATFORM_ACTION()
   })
 
   beforeEach(async () => {
@@ -386,7 +395,7 @@ describe('Integration: SPV', () => {
 
         // make the offer on the market
         await etherToken.approve(market.address, 10, { from: accounts[2] })
-        await market.executeLimitOffer(etherToken.address, 10, tranchToken.address, 5000, { from: accounts[2] })
+        await market.executeLimitOffer(etherToken.address, 10, tranchToken.address, 5000, FEE_SCHEDULE_STANDARD, { from: accounts[2] })
 
         // check balances again
         await etherToken.balanceOf(accounts[2]).should.eventually.eq(15)
@@ -442,8 +451,8 @@ describe('Integration: SPV', () => {
 
         // make some offers on the market
         await etherToken.approve(market.address, 10, { from: accounts[2] })
-        await market.executeLimitOffer(etherToken.address, 4, tranchToken.address, 2, { from: accounts[2] })
-        await market.executeLimitOffer(etherToken.address, 6, tranchToken.address, 3, { from: accounts[2] })
+        await market.executeLimitOffer(etherToken.address, 4, tranchToken.address, 2, FEE_SCHEDULE_STANDARD, { from: accounts[2] })
+        await market.executeLimitOffer(etherToken.address, 6, tranchToken.address, 3, FEE_SCHEDULE_STANDARD, { from: accounts[2] })
 
         // check balances again
         await etherToken.balanceOf(accounts[2]).should.eventually.eq(15)
@@ -492,11 +501,11 @@ describe('Integration: SPV', () => {
       // get tranch tokens
       await etherToken.approve(market.address, 10, { from: accounts[2] })
       // buy the tranch token
-      await market.executeLimitOffer(etherToken.address, 10, tranchToken.address, 5, { from: accounts[2] })
+      await market.executeLimitOffer(etherToken.address, 10, tranchToken.address, 5, FEE_SCHEDULE_STANDARD, { from: accounts[2] })
       // check balance
       await tranchToken.balanceOf(accounts[2]).should.eventually.eq(5)
       // try trading the tranch token
-      // await market.executeLimitOffer(tranchToken.address, 1, etherToken.address, 1, { from: accounts[2] }).should.be.rejectedWith('can only trade when policy is active')
+      // await market.executeLimitOffer(tranchToken.address, 1, etherToken.address, 1, FEE_SCHEDULE_STANDARD, { from: accounts[2] }).should.be.rejectedWith('can only trade when policy is active')
     })
 
     describe('if a tranch fully sells out', () => {
@@ -510,7 +519,7 @@ describe('Integration: SPV', () => {
         // buy the whole tranch
         await etherToken.deposit({ from: accounts[2], value: 200 })
         await etherToken.approve(market.address, 200, { from: accounts[2] })
-        txResult = await market.executeLimitOffer(etherToken.address, 200, tranchToken.address, 100, { from: accounts[2] })
+        txResult = await market.executeLimitOffer(etherToken.address, 200, tranchToken.address, 100, FEE_SCHEDULE_STANDARD, { from: accounts[2] })
       })
 
       it('emits tranch state updated event', async () => {
@@ -698,7 +707,7 @@ describe('Integration: SPV', () => {
           // buy the whole tranch to make it active
           await etherToken.deposit({ from: accounts[2], value: 1000000 })
           await etherToken.approve(market.address, 200, { from: accounts[2] })
-          await market.executeLimitOffer(etherToken.address, 200, tranchToken.address, 100, { from: accounts[2] })
+          await market.executeLimitOffer(etherToken.address, 200, tranchToken.address, 100, FEE_SCHEDULE_STANDARD, { from: accounts[2] })
         })
 
         it('and updates internal state', async () => {
@@ -738,7 +747,7 @@ describe('Integration: SPV', () => {
           // buy the whole tranch to make it active
           await etherToken.deposit({ from: accounts[2], value: 1000000 })
           await etherToken.approve(market.address, 200, { from: accounts[2] })
-          const ret = await market.executeLimitOffer(etherToken.address, 200, tranchToken.address, 100, { from: accounts[2] })
+          const ret = await market.executeLimitOffer(etherToken.address, 200, tranchToken.address, 100, FEE_SCHEDULE_STANDARD, { from: accounts[2] })
 
           const ev = extractEventArgs(ret, events.TranchStateUpdated)
           expect(ev.tranchIndex).to.eq('0')
@@ -789,7 +798,7 @@ describe('Integration: SPV', () => {
         // buy the whole tranch to make it active
         await etherToken.deposit({ from: accounts[2], value: 2000000 })
         await etherToken.approve(market.address, 200, { from: accounts[2] })
-        await market.executeLimitOffer(etherToken.address, 200, tranchToken.address, 100, { from: accounts[2] })
+        await market.executeLimitOffer(etherToken.address, 200, tranchToken.address, 100, FEE_SCHEDULE_STANDARD, { from: accounts[2] })
         // pay all premiums upto start date
         await etherToken.approve(policy.address, 1000000, { from: accounts[2] })
         let toPay = 0
@@ -803,7 +812,7 @@ describe('Integration: SPV', () => {
         await policy.checkAndUpdateState()
 
         // try trading
-        await market.executeLimitOffer(tranchToken.address, 1, etherToken.address, 1, { from: accounts[2] }).should.be.fulfilled
+        await market.executeLimitOffer(tranchToken.address, 1, etherToken.address, 1, FEE_SCHEDULE_STANDARD, { from: accounts[2] }).should.be.fulfilled
 
         // check balance
         await tranchToken.balanceOf(accounts[2]).should.eventually.eq(99)
@@ -834,10 +843,10 @@ describe('Integration: SPV', () => {
       await etherToken.approve(market.address, 2000000, { from: accounts[2] })
 
       const tranch0Address = ((await getTranchToken(0))).address
-      await market.executeLimitOffer(etherToken.address, 200, tranch0Address, 100, { from: accounts[2] })
+      await market.executeLimitOffer(etherToken.address, 200, tranch0Address, 100, FEE_SCHEDULE_STANDARD, { from: accounts[2] })
 
       const tranch1Address = ((await getTranchToken(1))).address
-      await market.executeLimitOffer(etherToken.address, 100, tranch1Address, 50, { from: accounts[2] })
+      await market.executeLimitOffer(etherToken.address, 100, tranch1Address, 50, FEE_SCHEDULE_STANDARD, { from: accounts[2] })
 
       // pay premiums upto start date
       let toPay = 0

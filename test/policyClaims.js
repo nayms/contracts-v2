@@ -21,17 +21,14 @@ import { ensureFeeBankIsDeployed } from '../deploy/modules/feeBank'
 import { ensureEntityImplementationsAreDeployed } from '../deploy/modules/entityImplementations'
 import { ensurePolicyImplementationsAreDeployed } from '../deploy/modules/policyImplementations'
 
-const IERC20 = artifacts.require("./base/IERC20")
 const IEntity = artifacts.require('./base/IEntity')
 const Entity = artifacts.require('./Entity')
-const IDiamondProxy = artifacts.require('./base/IDiamondProxy')
 const IPolicyStates = artifacts.require("./base/IPolicyStates")
 const IPolicyClaimsFacet = artifacts.require("./base/IPolicyClaimsFacet")
 const Policy = artifacts.require("./Policy")
 const DummyToken = artifacts.require("./DummyToken")
 const IPolicy = artifacts.require("./base/IPolicy")
-const DummyPolicyFacet = artifacts.require("./test/DummyPolicyFacet")
-const FreezeUpgradesFacet = artifacts.require("./test/FreezeUpgradesFacet")
+const IMarketFeeSchedules = artifacts.require("base/IMarketFeeSchedules")
 
 const POLICY_ATTRS_1 = {
   initiationDateDiff: 1000,
@@ -117,6 +114,9 @@ describe('Policy: Claims', () => {
   let CLAIM_STATE_DECLINED
   let CLAIM_STATE_PAID
 
+  let FEE_SCHEDULE_STANDARD
+  let FEE_SCHEDULE_PLATFORM_ACTION
+
   let approvePolicy
   let setupPolicyForClaims
   const policies = new Map()
@@ -185,6 +185,11 @@ describe('Policy: Claims', () => {
     CLAIM_STATE_APPROVED = await claimsFacet.CLAIM_STATE_APPROVED()
     CLAIM_STATE_DECLINED = await claimsFacet.CLAIM_STATE_DECLINED()
     CLAIM_STATE_PAID = await claimsFacet.CLAIM_STATE_PAID()
+
+    const { facets: [marketCoreAddress] } = market
+    const mktFeeSchedules = await IMarketFeeSchedules.at(marketCoreAddress)
+    FEE_SCHEDULE_STANDARD = await mktFeeSchedules.FEE_SCHEDULE_STANDARD()
+    FEE_SCHEDULE_PLATFORM_ACTION = await mktFeeSchedules.FEE_SCHEDULE_PLATFORM_ACTION()
 
     const preSetupPolicyForClaims = async (ctx, attrs) => {
       await preSetupPolicy(ctx, attrs)
@@ -269,10 +274,10 @@ describe('Policy: Claims', () => {
       buyAllTranchTokens = async () => {
         await etherToken.deposit({ value: 40 })
         await etherToken.approve(market.address, 40)
-        await market.executeLimitOffer(etherToken.address, 10, tranch0Address, 10)
-        await market.executeLimitOffer(etherToken.address, 10, tranch1Address, 10)
-        await market.executeLimitOffer(etherToken.address, 10, tranch2Address, 10)
-        await market.executeLimitOffer(etherToken.address, 10, tranch3Address, 10)
+        await market.executeLimitOffer(etherToken.address, 10, tranch0Address, 10, FEE_SCHEDULE_STANDARD)
+        await market.executeLimitOffer(etherToken.address, 10, tranch1Address, 10, FEE_SCHEDULE_STANDARD)
+        await market.executeLimitOffer(etherToken.address, 10, tranch2Address, 10, FEE_SCHEDULE_STANDARD)
+        await market.executeLimitOffer(etherToken.address, 10, tranch3Address, 10, FEE_SCHEDULE_STANDARD)
       }
 
       evmClock = new EvmClock(baseTime)

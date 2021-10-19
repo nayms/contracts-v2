@@ -22,19 +22,15 @@ import { ensurePolicyImplementationsAreDeployed } from '../deploy/modules/policy
 import { getAccounts } from '../deploy/utils'
 
 const IEntity = artifacts.require("base/IEntity")
-const IDiamondProxy = artifacts.require('base/IDiamondProxy')
-const AccessControl = artifacts.require('base/AccessControl')
-const DummyEntityFacet = artifacts.require("test/DummyEntityFacet")
 const IEntityTreasuryTestFacet = artifacts.require("test/IEntityTreasuryTestFacet")
 const IPolicyTreasuryTestFacet = artifacts.require("test/IPolicyTreasuryTestFacet")
 const EntityTreasuryFacet = artifacts.require("test/EntityTreasuryFacet")
 const IPolicyTreasury = artifacts.require("base/IPolicyTreasury")
-const IPolicyTreasuryConstants = artifacts.require("base/IPolicyTreasuryConstants")
-const FreezeUpgradesFacet = artifacts.require("test/FreezeUpgradesFacet")
 const Entity = artifacts.require("Entity")
 const IPolicy = artifacts.require("IPolicy")
 const Policy = artifacts.require("Policy")
 const DummyToken = artifacts.require("DummyToken")
+const IMarketFeeSchedules = artifacts.require("base/IMarketFeeSchedules")
 
 describe('Treasury', () => {
   const evmSnapshot = new EvmSnapshot()
@@ -66,6 +62,9 @@ describe('Treasury', () => {
   let ORDER_TYPE_TOKEN_BUYBACK
   let ORDER_TYPE_TOKEN_SALE
 
+  let FEE_SCHEDULE_STANDARD
+  let FEE_SCHEDULE_PLATFORM_ACTION
+
   before(async () => {
     accounts = await getAccounts()
     entityAdminAddress = accounts[0]
@@ -81,6 +80,11 @@ describe('Treasury', () => {
 
     DOES_NOT_HAVE_ROLE = (await acl.DOES_NOT_HAVE_ROLE()).toNumber()
     HAS_ROLE_CONTEXT = (await acl.HAS_ROLE_CONTEXT()).toNumber()
+
+    const { facets: [marketCoreAddress] } = market
+    const mktFeeSchedules = await IMarketFeeSchedules.at(marketCoreAddress)
+    FEE_SCHEDULE_STANDARD = await mktFeeSchedules.FEE_SCHEDULE_STANDARD()
+    FEE_SCHEDULE_PLATFORM_ACTION = await mktFeeSchedules.FEE_SCHEDULE_PLATFORM_ACTION()
 
     systemContext = await acl.systemContext()
 
@@ -700,6 +704,7 @@ describe('Treasury', () => {
         1,
         etherToken2.address,
         1,
+        FEE_SCHEDULE_STANDARD,
         ADDRESS_ZERO,
         BYTES_ZERO
       ).should.be.rejectedWith('not my policy')

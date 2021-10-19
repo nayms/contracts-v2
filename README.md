@@ -170,6 +170,7 @@ Visit the URL shown in the output and enjoy.
 
 ### Deployments
 
+_NOTE: Rinkeby/Mainnet deployments are done using Nayms wallet 2, i.e. the second wallet generated from the Nayms company mnemonic - `0xfcE918c07BD4c900941500A6632deB24bA7897Ce`. Also note that we use a dedicated Infura endpoint for smart contracts deployments (find it in 1password)_.
 
 Set up the env vars:
 

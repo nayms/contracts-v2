@@ -395,6 +395,7 @@ describe('Entity', () => {
           buyToken_: etherToken.address,
           buyAmount_: 1000,
           isActive_: true,
+          feeSchedule_: FEE_SCHEDULE_PLATFORM_ACTION,
         })
 
         const entityToken = await IERC20.at(tokenInfo.tokenContract_)

@@ -321,6 +321,16 @@ describe('Integration: SPV', () => {
             })
           })
 
+          it('and the market offer uses the "platform action" fee schedule', async () => {
+            await policy.checkAndUpdateState()
+            
+            const { initialSaleOfferId_: marketOfferId } = await policy.getTranchInfo(0)
+
+            await market.getOffer(marketOfferId).should.eventually.matchObj({
+              feeSchedule_: FEE_SCHEDULE_PLATFORM_ACTION,
+            })
+          })
+
           it('and then policy state gets updated', async () => {
             await policy.checkAndUpdateState()
             await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_INITIATED })
@@ -1269,6 +1279,14 @@ describe('Integration: SPV', () => {
           await policy.checkAndUpdateState()
 
           await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_BUYBACK })
+        })
+
+        it('the market offer uses the "platform action" fee schedule', async () => {
+          const { finalBuybackofferId_: buybackOfferId } = await policy.getTranchInfo(0)
+
+          await market.getOffer(buybackOfferId).should.eventually.matchObj({
+            feeSchedule_: FEE_SCHEDULE_PLATFORM_ACTION,
+          })
         })
 
         it('other people can trade their previously purchased tranch tokens in for (hopefully) profit ', async () => {

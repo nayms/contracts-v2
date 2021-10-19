@@ -11,6 +11,8 @@ import { ROLES, TEST_MNEMONIC } from '../../utils/constants'
 
 export { ADDRESS_ZERO, BYTES32_ZERO, BYTES_ZERO }
 
+export { expect } from 'chai'
+
 chai.use((_chai, utils) => {
   const sanitizeResultVal = (result, val) => {
     // if bignumber

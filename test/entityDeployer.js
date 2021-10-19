@@ -76,7 +76,7 @@ describe('EntityDeployer', () => {
     })
 
     it('and the entity records get updated accordingly', async () => {
-      await deployer.getNumEntities().should.eventually.eq(0)
+      await deployer.getNumChildren().should.eventually.eq(0)
 
       const context = await deployer.aclContext()
       await acl.assignRole(context, accounts[1], ROLES.SYSTEM_MANAGER)
@@ -84,14 +84,18 @@ describe('EntityDeployer', () => {
       const result = await deployer.deploy(accounts[1], BYTES32_ZERO, { from: accounts[1] })
       const eventArgs = extractEventArgs(result, events.NewEntity)
 
-      await deployer.getNumEntities().should.eventually.eq(1)
-      await deployer.getEntity(0).should.eventually.eq(eventArgs.entity)
+      await deployer.getNumChildren().should.eventually.eq(1)
+      await deployer.getChild(1).should.eventually.eq(eventArgs.entity)
+      await deployer.hasChild(eventArgs.entity).should.eventually.eq(true)
+      ;(await IEntity.at(eventArgs.entity)).getParent().should.eventually.eq(deployer.address)
 
       const result2 = await deployer.deploy(accounts[1], BYTES32_ZERO, { from: accounts[1] })
       const eventArgs2 = extractEventArgs(result2, events.NewEntity)
 
-      await deployer.getNumEntities().should.eventually.eq(2)
-      await deployer.getEntity(1).should.eventually.eq(eventArgs2.entity)
+      await deployer.getNumChildren().should.eventually.eq(2)
+      await deployer.getChild(2).should.eventually.eq(eventArgs2.entity)
+      await deployer.hasChild(eventArgs2.entity).should.eventually.eq(true)
+      ;(await IEntity.at(eventArgs2.entity)).getParent().should.eventually.eq(deployer.address)
     })
 
     it('and entity context can be overridden', async () => {

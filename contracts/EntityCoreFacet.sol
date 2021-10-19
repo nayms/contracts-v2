@@ -7,6 +7,7 @@ import "./base/EternalStorage.sol";
 import "./EntityFacetBase.sol";
 import "./base/IEntityCoreFacet.sol";
 import "./base/IDiamondFacet.sol";
+import "./base/IParent.sol";
 import "./base/IERC20.sol";
 import "./base/IMarket.sol";
 import "./base/IPolicy.sol";
@@ -41,13 +42,14 @@ import "./Policy.sol";
     return abi.encodePacked(
       IEntityCoreFacet.createPolicy.selector,
       IEntityCoreFacet.getBalance.selector,
-      IEntityCoreFacet.getNumPolicies.selector,
-      IEntityCoreFacet.getPolicy.selector,
       IEntityCoreFacet.deposit.selector,
       IEntityCoreFacet.withdraw.selector,
       IEntityCoreFacet.payTranchPremium.selector,
       IEntityCoreFacet.trade.selector,
-      IEntityCoreFacet.sellAtBestPrice.selector
+      IEntityCoreFacet.sellAtBestPrice.selector,
+      IParent.getNumChildren.selector,
+      IParent.getChild.selector,
+      IParent.hasChild.selector
     );
   }
 
@@ -83,7 +85,7 @@ import "./Policy.sol";
     );
 
     address pAddr = address(f);
-    addPolicyToIndex(pAddr);
+    _addChild(pAddr);
 
     IPolicy pol = IPolicy(pAddr);
 
@@ -107,24 +109,8 @@ import "./Policy.sol";
     emit NewPolicy(pAddr, address(this), msg.sender);
   }
 
-
-  function addPolicyToIndex(address _pAddr) private {
-    uint256 numPolicies = dataUint256["numPolicies"];
-    dataAddress[__i(numPolicies, "policy")] = _pAddr;
-    dataUint256["numPolicies"] = numPolicies + 1;
-    dataBool[__a(_pAddr, "isPolicy")] = true; // for _isPolicyCreatedByMe() to work
-  }
-
   function getBalance(address _unit) public view override returns (uint256) {
     return dataUint256[__a(_unit, "balance")];
-  }
-
-  function getNumPolicies() public view override returns (uint256) {
-    return dataUint256["numPolicies"];
-  }
-
-  function getPolicy(uint256 _index) public view override returns (address) {
-    return dataAddress[__i(_index, "policy")];
   }
 
   function deposit(address _unit, uint256 _amount) 
@@ -195,7 +181,7 @@ import "./Policy.sol";
     // check balance
     _assertHasEnoughBalance(_payUnit, _payAmount);
     // do it
-    return _tradeOnMarket(_payUnit, _payAmount, _buyUnit, _buyAmount, address(0), "");
+    return _tradeOnMarket(_payUnit, _payAmount, _buyUnit, _buyAmount, FEE_SCHEDULE_STANDARD, address(0), "");
   }
 
   function sellAtBestPrice(address _sellUnit, uint256 _sellAmount, address _buyUnit)

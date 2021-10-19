@@ -9,6 +9,7 @@ interface IMarketCoreFacet {
    * @param _sellAmount amount to sell.
    * @param _buyToken token to buy.
    * @param _buyAmount Amount to buy.
+   * @param _feeSchedule Requested fee schedule, one of the `FEE_SCHEDULE_...` constants.
    *
    * @return >0 if a limit offer was created on the market because the offer couldn't be totally fulfilled immediately. In this case the 
    * return value is the created offer's id.
@@ -17,7 +18,8 @@ interface IMarketCoreFacet {
     address _sellToken, 
     uint256 _sellAmount, 
     address _buyToken, 
-    uint256 _buyAmount
+    uint256 _buyAmount,
+    uint256 _feeSchedule
   ) external returns (uint256);
 
   /**
@@ -30,6 +32,7 @@ interface IMarketCoreFacet {
    * @param _sellAmount amount to sell.
    * @param _buyToken token to buy.
    * @param _buyAmount Amount to buy.
+   * @param _feeSchedule Requested fee schedule, one of the `FEE_SCHEDULE_...` constants.
    * @param _notify `IMarketObserver` to notify when a trade takes place and/or order gets cancelled.
    * @param _notifyData Data to pass through to the notified contract.
    *
@@ -41,6 +44,7 @@ interface IMarketCoreFacet {
     uint256 _sellAmount, 
     address _buyToken, 
     uint256 _buyAmount,
+    uint256 _feeSchedule,
     address _notify,
     bytes memory _notifyData
   ) external returns (uint256);

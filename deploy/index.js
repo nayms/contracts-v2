@@ -47,7 +47,7 @@ async function main() {
 
     // generate HD wallet for use with multisig signing
     hdWallet = EthHdWallet.fromMnemonic(process.env.MNEMONIC)
-    hdWallet.generateAddresses(1)
+    hdWallet.generateAddresses(2)
 
     // multisig enabled
     multisig = releaseConfig.multisig

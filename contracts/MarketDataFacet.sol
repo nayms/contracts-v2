@@ -57,6 +57,7 @@ contract MarketDataFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     address buyToken_, 
     uint256 buyAmount_,
     uint256 buyAmountInitial_,
+    uint256 feeSchedule_,
     address notify_,
     bytes memory notifyData_,
     uint256 state_
@@ -68,6 +69,7 @@ contract MarketDataFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     buyToken_ = dataAddress[__i(_offerId, "buyToken")];
     buyAmount_ = dataUint256[__i(_offerId, "buyAmount")];
     buyAmountInitial_ = dataUint256[__i(_offerId, "buyAmountInitial")];
+    feeSchedule_ = dataUint256[__i(_offerId, "feeSchedule")];
     notify_ = dataAddress[__i(_offerId, "notify")];
     notifyData_ = dataBytes[__i(_offerId, "notifyData")];
     state_ = dataUint256[__i(_offerId, "state")];
@@ -93,9 +95,10 @@ contract MarketDataFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     address _sellToken, 
     uint256 _sellAmount, 
     address _buyToken, 
-    uint256 _buyAmount
+    uint256 _buyAmount,
+    uint256 _feeSchedule
   ) external view override returns (address feeToken_, uint256 feeAmount_) {
-    TokenAmount memory fee = _calculateFee(_sellToken, _sellAmount, _buyToken, _buyAmount);
+    TokenAmount memory fee = _calculateFee(_sellToken, _sellAmount, _buyToken, _buyAmount, _feeSchedule);
     return (fee.token, fee.amount);
   }
 

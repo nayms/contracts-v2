@@ -87,7 +87,6 @@ contract PolicyTranchTokensFacet is EternalStorage, Controller, IDiamondFacet, I
   function _transfer(uint _index, address _from, address _to, uint256 _value) private {
     // when token holder is sending to the market
     address market = settings().getRootAddress(SETTING_MARKET);
-    address treasury = address(_getTreasury());
 
     // if this is a transfer to the market
     if (market == _to) {
@@ -112,9 +111,9 @@ contract PolicyTranchTokensFacet is EternalStorage, Controller, IDiamondFacet, I
     uint256 _offerId,
     uint256 _soldAmount, 
     uint256 _boughtAmount,
-    address _feeToken, 
-    uint256 _feeAmount,
-    address _buyer,
+    address /*_feeToken*/, 
+    uint256 /*_feeAmount*/,
+    address /*_buyer*/,
     bytes memory _data
   ) external override {
     if (_data.length == 0) {
@@ -133,7 +132,7 @@ contract PolicyTranchTokensFacet is EternalStorage, Controller, IDiamondFacet, I
         // if we are in the initial sale period      
         if (dataUint256[__i(tranchId, "state")] == TRANCH_STATE_SELLING) {
           // check tranch token matches sell token
-          (, address sellToken, , , , , , , ,) = _getMarket().getOffer(_offerId);
+          (, address sellToken, , , , , , , , ,) = _getMarket().getOffer(_offerId);
           address tranchAddress = dataAddress[__i(tranchId, "address")];
           require(tranchAddress == sellToken, "sell token must be tranch token");
           // record how many "shares" were sold
@@ -154,8 +153,8 @@ contract PolicyTranchTokensFacet is EternalStorage, Controller, IDiamondFacet, I
 
   function handleClosure(
     uint256 _offerId,
-    uint256 _unsoldAmount, 
-    uint256 _unboughtAmount,
+    uint256 /*_unsoldAmount*/, 
+    uint256 /*_unboughtAmount*/,
     bytes memory _data
   ) external override {
     if (_data.length == 0) {
@@ -175,7 +174,7 @@ contract PolicyTranchTokensFacet is EternalStorage, Controller, IDiamondFacet, I
         // if we are in the policy buyback state
         if (dataUint256["state"] == POLICY_STATE_BUYBACK) {
           // check tranch token matches buy token
-          (, , , , address buyToken, , , , ,) = _getMarket().getOffer(_offerId);
+          (, , , , address buyToken, , , , , ,) = _getMarket().getOffer(_offerId);
           address tranchAddress = dataAddress[__i(tranchId, "address")];
           require(tranchAddress == buyToken, "buy token must be tranch token");
 

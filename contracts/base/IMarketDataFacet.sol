@@ -30,6 +30,7 @@ interface IMarketDataFacet {
    * @param _sellAmount The sell amount.
    * @param _buyToken The buy unit.
    * @param _buyAmount The buy amount.
+   * @param _feeSchedule Fee schedule.
    *
    * @return feeToken_ The unit in which the fees are denominated.
    * @return feeAmount_ The fee required to place the order.
@@ -38,7 +39,8 @@ interface IMarketDataFacet {
     address _sellToken, 
     uint256 _sellAmount, 
     address _buyToken, 
-    uint256 _buyAmount
+    uint256 _buyAmount,
+    uint256 _feeSchedule
   ) external view returns (address feeToken_, uint256 feeAmount_);
 
   /**
@@ -97,6 +99,7 @@ interface IMarketDataFacet {
    * @return buyToken_ buy token.
    * @return buyAmount_ buy amount.
    * @return buyAmountInitial_ initial buy amount.
+   * @return feeSchedule_ fee schedule.
    * @return notify_ Contract to notify when a trade takes place and/or order gets cancelled.
    * @return notifyData_ Data to pass through to the notified contract.
    * @return state_ offer state.
@@ -109,6 +112,7 @@ interface IMarketDataFacet {
     address buyToken_, 
     uint256 buyAmount_,
     uint256 buyAmountInitial_,
+    uint256 feeSchedule_,
     address notify_,
     bytes memory notifyData_,
     uint256 state_

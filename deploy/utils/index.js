@@ -154,7 +154,7 @@ export const execMultisigCall = async ({ ctx, task, contract, method, args }) =>
     )
     await task.log(`     --> Signable hash: ${contractTransactionHash}`, 'green')
 
-    const sender = hdWallet.getAddresses()[0]
+    const sender = hdWallet.getAddresses()[1]
     await task.log(`     --> Sender: ${sender}`, 'green')
     
     const rawSig = ethUtil.ecsign(

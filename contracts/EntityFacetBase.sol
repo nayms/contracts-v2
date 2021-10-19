@@ -4,19 +4,21 @@ pragma solidity 0.6.12;
 import "./base/EternalStorage.sol";
 import "./base/Controller.sol";
 import "./base/IMarket.sol";
+import "./base/Parent.sol";
+import "./base/IMarketFeeSchedules.sol";
 import "./base/IERC20.sol";
 
 /**
  * @dev Entity facet base class
  */
-abstract contract EntityFacetBase is EternalStorage, Controller {
+abstract contract EntityFacetBase is EternalStorage, Controller, IMarketFeeSchedules, Parent {
   modifier assertIsEntityAdmin (address _addr) {
     require(inRoleGroup(_addr, ROLEGROUP_ENTITY_ADMINS), 'must be entity admin');
     _;
   }
 
   modifier assertIsMyPolicy(address _addr) {
-    require(_isPolicyCreatedByMe(_addr), 'not my policy');
+    require(hasChild(_addr), 'not my policy');
     _;
   }
 
@@ -28,15 +30,12 @@ abstract contract EntityFacetBase is EternalStorage, Controller {
     require(dataUint256["tokenSaleOfferId"] == 0, "token sale in progress");
   }
 
-  function _isPolicyCreatedByMe(address _policy) internal view returns (bool) {
-    return dataBool[__a(_policy, "isPolicy")];
-  }
-
   function _tradeOnMarket(
     address _sellUnit, 
     uint256 _sellAmount, 
     address _buyUnit, 
     uint256 _buyAmount,
+    uint256 _feeSchedule,
     address _notify,
     bytes memory _notifyData
   ) internal returns (uint256) {
@@ -46,7 +45,7 @@ abstract contract EntityFacetBase is EternalStorage, Controller {
     IERC20 tok = IERC20(_sellUnit);
     tok.approve(address(mkt), _sellAmount);
     // make the offer
-    return mkt.executeLimitOfferWithObserver(_sellUnit, _sellAmount, _buyUnit, _buyAmount, _notify, _notifyData);
+    return mkt.executeLimitOfferWithObserver(_sellUnit, _sellAmount, _buyUnit, _buyAmount, _feeSchedule, _notify, _notifyData);
   }  
 
   function _sellAtBestPriceOnMarket(address _sellUnit, uint256 _sellAmount, address _buyUnit) internal {

@@ -38,17 +38,6 @@ interface IEntityCoreFacet {
   function getBalance(address _unit) external view returns (uint256);
 
   /**
-   * @dev Get no. of policies created.
-   * @return Total no. of policies created.
-   */
-  function getNumPolicies() external view returns (uint256);
-  /**
-   * @dev Get policy.
-   * @return Policy at given index.
-   */
-  function getPolicy(uint256 _index) external view returns (address);
-
-  /**
    * @dev Deposit assets.
    *
    * The caller should ensure the entity has been pre-approved to transfer the asset on their behalf.

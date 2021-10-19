@@ -4,9 +4,10 @@ pragma experimental ABIEncoderV2;
 
 import "./base/Controller.sol";
 import "./base/Proxy.sol";
+import "./base/Child.sol";
 import "./PolicyFacetBase.sol";
 
-contract Policy is Controller, Proxy, PolicyFacetBase {
+contract Policy is Controller, Proxy, PolicyFacetBase, Child {
   constructor (
     address _settings,
     address _caller,
@@ -18,11 +19,11 @@ contract Policy is Controller, Proxy, PolicyFacetBase {
     address[] memory _stakeholders
   ) Controller(_settings) Proxy() public
   {
+    _setParent(msg.sender);
     _setDelegateAddress(settings().getRootAddress(SETTING_POLICY_DELEGATE));
     _setPolicyState(POLICY_STATE_CREATED);
 
     // set properties
-    dataAddress["creator"] = msg.sender;
     dataAddress["treasury"] = _stakeholders[0];
     dataUint256["initiationDate"] = _dates[0];
     dataUint256["startDate"] = _dates[1];

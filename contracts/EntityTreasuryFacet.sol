@@ -91,6 +91,7 @@ import "./base/SafeMath.sol";
     uint256 _sellAmount, 
     address _buyUnit, 
     uint256 _buyAmount,
+    uint256 _feeSchedule,
     address _notify,
     bytes calldata _notifyData
   )
@@ -100,7 +101,7 @@ import "./base/SafeMath.sol";
     returns (uint256)
   {
     require(_type == ORDER_TYPE_TOKEN_BUYBACK || _type == ORDER_TYPE_TOKEN_SALE, 'unknown order type');
-    return _tradeOnMarket(_sellUnit, _sellAmount, _buyUnit, _buyAmount, _notify, _notifyData);
+    return _tradeOnMarket(_sellUnit, _sellAmount, _buyUnit, _buyAmount, _feeSchedule, _notify, _notifyData);
   }
 
   function cancelOrder (uint256 _orderId) 

@@ -8,20 +8,12 @@ import '../base/IEntityCoreFacet.sol';
 contract DummyEntityFacet is IDiamondFacet, IEntityCoreFacet {
   function getSelectors () public pure override returns (bytes memory) {
     return abi.encodePacked(
-      IEntityCoreFacet.getNumPolicies.selector
+      IEntityCoreFacet.getBalance.selector
     );
   }
 
-  function getBalance(address _unit) public view override returns (uint256) {
-    return 0;
-  }
-
-  function getNumPolicies() public view override returns (uint256) {
-    return 666;
-  }
-
-  function getPolicy(uint256 /*_index*/) external view override returns (address) {
-    return address(this);
+  function getBalance(address /*_unit*/) public view override returns (uint256) {
+    return 123;
   }
 
   function createPolicy(

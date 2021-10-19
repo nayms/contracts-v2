@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.6.12;
 
+import "./base/IMarketFeeSchedules.sol";
 import "./base/EternalStorage.sol";
 import "./base/Controller.sol";
 import "./base/Utils.sol";
@@ -9,7 +10,7 @@ import "./base/SafeMath.sol";
 /**
  * @dev Market facet base class
  */
-abstract contract MarketFacetBase is EternalStorage, Controller {
+abstract contract MarketFacetBase is EternalStorage, Controller, IMarketFeeSchedules {
   using SafeMath for uint256;
 
   struct TokenAmount {
@@ -32,12 +33,12 @@ abstract contract MarketFacetBase is EternalStorage, Controller {
     buy_.amount = dataUint256[__i(_offerId, "buyAmount")];
   }  
 
-
   function _calculateFee(
     address _sellToken, 
     uint256 _sellAmount, 
     address _buyToken, 
-    uint256 _buyAmount
+    uint256 _buyAmount,
+    uint256 _feeSchedule
   ) internal view returns (TokenAmount memory fee_) {
     // are we selling a platform token
     bool sellTokenIsPlatformToken = Utils.isNaymsPlatformToken(_sellToken);
@@ -57,6 +58,11 @@ abstract contract MarketFacetBase is EternalStorage, Controller {
     } else {
       fee_.token = _sellToken;
       fee_.amount = feeBP.mul(_sellAmount).div(10000);
+    }
+
+    // if fee schedule is "platform action" then no fee is to be charged
+    if (_feeSchedule == FEE_SCHEDULE_PLATFORM_ACTION) {
+      fee_.amount = 0;
     }
   }
 

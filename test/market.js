@@ -1,4 +1,4 @@
-import { ADDRESS_ZERO, BYTES_ZERO, EvmSnapshot } from './utils/index'
+import { expect, ADDRESS_ZERO, BYTES_ZERO, EvmSnapshot } from './utils/index'
 import { toBN, toWei, toHex } from './utils/web3'
 
 import { getAccounts } from '../deploy/utils'
@@ -6,11 +6,13 @@ import { ensureAclIsDeployed } from '../deploy/modules/acl'
 import { ensureSettingsIsDeployed } from '../deploy/modules/settings'
 import { ensureMarketIsDeployed } from '../deploy/modules/market'
 import { ensureFeeBankIsDeployed } from '../deploy/modules/feeBank'
-import { expect } from 'chai'
+import { SETTINGS } from '../utils/constants'
 
 const DummyToken = artifacts.require("DummyToken")
 const DummyMarketObserver = artifacts.require("DummyMarketObserver")
+const DummyMarketCaller = artifacts.require("DummyMarketCaller")
 const IMarketOfferStates = artifacts.require("base/IMarketOfferStates")
+const IMarketFeeSchedules = artifacts.require("base/IMarketFeeSchedules")
 
 describe('Market', () => {
   const evmSnapshot = new EvmSnapshot()
@@ -31,6 +33,9 @@ describe('Market', () => {
   let OFFER_STATE_CANCELLED
   let OFFER_STATE_FULFILLED
 
+  let FEE_SCHEDULE_STANDARD
+  let FEE_SCHEDULE_PLATFORM_ACTION
+
   before(async () => {
     accounts = await getAccounts()
     erc20WETH = await DummyToken.new('Wrapped ETH', 'WETH', 18, 0, true, { from: accounts[0] })
@@ -41,7 +46,7 @@ describe('Market', () => {
 
     mintAmount = toWei('1000')
 
-    for (let i = 1; i <= 4; i++) {
+    for (let i = 0; i <= 4; i++) {
       await erc20WETH.deposit({ value: mintAmount, from: accounts[i] })
       await erc20WETH2.deposit({ value: mintAmount, from: accounts[i] })
       await erc20DAI.deposit({ value: mintAmount, from: accounts[i] })
@@ -64,6 +69,10 @@ describe('Market', () => {
     OFFER_STATE_ACTIVE = await mktStates.OFFER_STATE_ACTIVE()
     OFFER_STATE_CANCELLED = await mktStates.OFFER_STATE_CANCELLED()
     OFFER_STATE_FULFILLED = await mktStates.OFFER_STATE_FULFILLED()
+
+    const mktFeeSchedules = await IMarketFeeSchedules.at(marketCoreAddress)
+    FEE_SCHEDULE_STANDARD = await mktFeeSchedules.FEE_SCHEDULE_STANDARD()
+    FEE_SCHEDULE_PLATFORM_ACTION = await mktFeeSchedules.FEE_SCHEDULE_PLATFORM_ACTION()
   })
 
   beforeEach(async () => {
@@ -109,24 +118,31 @@ describe('Market', () => {
         await market.setFee(2000 /* 20% */)
       })
 
+      it('but not if order uses two platform tokens', async () => {
+        await market.calculateFee(erc20WETH.address, toWei('10'), erc20WETH2.address, toWei('5'), FEE_SCHEDULE_STANDARD).should.be.rejected
+      })
+
+      it('but not if order uses two currency tokens', async () => {
+        await market.calculateFee(erc20DAI.address, toWei('10'), erc20DAI2.address, toWei('5'), FEE_SCHEDULE_STANDARD).should.be.rejected
+      })
+
       it('and is always based on currency unit', async () => {
-        await market.calculateFee(erc20WETH.address, toWei('10'), erc20DAI.address, toWei('5')).should.eventually.matchObj({
+        await market.calculateFee(erc20WETH.address, toWei('10'), erc20DAI.address, toWei('5'), FEE_SCHEDULE_STANDARD).should.eventually.matchObj({
           feeToken_: erc20DAI.address,
           feeAmount_: toWei('1')
         })
 
-        await market.calculateFee(erc20DAI.address, toWei('10'), erc20WETH.address, toWei('5')).should.eventually.matchObj({
+        await market.calculateFee(erc20DAI.address, toWei('10'), erc20WETH.address, toWei('5'), FEE_SCHEDULE_STANDARD).should.eventually.matchObj({
           feeToken_: erc20DAI.address,
           feeAmount_: toWei('2')
         })
       })
 
-      it('but not if order uses two platform tokens', async () => {
-        await market.calculateFee(erc20WETH.address, toWei('10'), erc20WETH2.address, toWei('5')).should.be.rejected
-      })
-
-      it('but not if order uses two currency tokens', async () => {
-        await market.calculateFee(erc20DAI.address, toWei('10'), erc20DAI2.address, toWei('5')).should.be.rejected
+      it('and is 0 for platform actions', async () => {
+        await market.calculateFee(erc20WETH.address, toWei('10'), erc20DAI.address, toWei('5'), FEE_SCHEDULE_PLATFORM_ACTION).should.eventually.matchObj({
+          feeToken_: erc20DAI.address,
+          feeAmount_: '0'
+        })
       })
     })
   })
@@ -147,6 +163,7 @@ describe('Market', () => {
         pay_amt,
         erc20DAI2.address,
         buy_amt,
+        FEE_SCHEDULE_STANDARD,
         { from: accounts[2] }
       ).should.be.rejectedWith('must be one platform token')
     })
@@ -166,6 +183,7 @@ describe('Market', () => {
         pay_amt,
         erc20WETH2.address,
         buy_amt,
+        FEE_SCHEDULE_STANDARD,
         { from: accounts[2] }
       ).should.be.rejectedWith('must be one platform token')
     })
@@ -185,6 +203,7 @@ describe('Market', () => {
         pay_amt,
         erc20DAI.address,
         buy_amt,
+        FEE_SCHEDULE_STANDARD,
         { from: accounts[2] }
       ).should.be.fulfilled
 
@@ -199,8 +218,138 @@ describe('Market', () => {
         pay_amt,
         erc20WETH.address,
         buy_amt,
+        FEE_SCHEDULE_STANDARD,
         { from: accounts[2] }
       ).should.be.fulfilled
+    })
+  })
+
+  describe('fee schedule check', () => {
+    const pay_amt = toWei('10')
+    const buy_amt = toWei('10')
+
+    describe('schedule: platform action', () => {
+      it('disallow arbitrary caller', async () => {
+        await market.executeLimitOffer(
+          erc20WETH.address,
+          pay_amt,
+          erc20DAI.address,
+          buy_amt,
+          FEE_SCHEDULE_PLATFORM_ACTION
+        ).should.be.rejected
+      })
+
+      it('disallow with invalid parent', async () => {
+        const child = await DummyMarketCaller.new(market.address, ADDRESS_ZERO)
+        
+        await erc20WETH.transfer(child.address, pay_amt)
+        await child.trade(
+          erc20WETH.address,
+          pay_amt,
+          erc20DAI.address,
+          buy_amt,
+          FEE_SCHEDULE_PLATFORM_ACTION
+        ).should.be.rejected
+      })
+
+      it('disallow with parent that does not recognize child', async () => {
+        const child1 = await DummyMarketCaller.new(market.address, ADDRESS_ZERO)
+        const child2 = await DummyMarketCaller.new(market.address, child1.address)
+
+        await erc20WETH.transfer(child2.address, pay_amt)
+        await child2.trade(
+          erc20WETH.address,
+          pay_amt,
+          erc20DAI.address,
+          buy_amt,
+          FEE_SCHEDULE_PLATFORM_ACTION
+        ).should.be.rejectedWith('bad parent')
+      })
+
+      it('disallow with good parent that is NOT entity deployer', async () => {
+        const child1 = await DummyMarketCaller.new(market.address, ADDRESS_ZERO)
+        const child2 = await DummyMarketCaller.new(market.address, child1.address)
+        await child1.addChild(child2.address)
+
+        await erc20WETH.transfer(child2.address, pay_amt)
+        await child2.trade(
+          erc20WETH.address,
+          pay_amt,
+          erc20DAI.address,
+          buy_amt,
+          FEE_SCHEDULE_PLATFORM_ACTION
+        ).should.be.rejected
+      })
+
+      it('disallow with good parent but bad grandparent', async () => {
+        const child1 = await DummyMarketCaller.new(market.address, ADDRESS_ZERO)
+        const child2 = await DummyMarketCaller.new(market.address, child1.address)
+        // await child1.addChild(child2.address)
+        const child3 = await DummyMarketCaller.new(market.address, child2.address)
+        await child2.addChild(child3.address)
+
+        await erc20WETH.transfer(child3.address, pay_amt)
+        await child3.trade(
+          erc20WETH.address,
+          pay_amt,
+          erc20DAI.address,
+          buy_amt,
+          FEE_SCHEDULE_PLATFORM_ACTION
+        ).should.be.rejectedWith('bad grandparent')
+      })
+
+      it('disallow with good grandparent that is NOT entity deployer', async () => {
+        const child1 = await DummyMarketCaller.new(market.address, ADDRESS_ZERO)
+        const child2 = await DummyMarketCaller.new(market.address, child1.address)
+        await child1.addChild(child2.address)
+        const child3 = await DummyMarketCaller.new(market.address, child2.address)
+        await child2.addChild(child3.address)
+
+        await erc20WETH.transfer(child3.address, pay_amt)
+        await child3.trade(
+          erc20WETH.address,
+          pay_amt,
+          erc20DAI.address,
+          buy_amt,
+          FEE_SCHEDULE_PLATFORM_ACTION
+        ).should.be.rejectedWith('bad deployment')
+      })
+
+      it('allow with good parent that is entity deployer', async () => {
+        const child1 = await DummyMarketCaller.new(market.address, ADDRESS_ZERO)
+        await settings.setAddress(settings.address, SETTINGS.ENTITY_DEPLOYER, child1.address)
+
+        const child2 = await DummyMarketCaller.new(market.address, child1.address)
+        await child1.addChild(child2.address)
+
+        await erc20WETH.transfer(child2.address, pay_amt)
+        await child2.trade(
+          erc20WETH.address,
+          pay_amt,
+          erc20DAI.address,
+          buy_amt,
+          FEE_SCHEDULE_PLATFORM_ACTION
+        ).should.be.fulfilled
+      })
+
+      it('allow with good grandparent that is entity deployer', async () => {
+        const child1 = await DummyMarketCaller.new(market.address, ADDRESS_ZERO)
+        await settings.setAddress(settings.address, SETTINGS.ENTITY_DEPLOYER, child1.address)
+
+        const child2 = await DummyMarketCaller.new(market.address, child1.address)
+        await child1.addChild(child2.address)
+        const child3 = await DummyMarketCaller.new(market.address, child2.address)
+        await child2.addChild(child3.address)
+
+        await erc20WETH.transfer(child3.address, pay_amt)
+        await child3.trade(
+          erc20WETH.address,
+          pay_amt,
+          erc20DAI.address,
+          buy_amt,
+          FEE_SCHEDULE_PLATFORM_ACTION
+        ).should.be.fulfilled
+      })
     })
   })
 
@@ -219,11 +368,12 @@ describe('Market', () => {
         { from: accounts[2] }
       ).should.be.fulfilled
 
-      const offerTx = await market.executeLimitOffer(
+      await market.executeLimitOffer(
         erc20WETH.address,
         pay_amt,
         erc20DAI.address,
         buy_amt,
+        FEE_SCHEDULE_STANDARD,
         { from: accounts[2] }
       )
 
@@ -236,8 +386,6 @@ describe('Market', () => {
     let second_offer_pay_amt;
     let first_offer_buy_amt;
     let second_offer_buy_amt;
-    let firstOfferTx;
-    let secondOfferTx;
 
     beforeEach(async () => {
       first_offer_pay_amt = toWei('10');
@@ -249,14 +397,12 @@ describe('Market', () => {
         { from: accounts[1] }
       ).should.be.fulfilled
 
-      firstOfferTx = await market.executeLimitOffer(
-
+      await market.executeLimitOffer(
         erc20WETH.address,
         first_offer_pay_amt,
-
         erc20DAI.address,
         first_offer_buy_amt,
-
+        FEE_SCHEDULE_STANDARD,
         { from: accounts[1] }
       )
 
@@ -269,14 +415,12 @@ describe('Market', () => {
         { from: accounts[2] }
       ).should.be.fulfilled
 
-      secondOfferTx = await market.executeLimitOffer(
-
+      await market.executeLimitOffer(
         erc20WETH.address,
         second_offer_pay_amt,
-
         erc20DAI.address,
         second_offer_buy_amt,
-
+        FEE_SCHEDULE_STANDARD,
         { from: accounts[2] }
       )
 
@@ -316,6 +460,7 @@ describe('Market', () => {
         expect(firstOffer.buyAmountInitial_.toString()).to.eq(first_offer_buy_amt)
         expect(firstOffer.notify_).to.eq(ADDRESS_ZERO)
         expect(firstOffer.state_).to.eq(OFFER_STATE_ACTIVE)
+        expect(firstOffer.feeSchedule_).to.eq(FEE_SCHEDULE_STANDARD)
 
         const firstSiblings = await market.getOfferSiblings(1)
         expect(firstSiblings.nextOfferId_.toNumber()).to.eq(2)
@@ -331,6 +476,7 @@ describe('Market', () => {
         expect(secondOffer.buyAmountInitial_.toString()).to.eq(second_offer_buy_amt)
         expect(secondOffer.notify_).to.eq(ADDRESS_ZERO)
         expect(secondOffer.state_).to.eq(OFFER_STATE_ACTIVE)
+        expect(secondOffer.feeSchedule_).to.eq(FEE_SCHEDULE_STANDARD)
 
         const secondSiblings = await market.getOfferSiblings(2)
         expect(secondSiblings.nextOfferId_.toNumber()).to.eq(0)
@@ -378,6 +524,7 @@ describe('Market', () => {
         expect(secondOffer.buyAmountInitial_.toString()).to.eq(second_offer_buy_amt)
         expect(secondOffer.notify_).to.eq(ADDRESS_ZERO)
         expect(secondOffer.state_).to.eq(OFFER_STATE_CANCELLED)
+        expect(secondOffer.feeSchedule_).to.eq(FEE_SCHEDULE_STANDARD)
 
         const secondSiblings = await market.getOfferSiblings(2)
         expect(secondSiblings.nextOfferId_.toNumber()).to.eq(0)
@@ -543,9 +690,9 @@ describe('Market', () => {
     beforeEach(async () => {
       await erc20DAI.approve( market.address, toWei('30'), { from: accounts[3] } )
       // 20 DAI <-> 10 WETH (2 DAI per WETH)
-      await market.executeLimitOffer( erc20DAI.address, toWei('20'), erc20WETH.address, toWei('10'), { from: accounts[3] } )
+      await market.executeLimitOffer( erc20DAI.address, toWei('20'), erc20WETH.address, toWei('10'), FEE_SCHEDULE_STANDARD, { from: accounts[3] } )
       // 10 DAI <-> 10 WETH (1 DAI per WETH)
-      await market.executeLimitOffer( erc20DAI.address, toWei('10'), erc20WETH.address, toWei('10'), { from: accounts[3] } )
+      await market.executeLimitOffer( erc20DAI.address, toWei('10'), erc20WETH.address, toWei('10'), FEE_SCHEDULE_STANDARD, { from: accounts[3] } )
     })
 
     it('should revert if amount to sell cannot be transferred from user', async () => {
@@ -683,8 +830,6 @@ describe('Market', () => {
     let second_offer_pay_amt;
     let first_offer_buy_amt;
     let second_offer_buy_amt;
-    let firstOfferTx;
-    let secondOfferTx;
 
     beforeEach(async () => {
       first_offer_pay_amt = toWei('10');
@@ -696,14 +841,12 @@ describe('Market', () => {
         { from: accounts[1] }
       ).should.be.fulfilled
 
-      firstOfferTx = await market.executeLimitOffer(
-
+      await market.executeLimitOffer(
         erc20DAI.address,
         first_offer_pay_amt,
-
         erc20WETH.address,
         first_offer_buy_amt,
-
+        FEE_SCHEDULE_STANDARD,
         { from: accounts[1] }
       )
 
@@ -716,14 +859,12 @@ describe('Market', () => {
         { from: accounts[2] }
       ).should.be.fulfilled
 
-      secondOfferTx = await market.executeLimitOffer(
-
+      await market.executeLimitOffer(
         erc20WETH.address,
         second_offer_pay_amt,
-
         erc20DAI.address,
         second_offer_buy_amt,
-
+        FEE_SCHEDULE_STANDARD, 
         { from: accounts[2] }
       )
     })
@@ -755,8 +896,6 @@ describe('Market', () => {
     let second_offer_pay_amt;
     let first_offer_buy_amt;
     let second_offer_buy_amt;
-    let firstOfferTx;
-    let secondOfferTx;
 
     beforeEach(async () => {
       first_offer_pay_amt = toWei('20');
@@ -768,14 +907,12 @@ describe('Market', () => {
         { from: accounts[1] }
       ).should.be.fulfilled
 
-      firstOfferTx = await market.executeLimitOffer(
-
+      await market.executeLimitOffer(
         erc20DAI.address,
         first_offer_pay_amt,
-
         erc20WETH.address,
         first_offer_buy_amt,
-
+        FEE_SCHEDULE_STANDARD,
         { from: accounts[1] }
       )
 
@@ -788,14 +925,12 @@ describe('Market', () => {
         { from: accounts[2] }
       ).should.be.fulfilled
 
-      secondOfferTx = await market.executeLimitOffer(
-
+      await market.executeLimitOffer(
         erc20WETH.address,
         second_offer_pay_amt,
-
         erc20DAI.address,
         second_offer_buy_amt,
-
+        FEE_SCHEDULE_STANDARD,
         { from: accounts[2] }
       )
     })
@@ -819,14 +954,12 @@ describe('Market', () => {
         { from: accounts[3] }
       ).should.be.fulfilled
 
-      const thirdOfferTx = await market.executeLimitOffer(
-
+      await market.executeLimitOffer(
         erc20DAI.address,
         third_offer_pay_amt,
-
         erc20WETH.address,
         third_offer_buy_amt,
-
+        FEE_SCHEDULE_STANDARD,
         { from: accounts[3] }
       )
 
@@ -841,14 +974,12 @@ describe('Market', () => {
         { from: accounts[4] }
       ).should.be.fulfilled
 
-      const fourthOfferTx = await market.executeLimitOffer(
-
+      await market.executeLimitOffer(
         erc20WETH.address,
         fourth_offer_pay_amt,
-
         erc20DAI.address,
         fourth_offer_buy_amt,
-
+        FEE_SCHEDULE_STANDARD,
         { from: accounts[4] }
       )
 
@@ -891,8 +1022,6 @@ describe('Market', () => {
     let second_offer_pay_amt;
     let first_offer_buy_amt;
     let second_offer_buy_amt;
-    let firstOfferTx;
-    let secondOfferTx;
 
     beforeEach(async () => {
       first_offer_pay_amt = toWei('10');
@@ -904,14 +1033,12 @@ describe('Market', () => {
         { from: accounts[1] }
       ).should.be.fulfilled
 
-      firstOfferTx = await market.executeLimitOffer(
-
+      await market.executeLimitOffer(
         erc20DAI.address,
         first_offer_pay_amt,
-
         erc20WETH.address,
         first_offer_buy_amt,
-
+        FEE_SCHEDULE_STANDARD,
         { from: accounts[1] }
       )
 
@@ -924,14 +1051,12 @@ describe('Market', () => {
         { from: accounts[2] }
       ).should.be.fulfilled
 
-      secondOfferTx = await market.executeLimitOffer(
-
+      await market.executeLimitOffer(
         erc20WETH.address,
         second_offer_pay_amt,
-
         erc20DAI.address,
         second_offer_buy_amt,
-
+        FEE_SCHEDULE_STANDARD,
         { from: accounts[2] }
       )
 
@@ -959,8 +1084,6 @@ describe('Market', () => {
     let second_offer_pay_amt;
     let first_offer_buy_amt;
     let second_offer_buy_amt;
-    let firstOfferTx;
-    let secondOfferTx;
 
     beforeEach(async () => {
       first_offer_pay_amt = toWei('10');
@@ -972,14 +1095,12 @@ describe('Market', () => {
         { from: accounts[1] }
       ).should.be.fulfilled
 
-      firstOfferTx = await market.executeLimitOffer(
-
+      await market.executeLimitOffer(
         erc20DAI.address,
         first_offer_pay_amt,
-
         erc20WETH.address,
         first_offer_buy_amt,
-
+        FEE_SCHEDULE_STANDARD,
         { from: accounts[1] }
       )
 
@@ -992,13 +1113,12 @@ describe('Market', () => {
         { from: accounts[2] }
       ).should.be.fulfilled
 
-      secondOfferTx = await market.executeLimitOffer(
-
+      await market.executeLimitOffer(
         erc20WETH.address,
         second_offer_pay_amt,
-
         erc20DAI.address,
         second_offer_buy_amt,
+        FEE_SCHEDULE_STANDARD,
         { from: accounts[2] }
       )
 
@@ -1032,8 +1152,6 @@ describe('Market', () => {
     let second_offer_pay_amt;
     let first_offer_buy_amt;
     let second_offer_buy_amt;
-    let firstOfferTx;
-    let secondOfferTx;
 
     beforeEach(async () => {
       first_offer_pay_amt = toWei('20');
@@ -1045,14 +1163,12 @@ describe('Market', () => {
         { from: accounts[1] }
       ).should.be.fulfilled
 
-      firstOfferTx = await market.executeLimitOffer(
-
+      await market.executeLimitOffer(
         erc20DAI.address,
         first_offer_pay_amt,
-
         erc20WETH.address,
         first_offer_buy_amt,
-
+        FEE_SCHEDULE_STANDARD,
         { from: accounts[1] }
       )
 
@@ -1065,14 +1181,12 @@ describe('Market', () => {
         { from: accounts[2] }
       ).should.be.fulfilled
 
-      secondOfferTx = await market.executeLimitOffer(
-
+      await market.executeLimitOffer(
         erc20DAI.address,
         second_offer_pay_amt,
-
         erc20WETH.address,
         second_offer_buy_amt,
-
+        FEE_SCHEDULE_STANDARD,
         { from: accounts[2] }
       )
     })
@@ -1139,11 +1253,12 @@ describe('Market', () => {
         { from: accounts[1] }
       ).should.be.fulfilled
 
-      const firstOfferTx = await market.executeLimitOfferWithObserver(
+      await market.executeLimitOfferWithObserver(
         erc20WETH.address,
         first_offer_pay_amt,
         erc20DAI.address,
         first_offer_buy_amt,
+        FEE_SCHEDULE_STANDARD,
         marketObserver.address,
         notifyData,
         { from: accounts[1] }
@@ -1158,11 +1273,12 @@ describe('Market', () => {
         { from: accounts[2] }
       ).should.be.fulfilled
 
-      const secondOfferTx = await market.executeLimitOfferWithObserver(
+      await market.executeLimitOfferWithObserver(
         erc20WETH.address,
         second_offer_pay_amt,
         erc20DAI.address,
         second_offer_buy_amt,
+        FEE_SCHEDULE_STANDARD,
         marketObserver.address,
         notifyData,
         { from: accounts[2] }
@@ -1209,11 +1325,12 @@ describe('Market', () => {
         { from: accounts[1] }
       ).should.be.fulfilled
 
-      const firstOfferTx = await market.executeLimitOfferWithObserver(
+      await market.executeLimitOfferWithObserver(
         erc20WETH.address,
         first_offer_pay_amt,
         erc20DAI.address,
         first_offer_buy_amt,
+        FEE_SCHEDULE_STANDARD,
         marketObserver.address,
         notifyData,
         { from: accounts[1] }
@@ -1228,11 +1345,12 @@ describe('Market', () => {
         { from: accounts[2] }
       ).should.be.fulfilled
 
-      const secondOfferTx = await market.executeLimitOfferWithObserver(
+      await market.executeLimitOfferWithObserver(
         erc20DAI.address,
         second_offer_pay_amt,
         erc20WETH.address,
         second_offer_buy_amt,
+        FEE_SCHEDULE_STANDARD,
         marketObserver.address,
         notifyData,
         { from: accounts[2] }
@@ -1272,11 +1390,12 @@ describe('Market', () => {
         { from: accounts[1] }
       ).should.be.fulfilled
 
-      const firstOfferTx = await market.executeLimitOfferWithObserver(
+      await market.executeLimitOfferWithObserver(
         erc20WETH.address,
         first_offer_pay_amt,
         erc20DAI.address,
         first_offer_buy_amt,
+        FEE_SCHEDULE_STANDARD,
         marketObserver.address,
         notifyData,
         { from: accounts[1] }
@@ -1291,11 +1410,12 @@ describe('Market', () => {
         { from: accounts[2] }
       ).should.be.fulfilled
 
-      const secondOfferTx = await market.executeLimitOfferWithObserver(
+      await market.executeLimitOfferWithObserver(
         erc20DAI.address,
         second_offer_pay_amt,
         erc20WETH.address,
         second_offer_buy_amt,
+        FEE_SCHEDULE_STANDARD,
         marketObserver.address,
         notifyData,
         { from: accounts[2] }
@@ -1330,11 +1450,12 @@ describe('Market', () => {
         { from: accounts[1] }
       ).should.be.fulfilled
 
-      const thirdOfferTx = await market.executeLimitOfferWithObserver(
+      await market.executeLimitOfferWithObserver(
         erc20WETH.address,
         first_offer_pay_amt,
         erc20DAI.address,
         first_offer_buy_amt,
+        FEE_SCHEDULE_STANDARD,
         marketObserver.address,
         notifyData,
         { from: accounts[1] }
@@ -1378,6 +1499,7 @@ describe('Market', () => {
         first_offer_pay_amt,
         erc20DAI.address,
         first_offer_buy_amt,
+        FEE_SCHEDULE_STANDARD,
         marketObserver.address,
         notifyData,
         { from: accounts[1] }
@@ -1423,11 +1545,12 @@ describe('Market', () => {
         { from: accounts[1] }
       ).should.be.fulfilled
 
-      const firstOfferTx = await market.executeLimitOfferWithObserver(
+      await market.executeLimitOfferWithObserver(
         erc20WETH.address,
         first_offer_pay_amt,
         erc20DAI.address,
         first_offer_buy_amt,
+        FEE_SCHEDULE_STANDARD,
         marketObserver.address,
         BYTES_ZERO,
         { from: accounts[1] }
@@ -1471,11 +1594,12 @@ describe('Market', () => {
         { from: accounts[1] }
       ).should.be.fulfilled
 
-      const firstOfferTx = await market.executeLimitOfferWithObserver(
+      await market.executeLimitOfferWithObserver(
         erc20WETH.address,
         first_offer_pay_amt,
         erc20DAI.address,
         first_offer_buy_amt,
+        FEE_SCHEDULE_STANDARD,
         marketObserver.address,
         notifyData,
         { from: accounts[1] }
@@ -1522,6 +1646,7 @@ describe('Market', () => {
         toWei('10'),
         erc20DAI.address,
         toWei('5'),
+        FEE_SCHEDULE_STANDARD,
         { from: accounts[1] }
       )
 
@@ -1543,6 +1668,7 @@ describe('Market', () => {
         toWei('10'),
         erc20WETH.address,
         toWei('20'),
+        FEE_SCHEDULE_STANDARD,
         { from: accounts[2] }
       )
 
@@ -1566,6 +1692,7 @@ describe('Market', () => {
         toWei('10'),
         erc20DAI.address,
         toWei('5'),
+        FEE_SCHEDULE_STANDARD,
         { from: accounts[3] }
       )
 
@@ -1578,6 +1705,89 @@ describe('Market', () => {
       await erc20DAI.balanceOf(accounts[3]).should.eventually.eq(toWei('1004').toString()) /* paid 1 DAI taker fee */
       await erc20WETH.balanceOf(market.address).should.eventually.eq(toWei('0').toString())
       await erc20DAI.balanceOf(market.address).should.eventually.eq(toWei('0').toString())
+    })
+
+    describe('for the "platform action" fee schedule', async () => {
+      let entityDeployer
+      let entity1
+      let entity2
+      let entity3
+
+      beforeEach(async () => {
+        entityDeployer = await DummyMarketCaller.new(market.address, ADDRESS_ZERO)
+        await settings.setAddress(settings.address, SETTINGS.ENTITY_DEPLOYER, entityDeployer.address)
+
+        entity1 = await DummyMarketCaller.new(market.address, entityDeployer.address)
+        entityDeployer.addChild(entity1.address)
+        await erc20WETH.transfer(entity1.address, toWei('1000'), { from: accounts[1] })
+        await erc20DAI.transfer(entity1.address, toWei('1000'), { from: accounts[1] })
+
+        entity2 = await DummyMarketCaller.new(market.address, entityDeployer.address)
+        entityDeployer.addChild(entity2.address)
+        await erc20WETH.transfer(entity2.address, toWei('1000'), { from: accounts[2] })
+        await erc20DAI.transfer(entity2.address, toWei('1000'), { from: accounts[2] })
+
+        entity3 = await DummyMarketCaller.new(market.address, entityDeployer.address)
+        entityDeployer.addChild(entity3.address)
+        await erc20WETH.transfer(entity3.address, toWei('1000'), { from: accounts[3] })
+        await erc20DAI.transfer(entity3.address, toWei('1000'), { from: accounts[3] })
+      })
+
+      it('takes no fees', async () => {
+        // make order: 10 WETH for 5 DAI
+        await entity1.trade(
+          erc20WETH.address,
+          toWei('10'),
+          erc20DAI.address,
+          toWei('5'),
+          FEE_SCHEDULE_PLATFORM_ACTION
+        )
+
+        // check balances
+        await erc20WETH.balanceOf(entity1.address).should.eventually.eq(toWei('990').toString())
+        await erc20DAI.balanceOf(entity1.address).should.eventually.eq(toWei('1000').toString())
+        await erc20WETH.balanceOf(market.address).should.eventually.eq(toWei('10').toString())
+        await erc20DAI.balanceOf(market.address).should.eventually.eq(toWei('0').toString())
+
+        // take order: 10 DAI for 20 WETH
+        await entity2.trade(
+          erc20DAI.address,
+          toWei('10'),
+          erc20WETH.address,
+          toWei('20'),
+          FEE_SCHEDULE_STANDARD
+        )
+
+        // check balances
+        await erc20WETH.balanceOf(entity1.address).should.eventually.eq(toWei('990').toString())
+        await erc20DAI.balanceOf(entity1.address).should.eventually.eq(toWei('1005').toString())
+        await erc20WETH.balanceOf(entity2.address).should.eventually.eq(toWei('1010').toString())
+        await erc20DAI.balanceOf(entity2.address).should.eventually.eq(toWei('990').toString())
+        await erc20WETH.balanceOf(market.address).should.eventually.eq(toWei('0').toString())
+        await erc20DAI.balanceOf(market.address).should.eventually.eq(toWei('5').toString())
+
+        // at this point a second limit order should have been created from the remainder
+        // - and this should have the standard fee schedule set since that was requested
+
+        // now take second order with: 10 WETH for 5 DAI
+        await entity3.trade(
+          erc20WETH.address,
+          toWei('10'),
+          erc20DAI.address,
+          toWei('5'),
+          FEE_SCHEDULE_STANDARD
+        )
+
+        // check balances
+        await erc20WETH.balanceOf(entity1.address).should.eventually.eq(toWei('990').toString())
+        await erc20DAI.balanceOf(entity1.address).should.eventually.eq(toWei('1005').toString())
+        await erc20WETH.balanceOf(entity2.address).should.eventually.eq(toWei('1020').toString())
+        await erc20DAI.balanceOf(entity2.address).should.eventually.eq(toWei('990').toString())
+        await erc20WETH.balanceOf(entity3.address).should.eventually.eq(toWei('990').toString())
+        await erc20DAI.balanceOf(entity3.address).should.eventually.eq(toWei('1004').toString()) /* fee of 1 DAI taken */
+        await erc20WETH.balanceOf(market.address).should.eventually.eq(toWei('0').toString())
+        await erc20DAI.balanceOf(market.address).should.eventually.eq(toWei('0').toString())
+      })
     })
   })
 })

@@ -1,9 +1,9 @@
 import {
   EvmSnapshot,
   extractEventArgs,
-  hdWallet,
   ADDRESS_ZERO,
   BYTES32_ZERO,
+  createEntity,
   createPolicy,
   createTranch,
 } from './utils'
@@ -14,6 +14,7 @@ import { ensureAclIsDeployed } from '../deploy/modules/acl'
 import { ensureSettingsIsDeployed } from '../deploy/modules/settings'
 import { ensureMarketIsDeployed } from '../deploy/modules/market'
 import { ensureFeeBankIsDeployed } from '../deploy/modules/feeBank'
+import { ensureEntityDeployerIsDeployed } from '../deploy/modules/entityDeployer'
 import { ensureEntityImplementationsAreDeployed } from '../deploy/modules/entityImplementations'
 import { ensurePolicyImplementationsAreDeployed } from '../deploy/modules/policyImplementations'
 import { getAccounts } from '../deploy/utils'
@@ -27,6 +28,7 @@ const IDiamondProxy = artifacts.require('base/IDiamondProxy')
 const AccessControl = artifacts.require('base/AccessControl')
 const DummyEntityFacet = artifacts.require("test/DummyEntityFacet")
 const FreezeUpgradesFacet = artifacts.require("test/FreezeUpgradesFacet")
+const IMarketFeeSchedules = artifacts.require("base/IMarketFeeSchedules")
 const Entity = artifacts.require("Entity")
 const IPolicy = artifacts.require("IPolicy")
 
@@ -37,6 +39,7 @@ describe('Entity', () => {
 
   let acl
   let settings
+  let entityDeployer
   let etherToken
   let etherToken2
   let market
@@ -50,11 +53,15 @@ describe('Entity', () => {
   let DOES_NOT_HAVE_ROLE
   let HAS_ROLE_CONTEXT
 
+  let FEE_SCHEDULE_STANDARD
+  let FEE_SCHEDULE_PLATFORM_ACTION
+
   before(async () => {
     accounts = await getAccounts()
     acl = await ensureAclIsDeployed({ artifacts })
     settings = await ensureSettingsIsDeployed({ artifacts, acl })
     market = await ensureMarketIsDeployed({ artifacts, settings })
+    entityDeployer = await ensureEntityDeployerIsDeployed({ artifacts, settings })
     await ensureFeeBankIsDeployed({ artifacts, settings })
     await ensurePolicyImplementationsAreDeployed({ artifacts, settings })
     await ensureEntityImplementationsAreDeployed({ artifacts, settings })
@@ -64,13 +71,19 @@ describe('Entity', () => {
     
     entityAdmin = accounts[9]
     
-    entityProxy = await Entity.new(settings.address, entityAdmin, BYTES32_ZERO)
+    const entityAddress = await createEntity({ entityDeployer, adminAddress: entityAdmin })
+    entityProxy = await Entity.at(entityAddress)
     // now let's speak to Entity contract using EntityImpl ABI
     entity = await IEntity.at(entityProxy.address)
     entityContext = await entityProxy.aclContext()
     
     ;([ entityCoreAddress ] = await settings.getRootAddresses(SETTINGS.ENTITY_IMPL))
     
+    const { facets: [marketCoreAddress] } = market
+    const mktFeeSchedules = await IMarketFeeSchedules.at(marketCoreAddress)
+    FEE_SCHEDULE_STANDARD = await mktFeeSchedules.FEE_SCHEDULE_STANDARD()
+    FEE_SCHEDULE_PLATFORM_ACTION = await mktFeeSchedules.FEE_SCHEDULE_PLATFORM_ACTION()
+
     etherToken = await DummyToken.new('Wrapped ETH', 'WETH', 18, 0, false)
     etherToken2 = await DummyToken.new('Wrapped ETH 2', 'WETH2', 18, 0, true)
   })
@@ -85,6 +98,10 @@ describe('Entity', () => {
 
   it('can be deployed', async () => {
     expect(entityProxy.address).to.exist
+  })
+  
+  it('has its parent set', async () => {
+    await entity.getParent().should.eventually.eq(entityDeployer.address)
   })
 
   describe('it can be upgraded', () => {
@@ -118,7 +135,7 @@ describe('Entity', () => {
 
     it('and adds the new implementation as a facet', async () => {
       await entityDelegate.upgrade([ dummyEntityTestFacet.address ]).should.be.fulfilled
-      await entity.getNumPolicies().should.eventually.eq(666);
+      await entity.getBalance(accounts[0]).should.eventually.eq(123);
     })
 
     it('and can be frozen', async () => {
@@ -298,13 +315,13 @@ describe('Entity', () => {
           // setup offers on market
           await etherToken2.deposit({ value: 100, from: accounts[7] })
           await etherToken2.approve(market.address, 100, { from: accounts[7] })
-          await market.executeLimitOffer(etherToken2.address, 100, etherToken.address, 3, { from: accounts[7] }); // best price, but only buying 3
+          await market.executeLimitOffer(etherToken2.address, 100, etherToken.address, 3, FEE_SCHEDULE_STANDARD, { from: accounts[7] }); // best price, but only buying 3
 
           let offerId, offer
 
           await etherToken2.deposit({ value: 50, from: accounts[8] })
           await etherToken2.approve(market.address, 50, { from: accounts[8] })
-          await market.executeLimitOffer(etherToken2.address, 50, etherToken.address, 5, { from: accounts[8] }); // worse price, but able to buy all
+          await market.executeLimitOffer(etherToken2.address, 50, etherToken.address, 5, FEE_SCHEDULE_STANDARD, { from: accounts[8] }); // worse price, but able to buy all
 
           offerId = (await market.getBestOfferId(etherToken2.address, etherToken.address)).toNumber()
 
@@ -329,7 +346,7 @@ describe('Entity', () => {
           // setup matching offer
           await etherToken2.deposit({ value: 50, from: accounts[8] })
           await etherToken2.approve(market.address, 50, { from: accounts[8] })
-          await market.executeLimitOffer(etherToken2.address, 50, etherToken.address, 10, { from: accounts[8] });
+          await market.executeLimitOffer(etherToken2.address, 50, etherToken.address, 10, FEE_SCHEDULE_STANDARD, { from: accounts[8] });
 
           // trading more than is explicitly deposited should fail
           await entity.sellAtBestPrice(etherToken.address, 11, etherToken2.address, { from: accounts[3] }).should.be.rejectedWith('exceeds entity balance')
@@ -378,6 +395,7 @@ describe('Entity', () => {
           buyToken_: etherToken.address,
           buyAmount_: 1000,
           isActive_: true,
+          feeSchedule_: FEE_SCHEDULE_PLATFORM_ACTION,
         })
 
         const entityToken = await IERC20.at(tokenInfo.tokenContract_)
@@ -411,7 +429,7 @@ describe('Entity', () => {
 
         await etherToken.deposit({ value: 500 })
         await etherToken.approve(market.address, 500)
-        await market.executeLimitOffer(etherToken.address, 500, tokenInfo.tokenContract_, 250)
+        await market.executeLimitOffer(etherToken.address, 500, tokenInfo.tokenContract_, 250, FEE_SCHEDULE_STANDARD)
 
         await market.getOffer(offerId).should.eventually.matchObj({
           sellToken_: tokenInfo.contract_,
@@ -438,7 +456,7 @@ describe('Entity', () => {
 
         await etherToken.deposit({ value: 1000 })
         await etherToken.approve(market.address, 1000)
-        await market.executeLimitOffer(etherToken.address, 1000, tokenInfo.tokenContract_, 500)
+        await market.executeLimitOffer(etherToken.address, 1000, tokenInfo.tokenContract_, 500, FEE_SCHEDULE_STANDARD)
 
         await market.getOffer(offerId).should.eventually.matchObj({
           isActive_: false,
@@ -466,7 +484,7 @@ describe('Entity', () => {
 
           const tokenInfo = await entity.getTokenInfo()
 
-          await market.executeLimitOffer(etherToken.address, 500, tokenInfo.tokenContract_, 250)
+          await market.executeLimitOffer(etherToken.address, 500, tokenInfo.tokenContract_, 250, FEE_SCHEDULE_STANDARD)
           
           entityToken = await IERC20.at(tokenInfo.tokenContract_)
           await entityToken.balanceOf(accounts[0]).should.eventually.eq(250)
@@ -501,7 +519,7 @@ describe('Entity', () => {
 
           await etherToken.deposit({ value: 1000 })
           await etherToken.approve(market.address, 1000)
-          await market.executeLimitOffer(etherToken.address, 1000, tokenInfo.tokenContract_, 500)
+          await market.executeLimitOffer(etherToken.address, 1000, tokenInfo.tokenContract_, 500, FEE_SCHEDULE_STANDARD)
 
           entityToken = await IERC20.at(tokenInfo.tokenContract_)
 
@@ -617,7 +635,7 @@ describe('Entity', () => {
       await etherToken.approve(market.address, 500)
       const tokenInfo = await entity.getTokenInfo()
 
-      await market.executeLimitOffer(etherToken.address, 500, tokenInfo.tokenContract_, 250)
+      await market.executeLimitOffer(etherToken.address, 500, tokenInfo.tokenContract_, 250, FEE_SCHEDULE_STANDARD)
 
       // after some has been sold the market and buyer are the present holders
       await entity.getNumTokenHolders().should.eventually.eq(2)
@@ -721,7 +739,7 @@ describe('Entity', () => {
       await etherToken.deposit({ value: 500 })
       await etherToken.approve(market.address, 500)
       const tokenInfo = await entity.getTokenInfo()
-      await market.executeLimitOffer(etherToken.address, 500, tokenInfo.tokenContract_, 250)
+      await market.executeLimitOffer(etherToken.address, 500, tokenInfo.tokenContract_, 250, FEE_SCHEDULE_STANDARD)
 
       entityToken = await IERC20.at(tokenInfo.tokenContract_)
       
@@ -872,19 +890,23 @@ describe('Entity', () => {
     })
 
     it('and the entity records get updated accordingly', async () => {
-      await entity.getNumPolicies().should.eventually.eq(0)
+      await entity.getNumChildren().should.eventually.eq(0)
 
       const result = await createPolicy(entity, {}, { from: entityRep })
       const eventArgs = extractEventArgs(result, events.NewPolicy)
 
-      await entity.getNumPolicies().should.eventually.eq(1)
-      await entity.getPolicy(0).should.eventually.eq(eventArgs.policy)
+      await entity.getNumChildren().should.eventually.eq(1)
+      await entity.getChild(1).should.eventually.eq(eventArgs.policy)
+      await entity.hasChild(eventArgs.policy).should.eventually.eq(true)
+      ;(await IPolicy.at(eventArgs.policy)).getParent().should.eventually.eq(entity.address)
 
       const result2 = await createPolicy(entity, {}, { from: entityRep })
       const eventArgs2 = extractEventArgs(result2, events.NewPolicy)
 
-      await entity.getNumPolicies().should.eventually.eq(2)
-      await entity.getPolicy(1).should.eventually.eq(eventArgs2.policy)
+      await entity.getNumChildren().should.eventually.eq(2)
+      await entity.getChild(2).should.eventually.eq(eventArgs2.policy)
+      await entity.hasChild(eventArgs2.policy).should.eventually.eq(true)
+        ; (await IPolicy.at(eventArgs2.policy)).getParent().should.eventually.eq(entity.address)
     })
 
     it('and have their properties set', async () => {

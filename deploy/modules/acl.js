@@ -84,18 +84,18 @@ export const addMultisigAddressAsSystemAdmin = async (ctx, { multisig, replaceEx
       if (replaceExisting) {
         await task.log('Removing existing ACL admin...')
 
-        await exec('removeAdmin', accounts[0])
+        await exec('removeAdmin', accounts[1])
       }
     })
 
     await log.task('Check ACL admin assignments', async task => {
       const check = await Promise.all([
         acl.isAdmin(multisig),
-        acl.isAdmin(accounts[0])
+        acl.isAdmin(accounts[1])
       ])
 
       await task.log(`isAdmin(multisig - ${multisig}): ${check[0]}`)
-      await task.log(`isAdmin(account0 - ${accounts[0]}): ${check[1]}`)
+      await task.log(`isAdmin(account0 - ${accounts[1]}): ${check[1]}`)
     })
   }
 }

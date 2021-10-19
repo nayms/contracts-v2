@@ -74,10 +74,14 @@ export const buildGetTxParamsHandler = async (network, { log }) => {
     if ('mainnet' === network.name) {
       gwei = await getLiveGasPrice({ log })
     } else {
-      gwei = 1
+      gwei = 3
     }
 
-    let nonce = await (await hre.ethers.getSigners())[0].getTransactionCount()
+    const signer = (await hre.ethers.getSigners())[1] 
+    const address = await signer.getAddress()
+    // console.log(address) // Rinkeby/Mainnet: 0xfcE918c07BD4c900941500A6632deB24bA7897Ce
+    
+    let nonce = await signer.getTransactionCount()
 
     getTxParams = (txParamsOverride = {}) => {
       log.log(`Nonce: ${nonce}`)
@@ -87,6 +91,7 @@ export const buildGetTxParamsHandler = async (network, { log }) => {
       return defaultGetTxParams(Object.assign({
         gasPrice: gwei * 1000000000,
         nonce: nonce - 1,
+        from: address,
       }, txParamsOverride))
     }
   }

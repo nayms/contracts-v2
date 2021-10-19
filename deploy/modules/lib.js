@@ -68,8 +68,10 @@ export const deployFacets = async ({
     }
 
     for (let f of contractNames) {
-      addresses.push(await deployContract(ctx, f, [settings.address]))
+      addresses.push(deployContract(ctx, f, [settings.address]))
     }
+
+    addresses = await Promise.all(addresses)
 
     addresses = addresses.map(c => c.address)
 

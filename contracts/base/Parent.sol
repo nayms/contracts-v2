@@ -16,7 +16,7 @@ abstract contract Parent is EternalStorage, IParent {
     return dataAddress[__i(_index, "childContract")];
   }
 
-  function isParentOf(address _child) public view override returns (bool) {
+  function hasChild(address _child) public view override returns (bool) {
     return dataBool[__a(_child, "isChildContract")];
   }
 

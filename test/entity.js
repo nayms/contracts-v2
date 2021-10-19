@@ -1,9 +1,9 @@
 import {
   EvmSnapshot,
   extractEventArgs,
-  hdWallet,
   ADDRESS_ZERO,
   BYTES32_ZERO,
+  createEntity,
   createPolicy,
   createTranch,
 } from './utils'
@@ -14,6 +14,7 @@ import { ensureAclIsDeployed } from '../deploy/modules/acl'
 import { ensureSettingsIsDeployed } from '../deploy/modules/settings'
 import { ensureMarketIsDeployed } from '../deploy/modules/market'
 import { ensureFeeBankIsDeployed } from '../deploy/modules/feeBank'
+import { ensureEntityDeployerIsDeployed } from '../deploy/modules/entityDeployer'
 import { ensureEntityImplementationsAreDeployed } from '../deploy/modules/entityImplementations'
 import { ensurePolicyImplementationsAreDeployed } from '../deploy/modules/policyImplementations'
 import { getAccounts } from '../deploy/utils'
@@ -38,6 +39,7 @@ describe('Entity', () => {
 
   let acl
   let settings
+  let entityDeployer
   let etherToken
   let etherToken2
   let market
@@ -59,6 +61,7 @@ describe('Entity', () => {
     acl = await ensureAclIsDeployed({ artifacts })
     settings = await ensureSettingsIsDeployed({ artifacts, acl })
     market = await ensureMarketIsDeployed({ artifacts, settings })
+    entityDeployer = await ensureEntityDeployerIsDeployed({ artifacts, settings })
     await ensureFeeBankIsDeployed({ artifacts, settings })
     await ensurePolicyImplementationsAreDeployed({ artifacts, settings })
     await ensureEntityImplementationsAreDeployed({ artifacts, settings })
@@ -68,7 +71,8 @@ describe('Entity', () => {
     
     entityAdmin = accounts[9]
     
-    entityProxy = await Entity.new(settings.address, entityAdmin, BYTES32_ZERO)
+    const entityAddress = await createEntity({ entityDeployer, adminAddress: entityAdmin })
+    entityProxy = await Entity.at(entityAddress)
     // now let's speak to Entity contract using EntityImpl ABI
     entity = await IEntity.at(entityProxy.address)
     entityContext = await entityProxy.aclContext()
@@ -94,6 +98,10 @@ describe('Entity', () => {
 
   it('can be deployed', async () => {
     expect(entityProxy.address).to.exist
+  })
+  
+  it('has its parent set', async () => {
+    await entity.getParent().should.eventually.eq(entityDeployer.address)
   })
 
   describe('it can be upgraded', () => {
@@ -888,14 +896,16 @@ describe('Entity', () => {
 
       await entity.getNumChildren().should.eventually.eq(1)
       await entity.getChild(1).should.eventually.eq(eventArgs.policy)
-      await entity.isParentOf(eventArgs.policy).should.eventually.eq(true)
+      await entity.hasChild(eventArgs.policy).should.eventually.eq(true)
+      ;(await IPolicy.at(eventArgs.policy)).getParent().should.eventually.eq(entity.address)
 
       const result2 = await createPolicy(entity, {}, { from: entityRep })
       const eventArgs2 = extractEventArgs(result2, events.NewPolicy)
 
       await entity.getNumChildren().should.eventually.eq(2)
       await entity.getChild(2).should.eventually.eq(eventArgs2.policy)
-      await entity.isParentOf(eventArgs2.policy).should.eventually.eq(true)
+      await entity.hasChild(eventArgs2.policy).should.eventually.eq(true)
+        ; (await IPolicy.at(eventArgs2.policy)).getParent().should.eventually.eq(entity.address)
     })
 
     it('and have their properties set', async () => {

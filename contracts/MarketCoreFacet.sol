@@ -5,6 +5,8 @@ import "./base/EternalStorage.sol";
 import "./base/IMarketCoreFacet.sol";
 import "./base/IMarketObserver.sol";
 import "./base/IMarketOfferStates.sol";
+import "./base/IParent.sol";
+import "./base/IChild.sol";
 import "./base/IDiamondFacet.sol";
 import "./base/Controller.sol";
 import "./base/SafeMath.sol";
@@ -559,7 +561,7 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     }
   }
 
-  function _assertValidOffer(address _sellToken, uint256 _sellAmount, address _buyToken, uint256 _buyAmount, uint256 _feeSchedule) private pure {
+  function _assertValidOffer(address _sellToken, uint256 _sellAmount, address _buyToken, uint256 _buyAmount, uint256 _feeSchedule) private view {
     require(uint128(_sellAmount) == _sellAmount, "sell amount must be uint128");
     require(uint128(_buyAmount) == _buyAmount, "buy amount must be uint128");
     require(_sellAmount > 0, "sell amount must be >0");
@@ -568,7 +570,23 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     require(_buyToken != address(0), "buy token must be valid");
     require(_sellToken != _buyToken, "cannot sell and buy same token");
 
-    // TODO: check that fee schedule is allowed
+    // if caller requested the 'platform action' fee schedule then check that they're allowed to do so
+    if (_feeSchedule == FEE_SCHEDULE_PLATFORM_ACTION) {
+      // get and check parent
+      address parent = IChild(msg.sender).getParent();
+      require(IParent(parent).hasChild(msg.sender), "fee schedule: bad parent");
+
+      // get entity deployer
+      address entityDeployer = settings().getRootAddress(SETTING_ENTITY_DEPLOYER);
+
+      // if parent is NOT the entity deployer then the grandparent must be
+      if (parent != entityDeployer) {
+        // the caller must be a policy, in which case let's goto the grandparent
+        address grandparent = IChild(parent).getParent();
+        require(IParent(grandparent).hasChild(parent), "fee schedule: bad grandparent");
+        require(grandparent == entityDeployer, "fee schedule: bad deployment");
+      }
+    }
   }
 
   function min(uint x, uint y) private pure returns (uint z) {

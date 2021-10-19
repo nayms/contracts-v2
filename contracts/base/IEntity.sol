@@ -6,6 +6,7 @@ import "./IDiamondUpgradeFacet.sol";
 import "./IAccessControl.sol";
 import "./ISettingsControl.sol";
 import "./IParent.sol";
+import "./IChild.sol";
 import "./IEntityCoreFacet.sol";
 import "./IEntityTokensFacet.sol";
 import "./IEntityDividendsFacet.sol";
@@ -20,6 +21,7 @@ abstract contract IEntity is
   IAccessControl,
   ISettingsControl,
   IParent,
+  IChild,
   IEntityCoreFacet,
   IEntityTokensFacet,
   IEntityDividendsFacet,

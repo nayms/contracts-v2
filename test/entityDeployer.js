@@ -86,14 +86,16 @@ describe('EntityDeployer', () => {
 
       await deployer.getNumChildren().should.eventually.eq(1)
       await deployer.getChild(1).should.eventually.eq(eventArgs.entity)
-      await deployer.isParentOf(eventArgs.entity).should.eventually.eq(true)
+      await deployer.hasChild(eventArgs.entity).should.eventually.eq(true)
+      ;(await IEntity.at(eventArgs.entity)).getParent().should.eventually.eq(deployer.address)
 
       const result2 = await deployer.deploy(accounts[1], BYTES32_ZERO, { from: accounts[1] })
       const eventArgs2 = extractEventArgs(result2, events.NewEntity)
 
       await deployer.getNumChildren().should.eventually.eq(2)
       await deployer.getChild(2).should.eventually.eq(eventArgs2.entity)
-      await deployer.isParentOf(eventArgs2.entity).should.eventually.eq(true)
+      await deployer.hasChild(eventArgs2.entity).should.eventually.eq(true)
+      ;(await IEntity.at(eventArgs2.entity)).getParent().should.eventually.eq(deployer.address)
     })
 
     it('and entity context can be overridden', async () => {

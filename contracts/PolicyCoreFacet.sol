@@ -7,6 +7,8 @@ import "./base/EternalStorage.sol";
 import './base/IERC20.sol';
 import "./base/IDiamondFacet.sol";
 import "./base/AccessControl.sol";
+import "./base/IChild.sol";
+import "./base/Child.sol";
 import "./base/IPolicyTreasuryConstants.sol";
 import "./base/IPolicyCoreFacet.sol";
 import "./base/IPolicyTranchTokensFacet.sol";
@@ -21,7 +23,7 @@ import "./base/ReentrancyGuard.sol";
 /**
  * @dev Core policy logic
  */
-contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCoreFacet, IPolicyTypes, PolicyFacetBase, IPolicyTreasuryConstants, ReentrancyGuard, IMarketObserverDataTypes, IMarketFeeSchedules {
+contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCoreFacet, IPolicyTypes, PolicyFacetBase, IPolicyTreasuryConstants, ReentrancyGuard, IMarketObserverDataTypes, IMarketFeeSchedules, Child {
   using SafeMath for uint;
   using Address for address;
 
@@ -33,7 +35,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
   }
 
   modifier assertCanCreateTranch () {
-    require(inRoleGroup(msg.sender, ROLEGROUP_POLICY_OWNERS) || msg.sender == dataAddress["creator"], 'must be policy owner or original creator');
+    require(inRoleGroup(msg.sender, ROLEGROUP_POLICY_OWNERS) || msg.sender == getParent(), 'must be policy owner or original creator');
     _;
   }
 
@@ -61,7 +63,8 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
       IPolicyCoreFacet.initiationDateHasPassed.selector,
       IPolicyCoreFacet.startDateHasPassed.selector,
       IPolicyCoreFacet.maturationDateHasPassed.selector,
-      IPolicyCoreFacet.checkAndUpdateState.selector
+      IPolicyCoreFacet.checkAndUpdateState.selector,
+      IChild.getParent.selector
     );
   }
 

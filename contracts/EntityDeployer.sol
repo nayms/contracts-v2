@@ -28,13 +28,7 @@ contract EntityDeployer is EternalStorage, Destructible, IEntityDeployer, Parent
    */
   function deploy(address _entityAdmin, bytes32 _entityContext) external override assertCanCreateEntity {
     Entity f = new Entity(address(settings()), _entityAdmin, _entityContext);
-
-    uint256 numEntities = dataUint256["numEntities"];
-    dataAddress[__i(numEntities, "entity")] = address(f);
-    dataUint256["numEntities"] = numEntities + 1;
-
     _addChild(address(f));
-
     emit NewEntity(address(f), msg.sender);
   }
 }

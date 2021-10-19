@@ -49,7 +49,7 @@ import "./Policy.sol";
       IEntityCoreFacet.sellAtBestPrice.selector,
       IParent.getNumChildren.selector,
       IParent.getChild.selector,
-      IParent.isParentOf.selector
+      IParent.hasChild.selector
     );
   }
 

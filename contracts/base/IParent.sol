@@ -26,5 +26,5 @@ interface IParent {
    *
    * @return true if so, false otherwise.
    */
-  function isParentOf(address _child) external view returns (bool);
+  function hasChild(address _child) external view returns (bool);
 }

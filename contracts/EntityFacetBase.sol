@@ -18,7 +18,7 @@ abstract contract EntityFacetBase is EternalStorage, Controller, IMarketFeeSched
   }
 
   modifier assertIsMyPolicy(address _addr) {
-    require(isParentOf(_addr), 'not my policy');
+    require(hasChild(_addr), 'not my policy');
     _;
   }
 

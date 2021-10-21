@@ -666,7 +666,7 @@
         {
           "type": "call",
           "contract": "EntityDeployer",
-          "method": "getNumEntities",
+          "method": "getNumChildren",
           "address": "@input[contractAddress]",
           "saveResultAsInput": "numEntities"
         }
@@ -702,7 +702,7 @@
           "validation": [
             {
               "type": "range",
-              "min": "0"
+              "min": "1"
             }
           ]
         }
@@ -711,7 +711,7 @@
         {
           "type": "call",
           "contract": "EntityDeployer",
-          "method": "getEntity",
+          "method": "getChild",
           "address": "@input[contractAddress]",
           "args": {
             "_index": "@input[index]"
@@ -853,8 +853,8 @@
       "execs": [
         {
           "type": "call",
-          "contract": "IEntityCoreFacet",
-          "method": "getNumPolicies",
+          "contract": "IEntity",
+          "method": "getNumChildren",
           "address": "@input[contractAddress]",
           "saveResultAsInput": "numPolicies"
         }
@@ -889,7 +889,7 @@
           "validation": [
             {
               "type": "range",
-              "min": "0"
+              "min": "1"
             }
           ]
         }
@@ -897,8 +897,8 @@
       "execs": [
         {
           "type": "call",
-          "contract": "IEntityCoreFacet",
-          "method": "getPolicy",
+          "contract": "IEntity",
+          "method": "getChild",
           "address": "@input[contractAddress]",
           "args": {
             "_index": "@input[index]"

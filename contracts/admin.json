@@ -1376,6 +1376,336 @@
       ]
     },
     {
+      "id": "makeClaim",
+      "title": "Claim: Create new",
+      "description": "Only entity reps of the insured party can do this.",
+      "inputs": [
+        {
+          "name": "policyAddress",
+          "title": "Policy contract address",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "index",
+          "title": "Tranch index (0-based)",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        },
+        {
+          "name": "amount",
+          "title": "Amount to claim (in WEI)",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "send",
+          "contract": "IPolicy",
+          "method": "makeClaim",
+          "address": "@input[policyAddress]",
+          "args": {
+            "_tranchIndex": "@input[index]",
+            "_amount": "@input[amount]"
+          }
+        }
+      ]
+    },
+    {
+      "id": "getClaimInfo",
+      "title": "Claim: Get info",
+      "inputs": [
+        {
+          "name": "policyAddress",
+          "title": "Policy contract address",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "index",
+          "title": "Claim index (0-based)",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "IPolicy",
+          "method": "getClaimInfo",
+          "address": "@input[policyAddress]",
+          "args": {
+            "_claimIndex": "@input[index]"
+          },
+          "saveResultAsInput": "details"
+        }
+      ],
+      "outputs": [
+        {
+          "title": "Claim amount",
+          "type": "int",
+          "value": "@input[details][amount_]"
+        },
+        {
+          "title": "Tranch index",
+          "type": "int",
+          "value": "@input[details][tranchIndex_]"
+        },
+        {
+          "title": "State",
+          "type": "int",
+          "value": "@input[details][state_]",
+          "transform": [
+            {
+              "type": "toMappedString",
+              "options": {
+                "0": "Created",
+                "2": "Approved",
+                "3": "Declined",
+                "5": "Paid"
+              }
+            }
+          ]
+        },
+        {
+          "title": "Is disputed?",
+          "type": "bool",
+          "value": "@input[details][disputed_]"
+        },
+        {
+          "title": "Is acknowledged?",
+          "type": "bool",
+          "value": "@input[details][acknowledged_]"
+        }
+      ]
+    },
+    {
+      "id": "disputeClaim",
+      "title": "Claim: Dispute",
+      "description": "Only entity reps of the underwriter can do this.",
+      "inputs": [
+        {
+          "name": "policyAddress",
+          "title": "Policy contract address",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "index",
+          "title": "Claim index (0-based)",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "send",
+          "contract": "IPolicy",
+          "method": "disputeClaim",
+          "address": "@input[policyAddress]",
+          "args": {
+            "_claimIndex": "@input[index]"
+          }
+        }
+      ]
+    },
+    {
+      "id": "acknowledgeClaim",
+      "title": "Claim: Acknowledge",
+      "description": "Only entity reps of the underwriter can do this.",
+      "inputs": [
+        {
+          "name": "policyAddress",
+          "title": "Policy contract address",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "index",
+          "title": "Claim index (0-based)",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "send",
+          "contract": "IPolicy",
+          "method": "acknowledgeClaim",
+          "address": "@input[policyAddress]",
+          "args": {
+            "_claimIndex": "@input[index]"
+          }
+        }
+      ]
+    },
+    {
+      "id": "approveClaim",
+      "title": "Claim: Approve",
+      "description": "Only entity reps of the claims admin can do this.",
+      "inputs": [
+        {
+          "name": "policyAddress",
+          "title": "Policy contract address",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "index",
+          "title": "Claim index (0-based)",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "send",
+          "contract": "IPolicy",
+          "method": "approveClaim",
+          "address": "@input[policyAddress]",
+          "args": {
+            "_claimIndex": "@input[index]"
+          }
+        }
+      ]
+    },
+    {
+      "id": "declineClaim",
+      "title": "Claim: Decline",
+      "description": "Only entity reps of the claims admin can do this.",
+      "inputs": [
+        {
+          "name": "policyAddress",
+          "title": "Policy contract address",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "index",
+          "title": "Claim index (0-based)",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "send",
+          "contract": "IPolicy",
+          "method": "declineClaim",
+          "address": "@input[policyAddress]",
+          "args": {
+            "_claimIndex": "@input[index]"
+          }
+        }
+      ]
+    },
+    {
+      "id": "payClaim",
+      "title": "Claim: Pay",
+      "description": "Only entity reps of the claims admin can do this.",
+      "inputs": [
+        {
+          "name": "policyAddress",
+          "title": "Policy contract address",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "index",
+          "title": "Claim index (0-based)",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "send",
+          "contract": "IPolicy",
+          "method": "payClaim",
+          "address": "@input[policyAddress]",
+          "args": {
+            "_claimIndex": "@input[index]"
+          }
+        }
+      ]
+    },
+    {
       "id": "getOfferStatus",
       "title": "Market: Get offer status",
       "inputs": [

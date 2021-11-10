@@ -1,4 +1,3 @@
-// SPDX-License-Identifier: MIT
 pragma solidity >=0.6.7;
 
 import "./base/Controller.sol";
@@ -15,8 +14,8 @@ contract CommonUpgradeFacet is Controller, IDiamondUpgradeFacet {
   }
 
   function getVersionInfo () public override pure returns (string memory num_, uint256 date_, string memory hash_) {
-    num_ = "1.0.0-build.dev1634645644342";
-    date_ = 1634645644;
-    hash_ = "2bf7987cd4ffc765bfaec5284693fd2fe7c27728";
+    num_ = "1.0.0-pr.131.build.1420";
+    date_ = 1636554417;
+    hash_ = "e6b5910757dd41964d6f694355c8bca2bc0dba53";
   }
 }

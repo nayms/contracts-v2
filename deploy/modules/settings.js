@@ -1,8 +1,8 @@
 import { createLog } from '../utils/log'
 import { getDeployedContractInstance, deployContract, getContractAt } from '../utils'
 
-export const getCurrentSettings = async ({ network, log }) => {
-  return getDeployedContractInstance({ network, log, type: 'ISettings', lookupType: 'Settings' })
+export const getCurrentSettings = async ctx => {
+  return getDeployedContractInstance(ctx, { type: 'ISettings', lookupType: 'Settings' })
 }
 
 export const ensureSettingsIsDeployed = async ctx => {

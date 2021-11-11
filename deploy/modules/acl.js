@@ -32,8 +32,8 @@ const ASSIGNER_MAPPINGS = [
   [ROLES.SYSTEM_MANAGER, ROLEGROUPS.SYSTEM_ADMINS],
 ]
 
-export const getCurrentAcl = async ({ network, log }) => {
-  return getDeployedContractInstance({ network, log, type: 'IACL', lookupType: 'ACL' })
+export const getCurrentAcl = async ctx => {
+  return getDeployedContractInstance(ctx, { type: 'IACL', lookupType: 'ACL' })
 }
 
 export const ensureAclIsDeployed = async (ctx = {}) => {

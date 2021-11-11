@@ -130,7 +130,7 @@ export const execMultisigCall = async ({ ctx, task, contract, method, args }) =>
         throw new Error(`Cannot use multisig for network ${JSON.stringify(network)}`)
     }
 
-    const safe = await getContractAt('GnosisSafe', multisig, multisig)
+    const safe = await getContractAt(ctx, 'GnosisSafe', multisig, multisig)
 
     const data = contract.interface.encodeFunctionData(method, args)
     await task.log(`     --> Data: ${data}`, 'green')
@@ -205,13 +205,15 @@ export const execMultisigCall = async ({ ctx, task, contract, method, args }) =>
 
 
 
-export const getDeployedContractInstance = async ({ lookupType, type, network, log }) => {
+export const getDeployedContractInstance = async(ctx, { lookupType, type }) => {
+  const { network, log  } = ctx
+
   log = createLog(log)
 
   let inst
 
   await log.task(`Loading ${lookupType} address from deployed address list for network ${network.id}`, async task => {
-    inst = await getContractAt(type, _.get(deployedAddresses, `${lookupType}.${network.id}.address`))
+    inst = await getContractAt(ctx, type, _.get(deployedAddresses, `${lookupType}.${network.id}.address`))
     task.log(`Instance: ${inst.address}`)
   })
 

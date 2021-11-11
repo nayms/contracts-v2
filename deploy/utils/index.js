@@ -208,8 +208,6 @@ export const execMultisigCall = async ({ ctx, task, contract, method, args }) =>
 export const getDeployedContractInstance = async(ctx, { lookupType, type }) => {
   const { network, log  } = ctx
 
-  log = createLog(log)
-
   let inst
 
   await log.task(`Loading ${lookupType} address from deployed address list for network ${network.id}`, async task => {

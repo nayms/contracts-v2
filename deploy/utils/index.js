@@ -121,22 +121,22 @@ export const execMultisigCall = async ({ ctx, task, contract, method, args }) =>
     let baseUrl 
     switch (network.id) {
       case 1:
-        baseUrl = `https://safe-transaction.mainnet.gnosis.io`
+        baseUrl = `https://safe-client.gnosis.io/v1/chains/1/transactions`
         break
       case 4:
-        baseUrl = `https://safe-transaction.rinkeby.gnosis.io`
+        baseUrl = `https://safe-client.gnosis.io/v1/chains/4/transactions`
         break
       default:
         throw new Error(`Cannot use multisig for network ${JSON.stringify(network)}`)
     }
 
-    const safe = await getContractAt(ctx, 'GnosisSafe', multisig, multisig)
-
-    const data = contract.interface.encodeFunctionData(method, args)
+    const { data } = await contract[method].request(...args, { from: multisig })
     await task.log(`     --> Data: ${data}`, 'green')
 
-    const safeTxGas = (await contract.estimateGas[method](...args)).toNumber()
+    const safeTxGas = await contract[method].estimateGas(...args, { from: multisig })
     await task.log(`     --> Gas estimate: ${safeTxGas}`, 'green')
+
+    const safe = await getContractAt(ctx, 'GnosisSafe', multisig)
 
     if (!safeNonce) {
       safeNonce = (await safe.nonce()).toNumber()
@@ -145,7 +145,7 @@ export const execMultisigCall = async ({ ctx, task, contract, method, args }) =>
     }
     await task.log(`     --> Nonce: ${safeNonce}`, 'green')
 
-    const contractTransactionHash = await safe.getTransactionHash(
+    const safeTxHash = await safe.getTransactionHash(
       /*to: */contract.address,
       /*value: */0,
       /*data: */data,
@@ -157,36 +157,35 @@ export const execMultisigCall = async ({ ctx, task, contract, method, args }) =>
       /*refundReceiver: */ADDRESS_ZERO,
       /*_nonce: */safeNonce,
     )
-    await task.log(`     --> Signable hash: ${contractTransactionHash}`, 'green')
+    await task.log(`     --> Signable hash: ${safeTxHash}`, 'green')
 
     const sender = hdWallet.getAddresses()[1]
     await task.log(`     --> Sender: ${sender}`, 'green')
     
     const rawSig = ethUtil.ecsign(
-      ethUtil.toBuffer(contractTransactionHash),
+      ethUtil.toBuffer(safeTxHash),
       hdWallet.getPrivateKey(sender)
     )
     const signature = ethUtil.bufferToHex(concatSig(rawSig.v, rawSig.r, rawSig.s)).substr(2)
     await task.log(`     --> Signature: ${signature}`, 'green')
       
-    const endpoint = `${baseUrl}/api/v1/safes/${multisig}/transactions/`
+    const endpoint = `${baseUrl}/${multisig}/propose`
 
     const tx = {
-      to: contract.address,
-      value: 0,
+      baseGas: "0",
       data,
-      operation: 0,
-      nonce: safeNonce,
-      safeTxGas,
-      baseGas: 0,
-      gasPrice: 0,
+      gasPrice: "0",
       gasToken: ADDRESS_ZERO,
-      refundReceiver: ADDRESS_ZERO,
-      contractTransactionHash,
-      transactionHash: null,
-      sender: accounts[0].address,
+      nonce: `${safeNonce}`,
+      operation: 0,
       origin: null,    
+      refundReceiver: ADDRESS_ZERO,
+      safeTxGas: `${safeTxGas}`,
+      safeTxHash,
+      sender: accounts[1],
       signature,  
+      to: contract.address,
+      value: "0",
     }
 
     try {

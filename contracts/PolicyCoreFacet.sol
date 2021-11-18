@@ -57,6 +57,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     return abi.encodePacked(
       IPolicyCoreFacet.createTranch.selector,
       IPolicyCoreFacet.markAsReadyForApproval.selector,
+      IPolicyCoreFacet.getHash.selector,
       IPolicyCoreFacet.getInfo.selector,
       IPolicyCoreFacet.getTranchInfo.selector,
       IPolicyCoreFacet.calculateMaxNumOfPremiums.selector,
@@ -140,6 +141,10 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
   {
     
     _setPolicyState(POLICY_STATE_READY_FOR_APPROVAL);
+  }
+
+  function getHash () public view returns (bytes32) {
+    return keccak256(abi.encodePacked(address(this), dataUint256["numTranches"], dataUint256["maturationDate"]));
   }
 
   function getInfo () public view override returns (

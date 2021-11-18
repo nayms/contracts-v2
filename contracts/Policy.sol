@@ -16,7 +16,9 @@ contract Policy is Controller, Proxy, PolicyFacetBase, Child {
     address _unit,
     uint256 _premiumIntervalSeconds,
     uint256[] memory _commmissionsBP,
-    address[] memory _stakeholders
+    address[] memory _stakeholders,
+    bytes32 _hash,
+    bytes32[] memory _approvalSignatures
   ) Controller(_settings) Proxy() public
   {
     _setParent(msg.sender);

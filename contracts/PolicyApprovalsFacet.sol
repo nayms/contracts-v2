@@ -2,15 +2,19 @@
 pragma solidity 0.6.12;
 
 import "./base/EternalStorage.sol";
+import "./base/ECDSA.sol";
 import "./base/Controller.sol";
 import "./base/IDiamondFacet.sol";
 import "./base/IPolicyApprovalsFacet.sol";
+import "./base/IPolicyCoreFacet.sol";
 import ".//PolicyFacetBase.sol";
 
 /**
  * @dev Business-logic for Policy approvals
  */
 contract PolicyApprovalsFacet is EternalStorage, Controller, IDiamondFacet, IPolicyApprovalsFacet, PolicyFacetBase {
+  using ECDSA for bytes32;
+  
   modifier assertInApprovableState () {
     require(dataUint256["state"] == POLICY_STATE_IN_APPROVAL || dataUint256["state"] == POLICY_STATE_READY_FOR_APPROVAL, 'must be in approvable state');
     _;
@@ -34,9 +38,52 @@ contract PolicyApprovalsFacet is EternalStorage, Controller, IDiamondFacet, IPol
 
   // IPolicyApprovalsFacet
 
+  function bulkApprove(bytes[] calldata _sigs) external override {
+    bytes32 h = IPolicyCoreFacet(address(this)).getHash();
+
+    bytes32[] memory roles = [
+      ROLE_PENDING_UNDERWRITER,
+      ROLE_PENDING_BROKER,
+      ROLE_PENDING_INSURED_PARTY,
+      ROLE_PENDING_CLAIMS_ADMIN
+    ];
+
+    for (uint i = 0; i < roles.length; i += 1) {
+      _approve(
+        roles[i], 
+        keccack256(h).toEthSignedMessageHash().recover(_sigs[i])
+      );
+    }
+
+    emit BulkApproved(msg.sender);
+  }
+
   function approve (bytes32 _role) external override 
     assertInApprovableState
-    assertBelongsToEntityWithRole(msg.sender, _role)
+  {
+    _approve(_role, msg.sender);
+    emit Approved(msg.sender, newRole);
+  }
+
+
+  function getApprovalsInfo () public view override returns (
+    bool approved_,
+    bool insuredPartyApproved_,
+    bool underwriterApproved_,
+    bool brokerApproved_,
+    bool claimsAdminApproved_
+  ) {
+    approved_ = _isFullyApproved();
+    insuredPartyApproved_ = dataBool["insuredPartyApproved"];
+    underwriterApproved_ = dataBool["underwriterApproved"];
+    brokerApproved_ = dataBool["brokerApproved"];
+    claimsAdminApproved_ = dataBool["claimsAdminApproved"];
+  }
+
+  // Internal methods
+
+  function _approve (bytes32 _role, address _approver) private 
+    assertBelongsToEntityWithRole(_approver, _role)
   {
     address entity = _getEntityWithRole(_role);
 
@@ -66,26 +113,7 @@ contract PolicyApprovalsFacet is EternalStorage, Controller, IDiamondFacet, IPol
     } else {
       _setPolicyState(POLICY_STATE_IN_APPROVAL);
     }
-
-    emit Approved(msg.sender, newRole);
   }
-
-
-  function getApprovalsInfo () public view override returns (
-    bool approved_,
-    bool insuredPartyApproved_,
-    bool underwriterApproved_,
-    bool brokerApproved_,
-    bool claimsAdminApproved_
-  ) {
-    approved_ = _isFullyApproved();
-    insuredPartyApproved_ = dataBool["insuredPartyApproved"];
-    underwriterApproved_ = dataBool["underwriterApproved"];
-    brokerApproved_ = dataBool["brokerApproved"];
-    claimsAdminApproved_ = dataBool["claimsAdminApproved"];
-  }
-
-  // Internal methods
 
   function _isFullyApproved () private view returns (bool) {
     uint256 numApprovals = dataBool["underwriterApproved"] ? 1 : 0;

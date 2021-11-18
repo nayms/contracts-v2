@@ -25,6 +25,14 @@ interface IPolicyCoreFacet {
   function markAsReadyForApproval () external;
 
   /**
+   * @dev Get unique hash that represents this policy.
+   *
+   * This hash is used for approval signatures.
+   */
+  function getHash () external view returns (bytes32);
+
+
+  /**
    * @dev Get policy info.
    *
    * @return treasury_ The Entity which acts as this policy's treasury.

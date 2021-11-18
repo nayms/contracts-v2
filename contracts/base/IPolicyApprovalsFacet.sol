@@ -6,6 +6,13 @@ pragma solidity 0.6.12;
  */
 interface IPolicyApprovalsFacet {
   /**
+   * @dev Bulk-approve this policy.
+   *
+   * @param _sigs Signatures in order: underwriter, broker, insured party, claims admin
+   */
+  function bulkApprove (bytes[] calldata _sigs) external; 
+
+  /**
    * @dev Approve this policy.
    *
    * Caller must be a representative of given entity.

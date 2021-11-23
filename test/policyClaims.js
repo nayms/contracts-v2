@@ -95,7 +95,6 @@ describe('Policy: Claims', () => {
   let claimsAdmin
 
   let POLICY_STATE_CREATED
-  let POLICY_STATE_READY_FOR_APPROVAL
   let POLICY_STATE_INITIATED
   let POLICY_STATE_ACTIVE
   let POLICY_STATE_MATURED
@@ -167,7 +166,6 @@ describe('Policy: Claims', () => {
 
     const policyStates = await IPolicyStates.at(policyCoreAddress)
     POLICY_STATE_CREATED = await policyStates.POLICY_STATE_CREATED()
-    POLICY_STATE_READY_FOR_APPROVAL = await policyStates.POLICY_STATE_READY_FOR_APPROVAL()
     POLICY_STATE_INITIATED = await policyStates.POLICY_STATE_INITIATED()
     POLICY_STATE_ACTIVE = await policyStates.POLICY_STATE_ACTIVE()
     POLICY_STATE_MATURED = await policyStates.POLICY_STATE_MATURED()
@@ -260,10 +258,7 @@ describe('Policy: Claims', () => {
 
       // approve policy
       if (!skipApprovals) {
-        await policy.markAsReadyForApproval({ from: policyOwnerAddress })
-        await policy.approve(ROLES.PENDING_INSURED_PARTY, { from: insuredPartyRep })
-        await policy.approve(ROLES.PENDING_BROKER, { from: brokerRep })
-        await policy.approve(ROLES.PENDING_CLAIMS_ADMIN, { from: claimsAdminRep })
+        doPolicyApproval({ policy, underwriterRep, claimsAdminRep, brokerRep, insuredPartyRep })
       }
 
       const { token_: tranch0Address } = await policy.getTranchInfo(0)
@@ -299,16 +294,8 @@ describe('Policy: Claims', () => {
       await policy.makeClaim(0, 1).should.be.rejectedWith('must be in active state')
     })
 
-    it('cannot be made in ready-for-approval state', async () => {
-      await setupPolicyForClaims(POLICY_ATTRS_1, { skipApprovals: true })
-      await policy.markAsReadyForApproval({ from: policyOwnerAddress })
-      await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_READY_FOR_APPROVAL })
-      await policy.makeClaim(0, 1).should.be.rejectedWith('must be in active state')
-    })
-
     it('cannot be made in in-approval state', async () => {
       await setupPolicyForClaims(POLICY_ATTRS_1, { skipApprovals: true })
-      await policy.markAsReadyForApproval({ from: policyOwnerAddress })
       await policy.approve(ROLES.PENDING_BROKER, { from: brokerRep })
       await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_IN_APPROVAL })
       await policy.makeClaim(0, 1).should.be.rejectedWith('must be in active state')

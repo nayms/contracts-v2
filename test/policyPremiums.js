@@ -195,10 +195,8 @@ describe('Policy: Premiums', () => {
     }
 
     approvePolicy = async () => {
-      await policy.markAsReadyForApproval({ from: policyOwnerAddress })
-      await policy.approve(ROLES.PENDING_INSURED_PARTY, { from: insuredPartyRep })
-      await policy.approve(ROLES.PENDING_BROKER, { from: brokerRep })
-      await policy.approve(ROLES.PENDING_CLAIMS_ADMIN, { from: claimsAdminRep })
+      await doPolicyApproval({ policy, underwriterRep, claimsAdminRep, brokerRep, insuredPartyRep })
+      await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_APPROVED })
     }
   })
 

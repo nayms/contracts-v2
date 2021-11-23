@@ -120,7 +120,6 @@ contract PolicyApprovalsFacet is EternalStorage, Controller, IDiamondFacet, IPol
       dataBool["claimsAdminApproved"] = true;
     }
 
-    acl().unassignRole(aclContext(), entity, _role);    
     acl().assignRole(aclContext(), entity, newRole);    
 
     return newRole;

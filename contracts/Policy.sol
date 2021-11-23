@@ -36,6 +36,8 @@ contract Policy is Controller, Proxy, PolicyFacetBase, Child {
 
     // set basic roles
     acl().assignRole(aclContext(), _caller, ROLE_POLICY_OWNER);
+    acl().assignRole(aclContext(), _unitAndTreasuryAndStakeholders[2], ROLE_PENDING_BROKER);
+    acl().assignRole(aclContext(), _unitAndTreasuryAndStakeholders[3], ROLE_PENDING_UNDERWRITER);
     acl().assignRole(aclContext(), _unitAndTreasuryAndStakeholders[4], ROLE_PENDING_CLAIMS_ADMIN);
     acl().assignRole(aclContext(), _unitAndTreasuryAndStakeholders[5], ROLE_PENDING_INSURED_PARTY);
 
@@ -43,13 +45,11 @@ contract Policy is Controller, Proxy, PolicyFacetBase, Child {
     if (_isRepOfEntity(_caller, _unitAndTreasuryAndStakeholders[3])) {
       acl().assignRole(aclContext(), _unitAndTreasuryAndStakeholders[3], ROLE_UNDERWRITER);
       dataBool["underwriterApproved"] = true;
-      acl().assignRole(aclContext(), _unitAndTreasuryAndStakeholders[2], ROLE_PENDING_BROKER);
     } 
     // created by broker rep?
     else if (_isRepOfEntity(_caller, _unitAndTreasuryAndStakeholders[2])) {
       acl().assignRole(aclContext(), _unitAndTreasuryAndStakeholders[2], ROLE_BROKER);
       dataBool["brokerApproved"] = true;
-      acl().assignRole(aclContext(), _unitAndTreasuryAndStakeholders[3], ROLE_PENDING_UNDERWRITER);
     } 
     else {
       revert("must be broker or underwriter");

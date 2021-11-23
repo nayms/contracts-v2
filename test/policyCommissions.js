@@ -7,6 +7,7 @@ import {
   createTranch,
   createEntity,
   preSetupPolicy,
+  doPolicyApproval,
   EvmSnapshot,
 } from './utils'
 import { events } from '..'
@@ -161,13 +162,8 @@ describe('Policy: Commissions', () => {
     }
 
     approvePolicy = async () => {
-      await policy.markAsReadyForApproval({ from: policyOwnerAddress })
-      await policy.approve(ROLES.PENDING_INSURED_PARTY, { from: insuredPartyRep })
-      await policy.approve(ROLES.PENDING_BROKER, { from: brokerRep })
-      await policy.approve(ROLES.PENDING_CLAIMS_ADMIN, { from: claimsAdminRep })
-      await policy.getInfo().should.eventually.matchObj({
-        state_: POLICY_STATE_APPROVED
-      })
+      await doPolicyApproval({ policy, underwriterRep, claimsAdminRep, brokerRep, insuredPartyRep })
+      await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_APPROVED })
     }
   })
 
@@ -261,7 +257,6 @@ describe('Policy: Commissions', () => {
       it('not if policy not yet approved', async () => {
         await policy.payCommissions().should.be.rejectedWith('must be approved')
 
-        await policy.markAsReadyForApproval({ from: policyOwnerAddress })
         await policy.approve(ROLES.PENDING_BROKER, { from: brokerRep })
 
         await policy.payCommissions().should.be.rejectedWith('must be approved')

@@ -3,11 +3,13 @@ import _ from 'lodash'
 import chai from 'chai'
 import { parseLog } from 'ethereum-event-logs'
 import chaiAsPromised from 'chai-as-promised'
+import uuid from 'uuid/v4'
 
 import { events } from '../..'
 import { toBN, isBN } from './web3'
 import { ADDRESS_ZERO, BYTES32_ZERO, BYTES_ZERO } from '../../utils/constants'
 import { ROLES, TEST_MNEMONIC } from '../../utils/constants'
+import { keccak256 } from '../../utils/functions'
 
 export { ADDRESS_ZERO, BYTES32_ZERO, BYTES_ZERO }
 
@@ -161,6 +163,7 @@ export const createPolicy = async (entity, attrs = {}, ...callAttrs) => {
   var ret = '';
 
   const {
+    id = keccak256(uuid()),
     type = 0,
     treasury = entity.address,
     initiationDate = currentTime,
@@ -182,13 +185,20 @@ export const createPolicy = async (entity, attrs = {}, ...callAttrs) => {
   } = attrs
 
   return entity.createPolicy(
-    type,
-    [initiationDate, startDate, maturationDate],
-    unit,
-    premiumIntervalSeconds,
-    [brokerCommissionBP, claimsAdminCommissionBP, naymsCommissionBP, underwriterCommissionBP],
-    [treasury, broker, underwriter, claimsAdmin, insuredParty],
+    id,
+    [
+      type, 
+      premiumIntervalSeconds, 
+      initiationDate, startDate, maturationDate, 
+      brokerCommissionBP, underwriterCommissionBP, claimsAdminCommissionBP, naymsCommissionBP,
+    ],
+    [
+      unit,
+      treasury,
+      broker, underwriter, claimsAdmin, insuredParty,
+    ],
     trancheData,
+    [],
     ...callAttrs,
   )
 }
@@ -240,6 +250,13 @@ export const preSetupPolicy = async (ctx, createPolicyArgs) => {
   policyAddress = extractEventArgs(createPolicyTx, ctx.events.NewPolicy).policy
 
   ctx.policies.set(createPolicyArgs, { attrs, baseTime: currentBlockTime, policyAddress })
+}
+
+export const doPolicyApproval = async ({ policy, underwriterRep, insuredPartyRep, brokerRep, claimsAdminRep }) => {
+  await policy.approve(ROLES.PENDING_UNDERWRITER, { from: underwriterRep })
+  await policy.approve(ROLES.PENDING_INSURED_PARTY, { from: insuredPartyRep })
+  await policy.approve(ROLES.PENDING_BROKER, { from: brokerRep })
+  await policy.approve(ROLES.PENDING_CLAIMS_ADMIN, { from: claimsAdminRep })
 }
 
 export const calcPremiumsMinusCommissions = ({ premiums, claimsAdminCommissionBP, brokerCommissionBP, naymsCommissionBP, underwriterCommissionBP }) => (

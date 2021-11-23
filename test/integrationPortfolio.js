@@ -7,6 +7,7 @@ import {
   EvmClock,
   EvmSnapshot,
   ADDRESS_ZERO,
+  doPolicyApproval,
 } from './utils'
 
 import { events } from '..'
@@ -194,10 +195,7 @@ describe('Integration: Portfolio underwriting', () => {
     }
 
     approvePolicy = async () => {
-      await policy.markAsReadyForApproval({ from: policyOwnerAddress })
-      await policy.approve(ROLES.PENDING_INSURED_PARTY, { from: insuredPartyRep })
-      await policy.approve(ROLES.PENDING_BROKER, { from: brokerRep })
-      await policy.approve(ROLES.PENDING_CLAIMS_ADMIN, { from: claimsAdminRep })
+      await doPolicyApproval({ policy, insuredPartyRep, underwriterRep, brokerRep, claimsAdminRep })
       await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_APPROVED })
     }
 

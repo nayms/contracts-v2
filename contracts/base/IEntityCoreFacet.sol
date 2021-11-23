@@ -31,8 +31,8 @@ interface IEntityCoreFacet {
    *    * Index 5: Insured party entity address.
    *
    * `_trancheData`
-   * This parameter is structured as follows. The outer array represents the list of tranches. The 
-   * inner array represents the `[ number of tranch shares, price per share, ...premium payment amounts ]`.
+   *    * This parameter is structured as follows. The outer array represents the list of tranches. The 
+   *      inner array represents the `[ number of tranch shares, price per share, ...premium payment amounts ]`.
    *
    * @param _id Policy id.
    * @param _typeAndPremiumIntervalSecondsAndDatesAndCommissionsBP See above.

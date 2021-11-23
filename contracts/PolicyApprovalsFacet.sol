@@ -53,6 +53,8 @@ contract PolicyApprovalsFacet is EternalStorage, Controller, IDiamondFacet, IPol
       ROLE_PENDING_INSURED_PARTY
     ];
 
+    require(_signatures.length == roles.length, "wrong number of signatures");
+
     for (uint i = 0; i < roles.length; i += 1) {
       _approve(
         roles[i], 

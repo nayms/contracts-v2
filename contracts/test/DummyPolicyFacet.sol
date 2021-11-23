@@ -17,9 +17,8 @@ contract DummyPolicyFacet is IDiamondFacet, IPolicyCoreFacet {
     uint256[] calldata _premiums
   ) external override {}
 
-  function markAsReadyForApproval () external override {}
-
   function getInfo () external view override  returns (
+    bytes32 id_,
     address treasury_,
     uint256 initiationDate_,
     uint256 startDate_,

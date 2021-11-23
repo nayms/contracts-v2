@@ -72,7 +72,8 @@ async function main () {
   fs.writeFileSync(packageJsonFile, JSON.stringify(packageJson, null, 2), 'utf8')
 
   // update solidity contract
-  fs.writeFileSync(commonUpgradeFacetContract, `pragma solidity >=0.6.7;
+  fs.writeFileSync(commonUpgradeFacetContract, `// SPDX-License-Identifier: MIT
+pragma solidity >=0.6.7;
 
 import "./base/Controller.sol";
 import "./base/IDiamondUpgradeFacet.sol";

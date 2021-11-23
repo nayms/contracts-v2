@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.6.12;
+pragma experimental ABIEncoderV2;
+
 
 import "./base/EternalStorage.sol";
 import "./base/ECDSA.sol";
@@ -16,7 +18,7 @@ contract PolicyApprovalsFacet is EternalStorage, Controller, IDiamondFacet, IPol
   using ECDSA for bytes32;
   
   modifier assertInApprovableState () {
-    require(dataUint256["state"] == POLICY_STATE_IN_APPROVAL || dataUint256["state"] == POLICY_STATE_READY_FOR_APPROVAL, 'must be in approvable state');
+    require(dataUint256["state"] == POLICY_STATE_IN_APPROVAL || dataUint256["state"] == POLICY_STATE_CREATED, 'must be in approvable state');
     _;
   }
 
@@ -31,6 +33,7 @@ contract PolicyApprovalsFacet is EternalStorage, Controller, IDiamondFacet, IPol
 
   function getSelectors () public pure override returns (bytes memory) {
     return abi.encodePacked(
+      IPolicyApprovalsFacet.bulkApprove.selector,
       IPolicyApprovalsFacet.approve.selector,
       IPolicyApprovalsFacet.getApprovalsInfo.selector
     );
@@ -38,10 +41,12 @@ contract PolicyApprovalsFacet is EternalStorage, Controller, IDiamondFacet, IPol
 
   // IPolicyApprovalsFacet
 
-  function bulkApprove(bytes[] calldata _sigs) external override {
-    bytes32 h = IPolicyCoreFacet(address(this)).getHash();
+  function bulkApprove(bytes[] calldata _signatures) external override 
+    assertInApprovableState
+  {
+    bytes32 h = dataBytes32["id"];
 
-    bytes32[] memory roles = [
+    bytes32[4] memory roles = [
       ROLE_PENDING_UNDERWRITER,
       ROLE_PENDING_BROKER,
       ROLE_PENDING_INSURED_PARTY,
@@ -51,9 +56,11 @@ contract PolicyApprovalsFacet is EternalStorage, Controller, IDiamondFacet, IPol
     for (uint i = 0; i < roles.length; i += 1) {
       _approve(
         roles[i], 
-        keccack256(h).toEthSignedMessageHash().recover(_sigs[i])
+        h.toEthSignedMessageHash().recover(_signatures[i])
       );
     }
+
+    _setPolicyState(POLICY_STATE_APPROVED);
 
     emit BulkApproved(msg.sender);
   }
@@ -61,7 +68,15 @@ contract PolicyApprovalsFacet is EternalStorage, Controller, IDiamondFacet, IPol
   function approve (bytes32 _role) external override 
     assertInApprovableState
   {
-    _approve(_role, msg.sender);
+    bytes32 newRole = _approve(_role, msg.sender);
+
+    // update state
+    if (_isFullyApproved()) {
+      _setPolicyState(POLICY_STATE_APPROVED);
+    } else {
+      _setPolicyState(POLICY_STATE_IN_APPROVAL);
+    }
+
     emit Approved(msg.sender, newRole);
   }
 
@@ -84,6 +99,7 @@ contract PolicyApprovalsFacet is EternalStorage, Controller, IDiamondFacet, IPol
 
   function _approve (bytes32 _role, address _approver) private 
     assertBelongsToEntityWithRole(_approver, _role)
+    returns (bytes32)
   {
     address entity = _getEntityWithRole(_role);
 
@@ -107,12 +123,7 @@ contract PolicyApprovalsFacet is EternalStorage, Controller, IDiamondFacet, IPol
     acl().unassignRole(aclContext(), entity, _role);    
     acl().assignRole(aclContext(), entity, newRole);    
 
-    // update state
-    if (_isFullyApproved()) {
-      _setPolicyState(POLICY_STATE_APPROVED);
-    } else {
-      _setPolicyState(POLICY_STATE_IN_APPROVAL);
-    }
+    return newRole;
   }
 
   function _isFullyApproved () private view returns (bool) {

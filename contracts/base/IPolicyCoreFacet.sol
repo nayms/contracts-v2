@@ -20,21 +20,9 @@ interface IPolicyCoreFacet {
   ) external;
 
   /**
-   * @dev Mark policy as ready for approval.
-   */
-  function markAsReadyForApproval () external;
-
-  /**
-   * @dev Get unique hash that represents this policy.
-   *
-   * This hash is used for approval signatures.
-   */
-  function getHash () external view returns (bytes32);
-
-
-  /**
    * @dev Get policy info.
    *
+   * @return id_ The policy id.
    * @return treasury_ The Entity which acts as this policy's treasury.
    * @return initiationDate_ Initiation date  (seconds since epoch).
    * @return startDate_ Start date  (seconds since epoch).
@@ -46,6 +34,7 @@ interface IPolicyCoreFacet {
    * @return type_ Policy type.
    */
   function getInfo () external view returns (
+    bytes32 id_,
     address treasury_,
     uint256 initiationDate_,
     uint256 startDate_,

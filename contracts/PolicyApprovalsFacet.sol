@@ -47,10 +47,10 @@ contract PolicyApprovalsFacet is EternalStorage, Controller, IDiamondFacet, IPol
     bytes32 h = dataBytes32["id"];
 
     bytes32[4] memory roles = [
-      ROLE_PENDING_UNDERWRITER,
       ROLE_PENDING_BROKER,
-      ROLE_PENDING_INSURED_PARTY,
-      ROLE_PENDING_CLAIMS_ADMIN
+      ROLE_PENDING_UNDERWRITER,
+      ROLE_PENDING_CLAIMS_ADMIN,
+      ROLE_PENDING_INSURED_PARTY
     ];
 
     for (uint i = 0; i < roles.length; i += 1) {

@@ -38,7 +38,7 @@ interface IEntityCoreFacet {
    * @param _typeAndPremiumIntervalSecondsAndDatesAndCommissionsBP See above.
    * @param _unitAndTreasuryAndStakeholders See above.
    * @param _trancheData See above.
-   * @param _approvalSignatures Bulk-approval signatures in order: underwriter, broker, insured party, claims admin
+   * @param _approvalSignatures Bulk-approval signatures in order: broker, underwriter, claims admin, insured party
    */
   function createPolicy(
     bytes32 _id,

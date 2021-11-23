@@ -10,7 +10,7 @@ interface IPolicyApprovalsFacet {
   /**
    * @dev Bulk-approve this policy.
    *
-   * @param _signatures Signatures in order: underwriter, broker, insured party, claims admin
+   * @param _signatures Signatures in order: broker, underwriter, claims admin, insured party
    */
   function bulkApprove (bytes[] calldata _signatures) external; 
 

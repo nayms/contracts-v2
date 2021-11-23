@@ -34,7 +34,7 @@ interface IEntityCoreFacet {
    *    * This parameter is structured as follows. The outer array represents the list of tranches. The 
    *      inner array represents the `[ number of tranch shares, price per share, ...premium payment amounts ]`.
    *
-   * @param _id Policy id.
+   * @param _id Unique id that represents the policy - this is what stakeholder will sign to approve the policy.
    * @param _typeAndPremiumIntervalSecondsAndDatesAndCommissionsBP See above.
    * @param _unitAndTreasuryAndStakeholders See above.
    * @param _trancheData See above.

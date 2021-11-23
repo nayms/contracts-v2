@@ -6,6 +6,7 @@ import {
   ADDRESS_ZERO,
   createTranch,
   preSetupPolicy,
+  doPolicyApproval,
   EvmClock,
   EvmSnapshot,
   createEntity,
@@ -248,6 +249,11 @@ describe('Policy: Claims', () => {
     await preSetupPolicyForClaims(preSetupPolicyCtx, POLICY_ATTRS_3)
     await preSetupPolicyForClaims(preSetupPolicyCtx, POLICY_ATTRS_4)
 
+    approvePolicy = async () => {
+      await doPolicyApproval({ policy, underwriterRep, claimsAdminRep, brokerRep, insuredPartyRep })
+      await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_APPROVED })
+    }
+
     setupPolicyForClaims = async (attrs, { skipApprovals = false } = {}) => {
       const { baseTime, policyAddress } = policies.get(attrs)
 
@@ -258,7 +264,7 @@ describe('Policy: Claims', () => {
 
       // approve policy
       if (!skipApprovals) {
-        doPolicyApproval({ policy, underwriterRep, claimsAdminRep, brokerRep, insuredPartyRep })
+        await approvePolicy()
       }
 
       const { token_: tranch0Address } = await policy.getTranchInfo(0)

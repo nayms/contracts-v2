@@ -8,6 +8,7 @@ import {
   ADDRESS_ZERO,
   createTranch,
   preSetupPolicy,
+  doPolicyApproval,
   EvmClock,
   createEntity,
   EvmSnapshot,

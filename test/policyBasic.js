@@ -1,4 +1,4 @@
-import { keccak256, asciiToHex } from './utils/web3'
+import { asciiToHex } from './utils/web3'
 
 import {
   extractEventArgs,
@@ -7,6 +7,8 @@ import {
   createEntity,
   createPolicy,
   EvmSnapshot,
+  keccak256, 
+  uuid,
 } from './utils'
 import { events } from '../'
 
@@ -34,6 +36,8 @@ const IPolicy = artifacts.require("base/IPolicy")
 const DummyPolicyFacet = artifacts.require("test/DummyPolicyFacet")
 const FreezeUpgradesFacet = artifacts.require("test/FreezeUpgradesFacet")
 
+const policyId3 = keccak256(uuid())
+
 const POLICY_ATTRS_1 = {
   initiationDateDiff: 1000,
   startDateDiff: 2000,
@@ -54,6 +58,7 @@ const POLICY_ATTRS_2 = Object.assign({}, POLICY_ATTRS_1, {
 })
 
 const POLICY_ATTRS_3 = Object.assign({}, POLICY_ATTRS_2, {
+  policyId: policyId3,
   trancheData: [[100, 2, 10, 20, 30, 40, 50, 60, 70], [50, 2, 10, 20, 30, 40, 50, 60, 70]]
 })
 
@@ -195,6 +200,7 @@ describe('Policy: Basic', () => {
       const attrs = await setupPolicy(POLICY_ATTRS_3)
 
       await policy.getInfo().should.eventually.matchObj({
+        id_: policyId3,
         treasury_: entity.address,
         initiationDate_: attrs.initiationDate,
         startDate_: attrs.startDate,

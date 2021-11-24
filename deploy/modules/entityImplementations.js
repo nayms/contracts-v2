@@ -11,6 +11,7 @@ export const ensureEntityImplementationsAreDeployed = async (ctx = {}) => {
     proxyInterfaceName: 'IEntity',
     facetContractNames: [
       'EntityCoreFacet',
+      'EntityFundingFacet',
       'EntityTokensFacet',
       'EntityDividendsFacet',
       'EntityTreasuryFacet',

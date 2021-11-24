@@ -1,10 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.6.12;
+pragma experimental ABIEncoderV2;
+
 
 /**
  * @dev Policy approvals code.
  */
 interface IPolicyApprovalsFacet {
+  /**
+   * @dev Bulk-approve this policy.
+   *
+   * @param _signatures Signatures in order: broker, underwriter, claims admin, insured party
+   */
+  function bulkApprove (bytes[] calldata _signatures) external; 
+
   /**
    * @dev Approve this policy.
    *
@@ -34,10 +43,17 @@ interface IPolicyApprovalsFacet {
   // events
 
   /**
+   * @dev Emitted when a bulk approval occurs.
+   *
+   * @param caller The caller.
+   */
+  event BulkApproved(address indexed caller);
+
+  /**
    * @dev Emitted when an approval occurs.
    *
-   * @param caller The claim maker.
+   * @param approver The approver.
    * @param role The role which approved.
    */
-  event Approved(address indexed caller, bytes32 indexed role);
+  event Approved(address indexed approver, bytes32 indexed role);
 }

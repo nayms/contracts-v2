@@ -56,7 +56,6 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
   function getSelectors () public pure override returns (bytes memory) {
     return abi.encodePacked(
       IPolicyCoreFacet.createTranch.selector,
-      IPolicyCoreFacet.markAsReadyForApproval.selector,
       IPolicyCoreFacet.getInfo.selector,
       IPolicyCoreFacet.getTranchInfo.selector,
       IPolicyCoreFacet.calculateMaxNumOfPremiums.selector,
@@ -132,17 +131,8 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     emit CreateTranch(i);
   }
 
-  function markAsReadyForApproval() 
-    external 
-    override
-    assertCreatedState
-    assertIsOwner
-  {
-    
-    _setPolicyState(POLICY_STATE_READY_FOR_APPROVAL);
-  }
-
   function getInfo () public view override returns (
+    bytes32 id_,
     address treasury_,
     uint256 initiationDate_,
     uint256 startDate_,
@@ -153,6 +143,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     uint256 state_,
     uint256 type_
   ) {
+    id_ = dataBytes32["id"];
     treasury_ = dataAddress["treasury"];
     initiationDate_ = dataUint256["initiationDate"];
     startDate_ = dataUint256["startDate"];

@@ -9,53 +9,44 @@ interface IEntityCoreFacet {
   /**
    * @dev Create a new policy.
    *
-   * The `_trancheData` parameter is structured as follows. The outer array represents the list of tranches. The 
-   * inner array represents the `[ number of tranch shares, price per share, ...premium payment amounts ]`.
+   * Some arguments are complex...
    *
-   * @param _type Policy type, one of the `POLICY_TYPE_` constants.
-   * @param _dates The initiation, start and maturation dates (seconds since epoch).
-   * @param _unit The payment unit.
-   * @param _premiumIntervalSeconds The time between successive premium payments (seconds).
-   * @param _commmissionsBP The commissions (basis points, 1 = 0.01%) to pay the broker, claims admin and Nayms
-   * @param _stakeholders The three stakeholders of the policy - capital provider, insured party, broker
-   * @param _trancheData Tranch data, where each array item represents a tranch.
+   * `_typeAndPremiumIntervalSecondsAndDatesAndCommissionsBP`
+   *    * Index 0: Policy type, one of the `POLICY_TYPE_` constants.
+   *    * Index 1: Time between successive premium payments (seconds).
+   *    * Index 2: Initiation date (seconds since epoch).
+   *    * Index 3: Start date (seconds since epoch).
+   *    * Index 4: Maturation date (seconds since epoch).
+   *    * Index 5: Broker commission basis points (1 = 0.01%)
+   *    * Index 6: Underwriter commission basis points (1 = 0.01%)
+   *    * Index 7: Claims admin commission basis points (1 = 0.01%)
+   *    * Index 8: Nayms commission basis points (1 = 0.01%)
+   *
+   * `_unitAndTreasuryAndStakeholders`
+   *    * Index 0: Policy premium currency.
+   *    * Index 1: Treasury address.
+   *    * Index 2: Broker entity address.
+   *    * Index 3: Underwriter entity address.
+   *    * Index 4: Claims admin entity address.
+   *    * Index 5: Insured party entity address.
+   *
+   * `_trancheData`
+   *    * This parameter is structured as follows. The outer array represents the list of tranches. The 
+   *      inner array represents the `[ number of tranch shares, price per share, ...premium payment amounts ]`.
+   *
+   * @param _id Unique id that represents the policy - this is what stakeholder will sign to approve the policy.
+   * @param _typeAndPremiumIntervalSecondsAndDatesAndCommissionsBP See above.
+   * @param _unitAndTreasuryAndStakeholders See above.
+   * @param _trancheData See above.
+   * @param _approvalSignatures Bulk-approval signatures in order: broker, underwriter, claims admin, insured party
    */
   function createPolicy(
-    uint256 _type,
-    uint256[] calldata _dates,
-    address _unit,
-    uint256 _premiumIntervalSeconds,
-    uint256[] calldata _commmissionsBP,
-    address[] calldata _stakeholders,
-    uint256[][] calldata _trancheData
+    bytes32 _id,
+    uint256[] calldata _typeAndPremiumIntervalSecondsAndDatesAndCommissionsBP,
+    address[] calldata _unitAndTreasuryAndStakeholders,
+    uint256[][] calldata _trancheData,
+    bytes[] calldata _approvalSignatures
   ) external;
-
-  /**
-   * @dev Get balance.
-   *
-   * @param _unit Asset.
-   */
-  function getBalance(address _unit) external view returns (uint256);
-
-  /**
-   * @dev Deposit assets.
-   *
-   * The caller should ensure the entity has been pre-approved to transfer the asset on their behalf.
-   *
-   * @param _unit Asset to deposit.
-   * @param _amount Amount to deposit.
-   */
-  function deposit(address _unit, uint256 _amount) external;
-
-  /**
-   * @dev Withdraw assets.
-   *
-   * The caller will recieved the withdrawn assets.
-   *
-   * @param _unit Asset to withdraw.
-   * @param _amount Amount to withdraw.
-   */
-  function withdraw(address _unit, uint256 _amount) external;
 
   /**
    * @dev Pay the next expected premium for a tranch using the assets owned by this entity.
@@ -67,28 +58,6 @@ interface IEntityCoreFacet {
   function payTranchPremium(address _policy, uint256 _tranchIndex, uint256 _amount) external;
 
   /**
-   * @dev Trade assets at a specific price-point.
-   *
-   * @param _payUnit Asset to sell.
-   * @param _payAmount Amount to sell.
-   * @param _buyUnit Asset to buy.
-   * @param _buyAmount Amount to buy.
-   *
-   * @return Market offer id.
-   */
-  function trade(address _payUnit, uint256 _payAmount, address _buyUnit, uint256 _buyAmount) external returns (uint256);
-  /**
-   * @dev Sell given asset at the best possible price.
-   *
-   * Note that this call only succeeds if the full amount (`_sellAmount`) can be sold.
-   *
-   * @param _sellUnit Asset to sell.
-   * @param _sellAmount Amount to sell.
-   * @param _buyUnit Asset to buy.
-   */
-  function sellAtBestPrice(address _sellUnit, uint256 _sellAmount, address _buyUnit) external;
-
-  /**
    * @dev Emitted when a new policy has been created.
    * @param policy The policy address.
    * @param entity The entity which owns the policy.
@@ -98,29 +67,5 @@ interface IEntityCoreFacet {
     address indexed policy,
     address indexed entity,
     address indexed deployer
-  );
-
-  /**
-   * @dev Emitted when a deposit is made.
-   * @param caller The caller.
-   * @param unit The token deposited.
-   * @param amount The amount deposited.
-   */
-  event EntityDeposit (
-    address indexed caller,
-    address indexed unit,
-    uint256 indexed amount
-  );
-
-  /**
-   * @dev Emitted when a withdrawal is made.
-   * @param caller The caller.
-   * @param unit The token withdrawn.
-   * @param amount The amount withdrawn.
-   */
-  event EntityWithdraw(
-    address indexed caller,
-    address indexed unit,
-    uint256 indexed amount
   );
 }

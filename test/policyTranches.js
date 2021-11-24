@@ -8,6 +8,7 @@ import {
   preSetupPolicy,
   createEntity,
   EvmSnapshot,
+  doPolicyApproval,
 } from './utils'
 import { events } from '..'
 import { ROLES, ROLEGROUPS, SETTINGS } from '../utils/constants'
@@ -323,10 +324,15 @@ describe('Policy: Tranches', () => {
         expect(Object.keys(addresses).length).to.eq(2)
       })
 
-      it('cannot be created once marked as ready for approval', async () => {
+      it('cannot be created once in approval state', async () => {
         await setupPolicy(POLICY_ATTRS_2)
-        await acl.assignRole(policyContext, accounts[1], ROLES.CAPITAL_PROVIDER)
-        await policy.markAsReadyForApproval({ from: policyOwnerAddress })
+        await policy.approve(ROLES.PENDING_BROKER, { from: brokerRep })
+        await createTranch(policy, {}, { from: accounts[2] }).should.be.rejectedWith('must be in created state')
+      })
+
+      it('cannot be created once in approved state', async () => {
+        await setupPolicy(POLICY_ATTRS_2)
+        await doPolicyApproval({ policy, brokerRep, underwriterRep, claimsAdminRep, insuredPartyRep })
         await createTranch(policy, {}, { from: accounts[2] }).should.be.rejectedWith('must be in created state')
       })
     })

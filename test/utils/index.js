@@ -3,20 +3,25 @@ import _ from 'lodash'
 import chai from 'chai'
 import { parseLog } from 'ethereum-event-logs'
 import chaiAsPromised from 'chai-as-promised'
+import uuid from 'uuid/v4'
 
 import { events } from '../..'
 import { toBN, isBN } from './web3'
 import { ADDRESS_ZERO, BYTES32_ZERO, BYTES_ZERO } from '../../utils/constants'
 import { ROLES, TEST_MNEMONIC } from '../../utils/constants'
+import { keccak256 } from '../../utils/functions'
+import { getAccountWallet } from '../../deploy/utils'
 
 export { ADDRESS_ZERO, BYTES32_ZERO, BYTES_ZERO }
+
+export { keccak256, uuid }
 
 export { expect } from 'chai'
 
 chai.use((_chai, utils) => {
   const sanitizeResultVal = (result, val) => {
     // if bignumber
-    if (_.get(result, 'toNumber')) {
+  if (_.get(result, 'toNumber')) {
       if (_.get(val, 'toNumber')) {
         result = result.toString(16)
         val = val.toString(16)
@@ -161,6 +166,7 @@ export const createPolicy = async (entity, attrs = {}, ...callAttrs) => {
   var ret = '';
 
   const {
+    policyId = keccak256(uuid()),
     type = 0,
     treasury = entity.address,
     initiationDate = currentTime,
@@ -179,22 +185,31 @@ export const createPolicy = async (entity, attrs = {}, ...callAttrs) => {
     claimsAdmin = ADDRESS_ZERO,
     insuredParty = ADDRESS_ZERO,
     trancheData = [],
+    approvalSignatures = [],
   } = attrs
 
   return entity.createPolicy(
-    type,
-    [initiationDate, startDate, maturationDate],
-    unit,
-    premiumIntervalSeconds,
-    [brokerCommissionBP, claimsAdminCommissionBP, naymsCommissionBP, underwriterCommissionBP],
-    [treasury, broker, underwriter, claimsAdmin, insuredParty],
+    policyId,
+    [
+      type, 
+      premiumIntervalSeconds, 
+      initiationDate, startDate, maturationDate, 
+      brokerCommissionBP, underwriterCommissionBP, claimsAdminCommissionBP, naymsCommissionBP,
+    ],
+    [
+      unit,
+      treasury,
+      broker, underwriter, claimsAdmin, insuredParty,
+    ],
     trancheData,
+    approvalSignatures,
     ...callAttrs,
   )
 }
 
 export const preSetupPolicy = async (ctx, createPolicyArgs) => {
   const {
+    policyId,
     type,
     initiationDateDiff,
     startDateDiff,
@@ -216,6 +231,7 @@ export const preSetupPolicy = async (ctx, createPolicyArgs) => {
   const currentBlockTime = parseInt(t.toString(10))
 
   const attrs = {
+    policyId,
     type,
     initiationDate: currentBlockTime + initiationDateDiff,
     startDate: currentBlockTime + startDateDiff,
@@ -240,6 +256,24 @@ export const preSetupPolicy = async (ctx, createPolicyArgs) => {
   policyAddress = extractEventArgs(createPolicyTx, ctx.events.NewPolicy).policy
 
   ctx.policies.set(createPolicyArgs, { attrs, baseTime: currentBlockTime, policyAddress })
+}
+
+export const doPolicyApproval = async ({ policy, underwriterRep, insuredPartyRep, brokerRep, claimsAdminRep }) => {
+  await policy.approve(ROLES.PENDING_UNDERWRITER, { from: underwriterRep })
+  await policy.approve(ROLES.PENDING_INSURED_PARTY, { from: insuredPartyRep })
+  await policy.approve(ROLES.PENDING_BROKER, { from: brokerRep })
+  await policy.approve(ROLES.PENDING_CLAIMS_ADMIN, { from: claimsAdminRep })
+}
+
+export const generateApprovalSignatures = async ({ policyId, brokerRep, underwriterRep, claimsAdminRep, insuredPartyRep }) => {
+  // need to convert hash to bytes first (see https://docs.ethers.io/v5/api/signer/#Signer-signMessage)
+  const bytes = hre.ethers.utils.arrayify(policyId)
+  return {
+    broker: await getAccountWallet(brokerRep).signMessage(bytes),
+    underwriter: await getAccountWallet(underwriterRep).signMessage(bytes),
+    claimsAdmin: await getAccountWallet(claimsAdminRep).signMessage(bytes),
+    insuredParty: await getAccountWallet(insuredPartyRep).signMessage(bytes),
+  }
 }
 
 export const calcPremiumsMinusCommissions = ({ premiums, claimsAdminCommissionBP, brokerCommissionBP, naymsCommissionBP, underwriterCommissionBP }) => (

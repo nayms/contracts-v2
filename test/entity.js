@@ -56,6 +56,8 @@ describe('Entity', () => {
   let FEE_SCHEDULE_STANDARD
   let FEE_SCHEDULE_PLATFORM_ACTION
 
+  let POLICY_STATE_APPROVED
+
   before(async () => {
     accounts = await getAccounts()
     acl = await ensureAclIsDeployed({ artifacts })

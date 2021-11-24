@@ -8,6 +8,7 @@ import "./ISettingsControl.sol";
 import "./IParent.sol";
 import "./IChild.sol";
 import "./IEntityCoreFacet.sol";
+import "./IEntityFundingFacet.sol";
 import "./IEntityTokensFacet.sol";
 import "./IEntityDividendsFacet.sol";
 import "./IEntityTreasuryBridgeFacet.sol";
@@ -23,6 +24,7 @@ abstract contract IEntity is
   IParent,
   IChild,
   IEntityCoreFacet,
+  IEntityFundingFacet,
   IEntityTokensFacet,
   IEntityDividendsFacet,
   IEntityTreasuryBridgeFacet,

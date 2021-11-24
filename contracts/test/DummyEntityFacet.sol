@@ -4,11 +4,12 @@ pragma experimental ABIEncoderV2;
 
 import '../base/IDiamondFacet.sol';
 import '../base/IEntityCoreFacet.sol';
+import '../base/IEntityFundingFacet.sol';
 
-contract DummyEntityFacet is IDiamondFacet, IEntityCoreFacet {
+contract DummyEntityFacet is IDiamondFacet, IEntityCoreFacet, IEntityFundingFacet {
   function getSelectors () public pure override returns (bytes memory) {
     return abi.encodePacked(
-      IEntityCoreFacet.getBalance.selector
+      IEntityFundingFacet.getBalance.selector
     );
   }
 
@@ -17,13 +18,11 @@ contract DummyEntityFacet is IDiamondFacet, IEntityCoreFacet {
   }
 
   function createPolicy(
-    uint256 _type,
-    uint256[] calldata _dates,
-    address _unit,
-    uint256 _premiumIntervalSeconds,
-    uint256[] calldata _commmissionsBP,
-    address[] calldata _stakeholders,
-    uint256[][] calldata _trancheData
+    bytes32 _id,
+    uint256[] calldata _typeAndPremiumIntervalSecondsAndDatesAndCommissionsBP,
+    address[] calldata _unitAndTreasuryAndStakeholders,
+    uint256[][] calldata _trancheData,
+    bytes[] calldata _approvalSignatures
   ) external override {}
 
   function deposit(address _unit, uint256 _amount) external override {}

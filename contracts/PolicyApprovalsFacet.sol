@@ -1,18 +1,24 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.6.12;
+pragma experimental ABIEncoderV2;
+
 
 import "./base/EternalStorage.sol";
+import "./base/ECDSA.sol";
 import "./base/Controller.sol";
 import "./base/IDiamondFacet.sol";
 import "./base/IPolicyApprovalsFacet.sol";
+import "./base/IPolicyCoreFacet.sol";
 import ".//PolicyFacetBase.sol";
 
 /**
  * @dev Business-logic for Policy approvals
  */
 contract PolicyApprovalsFacet is EternalStorage, Controller, IDiamondFacet, IPolicyApprovalsFacet, PolicyFacetBase {
+  using ECDSA for bytes32;
+  
   modifier assertInApprovableState () {
-    require(dataUint256["state"] == POLICY_STATE_IN_APPROVAL || dataUint256["state"] == POLICY_STATE_READY_FOR_APPROVAL, 'must be in approvable state');
+    require(dataUint256["state"] == POLICY_STATE_IN_APPROVAL || dataUint256["state"] == POLICY_STATE_CREATED, 'must be in approvable state');
     _;
   }
 
@@ -27,6 +33,7 @@ contract PolicyApprovalsFacet is EternalStorage, Controller, IDiamondFacet, IPol
 
   function getSelectors () public pure override returns (bytes memory) {
     return abi.encodePacked(
+      IPolicyApprovalsFacet.bulkApprove.selector,
       IPolicyApprovalsFacet.approve.selector,
       IPolicyApprovalsFacet.getApprovalsInfo.selector
     );
@@ -34,31 +41,36 @@ contract PolicyApprovalsFacet is EternalStorage, Controller, IDiamondFacet, IPol
 
   // IPolicyApprovalsFacet
 
-  function approve (bytes32 _role) external override 
+  function bulkApprove(bytes[] calldata _signatures) external override 
     assertInApprovableState
-    assertBelongsToEntityWithRole(msg.sender, _role)
   {
-    address entity = _getEntityWithRole(_role);
+    bytes32 h = dataBytes32["id"];
 
-    bytes32 newRole;
+    bytes32[4] memory roles = [
+      ROLE_PENDING_BROKER,
+      ROLE_PENDING_UNDERWRITER,
+      ROLE_PENDING_CLAIMS_ADMIN,
+      ROLE_PENDING_INSURED_PARTY
+    ];
 
-    // replace pending role with non-pending version
-    if (_role == ROLE_PENDING_UNDERWRITER) {
-      newRole = ROLE_UNDERWRITER;
-      dataBool["underwriterApproved"] = true;
-    } else if (_role == ROLE_PENDING_BROKER) {
-      newRole = ROLE_BROKER;
-      dataBool["brokerApproved"] = true;
-    } else if (_role == ROLE_PENDING_INSURED_PARTY) {
-      newRole = ROLE_INSURED_PARTY;
-      dataBool["insuredPartyApproved"] = true;
-    } else if (_role == ROLE_PENDING_CLAIMS_ADMIN) {
-      newRole = ROLE_CLAIMS_ADMIN;
-      dataBool["claimsAdminApproved"] = true;
+    require(_signatures.length == roles.length, "wrong number of signatures");
+
+    for (uint i = 0; i < roles.length; i += 1) {
+      _approve(
+        roles[i], 
+        h.toEthSignedMessageHash().recover(_signatures[i])
+      );
     }
 
-    acl().unassignRole(aclContext(), entity, _role);    
-    acl().assignRole(aclContext(), entity, newRole);    
+    _setPolicyState(POLICY_STATE_APPROVED);
+
+    emit BulkApproved(msg.sender);
+  }
+
+  function approve (bytes32 _role) external override 
+    assertInApprovableState
+  {
+    bytes32 newRole = _approve(_role, msg.sender);
 
     // update state
     if (_isFullyApproved()) {
@@ -86,6 +98,34 @@ contract PolicyApprovalsFacet is EternalStorage, Controller, IDiamondFacet, IPol
   }
 
   // Internal methods
+
+  function _approve (bytes32 _role, address _approver) private 
+    assertBelongsToEntityWithRole(_approver, _role)
+    returns (bytes32)
+  {
+    address entity = _getEntityWithRole(_role);
+
+    bytes32 newRole;
+
+    // replace pending role with non-pending version
+    if (_role == ROLE_PENDING_UNDERWRITER) {
+      newRole = ROLE_UNDERWRITER;
+      dataBool["underwriterApproved"] = true;
+    } else if (_role == ROLE_PENDING_BROKER) {
+      newRole = ROLE_BROKER;
+      dataBool["brokerApproved"] = true;
+    } else if (_role == ROLE_PENDING_INSURED_PARTY) {
+      newRole = ROLE_INSURED_PARTY;
+      dataBool["insuredPartyApproved"] = true;
+    } else if (_role == ROLE_PENDING_CLAIMS_ADMIN) {
+      newRole = ROLE_CLAIMS_ADMIN;
+      dataBool["claimsAdminApproved"] = true;
+    }
+
+    acl().assignRole(aclContext(), entity, newRole);    
+
+    return newRole;
+  }
 
   function _isFullyApproved () private view returns (bool) {
     uint256 numApprovals = dataBool["underwriterApproved"] ? 1 : 0;

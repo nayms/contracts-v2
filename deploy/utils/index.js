@@ -16,10 +16,12 @@ const defaultGetTxParams = (txParamsOverride = {}) => Object.assign({
 let accounts
 export const getAccounts = async () => {
   if (!accounts) {
-    accounts = (await hre.ethers.getSigners()).map(a => a.address)
+    accounts = await hre.ethers.getSigners()
   }
-  return accounts
+  return accounts.map(a => a.address)
 }
+
+export const getAccountWallet = (address) => accounts.find(a => a.address === address)
 
 export const deployContract = async ({ artifacts, getTxParams = defaultGetTxParams }, name, args, overrides = {}) => {
   const C = artifacts.require(name)

@@ -7,8 +7,6 @@ import '../base/IPolicyCoreFacet.sol';
 contract DummyPolicyFacet is IDiamondFacet, IPolicyCoreFacet {
   function getSelectors () public pure override returns (bytes memory) {
     return abi.encodePacked(
-      //Todo: why only this function here?
-      // IPolicyCoreFacet.calculateMaxNumOfPremiums.selector
       IPolicyCoreFacet.getInfo.selector
     );
   }

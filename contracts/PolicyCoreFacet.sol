@@ -84,28 +84,13 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     // tranche count
     uint256 i = dataUint256["numTranches"];
     dataUint256["numTranches"] = i + 1;
-    // require(dataUint256["numTranches"] <= 99, 'max tranches reached');
 
     // setup initial data for tranche
     dataUint256[__i(i, "numShares")] = _numShares;
     dataUint256[__i(i, "pricePerShareAmount")] = _pricePerShareAmount;
 
     // iterate through premiums and figure out what needs to paid and when
-    // uint256 nextPayTime = dataUint256["initiationDate"];
     uint256 numPremiums = 0;
-
-    // for (uint256 p = 0; _premiums.length > p; p += 1) {
-    //   // we only care about premiums > 0
-    //   if (_premiums[p] > 0) {
-    //     dataUint256[__ii(i, numPremiums, "premiumAmount")] = _premiums[p];
-    //     dataUint256[__ii(i, numPremiums, "premiumDueAt")] = nextPayTime;
-    //     numPremiums += 1;
-    //   }
-
-    //   // the premium interval still counts
-    //   // nextPayTime += dataUint256["premiumIntervalSeconds"];
-    // }
-    // // save total premiums
 
     uint256 previousPremiumDueAt = 0;
     for (uint256 p = 0; _premiums.length > p; p += 2) {
@@ -115,7 +100,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
         dataUint256[__ii(i, numPremiums, "premiumDueAt")] = _premiums[p];
         dataUint256[__ii(i, numPremiums, "premiumAmount")] = _premiums[p+1];
 
-        require(dataUint256["initiationDate"] <= _premiums[p], 'premium befire initiation');
+        require(dataUint256["initiationDate"] <= _premiums[p], 'premium before initiation');
         require(_premiums[p] <= dataUint256["maturationDate"], 'premium after maturation');
         require(_premiums[p] > previousPremiumDueAt, 'premiums not in increasing order');
 
@@ -123,9 +108,6 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
         numPremiums += 1;
       }
     }    
-
-
-
 
     // require(numPremiums <= calculateMaxNumOfPremiums(), 'too many premiums');
     dataUint256[__i(i, "numPremiums")] = numPremiums;

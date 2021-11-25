@@ -161,16 +161,16 @@ export const createTranche = async (policy, attrs, ...callAttrs) => {
   )
 }
 
-export const adjustTrancheDataDiff = (policyInitiationDate, trancheDiffData) => {
+export const adjustTrancheDataDiff = (policyInitiationDate, trancheDiffData, startIndex) => {
 
   let trancheData = trancheDiffData
 
   if (trancheDiffData != undefined){
-  for (let i = 0; i < trancheDiffData.length; i += 1) {
-    for (let j = 2; j < trancheDiffData[i].length; j += 2) {
-      trancheData[i][j] = policyInitiationDate + trancheDiffData[i][j]
+    for (let i = 0; i < trancheDiffData.length; i += 1) {
+      for (let j = 2; j < trancheDiffData[i].length; j += 2) {
+        trancheData[i][j] = policyInitiationDate + trancheDiffData[i][j]
+      }
     }
-  }
   }
   else {
     trancheData = []
@@ -201,7 +201,6 @@ export const createPolicy = async (entity, attrs = {}, ...callAttrs) => {
     startDate = currentTime + 120,
     maturationDate = currentTime + 300,
     unit = ADDRESS_ZERO,
-    // premiumIntervalSeconds = 30,
 
     brokerCommissionBP = 0,
     claimsAdminCommissionBP = 0,
@@ -220,7 +219,6 @@ export const createPolicy = async (entity, attrs = {}, ...callAttrs) => {
     policyId,
     [
       type, 
-      // premiumIntervalSeconds, 
       initiationDate, startDate, maturationDate, 
       brokerCommissionBP, underwriterCommissionBP, claimsAdminCommissionBP, naymsCommissionBP,
     ],
@@ -265,7 +263,6 @@ export const preSetupPolicy = async (ctx, createPolicyArgs) => {
     startDate: currentBlockTime + startDateDiff,
     maturationDate: currentBlockTime + maturationDateDiff,
     unit: ctx.etherToken.address,
-    // premiumIntervalSeconds,
     brokerCommissionBP,
     claimsAdminCommissionBP,
     naymsCommissionBP,
@@ -274,7 +271,6 @@ export const preSetupPolicy = async (ctx, createPolicyArgs) => {
     underwriter,
     claimsAdmin,
     insuredParty,
-    // trancheData
     trancheData: adjustTrancheDataDiff(currentBlockTime + initiationDateDiff, trancheDataDiff)
   }
 

@@ -146,7 +146,6 @@ describe('Policy: Tranches', () => {
     })
 
     POLICY_ATTRS_4 = Object.assign({}, POLICY_ATTRS_1, {
-      // trancheData: [[100, 2, 5, 6]]
       trancheDataDiff: [[100, 2, 0, 5, 30, 6]]
     })
 
@@ -238,35 +237,30 @@ describe('Policy: Tranches', () => {
 
         it('0', async () => {
           await createTranche(policy, { 
-            // premiums: []
             premiumsDiff: []
           }, { from: policyOwnerAddress }).should.be.fulfilled
         })
 
         it('less than max', async () => {
           await createTranche(policy, { 
-            // premiums: [1] 
             premiumsDiff: [0, 1]
           }, { from: policyOwnerAddress }).should.be.fulfilled
         })
 
         it('max', async () => {
           await createTranche(policy, { 
-            // premiums: [1, 2, 3, 4]
             premiumsDiff: [0, 1, 10, 2, 20, 3, 30, 4]
           }, { from: policyOwnerAddress }).should.be.fulfilled
         })
 
         it('past maturation date', async () => {
           await createTranche(policy, { 
-            // premiums: [1, 2, 3, 4, 5]
             premiumsDiff: [0, 1, 10, 2, 20, 3, 30, 4, 40, 5]
           }, { from: policyOwnerAddress }).should.be.rejectedWith('premium after maturation')
         })
 
         it('above max but filtering out 0-values results in max', async () => {
           await createTranche(policy, { 
-            // premiums: [0, 0, 0, 1, 2, 0, 3, 4]
             premiumsDiff: [0, 0, 0, 0, 0, 0, 0, 1, 10, 2, 20, 0, 20, 3, 30, 4]
           }, { from: policyOwnerAddress }).should.be.fulfilled
         })

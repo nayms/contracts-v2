@@ -215,7 +215,6 @@ describe('Policy: Premiums', () => {
 
       it('empty premiums array is allowed', async () => {
         await createTranche(policy, {
-          // premiums: []
           premiumsDiff: []
         }, { from: policyOwnerAddress })
 
@@ -231,7 +230,6 @@ describe('Policy: Premiums', () => {
 
       it('initially the first premium is expected by the inititation date', async () => {
         await createTranche(policy, {
-          // premiums: [2, 3, 4]
           premiumsDiff: [0, 2, 30, 3, 60, 4]
         }, { from: policyOwnerAddress })
 
@@ -247,7 +245,6 @@ describe('Policy: Premiums', () => {
 
       it('policy must have permission to transfer premium payment token', async () => {
         await createTranche(policy, {
-          // premiums: [2, 3, 4]
           premiumsDiff: [0, 2, 30, 3, 60, 4]
         }, { from: policyOwnerAddress })
 
@@ -257,7 +254,6 @@ describe('Policy: Premiums', () => {
 
       it('sender must have enough tokens to make the payment', async () => {
         await createTranche(policy, {
-          // premiums: [2, 3, 4]
           premiumsDiff: [0, 2, 30, 3, 60, 4]
         }, { from: policyOwnerAddress })
 
@@ -268,7 +264,6 @@ describe('Policy: Premiums', () => {
 
       it('updates balances upon payment', async () => {
         await createTranche(policy, {
-          // premiums: [2, 3, 4]
           premiumsDiff: [0, 2, 30, 3, 60, 4]
         }, { from: policyOwnerAddress })
 

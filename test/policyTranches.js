@@ -129,7 +129,6 @@ describe('Policy: Tranches', () => {
       initiationDateDiff: 1000,
       startDateDiff: 2000,
       maturationDateDiff: 3000,
-      // premiumIntervalSeconds: undefined,
       claimsAdminCommissionBP: 0,
       brokerCommissionBP: 0,
       naymsCommissionBP: 0,
@@ -144,7 +143,6 @@ describe('Policy: Tranches', () => {
       initiationDateDiff: 0,
       startDateDiff: 0,
       maturationDateDiff: 30,
-      // premiumIntervalSeconds: 10,
     })
 
     POLICY_ATTRS_4 = Object.assign({}, POLICY_ATTRS_1, {

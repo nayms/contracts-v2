@@ -42,7 +42,6 @@ const POLICY_ATTRS_1 = {
   initiationDateDiff: 1000,
   startDateDiff: 2000,
   maturationDateDiff: 3000,
-  // premiumIntervalSeconds: undefined,
   brokerCommissionBP: 0,
   underwriterCommissionBP: 0,
   claimsAdminCommissionBP: 0,
@@ -50,7 +49,6 @@ const POLICY_ATTRS_1 = {
 }
 
 const POLICY_ATTRS_2 = Object.assign({}, POLICY_ATTRS_1, {
-  // premiumIntervalSeconds: 5,
   brokerCommissionBP: 2,
   claimsAdminCommissionBP: 1,
   naymsCommissionBP: 3,
@@ -59,7 +57,6 @@ const POLICY_ATTRS_2 = Object.assign({}, POLICY_ATTRS_1, {
 
 const POLICY_ATTRS_3 = Object.assign({}, POLICY_ATTRS_2, {
   policyId: policyId3,
-  // trancheDiffData: [[100, 2, 10, 20, 30, 40, 50, 60, 70], [50, 2, 10, 20, 30, 40, 50, 60, 70]]
   trancheDataDiff: [
     [100, 2, 0 , 10 ,5, 20 ,10, 30 ,15, 40 ,20, 50 ,25, 60 ,30, 70], 
     [50, 2, 0 , 10 ,5, 20 ,10, 30 ,15, 40 ,20, 50 ,25, 60 ,30, 70]]
@@ -209,7 +206,6 @@ describe('Policy: Basic', () => {
         startDate_: attrs.startDate,
         maturationDate_: attrs.maturationDate,
         unit_: attrs.unit,
-        // premiumIntervalSeconds_: 5,
         numTranches_: 2,
         state_: POLICY_STATE_CREATED,
         type_: POLICY_TYPE_SPV,
@@ -258,7 +254,6 @@ describe('Policy: Basic', () => {
 
     it('and points to the new implementation', async () => {
       await policyDelegate.upgrade([dummyPolicyFacet.address]).should.be.fulfilled
-      // await policy.calculateMaxNumOfPremiums().should.eventually.eq(666);
     })
 
     it('and can be frozen', async () => {

@@ -46,7 +46,6 @@ describe('Policy: Approvals', () => {
   let policy
   let policyContext
   let entity
-  let premiumIntervalSeconds
   let baseDate
   let initiationDate
   let startDate
@@ -126,8 +125,6 @@ describe('Policy: Approvals', () => {
     initiationDate = baseDate + 1000
     startDate = initiationDate + 1000
     maturationDate = startDate + 2000
-    // premiumIntervalSeconds = 500
-    // const trancheData = [[100, 2, 10, 20, 30, 40, 50, 60, 70]]
     const trancheData = 
     [[100, 2, 
       initiationDate + 0, 10 ,
@@ -145,7 +142,6 @@ describe('Policy: Approvals', () => {
       initiationDate,
       startDate,
       maturationDate,
-      // premiumIntervalSeconds,
       unit: etherToken.address,
       claimsAdminCommissionBP,
       brokerCommissionBP,
@@ -170,7 +166,6 @@ describe('Policy: Approvals', () => {
     await createTranche(policy, {
       numShares: 50,
       pricePerShareAmount: 2,
-      // premiums: [10, 20, 30, 40, 50, 60, 70],
       premiumsDiff: [0, 10 ,500 , 20, 1000, 30, 1500, 40, 2000, 50, 2500, 60, 3000, 70 ]
     }, { from: policyOwnerAddress })
 
@@ -221,7 +216,6 @@ describe('Policy: Approvals', () => {
         initiationDate,
         startDate,
         maturationDate,
-        premiumIntervalSeconds,
         unit: etherToken.address,
         claimsAdminCommissionBP,
         brokerCommissionBP,
@@ -446,7 +440,6 @@ describe('Policy: Approvals', () => {
         initiationDate,
         startDate,
         maturationDate,
-        premiumIntervalSeconds,
         unit: etherToken.address,
         underwriter,
         insuredParty,

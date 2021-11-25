@@ -23,15 +23,6 @@ contract Policy is Controller, Proxy, PolicyFacetBase, Child {
     // set properties
     dataBytes32["id"] = _id;
     dataUint256["type"] = _typeAndDatesAndCommissionsBP[0];
-    // dataUint256["premiumIntervalSeconds"] = _typeAndDatesAndCommissionsBP[1];
-    // dataUint256["initiationDate"] = _typeAndDatesAndCommissionsBP[2];
-    // dataUint256["startDate"] = _typeAndDatesAndCommissionsBP[3];
-    // dataUint256["maturationDate"] = _typeAndDatesAndCommissionsBP[4];
-    // dataUint256["brokerCommissionBP"] = _typeAndDatesAndCommissionsBP[5];
-    // dataUint256["underwriterCommissionBP"] = _typeAndDatesAndCommissionsBP[6];
-    // dataUint256["claimsAdminCommissionBP"] = _typeAndDatesAndCommissionsBP[7];
-    // dataUint256["naymsCommissionBP"] = _typeAndDatesAndCommissionsBP[8];
-
     dataUint256["initiationDate"] = _typeAndDatesAndCommissionsBP[1];
     dataUint256["startDate"] = _typeAndDatesAndCommissionsBP[2];
     dataUint256["maturationDate"] = _typeAndDatesAndCommissionsBP[3];

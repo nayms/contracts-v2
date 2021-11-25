@@ -26,7 +26,6 @@ contract DummyPolicyFacet is IDiamondFacet, IPolicyCoreFacet {
     uint256 startDate_,
     uint256 maturationDate_,
     address unit_,
-    // uint256 premiumIntervalSeconds_,
     uint256 numTranches_,
     uint256 state_,
     uint256 type_

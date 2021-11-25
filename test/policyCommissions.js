@@ -33,7 +33,6 @@ const POLICY_ATTRS_1 = {
   initiationDateDiff: 1000,
   startDateDiff: 2000,
   maturationDateDiff: 3000,
-  // premiumIntervalSeconds: 30,
   claimsAdminCommissionBP: 10, /* 0.1% */
   brokerCommissionBP: 20, /* 0.2% */
   naymsCommissionBP: 30, /* 0.3% */
@@ -180,7 +179,6 @@ describe('Policy: Commissions', () => {
       await setupPolicy(POLICY_ATTRS_1)
 
       await createTranche(policy, {
-        // premiums: [2000, 3000, 4000]
         premiumsDiff: [0, 2000, 30, 3000, 60, 4000]
       }, { from: policyOwnerAddress })
     })

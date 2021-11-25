@@ -140,30 +140,19 @@ export const createTranche = async (policy, attrs, ...callAttrs) => {
   const {
     numShares = 10,
     pricePerShareAmount = 1,
-    // premiums = [],
     premiumsDiff = [],
   } = attrs
-
-  // console.log('premiumsDiff')
-  // console.log(premiumsDiff)
-  // console.log(' end premiumsDiff')
 
   let premiums = []
   let policyInfo 
   policyInfo = await policy.getInfo()
   const policyInitiationDate = policyInfo.initiationDate_
 
-  // console.log('policyInfo')
-  // console.log(policyInfo)
-  // console.log(' end policyInfo')
-  
   for (let i = 0; i < premiumsDiff.length; i += 2) {
     premiums[i] = policyInitiationDate.add(toBN (premiumsDiff[i]))
     premiums[i + 1] = toBN (premiumsDiff[i + 1])
   }
 
-
-  
   return policy.createTranche(
     numShares,
     pricePerShareAmount,
@@ -171,7 +160,6 @@ export const createTranche = async (policy, attrs, ...callAttrs) => {
     ...callAttrs,
   )
 }
-
 
 export const adjustTrancheDataDiff = (policyInitiationDate, trancheDiffData) => {
 
@@ -190,10 +178,6 @@ export const adjustTrancheDataDiff = (policyInitiationDate, trancheDiffData) => 
 
   return trancheData
 }
-
-
-
-
 
 export const createEntity = async ({ acl, entityDeployer, adminAddress, entityContext = BYTES32_ZERO }) => {
   const deployEntityTx = await entityDeployer.deploy(adminAddress, entityContext)
@@ -267,7 +251,6 @@ export const preSetupPolicy = async (ctx, createPolicyArgs) => {
     underwriter,
     claimsAdmin,
     insuredParty,
-    // trancheData
     trancheDataDiff
   } = (createPolicyArgs || {})
 

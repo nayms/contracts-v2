@@ -199,22 +199,18 @@ describe('Policy: Claims', () => {
       policyOwnerAddress = entityManagerAddress
 
       await createTranche(policy, {
-        // premiums: [2000, 3000, 4000]
         premiumsDiff: [0, 2000, attrs.premiumIntervalSeconds, 3000, attrs.premiumIntervalSeconds * 2, 4000]
       }, { from: policyOwnerAddress })
 
       await createTranche(policy, {
-        // premiums: [7000, 1000, 5000]
         premiumsDiff: [0, 7000, attrs.premiumIntervalSeconds, 1000, attrs.premiumIntervalSeconds * 2, 5000]
       }, { from: policyOwnerAddress })
 
       await createTranche(policy, {  // this tranche will be cancelled because we won't pay all the premiums
-        // premiums: [7000, 1000, 5000]
         premiumsDiff: [0, 7000, attrs.premiumIntervalSeconds, 1000, attrs.premiumIntervalSeconds * 2, 5000]
       }, { from: policyOwnerAddress })
 
       await createTranche(policy, {  // this tranche will be cancelled because we won't pay all the premiums
-        // premiums: [7000, 1000, 5000]
         premiumsDiff: [0, 7000, attrs.premiumIntervalSeconds, 1000, attrs.premiumIntervalSeconds * 2, 5000]
       }, { from: policyOwnerAddress })
 

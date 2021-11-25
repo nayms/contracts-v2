@@ -48,7 +48,7 @@ describe('Integration: SPV', () => {
   let policyProxy
   let policy
   let entity
-  let premiumIntervalSeconds
+  let timeIntervalSeconds
   let baseDate
   let initiationDate
   let startDate
@@ -152,13 +152,12 @@ describe('Integration: SPV', () => {
     initiationDate = baseDate + 1000
     startDate = initiationDate + 1000
     maturationDate = startDate + 2000
-    premiumIntervalSeconds = 500
+    timeIntervalSeconds = 500
 
     const createPolicyTx = await createPolicy(entity, {
       initiationDate,
       startDate,
       maturationDate,
-      premiumIntervalSeconds,
       unit: etherToken.address,
       claimsAdminCommissionBP,
       brokerCommissionBP,
@@ -185,14 +184,12 @@ describe('Integration: SPV', () => {
     await createTranche(policy, {
       numShares: 100,
       pricePerShareAmount: 2,
-      // premiums: [1000, 2000, 3000, 4000, 5000, 6000, 7000],
       premiumsDiff: [0, 1000 ,500 , 2000, 1000, 3000, 1500, 4000, 2000, 5000, 2500, 6000, 3000, 7000 ]
     }, { from: policyOwnerAddress })
 
     await createTranche(policy, {
       numShares: 50,
       pricePerShareAmount: 2,
-      // premiums: [1000, 2000, 3000, 4000, 5000, 6000, 7000],
       premiumsDiff: [0, 1000 ,500 , 2000, 1000, 3000, 1500, 4000, 2000, 5000, 2500, 6000, 3000, 7000 ]
     }, { from: policyOwnerAddress })
 
@@ -766,7 +763,7 @@ describe('Integration: SPV', () => {
           // pay its premiums upto start date
           await etherToken.approve(policy.address, 1000000, { from: accounts[2] })
           let toPay = 0
-          for (let i = 0; (startDate - initiationDate) / premiumIntervalSeconds >= i; i += 1) {
+          for (let i = 0; (startDate - initiationDate) / timeIntervalSeconds >= i; i += 1) {
             toPay += (2000 + 1000 * i)
           }
           await policy.payTranchePremium(0, toPay, { from: accounts[2] })
@@ -812,7 +809,7 @@ describe('Integration: SPV', () => {
         // pay all premiums upto start date
         await etherToken.approve(policy.address, 1000000, { from: accounts[2] })
         let toPay = 0
-        for (let i = 0; (startDate - initiationDate) / premiumIntervalSeconds >= i; i += 1) {
+        for (let i = 0; (startDate - initiationDate) / timeIntervalSeconds >= i; i += 1) {
           toPay += (2000 + 1000 * i)
         }
         await policy.payTranchePremium(0, toPay, { from: accounts[2] })
@@ -860,7 +857,7 @@ describe('Integration: SPV', () => {
 
       // pay premiums upto start date
       let toPay = 0
-      for (let i = 0; (startDate - initiationDate) / premiumIntervalSeconds > i; i += 1) {
+      for (let i = 0; (startDate - initiationDate) / timeIntervalSeconds > i; i += 1) {
         nextPremium = (2000 + 1000 * i)
         toPay += nextPremium
       }
@@ -888,7 +885,7 @@ describe('Integration: SPV', () => {
       await policy.payTranchePremium(0, nextPremium)
       await policy.payTranchePremium(1, nextPremium)
 
-      await evmClock.moveTime(premiumIntervalSeconds)
+      await evmClock.moveTime(timeIntervalSeconds)
       await policy.checkAndUpdateState()
 
       await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_ACTIVE })
@@ -904,7 +901,7 @@ describe('Integration: SPV', () => {
       await policy.payTranchePremium(0, nextPremium)
       // await policy.payTranchePremium(1) - deliberately miss this payment
 
-      await evmClock.moveTime(premiumIntervalSeconds)
+      await evmClock.moveTime(timeIntervalSeconds)
       await policy.checkAndUpdateState()
 
       await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_ACTIVE })
@@ -921,7 +918,7 @@ describe('Integration: SPV', () => {
         await policy.payTranchePremium(0, nextPremium)
         await policy.payTranchePremium(1, nextPremium)
 
-        await evmClock.moveTime(premiumIntervalSeconds)
+        await evmClock.moveTime(timeIntervalSeconds)
         await policy.checkAndUpdateState()
       })
 

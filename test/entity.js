@@ -966,7 +966,6 @@ describe('Entity', () => {
         await createTranche(policy, { 
           numShares: 1,
           pricePerShareAmount: 1,
-          // premiums: [premiumAmount],
           premiumsDiff: [0, premiumAmount],
         }, { from: policyOwner })
       })

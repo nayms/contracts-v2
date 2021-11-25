@@ -35,13 +35,10 @@ const IPolicy = artifacts.require("./base/IPolicy")
 const DummyPolicyFacet = artifacts.require("./test/DummyPolicyFacet")
 const FreezeUpgradesFacet = artifacts.require("./test/FreezeUpgradesFacet")
 
-// const premiumIntervalSeconds = 30
-
 const POLICY_ATTRS_1 = {
   initiationDateDiff: 1000,
   startDateDiff: 2000,
   maturationDateDiff: 3000,
-  // premiumIntervalSeconds,
   claimsAdminCommissionBP: 0,
   brokerCommissionBP: 0,
   naymsCommissionBP: 0,
@@ -57,7 +54,6 @@ const POLICY_ATTRS_3 = Object.assign({}, POLICY_ATTRS_1, {
   initiationDateDiff: 1000,
   startDateDiff: 3000,
   maturationDateDiff: 6000,
-  // premiumIntervalSeconds: 5000,
 })
 
 describe('Policy: Premiums', () => {
@@ -293,7 +289,6 @@ describe('Policy: Premiums', () => {
 
       it('emits an event upon payment', async () => {
         await createTranche(policy, {
-          // premiums: [2, 3, 4]
           premiumsDiff: [0, 2, 30, 3, 60, 4]
         }, { from: policyOwnerAddress })
 
@@ -309,7 +304,6 @@ describe('Policy: Premiums', () => {
 
       it('updates the internal stats once first payment is made', async () => {
         await createTranche(policy, {
-          // premiums: [2, 3, 4]
           premiumsDiff: [0, 2, 30, 3, 60, 4]
         }, { from: policyOwnerAddress })
 
@@ -341,7 +335,6 @@ describe('Policy: Premiums', () => {
 
       it('updates the internal stats and treasury once subsequent payment is made', async () => {
         await createTranche(policy, {
-          // premiums: [2, 3, 4]
           premiumsDiff: [0, 2, 30, 3, 60, 4]
         }, { from: policyOwnerAddress })
 
@@ -435,7 +428,6 @@ describe('Policy: Premiums', () => {
 
       it('overpayments allowed', async () => {
         await createTranche(policy, {
-          // premiums: [2, 3, 4]
           premiumsDiff: [0, 2, 30, 3, 60, 4]
         }, { from: policyOwnerAddress })
 
@@ -479,7 +471,6 @@ describe('Policy: Premiums', () => {
 
       it('can overpay the entire thing in one go', async () => {
         await createTranche(policy, {
-          // premiums: [2, 3, 4]
           premiumsDiff: [0, 2, 30, 3, 60, 4]
         }, { from: policyOwnerAddress })
 
@@ -538,7 +529,6 @@ describe('Policy: Premiums', () => {
 
       it('0-values are skipped over when it comes to the first payment', async () => {
         await createTranche(policy, {
-          // premiums: [0, 0, 0, 2, 3, 4]
           premiumsDiff: [0, 0, 30, 0, 60, 0, 90, 2, 120, 3, 150, 4]
         }, { from: policyOwnerAddress })
 
@@ -573,7 +563,6 @@ describe('Policy: Premiums', () => {
 
       it('0-values are skipped over for subsequent payments too', async () => {
         await createTranche(policy, {
-          // premiums: [2, 3, 0, 4, 0, 0, 5, 0]
           premiumsDiff: [0, 2, 30, 3, 60, 0, 90, 4, 120, 0, 150, 0, 180, 5, 210, 0]
         }, { from: policyOwnerAddress })
 
@@ -634,7 +623,6 @@ describe('Policy: Premiums', () => {
 
       it('0-values are skipped over for bulk payments too', async () => {
         await createTranche(policy, {
-          // premiums: [2, 3, 0, 4, 0, 0, 5, 0]
           premiumsDiff: [0, 2, 30, 3, 60, 0, 90, 4, 120, 0, 150, 0, 180, 5, 210, 0]
         }, { from: policyOwnerAddress })
 
@@ -702,7 +690,6 @@ describe('Policy: Premiums', () => {
         await setupPolicy(POLICY_ATTRS_2)
 
         await createTranche(policy, {
-          // premiums: [2, 3, 4]
           premiumsDiff: [0, 2, 30, 3, 60, 4]
         }, { from: policyOwnerAddress })
 
@@ -731,7 +718,6 @@ describe('Policy: Premiums', () => {
       await setupPolicy(POLICY_ATTRS_1)
 
       await createTranche(policy, {
-        // premiums: [2, 3, 5]
         premiumsDiff: [0, 2, 30, 3, 60, 4]
       }, { from: policyOwnerAddress })
 
@@ -756,7 +742,6 @@ describe('Policy: Premiums', () => {
       await setupPolicy(POLICY_ATTRS_1)
 
       await createTranche(policy, {
-        // premiums: [2, 3, 4, 5]
         premiumsDiff: [0, 2, 30, 3, 60, 4, 90, 5]
       }, { from: policyOwnerAddress })
 
@@ -779,9 +764,6 @@ describe('Policy: Premiums', () => {
         await setupPolicy(POLICY_ATTRS_3)
 
         await createTranche(policy, {
-          // premiums: [2, 3]
-          // premiumsDiff: [0, 2, 30, 3]
-          // Todo: premium interval cannot be 5000
           premiumsDiff: [0, 2, 500, 3]
         }, { from: policyOwnerAddress })
 

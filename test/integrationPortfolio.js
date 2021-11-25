@@ -46,7 +46,6 @@ describe('Integration: Portfolio underwriting', () => {
   let policyProxy
   let policy
   let entity
-  let premiumIntervalSeconds
   let baseDate
   let initiationDate
   let startDate
@@ -147,14 +146,12 @@ describe('Integration: Portfolio underwriting', () => {
     initiationDate = baseDate + 1000
     startDate = initiationDate + 1000
     maturationDate = startDate + 2000
-    premiumIntervalSeconds = 500
 
     const createPolicyTx = await createPolicy(entity, {
       type: 1 /* portfolio type */,
       initiationDate,
       startDate,
       maturationDate,
-      premiumIntervalSeconds,
       unit: etherToken.address,
       claimsAdminCommissionBP,
       brokerCommissionBP,
@@ -180,14 +177,12 @@ describe('Integration: Portfolio underwriting', () => {
     await createTranche(policy, {
       numShares: 100,
       pricePerShareAmount: 2,
-      // premiums: [10, 20, 30, 40, 50, 60, 70],
       premiumsDiff: [0, 10 ,500 , 20, 1000, 30, 1500, 40, 2000, 50, 2500, 60, 3000, 70 ]
     }, { from: policyOwnerAddress })
 
     await createTranche(policy, {
       numShares: 50,
       pricePerShareAmount: 2,
-      // premiums: [10, 20, 30, 40, 50, 60, 70],
       premiumsDiff: [0, 10 ,500 , 20, 1000, 30, 1500, 40, 2000, 50, 2500, 60, 3000, 70 ]
     }, { from: policyOwnerAddress })
 

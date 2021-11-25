@@ -58,7 +58,6 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
       IPolicyCoreFacet.createTranche.selector,
       IPolicyCoreFacet.getInfo.selector,
       IPolicyCoreFacet.getTrancheInfo.selector,
-      // IPolicyCoreFacet.calculateMaxNumOfPremiums.selector,
       IPolicyCoreFacet.initiationDateHasPassed.selector,
       IPolicyCoreFacet.startDateHasPassed.selector,
       IPolicyCoreFacet.maturationDateHasPassed.selector,
@@ -68,7 +67,6 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
   }
 
   // IPolicyCore //
-
 
   function createTranche (
     uint256 _numShares,

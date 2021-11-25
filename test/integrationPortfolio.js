@@ -1,7 +1,7 @@
 import {
   extractEventArgs,
   parseEvents,
-  createTranch,
+  createTranche,
   createPolicy,
   createEntity,
   EvmClock,
@@ -83,13 +83,13 @@ describe('Integration: Portfolio underwriting', () => {
 
   let POLICY_TYPE_PORTFOLIO
   
-  let TRANCH_STATE_CREATED
-  let TRANCH_STATE_SELLING
-  let TRANCH_STATE_ACTIVE
-  let TRANCH_STATE_MATURED
-  let TRANCH_STATE_CANCELLED
+  let TRANCHE_STATE_CREATED
+  let TRANCHE_STATE_SELLING
+  let TRANCHE_STATE_ACTIVE
+  let TRANCHE_STATE_MATURED
+  let TRANCHE_STATE_CANCELLED
 
-  let getTranchToken
+  let getTrancheToken
   let approvePolicy
 
   let evmClock
@@ -177,20 +177,22 @@ describe('Integration: Portfolio underwriting', () => {
     market = await ensureMarketIsDeployed({ artifacts, settings })
 
     // setup two tranches
-    await createTranch(policy, {
+    await createTranche(policy, {
       numShares: 100,
       pricePerShareAmount: 2,
-      premiums: [10, 20, 30, 40, 50, 60, 70],
+      // premiums: [10, 20, 30, 40, 50, 60, 70],
+      premiumsDiff: [0, 10 ,500 , 20, 1000, 30, 1500, 40, 2000, 50, 2500, 60, 3000, 70 ]
     }, { from: policyOwnerAddress })
 
-    await createTranch(policy, {
+    await createTranche(policy, {
       numShares: 50,
       pricePerShareAmount: 2,
-      premiums: [10, 20, 30, 40, 50, 60, 70],
+      // premiums: [10, 20, 30, 40, 50, 60, 70],
+      premiumsDiff: [0, 10 ,500 , 20, 1000, 30, 1500, 40, 2000, 50, 2500, 60, 3000, 70 ]
     }, { from: policyOwnerAddress })
 
-    getTranchToken = async idx => {
-      const { token_: tt } = await policy.getTranchInfo(idx)
+    getTrancheToken = async idx => {
+      const { token_: tt } = await policy.getTrancheInfo(idx)
       return await IERC20.at(tt)
     }
 
@@ -214,11 +216,11 @@ describe('Integration: Portfolio underwriting', () => {
     const policyTypes = await IPolicyTypes.at(policyCoreAddress)
     POLICY_TYPE_PORTFOLIO = await policyTypes.POLICY_TYPE_PORTFOLIO()
 
-    TRANCH_STATE_CREATED = await policyStates.TRANCH_STATE_CREATED()
-    TRANCH_STATE_SELLING = await policyStates.TRANCH_STATE_SELLING()
-    TRANCH_STATE_ACTIVE = await policyStates.TRANCH_STATE_ACTIVE()
-    TRANCH_STATE_MATURED = await policyStates.TRANCH_STATE_MATURED()
-    TRANCH_STATE_CANCELLED = await policyStates.TRANCH_STATE_CANCELLED()
+    TRANCHE_STATE_CREATED = await policyStates.TRANCHE_STATE_CREATED()
+    TRANCHE_STATE_SELLING = await policyStates.TRANCHE_STATE_SELLING()
+    TRANCHE_STATE_ACTIVE = await policyStates.TRANCHE_STATE_ACTIVE()
+    TRANCHE_STATE_MATURED = await policyStates.TRANCHE_STATE_MATURED()
+    TRANCHE_STATE_CANCELLED = await policyStates.TRANCHE_STATE_CANCELLED()
   })
 
   beforeEach(async () => {
@@ -237,12 +239,12 @@ describe('Integration: Portfolio underwriting', () => {
     })
   })
 
-  it('tranch tokens do not exist', async () => {
-    await policy.getTranchInfo(0).should.eventually.matchObj({
+  it('tranche tokens do not exist', async () => {
+    await policy.getTrancheInfo(0).should.eventually.matchObj({
       token_: ADDRESS_ZERO,
     })
 
-    await policy.getTranchInfo(1).should.eventually.matchObj({
+    await policy.getTrancheInfo(1).should.eventually.matchObj({
       token_: ADDRESS_ZERO,
     })
   })
@@ -256,29 +258,29 @@ describe('Integration: Portfolio underwriting', () => {
       beforeEach(async () => {
         await etherToken.deposit({ value: 20 })
         await etherToken.approve(policy.address, 20)
-        await policy.payTranchPremium(0, 10)
-        await policy.payTranchPremium(1, 10)
+        await policy.payTranchePremium(0, 10)
+        await policy.payTranchePremium(1, 10)
         
         await evmClock.setAbsoluteTime(initiationDate)
         await policy.checkAndUpdateState()
         await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_INITIATED })
       })
 
-      it('tranch tokens are not being sold', async () => {
-        await policy.getTranchInfo(0).should.eventually.matchObj({
+      it('tranche tokens are not being sold', async () => {
+        await policy.getTrancheInfo(0).should.eventually.matchObj({
           initialSaleOfferId_: 0,
         })
-        await policy.getTranchInfo(1).should.eventually.matchObj({
+        await policy.getTrancheInfo(1).should.eventually.matchObj({
           initialSaleOfferId_: 0,
         })
       })
 
       it('tranches remain in created state', async () => {
-        await policy.getTranchInfo(0).should.eventually.matchObj({
-          state_: TRANCH_STATE_CREATED,
+        await policy.getTrancheInfo(0).should.eventually.matchObj({
+          state_: TRANCHE_STATE_CREATED,
         })
-        await policy.getTranchInfo(1).should.eventually.matchObj({
-          state_: TRANCH_STATE_CREATED,
+        await policy.getTrancheInfo(1).should.eventually.matchObj({
+          state_: TRANCHE_STATE_CREATED,
         })
       })
 
@@ -287,19 +289,19 @@ describe('Integration: Portfolio underwriting', () => {
           // pay all remaining premiums
           await etherToken.deposit({ value: 540 })
           await etherToken.approve(policy.address, 540)
-          await policy.payTranchPremium(0, 270)
-          await policy.payTranchPremium(1, 270)
+          await policy.payTranchePremium(0, 270)
+          await policy.payTranchePremium(1, 270)
 
           await evmClock.setAbsoluteTime(startDate)
           await policy.checkAndUpdateState()
         })
 
         it('tranches are in active state', async () => {
-          await policy.getTranchInfo(0).should.eventually.matchObj({
-            state_: TRANCH_STATE_ACTIVE,
+          await policy.getTrancheInfo(0).should.eventually.matchObj({
+            state_: TRANCHE_STATE_ACTIVE,
           })
-          await policy.getTranchInfo(1).should.eventually.matchObj({
-            state_: TRANCH_STATE_ACTIVE,
+          await policy.getTrancheInfo(1).should.eventually.matchObj({
+            state_: TRANCHE_STATE_ACTIVE,
           })
         })
 
@@ -319,10 +321,10 @@ describe('Integration: Portfolio underwriting', () => {
             })
 
             it('no token buyback is initiated', async () => {
-              await policy.getTranchInfo(0).should.eventually.matchObj({
+              await policy.getTrancheInfo(0).should.eventually.matchObj({
                 finalBuybackofferId_: 0,
               })
-              await policy.getTranchInfo(1).should.eventually.matchObj({
+              await policy.getTrancheInfo(1).should.eventually.matchObj({
                 finalBuybackofferId_: 0,
               })
             })

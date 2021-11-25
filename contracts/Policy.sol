@@ -12,7 +12,7 @@ contract Policy is Controller, Proxy, PolicyFacetBase, Child {
     bytes32 _id,
     address _settings,
     address _caller,
-    uint256[] memory _typeAndPremiumIntervalSecondsAndDatesAndCommissionsBP,
+    uint256[] memory _typeAndDatesAndCommissionsBP,
     address[] memory _unitAndTreasuryAndStakeholders
   ) Controller(_settings) Proxy() public
   {
@@ -22,15 +22,24 @@ contract Policy is Controller, Proxy, PolicyFacetBase, Child {
 
     // set properties
     dataBytes32["id"] = _id;
-    dataUint256["type"] = _typeAndPremiumIntervalSecondsAndDatesAndCommissionsBP[0];
-    dataUint256["premiumIntervalSeconds"] = _typeAndPremiumIntervalSecondsAndDatesAndCommissionsBP[1];
-    dataUint256["initiationDate"] = _typeAndPremiumIntervalSecondsAndDatesAndCommissionsBP[2];
-    dataUint256["startDate"] = _typeAndPremiumIntervalSecondsAndDatesAndCommissionsBP[3];
-    dataUint256["maturationDate"] = _typeAndPremiumIntervalSecondsAndDatesAndCommissionsBP[4];
-    dataUint256["brokerCommissionBP"] = _typeAndPremiumIntervalSecondsAndDatesAndCommissionsBP[5];
-    dataUint256["underwriterCommissionBP"] = _typeAndPremiumIntervalSecondsAndDatesAndCommissionsBP[6];
-    dataUint256["claimsAdminCommissionBP"] = _typeAndPremiumIntervalSecondsAndDatesAndCommissionsBP[7];
-    dataUint256["naymsCommissionBP"] = _typeAndPremiumIntervalSecondsAndDatesAndCommissionsBP[8];
+    dataUint256["type"] = _typeAndDatesAndCommissionsBP[0];
+    // dataUint256["premiumIntervalSeconds"] = _typeAndDatesAndCommissionsBP[1];
+    // dataUint256["initiationDate"] = _typeAndDatesAndCommissionsBP[2];
+    // dataUint256["startDate"] = _typeAndDatesAndCommissionsBP[3];
+    // dataUint256["maturationDate"] = _typeAndDatesAndCommissionsBP[4];
+    // dataUint256["brokerCommissionBP"] = _typeAndDatesAndCommissionsBP[5];
+    // dataUint256["underwriterCommissionBP"] = _typeAndDatesAndCommissionsBP[6];
+    // dataUint256["claimsAdminCommissionBP"] = _typeAndDatesAndCommissionsBP[7];
+    // dataUint256["naymsCommissionBP"] = _typeAndDatesAndCommissionsBP[8];
+
+    dataUint256["initiationDate"] = _typeAndDatesAndCommissionsBP[1];
+    dataUint256["startDate"] = _typeAndDatesAndCommissionsBP[2];
+    dataUint256["maturationDate"] = _typeAndDatesAndCommissionsBP[3];
+    dataUint256["brokerCommissionBP"] = _typeAndDatesAndCommissionsBP[4];
+    dataUint256["underwriterCommissionBP"] = _typeAndDatesAndCommissionsBP[5];
+    dataUint256["claimsAdminCommissionBP"] = _typeAndDatesAndCommissionsBP[6];
+    dataUint256["naymsCommissionBP"] = _typeAndDatesAndCommissionsBP[7];
+    
     dataAddress["unit"] = _unitAndTreasuryAndStakeholders[0];
     dataAddress["treasury"] = _unitAndTreasuryAndStakeholders[1];
 

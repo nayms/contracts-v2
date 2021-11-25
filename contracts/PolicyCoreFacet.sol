@@ -11,13 +11,13 @@ import "./base/IChild.sol";
 import "./base/Child.sol";
 import "./base/IPolicyTreasuryConstants.sol";
 import "./base/IPolicyCoreFacet.sol";
-import "./base/IPolicyTranchTokensFacet.sol";
+import "./base/IPolicyTrancheTokensFacet.sol";
 import "./base/IMarketObserverDataTypes.sol";
 import "./base/IMarketFeeSchedules.sol";
 import "./base/IPolicyTypes.sol";
 import "./PolicyFacetBase.sol";
 import "./base/SafeMath.sol";
-import "./TranchToken.sol";
+import "./TrancheToken.sol";
 import "./base/ReentrancyGuard.sol";
 
 /**
@@ -34,7 +34,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     _;
   }
 
-  modifier assertCanCreateTranch () {
+  modifier assertCanCreateTranche () {
     require(inRoleGroup(msg.sender, ROLEGROUP_POLICY_OWNERS) || msg.sender == getParent(), 'must be policy owner or original creator');
     _;
   }
@@ -55,10 +55,10 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
 
   function getSelectors () public pure override returns (bytes memory) {
     return abi.encodePacked(
-      IPolicyCoreFacet.createTranch.selector,
+      IPolicyCoreFacet.createTranche.selector,
       IPolicyCoreFacet.getInfo.selector,
-      IPolicyCoreFacet.getTranchInfo.selector,
-      IPolicyCoreFacet.calculateMaxNumOfPremiums.selector,
+      IPolicyCoreFacet.getTrancheInfo.selector,
+      // IPolicyCoreFacet.calculateMaxNumOfPremiums.selector,
       IPolicyCoreFacet.initiationDateHasPassed.selector,
       IPolicyCoreFacet.startDateHasPassed.selector,
       IPolicyCoreFacet.maturationDateHasPassed.selector,
@@ -70,49 +70,71 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
   // IPolicyCore //
 
 
-  function createTranch (
+  function createTranche (
     uint256 _numShares,
     uint256 _pricePerShareAmount,
     uint256[] calldata _premiums
   )
     external
     override
-    assertCanCreateTranch
+    assertCanCreateTranche
     assertCreatedState
   {
     require(_numShares > 0, 'invalid num of shares');
     require(_pricePerShareAmount > 0, 'invalid price');
 
-    // tranch count
+    // tranche count
     uint256 i = dataUint256["numTranches"];
     dataUint256["numTranches"] = i + 1;
-    require(dataUint256["numTranches"] <= 99, 'max tranches reached');
+    // require(dataUint256["numTranches"] <= 99, 'max tranches reached');
 
-    // setup initial data for tranch
+    // setup initial data for tranche
     dataUint256[__i(i, "numShares")] = _numShares;
     dataUint256[__i(i, "pricePerShareAmount")] = _pricePerShareAmount;
 
     // iterate through premiums and figure out what needs to paid and when
-    uint256 nextPayTime = dataUint256["initiationDate"];
+    // uint256 nextPayTime = dataUint256["initiationDate"];
     uint256 numPremiums = 0;
-    for (uint256 p = 0; _premiums.length > p; p += 1) {
-      // we only care about premiums > 0
-      if (_premiums[p] > 0) {
-        dataUint256[__ii(i, numPremiums, "premiumAmount")] = _premiums[p];
-        dataUint256[__ii(i, numPremiums, "premiumDueAt")] = nextPayTime;
+
+    // for (uint256 p = 0; _premiums.length > p; p += 1) {
+    //   // we only care about premiums > 0
+    //   if (_premiums[p] > 0) {
+    //     dataUint256[__ii(i, numPremiums, "premiumAmount")] = _premiums[p];
+    //     dataUint256[__ii(i, numPremiums, "premiumDueAt")] = nextPayTime;
+    //     numPremiums += 1;
+    //   }
+
+    //   // the premium interval still counts
+    //   // nextPayTime += dataUint256["premiumIntervalSeconds"];
+    // }
+    // // save total premiums
+
+    uint256 previousPremiumDueAt = 0;
+    for (uint256 p = 0; _premiums.length > p; p += 2) {
+
+      if (_premiums[p+1] > 0) {
+
+        dataUint256[__ii(i, numPremiums, "premiumDueAt")] = _premiums[p];
+        dataUint256[__ii(i, numPremiums, "premiumAmount")] = _premiums[p+1];
+
+        require(dataUint256["initiationDate"] <= _premiums[p], 'premium befire initiation');
+        require(_premiums[p] <= dataUint256["maturationDate"], 'premium after maturation');
+        require(_premiums[p] > previousPremiumDueAt, 'premiums not in increasing order');
+
+        previousPremiumDueAt = _premiums[p];
         numPremiums += 1;
       }
+    }    
 
-      // the premium interval still counts
-      nextPayTime += dataUint256["premiumIntervalSeconds"];
-    }
-    // save total premiums
-    require(numPremiums <= calculateMaxNumOfPremiums(), 'too many premiums');
+
+
+
+    // require(numPremiums <= calculateMaxNumOfPremiums(), 'too many premiums');
     dataUint256[__i(i, "numPremiums")] = numPremiums;
 
     // deploy token contract if SPV
     if (dataUint256["type"] == POLICY_TYPE_SPV) {
-      TranchToken t = new TranchToken(address(this), i);
+      TrancheToken t = new TrancheToken(address(this), i);
 
       // initial holder
       address holder = dataAddress["treasury"];
@@ -128,7 +150,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
       dataAddress[addressKey] = address(t);
     }
 
-    emit CreateTranch(i);
+    emit CreateTranche(i);
   }
 
   function getInfo () public view override returns (
@@ -138,7 +160,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     uint256 startDate_,
     uint256 maturationDate_,
     address unit_,
-    uint256 premiumIntervalSeconds_,
+    // uint256 premiumIntervalSeconds_,
     uint256 numTranches_,
     uint256 state_,
     uint256 type_
@@ -149,13 +171,13 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     startDate_ = dataUint256["startDate"];
     maturationDate_ = dataUint256["maturationDate"];
     unit_ = dataAddress["unit"];
-    premiumIntervalSeconds_ = dataUint256["premiumIntervalSeconds"];
+    // premiumIntervalSeconds_ = dataUint256["premiumIntervalSeconds"];
     numTranches_ = dataUint256["numTranches"];
     state_ = dataUint256["state"];
     type_ = dataUint256["type"];
   }
 
-  function getTranchInfo (uint256 _index) public view override returns (
+  function getTrancheInfo (uint256 _index) public view override returns (
     address token_,
     uint256 state_,
     uint256 numShares_,
@@ -212,13 +234,13 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     }
   }
 
-  function calculateMaxNumOfPremiums() public view override returns (uint256) {
-    return (dataUint256["maturationDate"] - dataUint256["initiationDate"]) / dataUint256["premiumIntervalSeconds"] + 1;
-  }
+  // function calculateMaxNumOfPremiums() public view override returns (uint256) {
+  //   return (dataUint256["maturationDate"] - dataUint256["initiationDate"]) / dataUint256["premiumIntervalSeconds"] + 1;
+  // }
 
   // Internal methods
 
-  function _cancelTranchMarketOffer(uint _index) private {
+  function _cancelTrancheMarketOffer(uint _index) private {
     uint256 initialSaleOfferId = dataUint256[__i(_index, "initialSaleOfferId")];
     _getTreasury().cancelOrder(initialSaleOfferId);
   }
@@ -238,36 +260,36 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
       }
 
       bool allReady = true;
-      // check every tranch
+      // check every tranche
       for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
-        allReady = allReady && (0 >= _getNumberOfTranchPaymentsMissed(i));
+        allReady = allReady && (0 >= _getNumberOfTranchePaymentsMissed(i));
       }
 
-      // stop processing if some tranch payments have been missed
+      // stop processing if some tranche payments have been missed
       if (!allReady) {
         return;
       }
 
       for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
-        // tranch/token address
-        address tranchAddress = dataAddress[__i(i, "address")];
+        // tranche/token address
+        address trancheAddress = dataAddress[__i(i, "address")];
         // get supply
-        uint256 totalSupply = IPolicyTranchTokensFacet(address(this)).tknTotalSupply(i);
+        uint256 totalSupply = IPolicyTrancheTokensFacet(address(this)).tknTotalSupply(i);
         // calculate sale values
         uint256 pricePerShare = dataUint256[__i(i, "pricePerShareAmount")];
         uint256 totalPrice = totalSupply.mul(pricePerShare);
-        // set tranch state
-        _setTranchState(i, TRANCH_STATE_SELLING);
+        // set tranche state
+        _setTrancheState(i, TRANCHE_STATE_SELLING);
         // offer tokens in initial sale
         dataUint256[__i(i, "initialSaleOfferId")] = _getTreasury().createOrder(
           ORDER_TYPE_TOKEN_SALE,
-          tranchAddress, 
+          trancheAddress, 
           totalSupply, 
           dataAddress["unit"], 
           totalPrice,
           FEE_SCHEDULE_PLATFORM_ACTION,
           address(this),
-          abi.encode(MODT_TRANCH_SALE, address(this), i)
+          abi.encode(MODT_TRANCHE_SALE, address(this), i)
         );
       }
 
@@ -283,10 +305,10 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
       uint256 minPolicyCollateral = 0;
       for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
         if (dataUint256["type"] == POLICY_TYPE_PORTFOLIO) {
-          _setTranchState(i, TRANCH_STATE_ACTIVE);
+          _setTrancheState(i, TRANCHE_STATE_ACTIVE);
         }
         
-        if (dataUint256[__i(i, "state")] == TRANCH_STATE_ACTIVE) {
+        if (dataUint256[__i(i, "state")] == TRANCHE_STATE_ACTIVE) {
           minPolicyCollateral += dataUint256[__i(i, "sharesSold")] * dataUint256[__i(i, "pricePerShareAmount")];
         }
       }
@@ -299,17 +321,17 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
   }
 
   function _ensureTranchesAreUpToDate() private {
-    // check state of each tranch
+    // check state of each tranche
     for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
       uint256 state = dataUint256[__i(i, "state")];
 
-      // if tranch not yet fully sold OR if a payment has been missed
-      if (state == TRANCH_STATE_SELLING || 0 < _getNumberOfTranchPaymentsMissed(i)) {
+      // if tranche not yet fully sold OR if a payment has been missed
+      if (state == TRANCHE_STATE_SELLING || 0 < _getNumberOfTranchePaymentsMissed(i)) {
         // set state to cancelled
         // (do this before cancelling market order otherwise _transfer() logic goes haywire)
-        _setTranchState(i, TRANCH_STATE_CANCELLED);
+        _setTrancheState(i, TRANCHE_STATE_CANCELLED);
         // cancel any outstanding market order
-        _cancelTranchMarketOffer(i);
+        _cancelTrancheMarketOffer(i);
       }
     }
   }
@@ -328,25 +350,25 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
 
         _setPolicyState(POLICY_STATE_BUYBACK);
 
-        // buy back all tranch tokens
+        // buy back all tranche tokens
         for (uint256 i = 0; dataUint256["numTranches"] > i; i += 1) {
-          if (dataUint256[__i(i, "state")] == TRANCH_STATE_ACTIVE) {
-            _setTranchState(i, TRANCH_STATE_MATURED);
+          if (dataUint256[__i(i, "state")] == TRANCHE_STATE_ACTIVE) {
+            _setTrancheState(i, TRANCHE_STATE_MATURED);
           }
 
           address unitAddress = dataAddress["unit"];
-          uint256 tranchBalance = dataUint256[__i(i, "balance")];
+          uint256 trancheBalance = dataUint256[__i(i, "balance")];
 
           // buy back all sold tokens
           dataUint256[__i(i, "finalBuybackOfferId")] = _getTreasury().createOrder(
             ORDER_TYPE_TOKEN_BUYBACK,
             unitAddress,
-            tranchBalance,
+            trancheBalance,
             dataAddress[__i(i, "address")],
             dataUint256[__i(i, "sharesSold")],
             FEE_SCHEDULE_PLATFORM_ACTION,
             address(this),
-            abi.encode(MODT_TRANCH_BUYBACK, address(this), i)
+            abi.encode(MODT_TRANCHE_BUYBACK, address(this), i)
           );
         }
       }

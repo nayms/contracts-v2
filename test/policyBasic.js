@@ -42,7 +42,7 @@ const POLICY_ATTRS_1 = {
   initiationDateDiff: 1000,
   startDateDiff: 2000,
   maturationDateDiff: 3000,
-  premiumIntervalSeconds: undefined,
+  // premiumIntervalSeconds: undefined,
   brokerCommissionBP: 0,
   underwriterCommissionBP: 0,
   claimsAdminCommissionBP: 0,
@@ -50,7 +50,7 @@ const POLICY_ATTRS_1 = {
 }
 
 const POLICY_ATTRS_2 = Object.assign({}, POLICY_ATTRS_1, {
-  premiumIntervalSeconds: 5,
+  // premiumIntervalSeconds: 5,
   brokerCommissionBP: 2,
   claimsAdminCommissionBP: 1,
   naymsCommissionBP: 3,
@@ -59,8 +59,11 @@ const POLICY_ATTRS_2 = Object.assign({}, POLICY_ATTRS_1, {
 
 const POLICY_ATTRS_3 = Object.assign({}, POLICY_ATTRS_2, {
   policyId: policyId3,
-  trancheData: [[100, 2, 10, 20, 30, 40, 50, 60, 70], [50, 2, 10, 20, 30, 40, 50, 60, 70]]
-})
+  // trancheDiffData: [[100, 2, 10, 20, 30, 40, 50, 60, 70], [50, 2, 10, 20, 30, 40, 50, 60, 70]]
+  trancheDataDiff: [
+    [100, 2, 0 , 10 ,5, 20 ,10, 30 ,15, 40 ,20, 50 ,25, 60 ,30, 70], 
+    [50, 2, 0 , 10 ,5, 20 ,10, 30 ,15, 40 ,20, 50 ,25, 60 ,30, 70]]
+  })
 
 describe('Policy: Basic', () => {
   const evmSnapshot = new EvmSnapshot()
@@ -91,9 +94,9 @@ describe('Policy: Basic', () => {
 
   let POLICY_TYPE_SPV
 
-  let TRANCH_STATE_CANCELLED
-  let TRANCH_STATE_ACTIVE
-  let TRANCH_STATE_MATURED
+  let TRANCHE_STATE_CANCELLED
+  let TRANCHE_STATE_ACTIVE
+  let TRANCHE_STATE_MATURED
 
   const policies = new Map()
   let setupPolicy
@@ -138,9 +141,9 @@ describe('Policy: Basic', () => {
     POLICY_STATE_INITIATED = await policyStates.POLICY_STATE_INITIATED()
     POLICY_STATE_ACTIVE = await policyStates.POLICY_STATE_ACTIVE()
     POLICY_STATE_MATURED = await policyStates.POLICY_STATE_MATURED()
-    TRANCH_STATE_CANCELLED = await policyStates.TRANCH_STATE_CANCELLED()
-    TRANCH_STATE_ACTIVE = await policyStates.TRANCH_STATE_ACTIVE()
-    TRANCH_STATE_MATURED = await policyStates.TRANCH_STATE_MATURED()
+    TRANCHE_STATE_CANCELLED = await policyStates.TRANCHE_STATE_CANCELLED()
+    TRANCHE_STATE_ACTIVE = await policyStates.TRANCHE_STATE_ACTIVE()
+    TRANCHE_STATE_MATURED = await policyStates.TRANCHE_STATE_MATURED()
     const policyTypes = await IPolicyTypes.at(policyCoreAddress)
     POLICY_TYPE_SPV = await policyTypes.POLICY_TYPE_SPV()
 
@@ -206,7 +209,7 @@ describe('Policy: Basic', () => {
         startDate_: attrs.startDate,
         maturationDate_: attrs.maturationDate,
         unit_: attrs.unit,
-        premiumIntervalSeconds_: 5,
+        // premiumIntervalSeconds_: 5,
         numTranches_: 2,
         state_: POLICY_STATE_CREATED,
         type_: POLICY_TYPE_SPV,
@@ -255,7 +258,7 @@ describe('Policy: Basic', () => {
 
     it('and points to the new implementation', async () => {
       await policyDelegate.upgrade([dummyPolicyFacet.address]).should.be.fulfilled
-      await policy.calculateMaxNumOfPremiums().should.eventually.eq(666);
+      // await policy.calculateMaxNumOfPremiums().should.eventually.eq(666);
     })
 
     it('and can be frozen', async () => {

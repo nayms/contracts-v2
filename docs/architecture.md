@@ -110,7 +110,7 @@ The four main types of entities are: _Capital providers, brokers, insured partie
 
 Every policy operates according to the following timeline:
 
-1. **Initiation date** - _The point in time when the policy's tranch tokens will go up for an initial sale._
+1. **Initiation date** - _The point in time when the policy's tranche tokens will go up for an initial sale._
 2. **Start date** - _The point in time after the initiation date when the policy's sale should have been completed by, and after which the policy is considered active._
 3. **Maturation date** - _The point in time after the start date when the policy stops being active and stop accepting new claims._
 
@@ -119,13 +119,13 @@ Policies transition between the following [states](https://github.com/nayms/cont
 1. **Created** - _The policy has been created. Tranches can now be created._
 2. **Ready for approval** - _All tranches have been created. The policy must now be approved by all its nominated entities._
 3. **In approval** - _The approval process is underway._
-4. **Approved** - _The policy has been approved by all its nominated entities. Once the initiation date has passed the initial tranch sale can begin._
+4. **Approved** - _The policy has been approved by all its nominated entities. Once the initiation date has passed the initial tranche sale can begin._
 5. **Initiated** - _The policy initial sale is now in progress, whereby all tranches have been put up for sale in order for the policy to be become collateralized._
-6. **Active** - _The start date has passed and the initial sale has completed successfully (i.e. at least one tranch has fully sold out). The policy is now active and will accept claims._
+6. **Active** - _The start date has passed and the initial sale has completed successfully (i.e. at least one tranche has fully sold out). The policy is now active and will accept claims._
 7. **Matured** - _The maturation date has passed and the policy is now longer active. New claims are now longer accepted._
-8. **Buyback** - _All claims have been paid out and the policy is now buying back its tranch tokens from the initial sale using its leftover collateral._
+8. **Buyback** - _All claims have been paid out and the policy is now buying back its tranche tokens from the initial sale using its leftover collateral._
 9. **Closed** - _The buyback has completed and the policy is now fully closed._
-10. **Cancelled** - _The policy has been cancelled. This state is reached if the initial tranch sale fails or if a premium payment is missed._
+10. **Cancelled** - _The policy has been cancelled. This state is reached if the initial tranche sale fails or if a premium payment is missed._
 
 Except for the **Ready for approval** state, all other states are transitioned to via our heartbeat mechanism.
 
@@ -136,35 +136,35 @@ Except for the **Ready for approval** state, all other states are transitioned t
 
 The [`checkAndUpdateState()`](https://github.com/nayms/contracts/blob/master/contracts/base/IPolicyCoreFacet.sol#L109) function is responsible for checking the current state of a policy and progressing it to the next state if necessary. It roughly does the following:
 
-* If the initiation date has passed then begin the initial tranch sale.
-* If the start date has passed then check to see if the tranch sale succeeded and that premium payments are up-to-date. If so then mark the policy as **Active**. If not then mark the policy as **Cancelled**.
+* If the initiation date has passed then begin the initial tranche sale.
+* If the start date has passed then check to see if the tranche sale succeeded and that premium payments are up-to-date. If so then mark the policy as **Active**. If not then mark the policy as **Cancelled**.
 * If the maturation date has passed then mark the policy as **Matured**.
-* If the policy has matured and all claims have been dealt with then initiate the tranch token **Buyback**.
+* If the policy has matured and all claims have been dealt with then initiate the tranche token **Buyback**.
 * Check that premium payments are up-to-date. If not then mark the policy as **Cancelled**.
 
 The heartbeat is currently called automatically by our backend.
 
 ### Tranches
 
-Every policy can have one or more tranches created. Each tranch has a configurable fixed no. of "shares" (similar to equity) as well as an initial price-per-share for during the initial sale period. All tranches are priced in the same currency as the policy.
+Every policy can have one or more tranches created. Each tranche has a configurable fixed no. of "shares" (similar to equity) as well as an initial price-per-share for during the initial sale period. All tranches are priced in the same currency as the policy.
 
 Tranches, like their parent policies, also have states:
 
-* **Created** - _Tranch created._
-* **Selling** - _Tranch tokens have been put for sale as part of the initial sale triggered by the policy initiation date._
-* **Active** - _All tranch tokens sold out by the policy start date, and the tranch is thus active. Only tranches in this state can have claims made against them._
-* **Matured** - _Policy has matured, and the tranch has thus matured._
-* **Cancelled** - _The tranch tokens did not fully sell out by the policy start date, and thus the tranch is cancelled._
+* **Created** - _Tranche created._
+* **Selling** - _Tranche tokens have been put for sale as part of the initial sale triggered by the policy initiation date._
+* **Active** - _All tranche tokens sold out by the policy start date, and the tranche is thus active. Only tranches in this state can have claims made against them._
+* **Matured** - _Policy has matured, and the tranche has thus matured._
+* **Cancelled** - _The tranche tokens did not fully sell out by the policy start date, and thus the tranche is cancelled._
 
-Tranche shares are [represented as ERC-20 tokens](https://github.com/nayms/contracts/blob/master/contracts/TranchToken.sol), meaning that each each tranch gets its own ERC-20 token. Since we want to restrict access to these tranch tokens to authorized entities they can only be [transferred through our Matching market](https://github.com/nayms/contracts/blob/master/contracts/PolicyTranchTokens.sol#L74).
+Tranche shares are [represented as ERC-20 tokens](https://github.com/nayms/contracts/blob/master/contracts/TrancheToken.sol), meaning that each each tranche gets its own ERC-20 token. Since we want to restrict access to these tranche tokens to authorized entities they can only be [transferred through our Matching market](https://github.com/nayms/contracts/blob/master/contracts/PolicyTrancheTokens.sol#L74).
 
-The Tranch token logic is actually implemented within the policy, thus allowing us to upgrade tranch token code when upgrading policy code:
+The Tranche token logic is actually implemented within the policy, thus allowing us to upgrade tranche token code when upgrading policy code:
 
 ![token](https://user-images.githubusercontent.com/266594/118975104-8a6d7300-b96b-11eb-88f7-e883c34a155d.png)
 
 ### Claims
 
-Claims can be made representatives of insured parties against a specific active policy tranch. Claims go through the following state transitions:
+Claims can be made representatives of insured parties against a specific active policy tranche. Claims go through the following state transitions:
 
 1. **Created** - _A claim has been created._
 2. **Approved** - _A claim has been approved the claims administrator_.
@@ -181,7 +181,7 @@ At present there is no deadline for approving or declining claims. This also mea
 
 Every policy has an associated [treasury](#treasury) which stores all its funds. The treasury is usually the capital provider entity associated with the policy.
 
-Initially, all tranch tokens are owned by the treasury. This means the initial token sale is coordinated between the treasury and the [matching market](#matching-market) on behalf of the policy. And the collateral obtained as a result of the purchase is also then automatically help in the treasury. 
+Initially, all tranche tokens are owned by the treasury. This means the initial token sale is coordinated between the treasury and the [matching market](#matching-market) on behalf of the policy. And the collateral obtained as a result of the purchase is also then automatically help in the treasury. 
 
 Premium payments are forward to the treasury, minus [commision](#commissions) payments.
 
@@ -191,7 +191,7 @@ Commission payments for the various associated entities are taken out of incomin
 
 ## Matching market
 
-We use an unmodified fork of the [Maker OTC matching market](https://github.com/nayms/maker-otc) to facilitate tranch token sales and trades. In fact, at present the tranch tokens can only be transferred by our on-chain market, though we will likely loosen this restriction later.
+We use an unmodified fork of the [Maker OTC matching market](https://github.com/nayms/maker-otc) to facilitate tranche token sales and trades. In fact, at present the tranche tokens can only be transferred by our on-chain market, though we will likely loosen this restriction later.
 
 
 ## Deployments

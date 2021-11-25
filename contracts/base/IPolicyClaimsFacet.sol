@@ -25,10 +25,10 @@ abstract contract IPolicyClaimsFacet {
   /**
    * @dev Make a claim.
    *
-   * @param _tranchIndex Tranch index.
+   * @param _trancheIndex Tranche index.
    * @param _amount Amount claimed.
    */
-  function makeClaim (uint256 _tranchIndex, uint256 _amount) virtual external;
+  function makeClaim (uint256 _trancheIndex, uint256 _amount) virtual external;
   /**
    * @dev Approve a claim.
    *
@@ -72,12 +72,12 @@ abstract contract IPolicyClaimsFacet {
    * @dev Get claim info.
    *
    * @return amount_ Amount the claim is for.
-   * @return tranchIndex_ Tranch the claim is against.
+   * @return trancheIndex_ Tranche the claim is against.
    * @return state_ Claim state.
    */
   function getClaimInfo (uint256 _claimIndex) virtual public view returns (
     uint256 amount_,
-    uint256 tranchIndex_,
+    uint256 trancheIndex_,
     uint256 state_,
     bool disputed_,
     bool acknowledged_
@@ -90,11 +90,11 @@ abstract contract IPolicyClaimsFacet {
   /**
    * @dev Emitted when a new claim has been created.
    *
-   * @param tranchIndex The tranch index.
+   * @param trancheIndex The tranche index.
    * @param claimIndex The claim index.
    * @param caller The claim maker.
    */
-  event NewClaim(uint256 indexed tranchIndex, uint256 indexed claimIndex, address indexed caller);
+  event NewClaim(uint256 indexed trancheIndex, uint256 indexed claimIndex, address indexed caller);
   /**
    * @dev Emitted when a claim has been disputed.
    *

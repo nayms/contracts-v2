@@ -17,7 +17,7 @@ import "./Policy.sol";
 contract EntityCoreFacet is EternalStorage, Controller, EntityFacetBase, IEntityCoreFacet, IDiamondFacet {
   using SafeMath for uint256;
 
-  modifier assertCanPayTranchPremiums (address _policyAddress) {
+  modifier assertCanPayTranchePremiums (address _policyAddress) {
     require(inRoleGroup(msg.sender, ROLEGROUP_ENTITY_REPS), 'must be entity rep');
     _;
   }
@@ -33,7 +33,7 @@ contract EntityCoreFacet is EternalStorage, Controller, EntityFacetBase, IEntity
   function getSelectors () public pure override returns (bytes memory) {
     return abi.encodePacked(
       IEntityCoreFacet.createPolicy.selector,
-      IEntityCoreFacet.payTranchPremium.selector,
+      IEntityCoreFacet.payTranchePremium.selector,
       IParent.getNumChildren.selector,
       IParent.getChild.selector,
       IParent.hasChild.selector
@@ -45,7 +45,7 @@ contract EntityCoreFacet is EternalStorage, Controller, EntityFacetBase, IEntity
 
   function createPolicy(
     bytes32 _id,
-    uint256[] calldata _typeAndPremiumIntervalSecondsAndDatesAndCommissionsBP,
+    uint256[] calldata _typeAndDatesAndCommissionsBP,
     address[] calldata _unitAndTreasuryAndStakeholders,
     uint256[][] calldata _trancheData,
     bytes[] calldata _approvalSignatures
@@ -62,7 +62,7 @@ contract EntityCoreFacet is EternalStorage, Controller, EntityFacetBase, IEntity
       _id,
       address(settings()),
       msg.sender,
-      _typeAndPremiumIntervalSecondsAndDatesAndCommissionsBP,
+      _typeAndDatesAndCommissionsBP,
       _unitAndTreasuryAndStakeholders
     );
 
@@ -81,7 +81,7 @@ contract EntityCoreFacet is EternalStorage, Controller, EntityFacetBase, IEntity
         premiums[j - 2] = _trancheData[i][j];
       }
 
-      pol.createTranch(
+      pol.createTranche(
         _trancheData[i][0], // _numShares
         _trancheData[i][1], // _pricePerShareAmount
         premiums
@@ -96,10 +96,10 @@ contract EntityCoreFacet is EternalStorage, Controller, EntityFacetBase, IEntity
   }
   
 
-  function payTranchPremium(address _policy, uint256 _tranchIndex, uint256 _amount)
+  function payTranchePremium(address _policy, uint256 _trancheIndex, uint256 _amount)
     external
     override
-    assertCanPayTranchPremiums(_policy)
+    assertCanPayTranchePremiums(_policy)
   {
     address policyUnitAddress;
 
@@ -113,7 +113,7 @@ contract EntityCoreFacet is EternalStorage, Controller, EntityFacetBase, IEntity
       address a1;
 
       // policy's unit
-      (, a1, i1, i2, i3, policyUnitAddress, , , ,) = p.getInfo();
+      (, a1, i1, i2, i3, policyUnitAddress, , ,) = p.getInfo();
     }
     
     // check balance
@@ -124,6 +124,6 @@ contract EntityCoreFacet is EternalStorage, Controller, EntityFacetBase, IEntity
     tok.approve(_policy, _amount);
 
     // do it
-    p.payTranchPremium(_tranchIndex, _amount);
+    p.payTranchePremium(_trancheIndex, _amount);
   }
 }

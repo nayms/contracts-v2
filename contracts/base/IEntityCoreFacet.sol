@@ -32,7 +32,7 @@ interface IEntityCoreFacet {
    *
    * `_trancheData`
    *    * This parameter is structured as follows. The outer array represents the list of tranches. The 
-   *      inner array represents the `[ number of tranch shares, price per share, ...premium payment amounts ]`.
+   *      inner array represents the `[ number of tranche shares, price per share, ...premium payment amounts ]`.
    *
    * @param _id Unique id that represents the policy - this is what stakeholder will sign to approve the policy.
    * @param _typeAndPremiumIntervalSecondsAndDatesAndCommissionsBP See above.
@@ -49,13 +49,13 @@ interface IEntityCoreFacet {
   ) external;
 
   /**
-   * @dev Pay the next expected premium for a tranch using the assets owned by this entity.
+   * @dev Pay the next expected premium for a tranche using the assets owned by this entity.
    *
-   * @param _policy Policy which owns the tranch.
-   * @param _tranchIndex Index of the tranch in the policy.
+   * @param _policy Policy which owns the tranche.
+   * @param _trancheIndex Index of the tranche in the policy.
    * @param _amount Amount of premium to pay.
    */
-  function payTranchPremium(address _policy, uint256 _tranchIndex, uint256 _amount) external;
+  function payTranchePremium(address _policy, uint256 _trancheIndex, uint256 _amount) external;
 
   /**
    * @dev Emitted when a new policy has been created.

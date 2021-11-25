@@ -4,7 +4,7 @@ import {
   extractEventArgs,
   hdWallet,
   ADDRESS_ZERO,
-  createTranch,
+  createTranche,
   preSetupPolicy,
   createEntity,
   EvmSnapshot,
@@ -29,7 +29,7 @@ const Policy = artifacts.require("./Policy")
 const DummyToken = artifacts.require("./DummyToken")
 const IPolicy = artifacts.require("./base/IPolicy")
 const DummyPolicyFacet = artifacts.require("./test/DummyPolicyFacet")
-const TranchToken = artifacts.require("./TranchToken")
+const TrancheToken = artifacts.require("./TrancheToken")
 const FreezeUpgradesFacet = artifacts.require("./test/FreezeUpgradesFacet")
 
 
@@ -73,9 +73,9 @@ describe('Policy: Tranches', () => {
   let POLICY_STATE_APPROVED
   let POLICY_STATE_CANCELLED
 
-  let TRANCH_STATE_CANCELLED
-  let TRANCH_STATE_ACTIVE
-  let TRANCH_STATE_MATURED
+  let TRANCHE_STATE_CANCELLED
+  let TRANCHE_STATE_ACTIVE
+  let TRANCHE_STATE_MATURED
 
   let POLICY_ATTRS_1
   let POLICY_ATTRS_2
@@ -129,7 +129,7 @@ describe('Policy: Tranches', () => {
       initiationDateDiff: 1000,
       startDateDiff: 2000,
       maturationDateDiff: 3000,
-      premiumIntervalSeconds: undefined,
+      // premiumIntervalSeconds: undefined,
       claimsAdminCommissionBP: 0,
       brokerCommissionBP: 0,
       naymsCommissionBP: 0,
@@ -144,11 +144,12 @@ describe('Policy: Tranches', () => {
       initiationDateDiff: 0,
       startDateDiff: 0,
       maturationDateDiff: 30,
-      premiumIntervalSeconds: 10,
+      // premiumIntervalSeconds: 10,
     })
 
     POLICY_ATTRS_4 = Object.assign({}, POLICY_ATTRS_1, {
-      trancheData: [[100, 2, 5, 6]]
+      // trancheData: [[100, 2, 5, 6]]
+      trancheDataDiff: [[100, 2, 0, 5, 30, 6]]
     })
 
     // policy
@@ -165,9 +166,9 @@ describe('Policy: Tranches', () => {
     POLICY_STATE_IN_APPROVAL = await policyStates.POLICY_STATE_IN_APPROVAL()
     POLICY_STATE_APPROVED = await policyStates.POLICY_STATE_APPROVED()
     
-    TRANCH_STATE_CANCELLED = await policyStates.TRANCH_STATE_CANCELLED()
-    TRANCH_STATE_ACTIVE = await policyStates.TRANCH_STATE_ACTIVE()
-    TRANCH_STATE_MATURED = await policyStates.TRANCH_STATE_MATURED()
+    TRANCHE_STATE_CANCELLED = await policyStates.TRANCHE_STATE_CANCELLED()
+    TRANCHE_STATE_ACTIVE = await policyStates.TRANCHE_STATE_ACTIVE()
+    TRANCHE_STATE_MATURED = await policyStates.TRANCHE_STATE_MATURED()
 
     const preSetupPolicyCtx = { policies, settings, events, etherToken, entity, entityManagerAddress }
     await Promise.all([
@@ -198,19 +199,19 @@ describe('Policy: Tranches', () => {
   })
 
   describe('tranches', () => {
-    const tranchNumShares = 10
-    const tranchPricePerShare = 100
+    const trancheNumShares = 10
+    const tranchePricePerShare = 100
 
     describe('basic tests', () => {
       it('cannot be created without correct authorization', async () => {
         await setupPolicy(POLICY_ATTRS_1)
-        await createTranch(policy, {}).should.be.rejectedWith('must be policy owner or original creator')
+        await createTranche(policy, {}).should.be.rejectedWith('must be policy owner or original creator')
       })
 
       it('all basic values must be valid', async () => {
         await setupPolicy(POLICY_ATTRS_1)
-        await createTranch(policy, { numShares: 0 }, { from: policyOwnerAddress }).should.be.rejectedWith('invalid num of shares')
-        await createTranch(policy, { pricePerShareAmount: 0 }, { from: policyOwnerAddress }).should.be.rejectedWith('invalid price')
+        await createTranche(policy, { numShares: 0 }, { from: policyOwnerAddress }).should.be.rejectedWith('invalid num of shares')
+        await createTranche(policy, { pricePerShareAmount: 0 }, { from: policyOwnerAddress }).should.be.rejectedWith('invalid price')
       })
 
       it('create tranches as part of policy creation call', async () => {
@@ -220,12 +221,12 @@ describe('Policy: Tranches', () => {
           numTranches_: 1,
         })
 
-        await policy.getTranchInfo(0).should.eventually.matchObj({
+        await policy.getTrancheInfo(0).should.eventually.matchObj({
           numShares_: 100,
           initialPricePerShare_: 2
         })
 
-        await policy.getTranchPremiumsInfo(0).should.eventually.matchObj({
+        await policy.getTranchePremiumsInfo(0).should.eventually.matchObj({
           numPremiums_: 2,
           nextPremiumAmount_: 5,
         })
@@ -238,39 +239,54 @@ describe('Policy: Tranches', () => {
         })
 
         it('0', async () => {
-          await createTranch(policy, { premiums: [] }, { from: policyOwnerAddress }).should.be.fulfilled
+          await createTranche(policy, { 
+            // premiums: []
+            premiumsDiff: []
+          }, { from: policyOwnerAddress }).should.be.fulfilled
         })
 
         it('less than max', async () => {
-          await createTranch(policy, { premiums: [1] }, { from: policyOwnerAddress }).should.be.fulfilled
+          await createTranche(policy, { 
+            // premiums: [1] 
+            premiumsDiff: [0, 1]
+          }, { from: policyOwnerAddress }).should.be.fulfilled
         })
 
         it('max', async () => {
-          await createTranch(policy, { premiums: [1, 2, 3, 4] }, { from: policyOwnerAddress }).should.be.fulfilled
+          await createTranche(policy, { 
+            // premiums: [1, 2, 3, 4]
+            premiumsDiff: [0, 1, 10, 2, 20, 3, 30, 4]
+          }, { from: policyOwnerAddress }).should.be.fulfilled
         })
 
-        it('above max', async () => {
-          await createTranch(policy, { premiums: [1, 2, 3, 4, 5] }, { from: policyOwnerAddress }).should.be.rejectedWith('too many premiums')
+        it('past maturation date', async () => {
+          await createTranche(policy, { 
+            // premiums: [1, 2, 3, 4, 5]
+            premiumsDiff: [0, 1, 10, 2, 20, 3, 30, 4, 40, 5]
+          }, { from: policyOwnerAddress }).should.be.rejectedWith('premium after maturation')
         })
 
         it('above max but filtering out 0-values results in max', async () => {
-          await createTranch(policy, { premiums: [0, 0, 0, 1, 2, 0, 3, 4] }, { from: policyOwnerAddress }).should.be.fulfilled
+          await createTranche(policy, { 
+            // premiums: [0, 0, 0, 1, 2, 0, 3, 4]
+            premiumsDiff: [0, 0, 0, 0, 0, 0, 0, 1, 10, 2, 20, 0, 20, 3, 30, 4]
+          }, { from: policyOwnerAddress }).should.be.fulfilled
         })
       })
 
       it('can be created and has initial supply allocated to treasury', async () => {
         await setupPolicy(POLICY_ATTRS_1)
 
-        const result = await createTranch(policy, {
-          numShares: tranchNumShares,
-          pricePerShareAmount: tranchPricePerShare,
+        const result = await createTranche(policy, {
+          numShares: trancheNumShares,
+          pricePerShareAmount: tranchePricePerShare,
         }, {
           from: accounts[2]
         }).should.be.fulfilled
 
-        const [log] = parseEvents(result, events.CreateTranch)
+        const [log] = parseEvents(result, events.CreateTranche)
 
-        const { token_: addr } = await policy.getTranchInfo(0)
+        const { token_: addr } = await policy.getTrancheInfo(0)
         expect(addr.length).to.eq(42)
 
         expect(log.args.index).to.eq('0')
@@ -281,14 +297,14 @@ describe('Policy: Tranches', () => {
       it('can be created and will have state set to CREATED', async () => {
         await setupPolicy(POLICY_ATTRS_1)
 
-        await createTranch(policy, {
-          numShares: tranchNumShares,
-          pricePerShareAmount: tranchPricePerShare,
+        await createTranche(policy, {
+          numShares: trancheNumShares,
+          pricePerShareAmount: tranchePricePerShare,
         }, {
           from: accounts[2]
         }).should.be.fulfilled
 
-        await policy.getTranchInfo(0).should.eventually.matchObj({
+        await policy.getTrancheInfo(0).should.eventually.matchObj({
           state_: POLICY_STATE_CREATED
         })
       })
@@ -296,16 +312,16 @@ describe('Policy: Tranches', () => {
       it('can be created more than once', async () => {
         await setupPolicy(POLICY_ATTRS_1)
 
-        await createTranch(policy, {
-          numShares: tranchNumShares,
-          pricePerShareAmount: tranchPricePerShare,
+        await createTranche(policy, {
+          numShares: trancheNumShares,
+          pricePerShareAmount: tranchePricePerShare,
         }, {
           from: accounts[2]
         }).should.be.fulfilled
 
-        await createTranch(policy, {
-          numShares: tranchNumShares + 1,
-          pricePerShareAmount: tranchPricePerShare + 2,
+        await createTranche(policy, {
+          numShares: trancheNumShares + 1,
+          pricePerShareAmount: tranchePricePerShare + 2,
         }, {
           from: accounts[2]
         }).should.be.fulfilled
@@ -315,7 +331,7 @@ describe('Policy: Tranches', () => {
         const addresses = {}
 
         await Promise.all(_.range(0, 2).map(async i => {
-          const { token_: addr } = await policy.getTranchInfo(i)
+          const { token_: addr } = await policy.getTrancheInfo(i)
           expect(!addresses[addr]).to.be.true
           expect(addr.length).to.eq(42)
           addresses[addr] = true
@@ -327,13 +343,13 @@ describe('Policy: Tranches', () => {
       it('cannot be created once in approval state', async () => {
         await setupPolicy(POLICY_ATTRS_2)
         await policy.approve(ROLES.PENDING_BROKER, { from: brokerRep })
-        await createTranch(policy, {}, { from: accounts[2] }).should.be.rejectedWith('must be in created state')
+        await createTranche(policy, {}, { from: accounts[2] }).should.be.rejectedWith('must be in created state')
       })
 
       it('cannot be created once in approved state', async () => {
         await setupPolicy(POLICY_ATTRS_2)
         await doPolicyApproval({ policy, brokerRep, underwriterRep, claimsAdminRep, insuredPartyRep })
-        await createTranch(policy, {}, { from: accounts[2] }).should.be.rejectedWith('must be in created state')
+        await createTranche(policy, {}, { from: accounts[2] }).should.be.rejectedWith('must be in created state')
       })
     })
 
@@ -345,14 +361,14 @@ describe('Policy: Tranches', () => {
 
         acl.assignRole(policyContext, accounts[0], ROLES.POLICY_OWNER)
 
-        await createTranch(policy, {
-          numShares: tranchNumShares,
-          pricePerShareAmount: tranchPricePerShare,
+        await createTranche(policy, {
+          numShares: trancheNumShares,
+          pricePerShareAmount: tranchePricePerShare,
         }).should.be.fulfilled
 
-        await createTranch(policy, {
-          numShares: tranchNumShares,
-          pricePerShareAmount: tranchPricePerShare,
+        await createTranche(policy, {
+          numShares: trancheNumShares,
+          pricePerShareAmount: tranchePricePerShare,
         }).should.be.fulfilled
       })
 
@@ -361,14 +377,14 @@ describe('Policy: Tranches', () => {
         let done = 0
 
         await Promise.all(_.range(0, 2).map(async i => {
-          const tkn = await IERC20.at((await policy.getTranchInfo(i)).token_)
+          const tkn = await IERC20.at((await policy.getTrancheInfo(i)).token_)
 
-          const NAME = `NAYMS-${policyProxy.address.toLowerCase()}-TRANCH-${i + 1}`
+          const NAME = `NAYMS-${policyProxy.address.toLowerCase()}-TRANCHE-${i + 1}`
           const SYMBOL = `N-${policyProxy.address.toLowerCase().substr(0, 6)}-${i + 1}`
 
           await tkn.name().should.eventually.eq(NAME)
           await tkn.symbol().should.eventually.eq(SYMBOL)
-          await tkn.totalSupply().should.eventually.eq(tranchNumShares)
+          await tkn.totalSupply().should.eventually.eq(trancheNumShares)
           await tkn.decimals().should.eventually.eq(18)
           await tkn.allowance(accounts[0], accounts[1]).should.eventually.eq(0)
 
@@ -382,7 +398,7 @@ describe('Policy: Tranches', () => {
         let done = 0
 
         await Promise.all(_.range(0, 2).map(async i => {
-          const tkn = await IERC20.at((await policy.getTranchInfo(i)).token_)
+          const tkn = await IERC20.at((await policy.getTrancheInfo(i)).token_)
 
           await tkn.balanceOf(entity.address).should.eventually.eq(await tkn.totalSupply())
 

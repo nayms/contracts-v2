@@ -136,20 +136,64 @@ export const outputBNs = bn => {
   })
 }
 
-export const createTranch = (policy, attrs, ...callAttrs) => {
+export const createTranche = async (policy, attrs, ...callAttrs) => {
   const {
     numShares = 10,
     pricePerShareAmount = 1,
-    premiums = [],
+    // premiums = [],
+    premiumsDiff = [],
   } = attrs
 
-  return policy.createTranch(
+  // console.log('premiumsDiff')
+  // console.log(premiumsDiff)
+  // console.log(' end premiumsDiff')
+
+  let premiums = []
+  let policyInfo 
+  policyInfo = await policy.getInfo()
+  const policyInitiationDate = policyInfo.initiationDate_
+
+  // console.log('policyInfo')
+  // console.log(policyInfo)
+  // console.log(' end policyInfo')
+  
+  for (let i = 0; i < premiumsDiff.length; i += 2) {
+    premiums[i] = policyInitiationDate.add(toBN (premiumsDiff[i]))
+    premiums[i + 1] = toBN (premiumsDiff[i + 1])
+  }
+
+
+  
+  return policy.createTranche(
     numShares,
     pricePerShareAmount,
     premiums,
     ...callAttrs,
   )
 }
+
+
+export const adjustTrancheDataDiff = (policyInitiationDate, trancheDiffData) => {
+
+  let trancheData = trancheDiffData
+
+  if (trancheDiffData != undefined){
+  for (let i = 0; i < trancheDiffData.length; i += 1) {
+    for (let j = 2; j < trancheDiffData[i].length; j += 2) {
+      trancheData[i][j] = policyInitiationDate + trancheDiffData[i][j]
+    }
+  }
+  }
+  else {
+    trancheData = []
+  }
+
+  return trancheData
+}
+
+
+
+
 
 export const createEntity = async ({ acl, entityDeployer, adminAddress, entityContext = BYTES32_ZERO }) => {
   const deployEntityTx = await entityDeployer.deploy(adminAddress, entityContext)
@@ -173,7 +217,7 @@ export const createPolicy = async (entity, attrs = {}, ...callAttrs) => {
     startDate = currentTime + 120,
     maturationDate = currentTime + 300,
     unit = ADDRESS_ZERO,
-    premiumIntervalSeconds = 30,
+    // premiumIntervalSeconds = 30,
 
     brokerCommissionBP = 0,
     claimsAdminCommissionBP = 0,
@@ -192,7 +236,7 @@ export const createPolicy = async (entity, attrs = {}, ...callAttrs) => {
     policyId,
     [
       type, 
-      premiumIntervalSeconds, 
+      // premiumIntervalSeconds, 
       initiationDate, startDate, maturationDate, 
       brokerCommissionBP, underwriterCommissionBP, claimsAdminCommissionBP, naymsCommissionBP,
     ],
@@ -223,7 +267,8 @@ export const preSetupPolicy = async (ctx, createPolicyArgs) => {
     underwriter,
     claimsAdmin,
     insuredParty,
-    trancheData
+    // trancheData
+    trancheDataDiff
   } = (createPolicyArgs || {})
 
   // get current evm time
@@ -237,7 +282,7 @@ export const preSetupPolicy = async (ctx, createPolicyArgs) => {
     startDate: currentBlockTime + startDateDiff,
     maturationDate: currentBlockTime + maturationDateDiff,
     unit: ctx.etherToken.address,
-    premiumIntervalSeconds,
+    // premiumIntervalSeconds,
     brokerCommissionBP,
     claimsAdminCommissionBP,
     naymsCommissionBP,
@@ -246,7 +291,8 @@ export const preSetupPolicy = async (ctx, createPolicyArgs) => {
     underwriter,
     claimsAdmin,
     insuredParty,
-    trancheData
+    // trancheData
+    trancheData: adjustTrancheDataDiff(currentBlockTime + initiationDateDiff, trancheDataDiff)
   }
 
   var createPolicyTx

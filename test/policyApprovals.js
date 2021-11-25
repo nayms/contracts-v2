@@ -2,7 +2,7 @@ import {
   uuid,
   extractEventArgs,
   parseEvents,
-  createTranch,
+  createTranche,
   createPolicy,
   doPolicyApproval,
   generateApprovalSignatures,
@@ -126,8 +126,17 @@ describe('Policy: Approvals', () => {
     initiationDate = baseDate + 1000
     startDate = initiationDate + 1000
     maturationDate = startDate + 2000
-    premiumIntervalSeconds = 500
-    const trancheData = [[100, 2, 10, 20, 30, 40, 50, 60, 70]]
+    // premiumIntervalSeconds = 500
+    // const trancheData = [[100, 2, 10, 20, 30, 40, 50, 60, 70]]
+    const trancheData = 
+    [[100, 2, 
+      initiationDate + 0, 10 ,
+      initiationDate + 500 , 20,
+      initiationDate + 1000, 30,
+      initiationDate + 1500, 40,
+      initiationDate + 2000, 50,
+      initiationDate + 2500, 60,
+      initiationDate + 3000, 70 ]]
 
     policyId = keccak256(uuid())
 
@@ -136,7 +145,7 @@ describe('Policy: Approvals', () => {
       initiationDate,
       startDate,
       maturationDate,
-      premiumIntervalSeconds,
+      // premiumIntervalSeconds,
       unit: etherToken.address,
       claimsAdminCommissionBP,
       brokerCommissionBP,
@@ -158,10 +167,11 @@ describe('Policy: Approvals', () => {
     market = await ensureMarketIsDeployed({ artifacts, settings })
 
     // setup second tranche. First one was set in the createPolicy call
-    await createTranch(policy, {
+    await createTranche(policy, {
       numShares: 50,
       pricePerShareAmount: 2,
-      premiums: [10, 20, 30, 40, 50, 60, 70],
+      // premiums: [10, 20, 30, 40, 50, 60, 70],
+      premiumsDiff: [0, 10 ,500 , 20, 1000, 30, 1500, 40, 2000, 50, 2500, 60, 3000, 70 ]
     }, { from: policyOwnerAddress })
 
     const policyStates = await IPolicyStates.at(policyCoreAddress)

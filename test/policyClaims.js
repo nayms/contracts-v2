@@ -4,7 +4,7 @@ import {
   extractEventArgs,
   hdWallet,
   ADDRESS_ZERO,
-  createTranch,
+  createTranche,
   preSetupPolicy,
   doPolicyApproval,
   EvmClock,
@@ -35,7 +35,7 @@ const POLICY_ATTRS_1 = {
   initiationDateDiff: 1000,
   startDateDiff: 2000,
   maturationDateDiff: 3000,
-  premiumIntervalSeconds: undefined,
+  premiumIntervalSeconds: 30,
   claimsAdminCommissionBP: 0,
   brokerCommissionBP: 0,
   naymsCommissionBP: 0,
@@ -104,9 +104,9 @@ describe('Policy: Claims', () => {
   let POLICY_STATE_CANCELLED
   let POLICY_STATE_BUYBACK
 
-  let TRANCH_STATE_CANCELLED
-  let TRANCH_STATE_ACTIVE
-  let TRANCH_STATE_MATURED
+  let TRANCHE_STATE_CANCELLED
+  let TRANCHE_STATE_ACTIVE
+  let TRANCHE_STATE_MATURED
 
   let CLAIM_STATE_CREATED
   let CLAIM_STATE_DISPUTED
@@ -121,7 +121,7 @@ describe('Policy: Claims', () => {
   let setupPolicyForClaims
   const policies = new Map()
 
-  let buyAllTranchTokens
+  let buyAllTrancheTokens
 
   before(async () => {
     accounts = await getAccounts()
@@ -175,9 +175,9 @@ describe('Policy: Claims', () => {
     POLICY_STATE_APPROVED = await policyStates.POLICY_STATE_APPROVED()
     POLICY_STATE_BUYBACK = await policyStates.POLICY_STATE_BUYBACK()
 
-    TRANCH_STATE_CANCELLED = await policyStates.TRANCH_STATE_CANCELLED()
-    TRANCH_STATE_ACTIVE = await policyStates.TRANCH_STATE_ACTIVE()
-    TRANCH_STATE_MATURED = await policyStates.TRANCH_STATE_MATURED()
+    TRANCHE_STATE_CANCELLED = await policyStates.TRANCHE_STATE_CANCELLED()
+    TRANCHE_STATE_ACTIVE = await policyStates.TRANCHE_STATE_ACTIVE()
+    TRANCHE_STATE_MATURED = await policyStates.TRANCHE_STATE_MATURED()
 
     const claimsFacet = await IPolicyClaimsFacet.at(policyClaimsAddress)
     CLAIM_STATE_CREATED = await claimsFacet.CLAIM_STATE_CREATED()
@@ -198,20 +198,24 @@ describe('Policy: Claims', () => {
       policy = await IPolicy.at(policyAddress)
       policyOwnerAddress = entityManagerAddress
 
-      await createTranch(policy, {
-        premiums: [2000, 3000, 4000]
+      await createTranche(policy, {
+        // premiums: [2000, 3000, 4000]
+        premiumsDiff: [0, 2000, attrs.premiumIntervalSeconds, 3000, attrs.premiumIntervalSeconds * 2, 4000]
       }, { from: policyOwnerAddress })
 
-      await createTranch(policy, {
-        premiums: [7000, 1000, 5000]
+      await createTranche(policy, {
+        // premiums: [7000, 1000, 5000]
+        premiumsDiff: [0, 7000, attrs.premiumIntervalSeconds, 1000, attrs.premiumIntervalSeconds * 2, 5000]
       }, { from: policyOwnerAddress })
 
-      await createTranch(policy, {  // this tranch will be cancelled because we won't pay all the premiums
-        premiums: [7000, 1000, 5000]
+      await createTranche(policy, {  // this tranche will be cancelled because we won't pay all the premiums
+        // premiums: [7000, 1000, 5000]
+        premiumsDiff: [0, 7000, attrs.premiumIntervalSeconds, 1000, attrs.premiumIntervalSeconds * 2, 5000]
       }, { from: policyOwnerAddress })
 
-      await createTranch(policy, {  // this tranch will be cancelled because we won't pay all the premiums
-        premiums: [7000, 1000, 5000]
+      await createTranche(policy, {  // this tranche will be cancelled because we won't pay all the premiums
+        // premiums: [7000, 1000, 5000]
+        premiumsDiff: [0, 7000, attrs.premiumIntervalSeconds, 1000, attrs.premiumIntervalSeconds * 2, 5000]
       }, { from: policyOwnerAddress })
 
       // now pay premiums
@@ -219,16 +223,16 @@ describe('Policy: Claims', () => {
       await etherToken.approve(policy.address, 50000)
 
       // pay 100%
-      await policy.payTranchPremium(0, 9000)
+      await policy.payTranchePremium(0, 9000)
 
       // pay 90%
-      await policy.payTranchPremium(1, 13000 * 0.9)
+      await policy.payTranchePremium(1, 13000 * 0.9)
 
       // pay 1 (so it's cancelled by the start date time)
-      await policy.payTranchPremium(2, 7000)
+      await policy.payTranchePremium(2, 7000)
 
       // pay 2 (so it's active by the start date time but should be cancelled after that)
-      await policy.payTranchPremium(3, 8000)
+      await policy.payTranchePremium(3, 8000)
     }
 
     underwriter = await createEntity({ entityDeployer, adminAddress: underwriterRep, entityContext, acl })
@@ -267,18 +271,18 @@ describe('Policy: Claims', () => {
         await approvePolicy()
       }
 
-      const { token_: tranch0Address } = await policy.getTranchInfo(0)
-      const { token_: tranch1Address } = await policy.getTranchInfo(1)
-      const { token_: tranch2Address } = await policy.getTranchInfo(2)
-      const { token_: tranch3Address } = await policy.getTranchInfo(3)
+      const { token_: tranche0Address } = await policy.getTrancheInfo(0)
+      const { token_: tranche1Address } = await policy.getTrancheInfo(1)
+      const { token_: tranche2Address } = await policy.getTrancheInfo(2)
+      const { token_: tranche3Address } = await policy.getTrancheInfo(3)
 
-      buyAllTranchTokens = async () => {
+      buyAllTrancheTokens = async () => {
         await etherToken.deposit({ value: 40 })
         await etherToken.approve(market.address, 40)
-        await market.executeLimitOffer(etherToken.address, 10, tranch0Address, 10, FEE_SCHEDULE_STANDARD)
-        await market.executeLimitOffer(etherToken.address, 10, tranch1Address, 10, FEE_SCHEDULE_STANDARD)
-        await market.executeLimitOffer(etherToken.address, 10, tranch2Address, 10, FEE_SCHEDULE_STANDARD)
-        await market.executeLimitOffer(etherToken.address, 10, tranch3Address, 10, FEE_SCHEDULE_STANDARD)
+        await market.executeLimitOffer(etherToken.address, 10, tranche0Address, 10, FEE_SCHEDULE_STANDARD)
+        await market.executeLimitOffer(etherToken.address, 10, tranche1Address, 10, FEE_SCHEDULE_STANDARD)
+        await market.executeLimitOffer(etherToken.address, 10, tranche2Address, 10, FEE_SCHEDULE_STANDARD)
+        await market.executeLimitOffer(etherToken.address, 10, tranche3Address, 10, FEE_SCHEDULE_STANDARD)
       }
 
       evmClock = new EvmClock(baseTime)
@@ -327,12 +331,12 @@ describe('Policy: Claims', () => {
       await evmClock.setRelativeTime(100)
       await policy.checkAndUpdateState()
       await evmClock.setRelativeTime(1000)
-      await buyAllTranchTokens()
+      await buyAllTrancheTokens()
       await policy.checkAndUpdateState()
 
       await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_ACTIVE })
-      await policy.getTranchInfo(0).should.eventually.matchObj({
-        state_: TRANCH_STATE_ACTIVE
+      await policy.getTrancheInfo(0).should.eventually.matchObj({
+        state_: TRANCHE_STATE_ACTIVE
       })
 
       await policy.makeClaim(0, 1, { from: insuredPartyRep }).should.be.fulfilled
@@ -343,13 +347,13 @@ describe('Policy: Claims', () => {
 
       await evmClock.setRelativeTime(100)
       await policy.checkAndUpdateState()
-      await buyAllTranchTokens()
+      await buyAllTrancheTokens()
       await evmClock.setRelativeTime(1000)
       await policy.checkAndUpdateState()
 
       await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_BUYBACK })
-      await policy.getTranchInfo(0).should.eventually.matchObj({
-        state_: TRANCH_STATE_MATURED
+      await policy.getTrancheInfo(0).should.eventually.matchObj({
+        state_: TRANCHE_STATE_MATURED
       })
 
       await policy.makeClaim(0, 1, { from: insuredPartyRep }).should.be.rejectedWith('must be in active state')
@@ -362,8 +366,8 @@ describe('Policy: Claims', () => {
         await setupPolicyForClaims(POLICY_ATTRS_4)
         await evmClock.setRelativeTime(1000)
         await policy.checkAndUpdateState()
-        await evmClock.setRelativeTime(2000) // expect 2 premium payments to have been paid for every tranch by this point
-        await buyAllTranchTokens()
+        await evmClock.setRelativeTime(2000) // expect 2 premium payments to have been paid for every tranche by this point
+        await buyAllTrancheTokens()
         await policy.checkAndUpdateState()
         await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_ACTIVE })
       })
@@ -373,35 +377,35 @@ describe('Policy: Claims', () => {
       })
 
       describe('if made by insured party', () => {
-        it('claim must be against an active tranch (and it will call the heartbeat first to check)', async () => {
-          await policy.getTranchInfo(3).should.eventually.matchObj({
-            state_: TRANCH_STATE_ACTIVE
+        it('claim must be against an active tranche (and it will call the heartbeat first to check)', async () => {
+          await policy.getTrancheInfo(3).should.eventually.matchObj({
+            state_: TRANCHE_STATE_ACTIVE
           })
 
           // past next premium payment interval
           await evmClock.setRelativeTime(4000)
 
-          await policy.makeClaim(3, 1, { from: insuredPartyRep }).should.be.rejectedWith('tranch must be active');
+          await policy.makeClaim(3, 1, { from: insuredPartyRep }).should.be.rejectedWith('tranche must be active');
         })
 
-        it('claim must be against an active tranch', async () => {
-          await policy.getTranchInfo(2).should.eventually.matchObj({
-            state_: TRANCH_STATE_CANCELLED
+        it('claim must be against an active tranche', async () => {
+          await policy.getTrancheInfo(2).should.eventually.matchObj({
+            state_: TRANCHE_STATE_CANCELLED
           })
-          await policy.makeClaim(2, 1, { from: insuredPartyRep }).should.be.rejectedWith('tranch must be active');
+          await policy.makeClaim(2, 1, { from: insuredPartyRep }).should.be.rejectedWith('tranche must be active');
         })
 
         it('claim must be less than available balance', async () => {
-          const tranchBalance = (await policy.getTranchInfo(0)).balance_.toNumber()
+          const trancheBalance = (await policy.getTrancheInfo(0)).balance_.toNumber()
 
-          await policy.makeClaim(0, tranchBalance + 1, { from: insuredPartyRep }).should.be.rejectedWith('claim too high')
-          await policy.makeClaim(0, tranchBalance, { from: insuredPartyRep }).should.be.fulfilled
+          await policy.makeClaim(0, trancheBalance + 1, { from: insuredPartyRep }).should.be.rejectedWith('claim too high')
+          await policy.makeClaim(0, trancheBalance, { from: insuredPartyRep }).should.be.fulfilled
         })
 
         it('claim must be less than available balance, taking into account existing pending claims', async () => {
-          const tranchBalance = (await policy.getTranchInfo(0)).balance_.toNumber()
+          const trancheBalance = (await policy.getTrancheInfo(0)).balance_.toNumber()
 
-          await policy.makeClaim(0, tranchBalance, { from: insuredPartyRep }).should.be.fulfilled
+          await policy.makeClaim(0, trancheBalance, { from: insuredPartyRep }).should.be.fulfilled
           await policy.makeClaim(0, 1, { from: insuredPartyRep }).should.be.rejectedWith('claim too high')
           await policy.makeClaim(1, 1, { from: insuredPartyRep }).should.be.fulfilled
         })
@@ -410,7 +414,7 @@ describe('Policy: Claims', () => {
           const ret = await policy.makeClaim(0, 4, { from: insuredPartyRep })
 
           expect(extractEventArgs(ret, events.NewClaim)).to.include({
-            tranchIndex: '0',
+            trancheIndex: '0',
             claimIndex: '0'
           })
         })
@@ -427,7 +431,7 @@ describe('Policy: Claims', () => {
 
           await policy.getClaimInfo(0).should.eventually.matchObj({
             amount_: 4,
-            tranchIndex_: 0,
+            trancheIndex_: 0,
             state_: CLAIM_STATE_CREATED,
             disputed_: false,
             acknowledged: false,
@@ -435,7 +439,7 @@ describe('Policy: Claims', () => {
 
           await policy.getClaimInfo(1).should.eventually.matchObj({
             amount_: 1,
-            tranchIndex_: 1,
+            trancheIndex_: 1,
             state_: CLAIM_STATE_CREATED,
             disputed_: false,
             acknowledged: false,
@@ -443,7 +447,7 @@ describe('Policy: Claims', () => {
 
           await policy.getClaimInfo(2).should.eventually.matchObj({
             amount_: 5,
-            tranchIndex_: 1,
+            trancheIndex_: 1,
             state_: CLAIM_STATE_CREATED,
             disputed_: false,
             acknowledged: false,
@@ -476,11 +480,11 @@ describe('Policy: Claims', () => {
           })
 
           it('and no longer counts towards pending balance', async () => {
-            const tranchBalance = (await policy.getTranchInfo(0)).balance_.toNumber()
+            const trancheBalance = (await policy.getTrancheInfo(0)).balance_.toNumber()
 
-            await policy.makeClaim(0, tranchBalance, { from: insuredPartyRep }).should.be.rejectedWith('claim too high')
+            await policy.makeClaim(0, trancheBalance, { from: insuredPartyRep }).should.be.rejectedWith('claim too high')
             await policy.declineClaim(0, { from: claimsAdminRep })
-            await policy.makeClaim(0, tranchBalance, { from: insuredPartyRep }).should.be.fulfilled
+            await policy.makeClaim(0, trancheBalance, { from: insuredPartyRep }).should.be.fulfilled
           })
 
           it('can decline even if disputed', async () => {
@@ -518,13 +522,13 @@ describe('Policy: Claims', () => {
             })
           })
 
-          it('leaves tranch balance unchanged', async () => {
-            const tranchBalance = ((await policy.getTranchInfo(0))).balance_.toNumber()
+          it('leaves tranche balance unchanged', async () => {
+            const trancheBalance = ((await policy.getTrancheInfo(0))).balance_.toNumber()
 
             await policy.declineClaim(0, { from: claimsAdminRep })
 
-            await policy.getTranchInfo(0).should.eventually.matchObj({
-              balance_: tranchBalance
+            await policy.getTrancheInfo(0).should.eventually.matchObj({
+              balance_: trancheBalance
             })
           })
         })
@@ -589,13 +593,13 @@ describe('Policy: Claims', () => {
             })
           })
 
-          it('updates tranch balance', async () => {
-            const tranchBalance = (await policy.getTranchInfo(0)).balance_.toNumber()
+          it('updates tranche balance', async () => {
+            const trancheBalance = (await policy.getTrancheInfo(0)).balance_.toNumber()
 
             await policy.approveClaim(0, { from: claimsAdminRep })
 
-            await policy.getTranchInfo(0).should.eventually.matchObj({
-              balance_: tranchBalance - 4
+            await policy.getTrancheInfo(0).should.eventually.matchObj({
+              balance_: trancheBalance - 4
             })
           })
         })
@@ -745,14 +749,14 @@ describe('Policy: Claims', () => {
             })
 
             it('but then succeeds once premiums are fully paid', async () => {
-              await policy.payTranchPremium(1, 13000 * 0.1)
+              await policy.payTranchePremium(1, 13000 * 0.1)
               await policy.payClaim(2, { from: claimsAdminRep }).should.be.fulfilled
             })
           })
 
           describe('and when the premiums are fully paid', async () => {
             beforeEach(async () => {
-              await policy.payTranchPremium(1, 13000 * 0.1)
+              await policy.payTranchePremium(1, 13000 * 0.1)
             })
 
             it('by claims admin', async () => {

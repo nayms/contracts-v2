@@ -43,28 +43,28 @@ abstract contract IPolicyStates {
   uint256 constant public POLICY_STATE_CANCELLED = 4;
 
   /**
-   * @dev State: The tranch has just been created.
+   * @dev State: The tranche has just been created.
    */
-  uint256 constant public TRANCH_STATE_CREATED = 0;
+  uint256 constant public TRANCHE_STATE_CREATED = 0;
   /**
-   * @dev State: The tranch initial sale is in progress.
+   * @dev State: The tranche initial sale is in progress.
    */
-  uint256 constant public TRANCH_STATE_SELLING = 1;
+  uint256 constant public TRANCHE_STATE_SELLING = 1;
   /**
-   * @dev State: The tranch initial sale has completed it is now active.
+   * @dev State: The tranche initial sale has completed it is now active.
    */
-  uint256 constant public TRANCH_STATE_ACTIVE = 2;
+  uint256 constant public TRANCHE_STATE_ACTIVE = 2;
   /**
-   * @dev State: The tranch has matured.
+   * @dev State: The tranche has matured.
    */
-  uint256 constant public TRANCH_STATE_MATURED = 3;
+  uint256 constant public TRANCHE_STATE_MATURED = 3;
   /**
-   * @dev State: The tranch has been cancelled.
+   * @dev State: The tranche has been cancelled.
    */
-  uint256 constant public TRANCH_STATE_CANCELLED = 4;
+  uint256 constant public TRANCHE_STATE_CANCELLED = 4;
 
   // events
 
   event PolicyStateUpdated (uint256 indexed state, address indexed caller);
-  event TranchStateUpdated (uint256 indexed tranchIndex, uint256 indexed state, address indexed caller);
+  event TrancheStateUpdated (uint256 indexed trancheIndex, uint256 indexed state, address indexed caller);
 }

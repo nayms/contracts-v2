@@ -13,7 +13,7 @@ import "./EntityFacetBase.sol";
 contract EntityFundingFacet is EternalStorage, Controller, EntityFacetBase, IEntityFundingFacet, IDiamondFacet {
   using SafeMath for uint256;
 
-  modifier assertCanTradeTranchTokens () {
+  modifier assertCanTradeTrancheTokens () {
     require(inRoleGroup(msg.sender, ROLEGROUP_TRADERS), 'must be trader');
     _;
   }
@@ -74,7 +74,7 @@ contract EntityFundingFacet is EternalStorage, Controller, EntityFacetBase, IEnt
   function trade(address _payUnit, uint256 _payAmount, address _buyUnit, uint256 _buyAmount)
     external
     override
-    assertCanTradeTranchTokens
+    assertCanTradeTrancheTokens
     returns (uint256)
   {
     // check balance
@@ -86,7 +86,7 @@ contract EntityFundingFacet is EternalStorage, Controller, EntityFacetBase, IEnt
   function sellAtBestPrice(address _sellUnit, uint256 _sellAmount, address _buyUnit)
     external
     override
-    assertCanTradeTranchTokens
+    assertCanTradeTrancheTokens
   {
     // check balance
     _assertHasEnoughBalance(_sellUnit, _sellAmount);

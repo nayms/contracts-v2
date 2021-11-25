@@ -6,11 +6,11 @@ pragma solidity 0.6.12;
  */
 abstract contract IPolicyTypes {
   /**
-   * @dev SPV-based policy that has tranch tokens.
+   * @dev SPV-based policy that has tranche tokens.
    */
   uint256 constant public POLICY_TYPE_SPV = 0;
   /**
-   * @dev Policy is part of an underwriter's portfolio and does not issue tranch tokens.
+   * @dev Policy is part of an underwriter's portfolio and does not issue tranche tokens.
    */
   uint256 constant public POLICY_TYPE_PORTFOLIO = 1;
 }

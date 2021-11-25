@@ -14,7 +14,7 @@ export const ensurePolicyImplementationsAreDeployed = async (ctx = {}) => {
       'PolicyClaimsFacet',
       'PolicyCommissionsFacet',
       'PolicyPremiumsFacet',
-      'PolicyTranchTokensFacet',
+      'PolicyTrancheTokensFacet',
       'PolicyApprovalsFacet',
     ].concat(extraFacets),
     facetListSettingsKey: SETTINGS.POLICY_IMPL,

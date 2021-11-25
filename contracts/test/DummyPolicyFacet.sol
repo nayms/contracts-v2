@@ -7,11 +7,13 @@ import '../base/IPolicyCoreFacet.sol';
 contract DummyPolicyFacet is IDiamondFacet, IPolicyCoreFacet {
   function getSelectors () public pure override returns (bytes memory) {
     return abi.encodePacked(
-      IPolicyCoreFacet.calculateMaxNumOfPremiums.selector
+      //Todo: why only this function here?
+      // IPolicyCoreFacet.calculateMaxNumOfPremiums.selector
+      IPolicyCoreFacet.getInfo.selector
     );
   }
 
-  function createTranch (
+  function createTranche (
     uint256 _numShares,
     uint256 _pricePerShareAmount,
     uint256[] calldata _premiums
@@ -24,13 +26,13 @@ contract DummyPolicyFacet is IDiamondFacet, IPolicyCoreFacet {
     uint256 startDate_,
     uint256 maturationDate_,
     address unit_,
-    uint256 premiumIntervalSeconds_,
+    // uint256 premiumIntervalSeconds_,
     uint256 numTranches_,
     uint256 state_,
     uint256 type_
   ) {}
 
-  function getTranchInfo (uint256 _index) external view override returns (
+  function getTrancheInfo (uint256 _index) external view override returns (
     address token_,
     uint256 state_,
     uint256 numShares_,
@@ -44,9 +46,9 @@ contract DummyPolicyFacet is IDiamondFacet, IPolicyCoreFacet {
 
   function checkAndUpdateState () external override {}
 
-  function calculateMaxNumOfPremiums() external view override returns (uint256) {
-    return 666;
-  }
+  // function calculateMaxNumOfPremiums() external view override returns (uint256) {
+  //   return 666;
+  // }
 
   function initiationDateHasPassed () external view override returns (bool) {
     return false;

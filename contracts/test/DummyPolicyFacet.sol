@@ -45,10 +45,6 @@ contract DummyPolicyFacet is IDiamondFacet, IPolicyCoreFacet {
 
   function checkAndUpdateState () external override {}
 
-  // function calculateMaxNumOfPremiums() external view override returns (uint256) {
-  //   return 666;
-  // }
-
   function initiationDateHasPassed () external view override returns (bool) {
     return false;
   }

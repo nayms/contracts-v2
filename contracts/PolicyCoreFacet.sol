@@ -109,7 +109,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
       }
     }    
 
-    // require(numPremiums <= calculateMaxNumOfPremiums(), 'too many premiums');
+    // record number of premiums
     dataUint256[__i(i, "numPremiums")] = numPremiums;
 
     // deploy token contract if SPV
@@ -140,7 +140,6 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     uint256 startDate_,
     uint256 maturationDate_,
     address unit_,
-    // uint256 premiumIntervalSeconds_,
     uint256 numTranches_,
     uint256 state_,
     uint256 type_
@@ -151,7 +150,6 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
     startDate_ = dataUint256["startDate"];
     maturationDate_ = dataUint256["maturationDate"];
     unit_ = dataAddress["unit"];
-    // premiumIntervalSeconds_ = dataUint256["premiumIntervalSeconds"];
     numTranches_ = dataUint256["numTranches"];
     state_ = dataUint256["state"];
     type_ = dataUint256["type"];
@@ -213,12 +211,6 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
       }
     }
   }
-
-  // function calculateMaxNumOfPremiums() public view override returns (uint256) {
-  //   return (dataUint256["maturationDate"] - dataUint256["initiationDate"]) / dataUint256["premiumIntervalSeconds"] + 1;
-  // }
-
-  // Internal methods
 
   function _cancelTrancheMarketOffer(uint _index) private {
     uint256 initialSaleOfferId = dataUint256[__i(_index, "initialSaleOfferId")];

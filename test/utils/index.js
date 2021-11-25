@@ -146,12 +146,9 @@ export const createTranche = async (policy, attrs, ...callAttrs) => {
   let premiums = []
   let policyInfo 
   policyInfo = await policy.getInfo()
-  const policyInitiationDate = policyInfo.initiationDate_
+  const policyInitiationDate = policyInfo.initiationDate_.toNumber()
 
-  for (let i = 0; i < premiumsDiff.length; i += 2) {
-    premiums[i] = policyInitiationDate.add(toBN (premiumsDiff[i]))
-    premiums[i + 1] = toBN (premiumsDiff[i + 1])
-  }
+  premiums = adjustTrancheDataDiffForSingleTranche(policyInitiationDate, premiumsDiff, false)
 
   return policy.createTranche(
     numShares,
@@ -161,15 +158,35 @@ export const createTranche = async (policy, attrs, ...callAttrs) => {
   )
 }
 
-export const adjustTrancheDataDiff = (policyInitiationDate, trancheDiffData, startIndex) => {
+const adjustTrancheDataDiffForSingleTranche = (policyInitiationDate, trancheDiffData, forTrancheData) => {
+  // this processes the single dimension array for createTranche()
+  // as well as the inner portion of the array for createPolicy()
 
   let trancheData = trancheDiffData
+  let startAt = 0
 
-  if (trancheDiffData != undefined){
-    for (let i = 0; i < trancheDiffData.length; i += 1) {
-      for (let j = 2; j < trancheDiffData[i].length; j += 2) {
-        trancheData[i][j] = policyInitiationDate + trancheDiffData[i][j]
-      }
+  // trancheData includes two extra fields at the beginning
+  if (forTrancheData){
+    startAt = 2
+  }
+  if ((trancheDiffData != undefined) && (trancheDiffData.length > 0 )){
+    for (let j = startAt; j < trancheDiffData.length; j += 2) {
+      trancheData[j] = policyInitiationDate + trancheDiffData[j]
+    }
+  }
+  else {
+    trancheData = []
+  }
+  return trancheData
+}
+
+const adjustTrancheDataDiff = (policyInitiationDate, trancheDiffData) => {
+  //this processes the full two-dimension array for create policy
+  let trancheData = trancheDiffData
+
+  if ((trancheDiffData != undefined) && (trancheDiffData.length > 0 )){
+      for (let i = 0; i < trancheDiffData.length; i += 1) {
+      trancheData[i] = adjustTrancheDataDiffForSingleTranche(policyInitiationDate, trancheData[i], true)
     }
   }
   else {
@@ -188,7 +205,6 @@ export const createEntity = async ({ acl, entityDeployer, adminAddress, entityCo
   return entityAddress
 }
 
-//export const createPolicy = async (entity, attrs = {}, ...callAttrs) => {
 export const createPolicy = async (entity, attrs = {}, ...callAttrs) => {
   const currentTime = ~~(Date.now() / 1000)
   var ret = '';

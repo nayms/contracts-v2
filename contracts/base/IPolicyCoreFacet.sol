@@ -71,15 +71,6 @@ interface IPolicyCoreFacet {
     bool buybackCompleted_
   );
 
-
-
-  // /**
-  //  * @dev Get the max. no. of premium payments possible based on the policy dates.
-  //  *
-  //  * @return Max. no. of premium payments possible.
-  //  */
-  // function calculateMaxNumOfPremiums() external view returns (uint256);
-
   /**
    * @dev Get whether the initiation date has passed.
    *

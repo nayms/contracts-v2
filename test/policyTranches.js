@@ -196,9 +196,6 @@ describe('Policy: Tranches', () => {
   })
 
   describe('tranches', () => {
-    const trancheNumShares = 10
-    const tranchePricePerShare = 100
-
     describe('basic tests', () => {
       it('cannot be created without correct authorization', async () => {
         await setupPolicy(POLICY_ATTRS_1)
@@ -229,40 +226,137 @@ describe('Policy: Tranches', () => {
         })
       })
 
-      describe('a valid number of premiums must be provided', () => {
+      describe('premiums and tranche data must be valid', () => {
+          // Premiums must:
+          // - be specified in increasing order
+          // - be after initiation date
+          // - be before maturation date
         beforeEach(async () => {
-          // allow upto 4 premiums
-          await setupPolicy(POLICY_ATTRS_3)
+         await setupPolicy(POLICY_ATTRS_3)
         })
 
-        it('0', async () => {
+        it('must only accept valid premiums and tranche data', async () => {
+
+          // 1 - create first tranche with no premiums
           await createTranche(policy, { 
+            numShares: 1,
+            pricePerShareAmount: 10,
             premiumsDiff: []
           }, { from: policyOwnerAddress }).should.be.fulfilled
-        })
 
-        it('less than max', async () => {
+          await policy.getInfo().should.eventually.matchObj({
+            numTranches_: 1,
+          }, '1 - should have 1 tranche')
+
+          await policy.getTrancheInfo(0).should.eventually.matchObj({
+            numShares_: 1,
+            initialPricePerShare_: 10
+          }, '1 - tranche data should match')
+
+          await policy.getTranchePremiumsInfo(0).should.eventually.matchObj({
+            numPremiums_: 0,
+            nextPremiumAmount_: 0,
+          }, '1 - should have 0 premiums')
+
+          // 2 - Create second tranche with 1 premium
           await createTranche(policy, { 
-            premiumsDiff: [0, 1]
+            numShares: 2,
+            pricePerShareAmount: 11,
+            premiumsDiff: [0, 3]
           }, { from: policyOwnerAddress }).should.be.fulfilled
-        })
 
-        it('max', async () => {
+          await policy.getInfo().should.eventually.matchObj({
+            numTranches_: 2,
+          }, '2 - should have 2 tranches')
+
+          await policy.getTrancheInfo(1).should.eventually.matchObj({
+            numShares_: 2,
+            initialPricePerShare_: 11
+          }, '2 - tranche data should match')
+
+          await policy.getTranchePremiumsInfo(1).should.eventually.matchObj({
+            numPremiums_: 1,
+            nextPremiumAmount_: 3,
+          }, '2 - should have 1 premium')
+
+          // 3 - create third tranche with 4 premiums
+          // the first is on the initiation date
+          //the last is on the maturation date
           await createTranche(policy, { 
+            numShares: 1000000000,
+            pricePerShareAmount: 7,
             premiumsDiff: [0, 1, 10, 2, 20, 3, 30, 4]
           }, { from: policyOwnerAddress }).should.be.fulfilled
-        })
 
-        it('past maturation date', async () => {
-          await createTranche(policy, { 
+          await policy.getInfo().should.eventually.matchObj({
+            numTranches_: 3,
+          }, '3 - should have 3 tranches')
+
+          await policy.getTrancheInfo(2).should.eventually.matchObj({
+            numShares_: 1000000000,
+            initialPricePerShare_: 7
+          }, '3 - tranche data should match')
+
+          await policy.getTranchePremiumsInfo(2).should.eventually.matchObj({
+            numPremiums_: 4,
+            nextPremiumAmount_: 1,
+          }, '3 - should have 4 premiums')
+
+          // 4 - try to create fourth tranche with invalid premiums
+
+          // premium past maturation
+          await createTranche(policy,           { 
+            numShares: 1000000000,
+            pricePerShareAmount: 7,
             premiumsDiff: [0, 1, 10, 2, 20, 3, 30, 4, 40, 5]
-          }, { from: policyOwnerAddress }).should.be.rejectedWith('premium after maturation')
-        })
+          }, 
+          { from: policyOwnerAddress }).should.be.rejectedWith('premium after maturation')
 
-        it('above max but filtering out 0-values results in max', async () => {
+          // premiums not in order
+          await createTranche(policy,           { 
+            numShares: 1000000000,
+            pricePerShareAmount: 7,
+            premiumsDiff: [0, 1, 20, 2, 10, 3, 30, 4, 40, 5]
+          }, 
+          { from: policyOwnerAddress }).should.be.rejectedWith('premiums not in increasing order')
+
+          // premiums before initiation
+          await createTranche(policy,           { 
+            numShares: 1000000000,
+            pricePerShareAmount: 7,
+            premiumsDiff: [-10, 1, 20, 2, 10, 3, 30, 4, 40, 5]
+          }, 
+          { from: policyOwnerAddress }).should.be.rejectedWith('premium before initiation')
+
+          await policy.getInfo().should.eventually.matchObj({
+            numTranches_: 3,
+          }, '4 - Should still have 3 tranches')
+
+          await policy.getTrancheInfo(1).should.eventually.matchObj({
+            numShares_: 2,
+            initialPricePerShare_: 11
+          }, '4 - tranche data on tranche-2 should not be altered')
+
+          // 5 - Zero value premiums should be ignored
           await createTranche(policy, { 
+            numShares: 1000000001,
+            pricePerShareAmount: 4,
             premiumsDiff: [0, 0, 0, 0, 0, 0, 0, 1, 10, 2, 20, 0, 20, 3, 30, 4]
           }, { from: policyOwnerAddress }).should.be.fulfilled
+
+          await policy.getInfo().should.eventually.matchObj({
+            numTranches_: 4,
+          }, '5 - should have 4 tranches')
+
+          await policy.getTrancheInfo(3).should.eventually.matchObj({
+            numShares_: 1000000001,
+            initialPricePerShare_: 4
+          }, '5 - tranche data should match')
+
+          await policy.getTranchePremiumsInfo(3).should.eventually.matchObj({
+            numPremiums_: 4,
+            nextPremiumAmount_: 1,
+          }, '5 - Should have 4 premiums')
         })
       })
 
@@ -270,8 +364,8 @@ describe('Policy: Tranches', () => {
         await setupPolicy(POLICY_ATTRS_1)
 
         const result = await createTranche(policy, {
-          numShares: trancheNumShares,
-          pricePerShareAmount: tranchePricePerShare,
+          numShares: 10,
+          pricePerShareAmount: 100,
         }, {
           from: accounts[2]
         }).should.be.fulfilled
@@ -290,8 +384,8 @@ describe('Policy: Tranches', () => {
         await setupPolicy(POLICY_ATTRS_1)
 
         await createTranche(policy, {
-          numShares: trancheNumShares,
-          pricePerShareAmount: tranchePricePerShare,
+          numShares: 10,
+          pricePerShareAmount: 100,
         }, {
           from: accounts[2]
         }).should.be.fulfilled
@@ -305,15 +399,15 @@ describe('Policy: Tranches', () => {
         await setupPolicy(POLICY_ATTRS_1)
 
         await createTranche(policy, {
-          numShares: trancheNumShares,
-          pricePerShareAmount: tranchePricePerShare,
+          numShares: 10,
+          pricePerShareAmount: 100,
         }, {
           from: accounts[2]
         }).should.be.fulfilled
 
         await createTranche(policy, {
-          numShares: trancheNumShares + 1,
-          pricePerShareAmount: tranchePricePerShare + 2,
+          numShares: 11,
+          pricePerShareAmount: 100 + 2,
         }, {
           from: accounts[2]
         }).should.be.fulfilled
@@ -354,13 +448,13 @@ describe('Policy: Tranches', () => {
         acl.assignRole(policyContext, accounts[0], ROLES.POLICY_OWNER)
 
         await createTranche(policy, {
-          numShares: trancheNumShares,
-          pricePerShareAmount: tranchePricePerShare,
+          numShares: 10,
+          pricePerShareAmount: 100,
         }).should.be.fulfilled
 
         await createTranche(policy, {
-          numShares: trancheNumShares,
-          pricePerShareAmount: tranchePricePerShare,
+          numShares: 10,
+          pricePerShareAmount: 100,
         }).should.be.fulfilled
       })
 
@@ -376,7 +470,7 @@ describe('Policy: Tranches', () => {
 
           await tkn.name().should.eventually.eq(NAME)
           await tkn.symbol().should.eventually.eq(SYMBOL)
-          await tkn.totalSupply().should.eventually.eq(trancheNumShares)
+          await tkn.totalSupply().should.eventually.eq(10)
           await tkn.decimals().should.eventually.eq(18)
           await tkn.allowance(accounts[0], accounts[1]).should.eventually.eq(0)
 

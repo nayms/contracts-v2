@@ -41,7 +41,7 @@ chai.use((_chai, utils) => {
     return [result, val]
   }
 
-  utils.addMethod(_chai.Assertion.prototype, 'eq', function (val) {
+  utils.addMethod(_chai.Assertion.prototype, 'eq', function (val, message) {
     let result = utils.flag(this, 'object')
 
     if (result instanceof Array && val instanceof Array) {
@@ -58,19 +58,19 @@ chai.use((_chai, utils) => {
       const newValStr = newVal.join(', ')
 
       return (utils.flag(this, 'negate'))
-        ? new _chai.Assertion(newResultStr).to.not.be.equal(newValStr)
-        : new _chai.Assertion(newResultStr).to.be.equal(newValStr)
+        ? new _chai.Assertion(newResultStr, message).to.not.be.equal(newValStr)
+        : new _chai.Assertion(newResultStr, message).to.be.equal(newValStr)
 
     } else {
       const [r, v] = sanitizeResultVal(result, val)
 
       return (utils.flag(this, 'negate'))
-        ? new _chai.Assertion(r).to.not.be.equal(v)
-        : new _chai.Assertion(r).to.be.equal(v)
+        ? new _chai.Assertion(r, message).to.not.be.equal(v)
+        : new _chai.Assertion(r, message).to.be.equal(v)
     }
   })
 
-  utils.addMethod(_chai.Assertion.prototype, 'matchObj', function (val) {
+  utils.addMethod(_chai.Assertion.prototype, 'matchObj', function (val, message) {
     let result = utils.flag(this, 'object')
 
     if (result instanceof Object) {
@@ -88,8 +88,8 @@ chai.use((_chai, utils) => {
       })
 
       return (utils.flag(this, 'negate'))
-        ? new _chai.Assertion(newResult).to.not.contain(newVal)
-        : new _chai.Assertion(newResult).to.contain(newVal)
+        ? new _chai.Assertion(newResult, message).to.not.contain(newVal)
+        : new _chai.Assertion(newResult, message).to.contain(newVal)
 
     } else {
       throw new Error('Not an object', result)
@@ -380,7 +380,6 @@ export class EvmClock {
     this.lastTimestamp = this.lastTimestamp + delta
   }
 }
-
 
 export class EvmSnapshot {
   constructor() {

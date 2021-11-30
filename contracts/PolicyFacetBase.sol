@@ -39,10 +39,10 @@ abstract contract PolicyFacetBase is EternalStorage, IPolicyStates, AccessContro
     }
   }
 
-  function _setTranchState (uint256 _tranchIndex, uint256 _newState) internal {
-    if (dataUint256[__i(_tranchIndex, "state")] != _newState) {
-      dataUint256[__i(_tranchIndex, "state")] = _newState;
-      emit TranchStateUpdated(_tranchIndex, _newState, msg.sender);
+  function _setTrancheState (uint256 _trancheIndex, uint256 _newState) internal {
+    if (dataUint256[__i(_trancheIndex, "state")] != _newState) {
+      dataUint256[__i(_trancheIndex, "state")] = _newState;
+      emit TrancheStateUpdated(_trancheIndex, _newState, msg.sender);
     }
   }
 
@@ -50,7 +50,7 @@ abstract contract PolicyFacetBase is EternalStorage, IPolicyStates, AccessContro
     return IPolicyTreasury(dataAddress["treasury"]);
   }
 
-  function _getNumberOfTranchPaymentsMissed (uint256 _index) internal view returns (uint256) {
+  function _getNumberOfTranchePaymentsMissed (uint256 _index) internal view returns (uint256) {
     uint256 numPremiums = dataUint256[__i(_index, "numPremiums")];
     uint256 numPremiumsPaid = dataUint256[__i(_index, "numPremiumsPaid")];
 
@@ -71,7 +71,7 @@ abstract contract PolicyFacetBase is EternalStorage, IPolicyStates, AccessContro
     }
   }
 
-  function _tranchPaymentsAllMade (uint256 _index) internal view returns (bool) {
+  function _tranchePaymentsAllMade (uint256 _index) internal view returns (bool) {
     uint256 numPremiums = dataUint256[__i(_index, "numPremiums")];
     uint256 numPremiumsPaid = dataUint256[__i(_index, "numPremiumsPaid")];
     return (numPremiumsPaid == numPremiums);

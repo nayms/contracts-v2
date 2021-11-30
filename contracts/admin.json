@@ -941,7 +941,7 @@
       ]
     },
     {
-      "id": "getTranchInfo",
+      "id": "getTrancheInfo",
       "title": "Policy: Get tranche info",
       "inputs": [
         {
@@ -971,24 +971,24 @@
         {
           "type": "call",
           "contract": "IPolicy",
-          "method": "getTranchInfo",
+          "method": "getTrancheInfo",
           "address": "@input[contractAddress]",
           "args": {
             "_index": "@input[index]"
           },
-          "saveResultAsInput": "tranchInfo"
+          "saveResultAsInput": "trancheInfo"
         }
       ],
       "outputs": [
         {
           "title": "Token address",
           "type": "address",
-          "value": "@input[tranchInfo][token_]"
+          "value": "@input[trancheInfo][token_]"
         },
         {
           "title": "State",
           "type": "int",
-          "value": "@input[tranchInfo][state_]",
+          "value": "@input[trancheInfo][state_]",
           "transform": [
             {
               "type": "toMappedString",
@@ -1007,39 +1007,39 @@
           "type": "int",
           "scale": "-18",
           "unit": "Tokens",
-          "value": "@input[tranchInfo][balance_]"
+          "value": "@input[trancheInfo][balance_]"
         },
         {
           "title": "No. of premiums in total",
           "type": "int",
-          "value": "@input[tranchInfo][numPremiums_]"
+          "value": "@input[trancheInfo][numPremiums_]"
         },
         {
           "title": "No. of premiums paid",
           "type": "int",
-          "value": "@input[tranchInfo][numPremiumsPaid_]"
+          "value": "@input[trancheInfo][numPremiumsPaid_]"
         },
         {
           "title": "No. of premiums missed",
           "type": "int",
-          "value": "@input[tranchInfo][premiumPaymentsMissed_]"
+          "value": "@input[trancheInfo][premiumPaymentsMissed_]"
         },
         {
           "title": "Next premium index",
           "type": "int",
-          "value": "@input[tranchInfo][nextPremiumIndex_]"
+          "value": "@input[trancheInfo][nextPremiumIndex_]"
         },
         {
           "title": "Next premium due",
           "type": "int",
           "scale": "-18",
           "unit": "Tokens",
-          "value": "@input[tranchInfo][nextPremiumAmount_]"
+          "value": "@input[trancheInfo][nextPremiumAmount_]"
         },
         {
           "title": "When next premium is due by",
           "type": "string",
-          "value": "@input[tranchInfo][nextPremiumDueAt_]",
+          "value": "@input[trancheInfo][nextPremiumDueAt_]",
           "transform": [
             {
               "type": "intToDateString",
@@ -1050,22 +1050,22 @@
         {
           "title": "Shared sold",
           "type": "int",
-          "value": "@input[tranchInfo][sharesSold_]"
+          "value": "@input[trancheInfo][sharesSold_]"
         },
         {
           "title": "Market offer id for initial sale",
           "type": "int",
-          "value": "@input[tranchInfo][initialSaleOfferId_]"
+          "value": "@input[trancheInfo][initialSaleOfferId_]"
         },
         {
           "title": "Market offer id for buyback",
           "type": "int",
-          "value": "@input[tranchInfo][finalBuybackofferId_]"
+          "value": "@input[trancheInfo][finalBuybackofferId_]"
         }
       ]
     },
     {
-      "id": "getTranchPremiumInfo",
+      "id": "getTranchePremiumInfo",
       "title": "Policy: Get premium info",
       "inputs": [
         {
@@ -1080,7 +1080,7 @@
           ]
         },
         {
-          "name": "tranchIndex",
+          "name": "trancheIndex",
           "title": "Tranche index (0-based)",
           "type": "int",
           "validation": [
@@ -1106,10 +1106,10 @@
         {
           "type": "call",
           "contract": "IPolicy",
-          "method": "getTranchPremiumInfo",
+          "method": "getTranchePremiumInfo",
           "address": "@input[contractAddress]",
           "args": {
-            "_tranchIndex": "@input[tranchIndex]",
+            "_trancheIndex": "@input[trancheIndex]",
             "_premiumIndex": "@input[premiumIndex]"
           },
           "saveResultAsInput": "premiumInfo"
@@ -1170,7 +1170,7 @@
         },
         {
           "name": "index",
-          "title": "Tranch index (0-based)",
+          "title": "Tranche index (0-based)",
           "type": "int",
           "validation": [
             {
@@ -1195,7 +1195,7 @@
         {
           "type": "send",
           "contract": "IPolicy",
-          "method": "payTranchPremium",
+          "method": "payTranchePremium",
           "address": "@input[contractAddress]",
           "args": {
             "_index": "@input[index]",
@@ -1233,7 +1233,7 @@
         },
         {
           "name": "index",
-          "title": "Tranch index (0-based)",
+          "title": "Tranche index (0-based)",
           "type": "int",
           "validation": [
             {
@@ -1258,11 +1258,11 @@
         {
           "type": "send",
           "contract": "IEntity",
-          "method": "payTranchPremium",
+          "method": "payTranchePremium",
           "address": "@input[contractAddress]",
           "args": {
             "_policy": "@input[policyAddress]",
-            "_tranchIndex": "@input[index]",
+            "_trancheIndex": "@input[index]",
             "_amount": "@input[amount]"
           }
         }
@@ -1286,7 +1286,7 @@
         },
         {
           "name": "index",
-          "title": "Tranch index (0-based)",
+          "title": "Tranche index (0-based)",
           "type": "int",
           "validation": [
             {
@@ -1314,7 +1314,7 @@
           "method": "makeClaim",
           "address": "@input[policyAddress]",
           "args": {
-            "_tranchIndex": "@input[index]",
+            "_trancheIndex": "@input[index]",
             "_amount": "@input[amount]"
           }
         }
@@ -1366,9 +1366,9 @@
           "value": "@input[details][amount_]"
         },
         {
-          "title": "Tranch index",
+          "title": "Tranche index",
           "type": "int",
-          "value": "@input[details][tranchIndex_]"
+          "value": "@input[details][trancheIndex_]"
         },
         {
           "title": "State",

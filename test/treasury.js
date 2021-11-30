@@ -8,7 +8,7 @@ import {
   BYTES_ZERO,
   createEntity,
   createPolicy,
-  createTranch,
+  createTranche,
 } from './utils'
 
 import { events } from '..'

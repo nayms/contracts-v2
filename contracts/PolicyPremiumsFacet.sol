@@ -17,9 +17,9 @@ import "./base/IERC20.sol";
 contract PolicyPremiumsFacet is EternalStorage, Controller, IDiamondFacet, IPolicyPremiumsFacet, PolicyFacetBase {
   using SafeMath for uint;
 
-  modifier assertTranchPaymentAllowed (uint256 _index) {
-    uint256 _tranchState = dataUint256[__i(_index, "state")];
-    require(_tranchState != TRANCH_STATE_CANCELLED && _tranchState != TRANCH_STATE_MATURED, 'payment not allowed');
+  modifier assertTranchePaymentAllowed (uint256 _index) {
+    uint256 _trancheState = dataUint256[__i(_index, "state")];
+    require(_trancheState != TRANCHE_STATE_CANCELLED && _trancheState != TRANCHE_STATE_MATURED, 'payment not allowed');
     _;
   }
 
@@ -34,15 +34,15 @@ contract PolicyPremiumsFacet is EternalStorage, Controller, IDiamondFacet, IPoli
 
   function getSelectors () public pure override returns (bytes memory) {
     return abi.encodePacked(
-      IPolicyPremiumsFacet.getTranchPremiumsInfo.selector,
-      IPolicyPremiumsFacet.getTranchPremiumInfo.selector,
-      IPolicyPremiumsFacet.payTranchPremium.selector
+      IPolicyPremiumsFacet.getTranchePremiumsInfo.selector,
+      IPolicyPremiumsFacet.getTranchePremiumInfo.selector,
+      IPolicyPremiumsFacet.payTranchePremium.selector
     );
   }
 
   // IPolicyPremiumsFacet
 
-  function getTranchPremiumsInfo (uint256 _tranchIndex) public view override returns (
+  function getTranchePremiumsInfo (uint256 _trancheIndex) public view override returns (
     uint256 numPremiums_,
     uint256 nextPremiumAmount_,
     uint256 nextPremiumDueAt_,
@@ -50,41 +50,41 @@ contract PolicyPremiumsFacet is EternalStorage, Controller, IDiamondFacet, IPoli
     uint256 premiumPaymentsMissed_,
     uint256 numPremiumsPaid_
   ) {
-    numPremiums_ = dataUint256[__i(_tranchIndex, "numPremiums")];
-    (nextPremiumAmount_, nextPremiumDueAt_, nextPremiumPaidSoFar_) = _getNextTranchPremium(_tranchIndex);
-    premiumPaymentsMissed_ = _getNumberOfTranchPaymentsMissed(_tranchIndex);
-    numPremiumsPaid_ = dataUint256[__i(_tranchIndex, "numPremiumsPaid")];
+    numPremiums_ = dataUint256[__i(_trancheIndex, "numPremiums")];
+    (nextPremiumAmount_, nextPremiumDueAt_, nextPremiumPaidSoFar_) = _getNextTranchePremium(_trancheIndex);
+    premiumPaymentsMissed_ = _getNumberOfTranchePaymentsMissed(_trancheIndex);
+    numPremiumsPaid_ = dataUint256[__i(_trancheIndex, "numPremiumsPaid")];
   }
 
-  function getTranchPremiumInfo (uint256 _tranchIndex, uint256 _premiumIndex) public view override returns (
+  function getTranchePremiumInfo (uint256 _trancheIndex, uint256 _premiumIndex) public view override returns (
     uint256 amount_,
     uint256 dueAt_,
     uint256 paidSoFar_,
     uint256 fullyPaidAt_
   ) {
-    amount_ = dataUint256[__ii(_tranchIndex, _premiumIndex, "premiumAmount")];
-    dueAt_ = dataUint256[__ii(_tranchIndex, _premiumIndex, "premiumDueAt")];
-    paidSoFar_ = dataUint256[__ii(_tranchIndex, _premiumIndex, "premiumPaidSoFar")];
-    fullyPaidAt_ = dataUint256[__ii(_tranchIndex, _premiumIndex, "premiumPaidAt")];
+    amount_ = dataUint256[__ii(_trancheIndex, _premiumIndex, "premiumAmount")];
+    dueAt_ = dataUint256[__ii(_trancheIndex, _premiumIndex, "premiumDueAt")];
+    paidSoFar_ = dataUint256[__ii(_trancheIndex, _premiumIndex, "premiumPaidSoFar")];
+    fullyPaidAt_ = dataUint256[__ii(_trancheIndex, _premiumIndex, "premiumPaidAt")];
   }
 
-  function payTranchPremium (uint256 _index, uint256 _amount) external override {
+  function payTranchePremium (uint256 _index, uint256 _amount) external override {
     IPolicyCoreFacet(address(this)).checkAndUpdateState();
-    _payTranchPremium(_index, _amount);
+    _payTranchePremium(_index, _amount);
   }
 
   // Internal methods
 
-  function _payTranchPremium (uint256 _index, uint256 _amount) private assertTranchPaymentAllowed(_index) {
+  function _payTranchePremium (uint256 _index, uint256 _amount) private assertTranchePaymentAllowed(_index) {
     uint256 totalPaid;
     uint256 netPremium;
 
-    while (_amount > 0 && !_tranchPaymentsAllMade(_index)) {
+    while (_amount > 0 && !_tranchePaymentsAllMade(_index)) {
       uint256 expectedAmount;
       uint256 expectedAt;
       uint256 paidSoFar;
 
-      (expectedAmount, expectedAt, paidSoFar) = _getNextTranchPremium(_index);
+      (expectedAmount, expectedAt, paidSoFar) = _getNextTranchePremium(_index);
 
       require(expectedAt >= now, 'payment too late');
 
@@ -134,14 +134,14 @@ contract PolicyPremiumsFacet is EternalStorage, Controller, IDiamondFacet, IPoli
     dataUint256["naymsCommissionBalance"] = dataUint256["naymsCommissionBalance"].add(naymsCommission);
     dataUint256["underwriterCommissionBalance"] = dataUint256["underwriterCommissionBalance"].add(underwriterCommission);
 
-    // add to tranch balance
-    uint256 tranchBalanceDelta = _amount.sub(brokerCommission.add(claimsAdminCommission).add(naymsCommission).add(underwriterCommission));
-    dataUint256[__i(_index, "balance")] = dataUint256[__i(_index, "balance")].add(tranchBalanceDelta);
+    // add to tranche balance
+    uint256 trancheBalanceDelta = _amount.sub(brokerCommission.add(claimsAdminCommission).add(naymsCommission).add(underwriterCommission));
+    dataUint256[__i(_index, "balance")] = dataUint256[__i(_index, "balance")].add(trancheBalanceDelta);
 
-    return tranchBalanceDelta;
+    return trancheBalanceDelta;
   }
 
-  function _getNextTranchPremium (uint256 _index) private view returns (uint256, uint256, uint256) {
+  function _getNextTranchePremium (uint256 _index) private view returns (uint256, uint256, uint256) {
     uint256 numPremiumsPaid = dataUint256[__i(_index, "numPremiumsPaid")];
 
     return (

@@ -10,7 +10,7 @@ import "./IPolicyClaimsFacet.sol";
 import "./IChild.sol";
 import "./IPolicyCommissionsFacet.sol";
 import "./IPolicyPremiumsFacet.sol";
-import "./IPolicyTranchTokensFacet.sol";
+import "./IPolicyTrancheTokensFacet.sol";
 import "./IPolicyApprovalsFacet.sol";
 import "./IPolicyStates.sol";
 
@@ -27,6 +27,6 @@ abstract contract IPolicy is
   IPolicyClaimsFacet,
   IPolicyCommissionsFacet,
   IPolicyPremiumsFacet,
-  IPolicyTranchTokensFacet,
+  IPolicyTrancheTokensFacet,
   IPolicyApprovalsFacet
   {}

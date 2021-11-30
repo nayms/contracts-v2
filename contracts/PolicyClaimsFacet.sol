@@ -57,44 +57,44 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
 
   function getClaimInfo (uint256 _claimIndex) public view override returns (
     uint256 amount_,
-    uint256 tranchIndex_,
+    uint256 trancheIndex_,
     uint256 state_,
     bool disputed_,
     bool acknowledged_
   ) {
-    tranchIndex_ = dataUint256[__i(_claimIndex, "claimTranch")];
+    trancheIndex_ = dataUint256[__i(_claimIndex, "claimTranche")];
     amount_ = dataUint256[__i(_claimIndex, "claimAmount")];
     state_ = dataUint256[__i(_claimIndex, "claimState")];
     disputed_ = dataBool[__i(_claimIndex, "claimDisputed")];
     acknowledged_ = dataBool[__i(_claimIndex, "claimAcknowledged")];
   }
 
-  function makeClaim(uint256 _tranchIndex, uint256 _amount) external override 
+  function makeClaim(uint256 _trancheIndex, uint256 _amount) external override 
     assertActiveState
     assertBelongsToEntityWithRole(msg.sender, ROLE_INSURED_PARTY)
   {
     IPolicyCoreFacet(address(this)).checkAndUpdateState();
     address entity = _getEntityWithRole(ROLE_INSURED_PARTY);
 
-    // check that tranch is active
-    require(dataUint256[__i(_tranchIndex, "state")] == TRANCH_STATE_ACTIVE, 'tranch must be active');
+    // check that tranche is active
+    require(dataUint256[__i(_trancheIndex, "state")] == TRANCHE_STATE_ACTIVE, 'tranche must be active');
 
     // check amount
     require(
-      _getTranchPendingClaimsAmount(_tranchIndex).add(_amount) <= dataUint256[string(abi.encodePacked(_tranchIndex, "balance"))],
+      _getTranchePendingClaimsAmount(_trancheIndex).add(_amount) <= dataUint256[string(abi.encodePacked(_trancheIndex, "balance"))],
       'claim too high'
     );
 
     uint256 claimIndex = dataUint256["claimsCount"];
     dataUint256[__i(claimIndex, "claimAmount")] = _amount;
-    dataUint256[__i(claimIndex, "claimTranch")] = _tranchIndex;
+    dataUint256[__i(claimIndex, "claimTranche")] = _trancheIndex;
     dataAddress[__i(claimIndex, "claimEntity")] = entity;
     dataUint256[__i(claimIndex, "claimState")] = CLAIM_STATE_CREATED;
 
     dataUint256["claimsCount"] = claimIndex + 1;
     dataUint256["claimsPendingCount"] += 1;
 
-    emit NewClaim(_tranchIndex, claimIndex, msg.sender);
+    emit NewClaim(_trancheIndex, claimIndex, msg.sender);
   }
 
   function disputeClaim(uint256 _claimIndex) 
@@ -131,10 +131,10 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
     uint256 state = dataUint256[__i(_claimIndex, "claimState")];
     require(state == CLAIM_STATE_CREATED, 'in wrong state');
 
-    // remove from tranch balance
+    // remove from tranche balance
     uint256 claimAmount = dataUint256[__i(_claimIndex, "claimAmount")];
-    uint256 claimTranch = dataUint256[__i(_claimIndex, "claimTranch")];
-    dataUint256[__i(claimTranch, "balance")] = dataUint256[__i(claimTranch, "balance")].sub(claimAmount);
+    uint256 claimTranche = dataUint256[__i(_claimIndex, "claimTranche")];
+    dataUint256[__i(claimTranche, "balance")] = dataUint256[__i(claimTranche, "balance")].sub(claimAmount);
 
     // update pending count
     dataUint256["claimsPendingCount"] -= 1;
@@ -173,7 +173,7 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
 
     // check that premiums are fully paid
     require(
-      _tranchPaymentsAllMade(dataUint256[__i(_claimIndex, "claimTranch")]), 
+      _tranchePaymentsAllMade(dataUint256[__i(_claimIndex, "claimTranche")]), 
       'not possible until premiums are fully paid'
     );
 
@@ -195,15 +195,15 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
     }
   }
 
-  function _getTranchPendingClaimsAmount (uint256 _index) private view returns (uint256) {
+  function _getTranchePendingClaimsAmount (uint256 _index) private view returns (uint256) {
     uint256 amount;
 
     for (uint256 i = 0; i < dataUint256["claimsCount"]; i += 1) {
       uint256 state = dataUint256[__i(i, "claimState")];
       bool isPending = (state == CLAIM_STATE_CREATED);
-      uint256 tranchNum = dataUint256[__i(i, "claimTranch")];
+      uint256 trancheNum = dataUint256[__i(i, "claimTranche")];
 
-      if (tranchNum == _index && isPending) {
+      if (trancheNum == _index && isPending) {
         amount = amount.add(dataUint256[__i(i, "claimAmount")]);
       }
     }

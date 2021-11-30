@@ -5,7 +5,7 @@ import {
   BYTES32_ZERO,
   createEntity,
   createPolicy,
-  createTranch,
+  createTranche,
 } from './utils'
 
 import { events } from '../'
@@ -938,7 +938,7 @@ describe('Entity', () => {
       await acl.hasRole(policyContext, entityRep, ROLES.POLICY_OWNER).should.eventually.eq(HAS_ROLE_CONTEXT)
     })
 
-    describe('and policy tranch premiums can be paid', () => {
+    describe('and policy tranche premiums can be paid', () => {
       let policyOwner
       let policy
       let policyContext
@@ -963,32 +963,32 @@ describe('Entity', () => {
         const accessControl = await AccessControl.at(policy.address)
         policyContext = await accessControl.aclContext()
 
-        await createTranch(policy, { 
+        await createTranche(policy, { 
           numShares: 1,
           pricePerShareAmount: 1,
-          premiums: [premiumAmount],
+          premiumsDiff: [0, premiumAmount],
         }, { from: policyOwner })
       })
 
       it('but not by anyone', async () => {
-        await entity.payTranchPremium(policy.address, 0, premiumAmount, { from: accounts[8] }).should.be.rejectedWith('must be entity rep')
+        await entity.payTranchePremium(policy.address, 0, premiumAmount, { from: accounts[8] }).should.be.rejectedWith('must be entity rep')
       })
 
       it('but not by entity rep if we do not have enough tokens to pay with', async () => {
-        await entity.payTranchPremium(policy.address, 0, premiumAmount, { from: entityRep }).should.be.rejectedWith('exceeds entity balance')
+        await entity.payTranchePremium(policy.address, 0, premiumAmount, { from: entityRep }).should.be.rejectedWith('exceeds entity balance')
       })
 
       it('by entity rep if we have enough tokens to pay with', async () => {
         await etherToken.deposit({ value: premiumAmount })
         await etherToken.approve(entity.address, premiumAmount)
         await entity.deposit(etherToken.address, premiumAmount)
-        await entity.payTranchPremium(policy.address, 0, premiumAmount, { from: entityRep }).should.be.fulfilled
+        await entity.payTranchePremium(policy.address, 0, premiumAmount, { from: entityRep }).should.be.fulfilled
       })
 
       it('by entity rep if we have enough tokens to pay with, excluding tokens directly sent to entity', async () => {
         await etherToken.deposit({ value: premiumAmount })
         await etherToken.transfer(entity.address, premiumAmount)
-        await entity.payTranchPremium(policy.address, 0, premiumAmount, { from: entityRep }).should.be.rejectedWith('exceeds entity balance')
+        await entity.payTranchePremium(policy.address, 0, premiumAmount, { from: entityRep }).should.be.rejectedWith('exceeds entity balance')
       })
     })
   })

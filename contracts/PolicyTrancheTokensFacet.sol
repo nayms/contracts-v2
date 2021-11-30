@@ -4,7 +4,7 @@ pragma solidity 0.6.12;
 import "./base/EternalStorage.sol";
 import "./base/Controller.sol";
 import "./base/IDiamondFacet.sol";
-import "./base/IPolicyTranchTokensFacet.sol";
+import "./base/IPolicyTrancheTokensFacet.sol";
 import "./base/IMarket.sol";
 import "./base/IMarketObserver.sol";
 import "./base/IMarketObserverDataTypes.sol";
@@ -19,7 +19,7 @@ import "./PolicyFacetBase.sol";
 /**
  * @dev Business-logic for Policy commissions
  */
-contract PolicyTranchTokensFacet is EternalStorage, Controller, IDiamondFacet, IPolicyTranchTokensFacet, PolicyFacetBase, IMarketObserver, IMarketObserverDataTypes {
+contract PolicyTrancheTokensFacet is EternalStorage, Controller, IDiamondFacet, IPolicyTrancheTokensFacet, PolicyFacetBase, IMarketObserver, IMarketObserverDataTypes {
   using SafeMath for uint;
   using Uint for uint;
   using Address for address;
@@ -36,22 +36,22 @@ contract PolicyTranchTokensFacet is EternalStorage, Controller, IDiamondFacet, I
 
   function getSelectors () public pure override returns (bytes memory) {
     return abi.encodePacked(
-      IPolicyTranchTokensFacet.tknName.selector,
-      IPolicyTranchTokensFacet.tknSymbol.selector,
-      IPolicyTranchTokensFacet.tknTotalSupply.selector,
-      IPolicyTranchTokensFacet.tknBalanceOf.selector,
-      IPolicyTranchTokensFacet.tknAllowance.selector,
-      IPolicyTranchTokensFacet.tknApprove.selector,
-      IPolicyTranchTokensFacet.tknTransfer.selector,
+      IPolicyTrancheTokensFacet.tknName.selector,
+      IPolicyTrancheTokensFacet.tknSymbol.selector,
+      IPolicyTrancheTokensFacet.tknTotalSupply.selector,
+      IPolicyTrancheTokensFacet.tknBalanceOf.selector,
+      IPolicyTrancheTokensFacet.tknAllowance.selector,
+      IPolicyTrancheTokensFacet.tknApprove.selector,
+      IPolicyTrancheTokensFacet.tknTransfer.selector,
       IMarketObserver.handleTrade.selector,
       IMarketObserver.handleClosure.selector
     );
   }
 
-  // IPolicyTranchTokensFacet
+  // IPolicyTrancheTokensFacet
 
   function tknName(uint256 _index) public view override returns (string memory) {
-    return string(abi.encodePacked("NAYMS-", address(this).toString(), "-TRANCH-", uint256(_index + 1).toString()));
+    return string(abi.encodePacked("NAYMS-", address(this).toString(), "-TRANCHE-", uint256(_index + 1).toString()));
   }
 
   function tknSymbol(uint256 _index) public view override returns (string memory) {
@@ -123,28 +123,28 @@ contract PolicyTranchTokensFacet is EternalStorage, Controller, IDiamondFacet, I
     // get data type
     (uint256 t) = abi.decode(_data, (uint256));
 
-    if (t == MODT_TRANCH_SALE) {
-      // get policy address and tranch id
-      (, address policy, uint256 tranchId) = abi.decode(_data, (uint256, address, uint256));
+    if (t == MODT_TRANCHE_SALE) {
+      // get policy address and tranche id
+      (, address policy, uint256 trancheId) = abi.decode(_data, (uint256, address, uint256));
 
       // if we created this offer
       if (policy == address(this)) {
         // if we are in the initial sale period      
-        if (dataUint256[__i(tranchId, "state")] == TRANCH_STATE_SELLING) {
-          // check tranch token matches sell token
+        if (dataUint256[__i(trancheId, "state")] == TRANCHE_STATE_SELLING) {
+          // check tranche token matches sell token
           (, address sellToken, , , , , , , , ,) = _getMarket().getOffer(_offerId);
-          address tranchAddress = dataAddress[__i(tranchId, "address")];
-          require(tranchAddress == sellToken, "sell token must be tranch token");
+          address trancheAddress = dataAddress[__i(trancheId, "address")];
+          require(trancheAddress == sellToken, "sell token must be tranche token");
           // record how many "shares" were sold
-          dataUint256[__i(tranchId, "sharesSold")] = dataUint256[__i(tranchId, "sharesSold")].add(_soldAmount);
-          // update tranch balance
-          dataUint256[__i(tranchId, "balance")] = dataUint256[__i(tranchId, "balance")].add(_boughtAmount);
-          // tell treasury to add tranch balance value to overall policy balance
+          dataUint256[__i(trancheId, "sharesSold")] = dataUint256[__i(trancheId, "sharesSold")].add(_soldAmount);
+          // update tranche balance
+          dataUint256[__i(trancheId, "balance")] = dataUint256[__i(trancheId, "balance")].add(_boughtAmount);
+          // tell treasury to add tranche balance value to overall policy balance
           _getTreasury().incPolicyBalance(_boughtAmount);
-          // if the tranch has fully sold out
-          if (dataUint256[__i(tranchId, "sharesSold")] == dataUint256[__i(tranchId, "numShares")]) {
-            // flip tranch state to ACTIVE
-            _setTranchState(tranchId, TRANCH_STATE_ACTIVE);
+          // if the tranche has fully sold out
+          if (dataUint256[__i(trancheId, "sharesSold")] == dataUint256[__i(trancheId, "numShares")]) {
+            // flip tranche state to ACTIVE
+            _setTrancheState(trancheId, TRANCHE_STATE_ACTIVE);
           }
         }
       }
@@ -164,25 +164,25 @@ contract PolicyTranchTokensFacet is EternalStorage, Controller, IDiamondFacet, I
     // get data type
     (uint256 t) = abi.decode(_data, (uint256));
 
-    // if it's a tranch token buyback trade
-    if (t == MODT_TRANCH_BUYBACK) {
-      // get policy address and tranch id
-      (, address policy, uint256 tranchId) = abi.decode(_data, (uint256, address, uint256));
+    // if it's a tranche token buyback trade
+    if (t == MODT_TRANCHE_BUYBACK) {
+      // get policy address and tranche id
+      (, address policy, uint256 trancheId) = abi.decode(_data, (uint256, address, uint256));
 
       // if we created this offer
       if (policy == address(this)) {
         // if we are in the policy buyback state
         if (dataUint256["state"] == POLICY_STATE_BUYBACK) {
-          // check tranch token matches buy token
+          // check tranche token matches buy token
           (, , , , address buyToken, , , , , ,) = _getMarket().getOffer(_offerId);
-          address tranchAddress = dataAddress[__i(tranchId, "address")];
-          require(tranchAddress == buyToken, "buy token must be tranch token");
+          address trancheAddress = dataAddress[__i(trancheId, "address")];
+          require(trancheAddress == buyToken, "buy token must be tranche token");
 
           // NOTE: we're assuming that an order never gets closed until it is sold out
           // Sold out = only <=dusk amount remaining (see market for dusk level)
 
           // mark buyback as complete
-          dataBool[__i(tranchId, "buybackCompleted")] = true;
+          dataBool[__i(trancheId, "buybackCompleted")] = true;
           dataUint256["numTranchesBoughtBack"] += 1;
 
           // if all tranches have been bought back

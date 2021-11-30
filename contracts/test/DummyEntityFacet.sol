@@ -19,7 +19,7 @@ contract DummyEntityFacet is IDiamondFacet, IEntityCoreFacet, IEntityFundingFace
 
   function createPolicy(
     bytes32 _id,
-    uint256[] calldata _typeAndPremiumIntervalSecondsAndDatesAndCommissionsBP,
+    uint256[] calldata _typeAndDatesAndCommissionsBP,
     address[] calldata _unitAndTreasuryAndStakeholders,
     uint256[][] calldata _trancheData,
     bytes[] calldata _approvalSignatures
@@ -27,7 +27,7 @@ contract DummyEntityFacet is IDiamondFacet, IEntityCoreFacet, IEntityFundingFace
 
   function deposit(address _unit, uint256 _amount) external override {}
   function withdraw(address _unit, uint256 _amount) external override {}
-  function payTranchPremium(address _policy, uint256 _tranchIndex, uint256 _amount) external override {}
+  function payTranchePremium(address _policy, uint256 _trancheIndex, uint256 _amount) external override {}
   function trade(address _payUnit, uint256 _payAmount, address _buyUnit, uint256 _buyAmount) external override returns (uint256) {}
   function sellAtBestPrice(address _sellUnit, uint256 _sellAmount, address _buyUnit) external override {}
 }

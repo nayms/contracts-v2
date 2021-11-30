@@ -1,7 +1,7 @@
 import {
   extractEventArgs,
   parseEvents,
-  createTranch,
+  createTranche,
   createPolicy,
   createEntity,
   doPolicyApproval,
@@ -48,7 +48,7 @@ describe('Integration: SPV', () => {
   let policyProxy
   let policy
   let entity
-  let premiumIntervalSeconds
+  let timeIntervalSeconds
   let baseDate
   let initiationDate
   let startDate
@@ -83,16 +83,16 @@ describe('Integration: SPV', () => {
   let POLICY_STATE_BUYBACK
   let POLICY_STATE_CLOSED
   
-  let TRANCH_STATE_CREATED
-  let TRANCH_STATE_SELLING
-  let TRANCH_STATE_ACTIVE
-  let TRANCH_STATE_MATURED
-  let TRANCH_STATE_CANCELLED
+  let TRANCHE_STATE_CREATED
+  let TRANCHE_STATE_SELLING
+  let TRANCHE_STATE_ACTIVE
+  let TRANCHE_STATE_MATURED
+  let TRANCHE_STATE_CANCELLED
 
   let FEE_SCHEDULE_STANDARD
   let FEE_SCHEDULE_PLATFORM_ACTION
 
-  let getTranchToken
+  let getTrancheToken
   let approvePolicy
 
   let evmClock
@@ -152,13 +152,12 @@ describe('Integration: SPV', () => {
     initiationDate = baseDate + 1000
     startDate = initiationDate + 1000
     maturationDate = startDate + 2000
-    premiumIntervalSeconds = 500
+    timeIntervalSeconds = 500
 
     const createPolicyTx = await createPolicy(entity, {
       initiationDate,
       startDate,
       maturationDate,
-      premiumIntervalSeconds,
       unit: etherToken.address,
       claimsAdminCommissionBP,
       brokerCommissionBP,
@@ -182,20 +181,20 @@ describe('Integration: SPV', () => {
     market = await ensureMarketIsDeployed({ artifacts, settings })
 
     // setup two tranches
-    await createTranch(policy, {
+    await createTranche(policy, {
       numShares: 100,
       pricePerShareAmount: 2,
-      premiums: [1000, 2000, 3000, 4000, 5000, 6000, 7000],
+      premiumsDiff: [0, 1000 ,500 , 2000, 1000, 3000, 1500, 4000, 2000, 5000, 2500, 6000, 3000, 7000 ]
     }, { from: policyOwnerAddress })
 
-    await createTranch(policy, {
+    await createTranche(policy, {
       numShares: 50,
       pricePerShareAmount: 2,
-      premiums: [1000, 2000, 3000, 4000, 5000, 6000, 7000],
+      premiumsDiff: [0, 1000 ,500 , 2000, 1000, 3000, 1500, 4000, 2000, 5000, 2500, 6000, 3000, 7000 ]
     }, { from: policyOwnerAddress })
 
-    getTranchToken = async idx => {
-      const { token_: tt } = await policy.getTranchInfo(idx)
+    getTrancheToken = async idx => {
+      const { token_: tt } = await policy.getTrancheInfo(idx)
       return await IERC20.at(tt)
     }
 
@@ -216,11 +215,11 @@ describe('Integration: SPV', () => {
     POLICY_STATE_BUYBACK = await policyStates.POLICY_STATE_BUYBACK()
     POLICY_STATE_CLOSED = await policyStates.POLICY_STATE_CLOSED()
 
-    TRANCH_STATE_CREATED = await policyStates.TRANCH_STATE_CREATED()
-    TRANCH_STATE_SELLING = await policyStates.TRANCH_STATE_SELLING()
-    TRANCH_STATE_ACTIVE = await policyStates.TRANCH_STATE_ACTIVE()
-    TRANCH_STATE_MATURED = await policyStates.TRANCH_STATE_MATURED()
-    TRANCH_STATE_CANCELLED = await policyStates.TRANCH_STATE_CANCELLED()
+    TRANCHE_STATE_CREATED = await policyStates.TRANCHE_STATE_CREATED()
+    TRANCHE_STATE_SELLING = await policyStates.TRANCHE_STATE_SELLING()
+    TRANCHE_STATE_ACTIVE = await policyStates.TRANCHE_STATE_ACTIVE()
+    TRANCHE_STATE_MATURED = await policyStates.TRANCHE_STATE_MATURED()
+    TRANCHE_STATE_CANCELLED = await policyStates.TRANCHE_STATE_CANCELLED()
 
     const { facets: [marketCoreAddress] } = market
     const mktFeeSchedules = await IMarketFeeSchedules.at(marketCoreAddress)
@@ -256,65 +255,65 @@ describe('Integration: SPV', () => {
           await approvePolicy()
         })
 
-        it('but not if tranch premiums have not been paid', async () => {
+        it('but not if tranche premiums have not been paid', async () => {
           await etherToken.deposit({ value: 100000 })
           await etherToken.approve(policy.address, 100000)
 
           // pay all tranches except the second one
-          await policy.payTranchPremium(0, 1000)
-          await policy.payTranchPremium(2, 1000)
+          await policy.payTranchePremium(0, 1000)
+          await policy.payTranchePremium(2, 1000)
 
           await evmClock.setAbsoluteTime(initiationDate)
 
           await policy.checkAndUpdateState().should.be.fulfilled
-          await policy.getTranchInfo(0).should.eventually.matchObj({
+          await policy.getTrancheInfo(0).should.eventually.matchObj({
             initialSaleOfferId_: 0,
           })
           await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_APPROVED })
         })
 
-        describe('once tranch premiums are up-to-date', () => {
+        describe('once tranche premiums are up-to-date', () => {
           beforeEach(async () => {
             await etherToken.deposit({ value: 100000 })
             await etherToken.approve(policy.address, 100000)
-            await policy.payTranchPremium(0, 1000)
-            await policy.payTranchPremium(1, 1000)
+            await policy.payTranchePremium(0, 1000)
+            await policy.payTranchePremium(1, 1000)
             await evmClock.setAbsoluteTime(initiationDate)
           })
 
           it('and then tranches get put on the market', async () => {
             // check order ids are not yet set
-            await policy.getTranchInfo(0).should.eventually.matchObj({
+            await policy.getTrancheInfo(0).should.eventually.matchObj({
               initialSaleOfferId_: 0,
             })
-            await policy.getTranchInfo(1).should.eventually.matchObj({
+            await policy.getTrancheInfo(1).should.eventually.matchObj({
               initialSaleOfferId_: 0,
             })
 
-            const tranchTokens = await Promise.all([getTranchToken(0), getTranchToken(1)])
+            const trancheTokens = await Promise.all([getTrancheToken(0), getTrancheToken(1)])
 
-            await tranchTokens[0].balanceOf(market.address).should.eventually.eq(0)
-            await tranchTokens[1].balanceOf(market.address).should.eventually.eq(0)
+            await trancheTokens[0].balanceOf(market.address).should.eventually.eq(0)
+            await trancheTokens[1].balanceOf(market.address).should.eventually.eq(0)
 
-            await tranchTokens[0].balanceOf(entity.address).should.eventually.eq(100)
-            await tranchTokens[1].balanceOf(entity.address).should.eventually.eq(50)
+            await trancheTokens[0].balanceOf(entity.address).should.eventually.eq(100)
+            await trancheTokens[1].balanceOf(entity.address).should.eventually.eq(50)
 
             const result = await policy.checkAndUpdateState()
 
             const ev = extractEventArgs(result, events.PolicyStateUpdated)
             expect(ev.state).to.eq(POLICY_STATE_INITIATED.toString())
 
-            await tranchTokens[0].balanceOf(market.address).should.eventually.eq(100)
-            await tranchTokens[1].balanceOf(market.address).should.eventually.eq(50)
+            await trancheTokens[0].balanceOf(market.address).should.eventually.eq(100)
+            await trancheTokens[1].balanceOf(market.address).should.eventually.eq(50)
 
-            await tranchTokens[0].balanceOf(entity.address).should.eventually.eq(0)
-            await tranchTokens[1].balanceOf(entity.address).should.eventually.eq(0)
+            await trancheTokens[0].balanceOf(entity.address).should.eventually.eq(0)
+            await trancheTokens[1].balanceOf(entity.address).should.eventually.eq(0)
 
             // check order ids are set
-            await policy.getTranchInfo(0).should.eventually.not.matchObj({
+            await policy.getTrancheInfo(0).should.eventually.not.matchObj({
               initialSaleOfferId_: 0,
             })
-            await policy.getTranchInfo(1).should.eventually.not.matchObj({
+            await policy.getTrancheInfo(1).should.eventually.not.matchObj({
               initialSaleOfferId_: 0,
             })
           })
@@ -322,7 +321,7 @@ describe('Integration: SPV', () => {
           it('and the market offer uses the "platform action" fee schedule', async () => {
             await policy.checkAndUpdateState()
             
-            const { initialSaleOfferId_: marketOfferId } = await policy.getTranchInfo(0)
+            const { initialSaleOfferId_: marketOfferId } = await policy.getTrancheInfo(0)
 
             await market.getOffer(marketOfferId).should.eventually.matchObj({
               feeSchedule_: FEE_SCHEDULE_PLATFORM_ACTION,
@@ -334,12 +333,12 @@ describe('Integration: SPV', () => {
             await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_INITIATED })
           })
 
-          it('and then tranch states get updated', async () => {
+          it('and then tranche states get updated', async () => {
             await policy.checkAndUpdateState()
-            await policy.getTranchInfo(0).should.eventually.matchObj({
-              state_: TRANCH_STATE_SELLING,
+            await policy.getTrancheInfo(0).should.eventually.matchObj({
+              state_: TRANCHE_STATE_SELLING,
             })
-            await policy.getTranchInfo(1).should.eventually.matchObj({
+            await policy.getTrancheInfo(1).should.eventually.matchObj({
               sharesSold_: 0,
             })
           })
@@ -353,7 +352,7 @@ describe('Integration: SPV', () => {
   })
 
   describe('once tranches begins selling', () => {
-    let tranchToken
+    let trancheToken
     let marketOfferId
 
     beforeEach(async () => {
@@ -361,8 +360,8 @@ describe('Integration: SPV', () => {
 
       await etherToken.deposit({ value: 100000 })
       await etherToken.approve(policy.address, 10000)
-      await policy.payTranchPremium(0, 1000)
-      await policy.payTranchPremium(1, 1000)
+      await policy.payTranchePremium(0, 1000)
+      await policy.payTranchePremium(1, 1000)
 
       await evmClock.setAbsoluteTime(initiationDate)
       await policy.checkAndUpdateState()
@@ -371,16 +370,16 @@ describe('Integration: SPV', () => {
         state_: POLICY_STATE_INITIATED
       })
 
-      await policy.getTranchInfo(0).should.eventually.matchObj({
+      await policy.getTrancheInfo(0).should.eventually.matchObj({
         sharesSold_: 0,
       })
-      await policy.getTranchInfo(1).should.eventually.matchObj({
+      await policy.getTrancheInfo(1).should.eventually.matchObj({
         sharesSold_: 0,
       })
 
-      tranchToken = await getTranchToken(0)
+      trancheToken = await getTrancheToken(0)
 
-      ;({ initialSaleOfferId_: marketOfferId } = await policy.getTranchInfo(0))
+      ;({ initialSaleOfferId_: marketOfferId } = await policy.getTrancheInfo(0))
 
       // get some wrapped ETH for buyer account
       await etherToken.deposit({ from: accounts[2], value: 25 })
@@ -397,32 +396,32 @@ describe('Integration: SPV', () => {
         await etherToken.balanceOf(policy.address).should.eventually.eq(180) /* commissions from premium payments = 9% of 2000 */
         await etherToken.balanceOf(entity.address).should.eventually.eq(1820) /* premium payments - minus commissions */
         await etherToken.balanceOf(market.address).should.eventually.eq(0)
-        await tranchToken.balanceOf(accounts[2]).should.eventually.eq(0)
-        await tranchToken.balanceOf(entity.address).should.eventually.eq(0)
-        await tranchToken.balanceOf(market.address).should.eventually.eq(100)
+        await trancheToken.balanceOf(accounts[2]).should.eventually.eq(0)
+        await trancheToken.balanceOf(entity.address).should.eventually.eq(0)
+        await trancheToken.balanceOf(market.address).should.eventually.eq(100)
 
         // make the offer on the market
         await etherToken.approve(market.address, 10, { from: accounts[2] })
-        await market.executeLimitOffer(etherToken.address, 10, tranchToken.address, 5000, FEE_SCHEDULE_STANDARD, { from: accounts[2] })
+        await market.executeLimitOffer(etherToken.address, 10, trancheToken.address, 5000, FEE_SCHEDULE_STANDARD, { from: accounts[2] })
 
         // check balances again
         await etherToken.balanceOf(accounts[2]).should.eventually.eq(15)
         await etherToken.balanceOf(policy.address).should.eventually.eq(180)
         await etherToken.balanceOf(entity.address).should.eventually.eq(1820)
         await etherToken.balanceOf(market.address).should.eventually.eq(10)
-        await tranchToken.balanceOf(accounts[2]).should.eventually.eq(0)
-        await tranchToken.balanceOf(entity.address).should.eventually.eq(0)
-        await tranchToken.balanceOf(market.address).should.eventually.eq(100)
+        await trancheToken.balanceOf(accounts[2]).should.eventually.eq(0)
+        await trancheToken.balanceOf(entity.address).should.eventually.eq(0)
+        await trancheToken.balanceOf(market.address).should.eventually.eq(100)
       })
 
-      it('and tranch status is unchanged', async () => {
-        await policy.getTranchInfo(0).should.eventually.matchObj({
-          state_: TRANCH_STATE_SELLING,
+      it('and tranche status is unchanged', async () => {
+        await policy.getTrancheInfo(0).should.eventually.matchObj({
+          state_: TRANCHE_STATE_SELLING,
         })
       })
 
-      it('and tranch balance is unchanged', async () => {
-        const b = (await policy.getTranchInfo(0)).balance_
+      it('and tranche balance is unchanged', async () => {
+        const b = (await policy.getTrancheInfo(0)).balance_
         expect(b.toNumber()).to.eq(calcPremiumsMinusCommissions({
           premiums: [1000],
           claimsAdminCommissionBP,
@@ -433,54 +432,54 @@ describe('Integration: SPV', () => {
       })
 
       it('and the tally of shares sold is unchanged', async () => {
-        await policy.getTranchInfo(0).should.eventually.matchObj({
+        await policy.getTrancheInfo(0).should.eventually.matchObj({
           sharesSold_: 0,
         })
       })
 
       it('and market offer is still active', async () => {
-        await policy.getTranchInfo(0).should.eventually.matchObj({
+        await policy.getTrancheInfo(0).should.eventually.matchObj({
           initialSaleOfferId_: marketOfferId,
         })
         await market.isActive(marketOfferId).should.eventually.eq(true)
       })
     })
 
-    describe('another party can make offers that do match but dont buy the tranch completely', () => {
+    describe('another party can make offers that do match but dont buy the tranche completely', () => {
       beforeEach(async () => {
         // check initial balances
         await etherToken.balanceOf(accounts[2]).should.eventually.eq(25)
         await etherToken.balanceOf(policy.address).should.eventually.eq(180) /* commissions from premium payments: 10 + 10 */
         await etherToken.balanceOf(entity.address).should.eventually.eq(1820) /* premium payments - minus commissions */
         await etherToken.balanceOf(market.address).should.eventually.eq(0)
-        await tranchToken.balanceOf(accounts[2]).should.eventually.eq(0)
-        await tranchToken.balanceOf(entity.address).should.eventually.eq(0)
-        await tranchToken.balanceOf(market.address).should.eventually.eq(100)
+        await trancheToken.balanceOf(accounts[2]).should.eventually.eq(0)
+        await trancheToken.balanceOf(entity.address).should.eventually.eq(0)
+        await trancheToken.balanceOf(market.address).should.eventually.eq(100)
 
         // make some offers on the market
         await etherToken.approve(market.address, 10, { from: accounts[2] })
-        await market.executeLimitOffer(etherToken.address, 4, tranchToken.address, 2, FEE_SCHEDULE_STANDARD, { from: accounts[2] })
-        await market.executeLimitOffer(etherToken.address, 6, tranchToken.address, 3, FEE_SCHEDULE_STANDARD, { from: accounts[2] })
+        await market.executeLimitOffer(etherToken.address, 4, trancheToken.address, 2, FEE_SCHEDULE_STANDARD, { from: accounts[2] })
+        await market.executeLimitOffer(etherToken.address, 6, trancheToken.address, 3, FEE_SCHEDULE_STANDARD, { from: accounts[2] })
 
         // check balances again
         await etherToken.balanceOf(accounts[2]).should.eventually.eq(15)
         await etherToken.balanceOf(policy.address).should.eventually.eq(180)
         await etherToken.balanceOf(entity.address).should.eventually.eq(1820 + 10)
         await etherToken.balanceOf(market.address).should.eventually.eq(0)
-        await tranchToken.balanceOf(accounts[2]).should.eventually.eq(5)
-        await tranchToken.balanceOf(entity.address).should.eventually.eq(0)
-        await tranchToken.balanceOf(market.address).should.eventually.eq(95)
+        await trancheToken.balanceOf(accounts[2]).should.eventually.eq(5)
+        await trancheToken.balanceOf(entity.address).should.eventually.eq(0)
+        await trancheToken.balanceOf(market.address).should.eventually.eq(95)
       })
 
-      it('and tranch status is unchanged', async () => {
-        // tranch status unchanged
-        await policy.getTranchInfo(0).should.eventually.matchObj({
-          state_: TRANCH_STATE_SELLING,
+      it('and tranche status is unchanged', async () => {
+        // tranche status unchanged
+        await policy.getTrancheInfo(0).should.eventually.matchObj({
+          state_: TRANCHE_STATE_SELLING,
         })
       })
 
-      it('and tranch balance has been updated', async () => {
-        const b = (await policy.getTranchInfo(0)).balance_
+      it('and tranche balance has been updated', async () => {
+        const b = (await policy.getTrancheInfo(0)).balance_
         expect(b.toNumber()).to.eq(10 + calcPremiumsMinusCommissions({
           premiums: [1000],
           claimsAdminCommissionBP,
@@ -492,58 +491,58 @@ describe('Integration: SPV', () => {
 
       it('and tally of shares sold has been updated', async () => {
         // check shares sold
-        await policy.getTranchInfo(0).should.eventually.matchObj({
+        await policy.getTrancheInfo(0).should.eventually.matchObj({
           sharesSold_: 5,
         })
       })
 
       it('and market offer is still active', async () => {
-        await policy.getTranchInfo(0).should.eventually.matchObj({
+        await policy.getTrancheInfo(0).should.eventually.matchObj({
           initialSaleOfferId_: marketOfferId,
         })
         await market.isActive(marketOfferId).should.eventually.eq(true)
       })
     })
 
-    it('new token owners cannot trade their tokens whilst tranch is still selling', async () => {
-      // get tranch tokens
+    it('new token owners cannot trade their tokens whilst tranche is still selling', async () => {
+      // get tranche tokens
       await etherToken.approve(market.address, 10, { from: accounts[2] })
-      // buy the tranch token
-      await market.executeLimitOffer(etherToken.address, 10, tranchToken.address, 5, FEE_SCHEDULE_STANDARD, { from: accounts[2] })
+      // buy the tranche token
+      await market.executeLimitOffer(etherToken.address, 10, trancheToken.address, 5, FEE_SCHEDULE_STANDARD, { from: accounts[2] })
       // check balance
-      await tranchToken.balanceOf(accounts[2]).should.eventually.eq(5)
-      // try trading the tranch token
-      // await market.executeLimitOffer(tranchToken.address, 1, etherToken.address, 1, FEE_SCHEDULE_STANDARD, { from: accounts[2] }).should.be.rejectedWith('can only trade when policy is active')
+      await trancheToken.balanceOf(accounts[2]).should.eventually.eq(5)
+      // try trading the tranche token
+      // await market.executeLimitOffer(trancheToken.address, 1, etherToken.address, 1, FEE_SCHEDULE_STANDARD, { from: accounts[2] }).should.be.rejectedWith('can only trade when policy is active')
     })
 
-    describe('if a tranch fully sells out', () => {
+    describe('if a tranche fully sells out', () => {
       let txResult
-      let tranchToken
+      let trancheToken
 
       beforeEach(async () => {
         // make the offer on the market
-        tranchToken = await getTranchToken(0)
+        trancheToken = await getTrancheToken(0)
 
-        // buy the whole tranch
+        // buy the whole tranche
         await etherToken.deposit({ from: accounts[2], value: 200 })
         await etherToken.approve(market.address, 200, { from: accounts[2] })
-        txResult = await market.executeLimitOffer(etherToken.address, 200, tranchToken.address, 100, FEE_SCHEDULE_STANDARD, { from: accounts[2] })
+        txResult = await market.executeLimitOffer(etherToken.address, 200, trancheToken.address, 100, FEE_SCHEDULE_STANDARD, { from: accounts[2] })
       })
 
-      it('emits tranch state updated event', async () => {
-        const ev = extractEventArgs(txResult, events.TranchStateUpdated)
-        expect(ev.tranchIndex).to.eq('0')
-        expect(ev.state).to.eq(TRANCH_STATE_ACTIVE.toString())
+      it('emits tranche state updated event', async () => {
+        const ev = extractEventArgs(txResult, events.TrancheStateUpdated)
+        expect(ev.trancheIndex).to.eq('0')
+        expect(ev.state).to.eq(TRANCHE_STATE_ACTIVE.toString())
       })
 
       it('then its status is set to active', async () => {
-        await policy.getTranchInfo(0).should.eventually.matchObj({
-          state_: TRANCH_STATE_ACTIVE,
+        await policy.getTrancheInfo(0).should.eventually.matchObj({
+          state_: TRANCHE_STATE_ACTIVE,
         })
       })
 
-      it('then tranch balance has been updated', async () => {
-        const b = (await policy.getTranchInfo(0)).balance_
+      it('then tranche balance has been updated', async () => {
+        const b = (await policy.getTrancheInfo(0)).balance_
         expect(b.toNumber()).to.eq(200 + calcPremiumsMinusCommissions({
           premiums: [1000],
           claimsAdminCommissionBP,
@@ -554,19 +553,19 @@ describe('Integration: SPV', () => {
       })
 
       it('and the tally of shares sold gets updated', async () => {
-        await policy.getTranchInfo(0).should.eventually.matchObj({
+        await policy.getTrancheInfo(0).should.eventually.matchObj({
           sharesSold_: 100,
         })
       })
 
       it('and the market offer is closed', async () => {
-        await policy.getTranchInfo(0).should.eventually.matchObj({
+        await policy.getTrancheInfo(0).should.eventually.matchObj({
           initialSaleOfferId_: marketOfferId,
         })
         await market.isActive(marketOfferId).should.eventually.eq(false)
       })
 
-      describe('tranch tokens support ERC-20 operations', () => {
+      describe('tranche tokens support ERC-20 operations', () => {
         let tokenHolder
         
         beforeEach(async () => {
@@ -574,15 +573,15 @@ describe('Integration: SPV', () => {
         })
 
         it('but sending one\'s own tokens is not possible', async () => {
-          await tranchToken.transfer(accounts[3], 1, { from: tokenHolder }).should.be.rejectedWith('only nayms market is allowed to transfer')
+          await trancheToken.transfer(accounts[3], 1, { from: tokenHolder }).should.be.rejectedWith('only nayms market is allowed to transfer')
         })
 
         it('but approving an address to send on one\'s behalf is not possible', async () => {
-          await tranchToken.approve(accounts[3], 1, { from: tokenHolder }).should.be.rejectedWith('only nayms market is allowed to transfer')
+          await trancheToken.approve(accounts[3], 1, { from: tokenHolder }).should.be.rejectedWith('only nayms market is allowed to transfer')
         })
 
         it('approving an address to send on one\'s behalf is possible if it is the market', async () => {
-          await tranchToken.approve(market.address, 1, { from: tokenHolder }).should.be.fulfilled
+          await trancheToken.approve(market.address, 1, { from: tokenHolder }).should.be.fulfilled
         })
 
         describe('such as market sending tokens on one\'s behalf', () => {
@@ -591,14 +590,14 @@ describe('Integration: SPV', () => {
           })
 
           it('but not when owner does not have enough', async () => {
-            await tranchToken.transferFrom(tokenHolder, accounts[5], 100 + 1, { from: accounts[3] }).should.be.rejectedWith('not enough balance')
+            await trancheToken.transferFrom(tokenHolder, accounts[5], 100 + 1, { from: accounts[3] }).should.be.rejectedWith('not enough balance')
           })
 
           it('when the owner has enough', async () => {
-            const result = await tranchToken.transferFrom(tokenHolder, accounts[5], 100, { from: accounts[3] })
+            const result = await trancheToken.transferFrom(tokenHolder, accounts[5], 100, { from: accounts[3] })
 
-            await tranchToken.balanceOf(tokenHolder).should.eventually.eq(0)
-            await tranchToken.balanceOf(accounts[5]).should.eventually.eq(100)
+            await trancheToken.balanceOf(tokenHolder).should.eventually.eq(0)
+            await trancheToken.balanceOf(accounts[5]).should.eventually.eq(100)
 
             expect(extractEventArgs(result, events.Transfer)).to.include({
               from: tokenHolder,
@@ -619,8 +618,8 @@ describe('Integration: SPV', () => {
     it('but not if start date has not passed', async () => {
       await etherToken.deposit({ value: 100000 })
       await etherToken.approve(policy.address, 1000000)
-      await policy.payTranchPremium(0, 1000)
-      await policy.payTranchPremium(1, 1000)
+      await policy.payTranchePremium(0, 1000)
+      await policy.payTranchePremium(1, 1000)
 
       await evmClock.setAbsoluteTime(initiationDate)
       await policy.checkAndUpdateState()
@@ -638,16 +637,16 @@ describe('Integration: SPV', () => {
         await etherToken.deposit({ value: 1000000 })
         await etherToken.approve(policy.address, 1000000)
 
-        await policy.payTranchPremium(0, 2000)
-        await policy.payTranchPremium(1, 2000)
+        await policy.payTranchePremium(0, 2000)
+        await policy.payTranchePremium(1, 2000)
 
         await evmClock.setAbsoluteTime(initiationDate)
 
         // kick-off the sale
         await policy.checkAndUpdateState()
 
-        ;({ initialSaleOfferId_: offerId0 } = await policy.getTranchInfo(0))
-        ;({ initialSaleOfferId_: offerId1 } = await policy.getTranchInfo(1))
+        ;({ initialSaleOfferId_: offerId0 } = await policy.getTrancheInfo(0))
+        ;({ initialSaleOfferId_: offerId1 } = await policy.getTrancheInfo(1))
         expect(offerId0).to.not.eq(0)
         expect(offerId1).to.not.eq(0)
       })
@@ -657,10 +656,10 @@ describe('Integration: SPV', () => {
         await evmClock.setAbsoluteTime(startDate)
         await policy.checkAndUpdateState()
 
-        await policy.getTranchInfo(0).should.eventually.matchObj({
+        await policy.getTrancheInfo(0).should.eventually.matchObj({
           initialSaleOfferId_: offerId0,
         })
-        await policy.getTranchInfo(1).should.eventually.matchObj({
+        await policy.getTrancheInfo(1).should.eventually.matchObj({
           initialSaleOfferId_: offerId1,
         })
 
@@ -672,16 +671,16 @@ describe('Integration: SPV', () => {
         await evmClock.setAbsoluteTime(startDate)
         const ret = await policy.checkAndUpdateState()
 
-        const evs = parseEvents(ret, events.TranchStateUpdated)
+        const evs = parseEvents(ret, events.TrancheStateUpdated)
         expect(evs.length).to.eq(2)
 
         const [ ev1, ev2 ] = evs
 
-        expect(ev1.args.tranchIndex).to.eq('0')
-        expect(ev1.args.state).to.eq(TRANCH_STATE_CANCELLED.toString())
+        expect(ev1.args.trancheIndex).to.eq('0')
+        expect(ev1.args.state).to.eq(TRANCHE_STATE_CANCELLED.toString())
 
-        expect(ev2.args.tranchIndex).to.eq('1')
-        expect(ev2.args.state).to.eq(TRANCH_STATE_CANCELLED.toString())
+        expect(ev2.args.trancheIndex).to.eq('1')
+        expect(ev2.args.state).to.eq(TRANCHE_STATE_CANCELLED.toString())
       })
 
       describe('even if none of the tranches are active the policy still gets made active', () => {
@@ -691,11 +690,11 @@ describe('Integration: SPV', () => {
 
           await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_ACTIVE })
 
-          await policy.getTranchInfo(0).should.eventually.matchObj({
-            state_: TRANCH_STATE_CANCELLED,
+          await policy.getTrancheInfo(0).should.eventually.matchObj({
+            state_: TRANCHE_STATE_CANCELLED,
           })
-          await policy.getTranchInfo(1).should.eventually.matchObj({
-            state_: TRANCH_STATE_CANCELLED,
+          await policy.getTrancheInfo(1).should.eventually.matchObj({
+            state_: TRANCHE_STATE_CANCELLED,
           })
         })
 
@@ -710,12 +709,12 @@ describe('Integration: SPV', () => {
 
       describe('one of the tranches can be active but its premiums might not be up-to-date, in which case it gets cancelled', () => {
         beforeEach(async () => {
-          const tranchToken = await getTranchToken(0)
+          const trancheToken = await getTrancheToken(0)
 
-          // buy the whole tranch to make it active
+          // buy the whole tranche to make it active
           await etherToken.deposit({ from: accounts[2], value: 1000000 })
           await etherToken.approve(market.address, 200, { from: accounts[2] })
-          await market.executeLimitOffer(etherToken.address, 200, tranchToken.address, 100, FEE_SCHEDULE_STANDARD, { from: accounts[2] })
+          await market.executeLimitOffer(etherToken.address, 200, trancheToken.address, 100, FEE_SCHEDULE_STANDARD, { from: accounts[2] })
         })
 
         it('and updates internal state', async () => {
@@ -725,11 +724,11 @@ describe('Integration: SPV', () => {
 
           // now check
           await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_ACTIVE })
-          await policy.getTranchInfo(0).should.eventually.matchObj({
-            state_: TRANCH_STATE_CANCELLED,
+          await policy.getTrancheInfo(0).should.eventually.matchObj({
+            state_: TRANCHE_STATE_CANCELLED,
           })
-          await policy.getTranchInfo(1).should.eventually.matchObj({
-            state_: TRANCH_STATE_CANCELLED,
+          await policy.getTrancheInfo(1).should.eventually.matchObj({
+            state_: TRANCHE_STATE_CANCELLED,
           })
         })
 
@@ -738,36 +737,36 @@ describe('Integration: SPV', () => {
           await evmClock.setAbsoluteTime(startDate)
           const result = await policy.checkAndUpdateState()
 
-          const evs = parseEvents(result, events.TranchStateUpdated)
+          const evs = parseEvents(result, events.TrancheStateUpdated)
           expect(evs.length).to.eq(2)
 
           const evsStates = evs.map(e => e.args.state)
-          expect(evsStates[0]).to.eq(TRANCH_STATE_CANCELLED.toString())
-          expect(evsStates[1]).to.eq(TRANCH_STATE_CANCELLED.toString())
+          expect(evsStates[0]).to.eq(TRANCHE_STATE_CANCELLED.toString())
+          expect(evsStates[1]).to.eq(TRANCHE_STATE_CANCELLED.toString())
         })
       })
 
       describe('atleast one of the tranches can be active and its premiums can be up-to-date, in which case it stays active', () => {
         beforeEach(async () => {
           // make the offer on the market
-          const tranchToken = await getTranchToken(0)
+          const trancheToken = await getTrancheToken(0)
 
-          // buy the whole tranch to make it active
+          // buy the whole tranche to make it active
           await etherToken.deposit({ from: accounts[2], value: 1000000 })
           await etherToken.approve(market.address, 200, { from: accounts[2] })
-          const ret = await market.executeLimitOffer(etherToken.address, 200, tranchToken.address, 100, FEE_SCHEDULE_STANDARD, { from: accounts[2] })
+          const ret = await market.executeLimitOffer(etherToken.address, 200, trancheToken.address, 100, FEE_SCHEDULE_STANDARD, { from: accounts[2] })
 
-          const ev = extractEventArgs(ret, events.TranchStateUpdated)
-          expect(ev.tranchIndex).to.eq('0')
-          expect(ev.state).to.eq(TRANCH_STATE_ACTIVE.toString())
+          const ev = extractEventArgs(ret, events.TrancheStateUpdated)
+          expect(ev.trancheIndex).to.eq('0')
+          expect(ev.state).to.eq(TRANCHE_STATE_ACTIVE.toString())
 
           // pay its premiums upto start date
           await etherToken.approve(policy.address, 1000000, { from: accounts[2] })
           let toPay = 0
-          for (let i = 0; (startDate - initiationDate) / premiumIntervalSeconds >= i; i += 1) {
+          for (let i = 0; (startDate - initiationDate) / timeIntervalSeconds >= i; i += 1) {
             toPay += (2000 + 1000 * i)
           }
-          await policy.payTranchPremium(0, toPay, { from: accounts[2] })
+          await policy.payTranchePremium(0, toPay, { from: accounts[2] })
         })
 
         it('updates internal state', async () => {
@@ -777,11 +776,11 @@ describe('Integration: SPV', () => {
 
           // now check
           await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_ACTIVE })
-          await policy.getTranchInfo(0).should.eventually.matchObj({
-            state_: TRANCH_STATE_ACTIVE,
+          await policy.getTrancheInfo(0).should.eventually.matchObj({
+            state_: TRANCHE_STATE_ACTIVE,
           })
-          await policy.getTranchInfo(1).should.eventually.matchObj({
-            state_: TRANCH_STATE_CANCELLED,
+          await policy.getTrancheInfo(1).should.eventually.matchObj({
+            state_: TRANCHE_STATE_CANCELLED,
           })
         })
 
@@ -790,40 +789,40 @@ describe('Integration: SPV', () => {
           await evmClock.setAbsoluteTime(startDate)
           const result = await policy.checkAndUpdateState()
 
-          const evs = parseEvents(result, events.TranchStateUpdated)
+          const evs = parseEvents(result, events.TrancheStateUpdated)
           expect(evs.length).to.eq(1)
 
           const [ ev ] = evs
-          expect(ev.args.state).to.eq(TRANCH_STATE_CANCELLED.toString())
-          expect(ev.args.tranchIndex).to.eq('1')
+          expect(ev.args.state).to.eq(TRANCHE_STATE_CANCELLED.toString())
+          expect(ev.args.trancheIndex).to.eq('1')
         })
       })
 
       it('once policy becomes active, then token owners can start trading', async () => {
         // make the offer on the market
-        const tranchToken = await getTranchToken(0)
+        const trancheToken = await getTrancheToken(0)
 
-        // buy the whole tranch to make it active
+        // buy the whole tranche to make it active
         await etherToken.deposit({ from: accounts[2], value: 2000000 })
         await etherToken.approve(market.address, 200, { from: accounts[2] })
-        await market.executeLimitOffer(etherToken.address, 200, tranchToken.address, 100, FEE_SCHEDULE_STANDARD, { from: accounts[2] })
+        await market.executeLimitOffer(etherToken.address, 200, trancheToken.address, 100, FEE_SCHEDULE_STANDARD, { from: accounts[2] })
         // pay all premiums upto start date
         await etherToken.approve(policy.address, 1000000, { from: accounts[2] })
         let toPay = 0
-        for (let i = 0; (startDate - initiationDate) / premiumIntervalSeconds >= i; i += 1) {
+        for (let i = 0; (startDate - initiationDate) / timeIntervalSeconds >= i; i += 1) {
           toPay += (2000 + 1000 * i)
         }
-        await policy.payTranchPremium(0, toPay, { from: accounts[2] })
+        await policy.payTranchePremium(0, toPay, { from: accounts[2] })
 
         // end sale
         await evmClock.setAbsoluteTime(startDate)
         await policy.checkAndUpdateState()
 
         // try trading
-        await market.executeLimitOffer(tranchToken.address, 1, etherToken.address, 1, FEE_SCHEDULE_STANDARD, { from: accounts[2] }).should.be.fulfilled
+        await market.executeLimitOffer(trancheToken.address, 1, etherToken.address, 1, FEE_SCHEDULE_STANDARD, { from: accounts[2] }).should.be.fulfilled
 
         // check balance
-        await tranchToken.balanceOf(accounts[2]).should.eventually.eq(99)
+        await trancheToken.balanceOf(accounts[2]).should.eventually.eq(99)
       })
     })
   })
@@ -837,8 +836,8 @@ describe('Integration: SPV', () => {
       // pay first premiums
       await etherToken.deposit({ value: 1000000 })
       await etherToken.approve(policy.address, 1000000)
-      await policy.payTranchPremium(0, 1000)
-      await policy.payTranchPremium(1, 1000)
+      await policy.payTranchePremium(0, 1000)
+      await policy.payTranchePremium(1, 1000)
 
       // pass the inititation date
       await evmClock.setAbsoluteTime(initiationDate)
@@ -850,20 +849,20 @@ describe('Integration: SPV', () => {
       await etherToken.deposit({ value: 2000000, from: accounts[2] })
       await etherToken.approve(market.address, 2000000, { from: accounts[2] })
 
-      const tranch0Address = ((await getTranchToken(0))).address
-      await market.executeLimitOffer(etherToken.address, 200, tranch0Address, 100, FEE_SCHEDULE_STANDARD, { from: accounts[2] })
+      const tranche0Address = ((await getTrancheToken(0))).address
+      await market.executeLimitOffer(etherToken.address, 200, tranche0Address, 100, FEE_SCHEDULE_STANDARD, { from: accounts[2] })
 
-      const tranch1Address = ((await getTranchToken(1))).address
-      await market.executeLimitOffer(etherToken.address, 100, tranch1Address, 50, FEE_SCHEDULE_STANDARD, { from: accounts[2] })
+      const tranche1Address = ((await getTrancheToken(1))).address
+      await market.executeLimitOffer(etherToken.address, 100, tranche1Address, 50, FEE_SCHEDULE_STANDARD, { from: accounts[2] })
 
       // pay premiums upto start date
       let toPay = 0
-      for (let i = 0; (startDate - initiationDate) / premiumIntervalSeconds > i; i += 1) {
+      for (let i = 0; (startDate - initiationDate) / timeIntervalSeconds > i; i += 1) {
         nextPremium = (2000 + 1000 * i)
         toPay += nextPremium
       }
-      await policy.payTranchPremium(0, toPay)
-      await policy.payTranchPremium(1, toPay)
+      await policy.payTranchePremium(0, toPay)
+      await policy.payTranchePremium(1, toPay)
       nextPremium += 1000
 
       // pass the start date
@@ -874,52 +873,52 @@ describe('Integration: SPV', () => {
 
       // sanity check
       await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_ACTIVE })
-      await policy.getTranchInfo(0).should.eventually.matchObj({
-        state_: TRANCH_STATE_ACTIVE,
+      await policy.getTrancheInfo(0).should.eventually.matchObj({
+        state_: TRANCHE_STATE_ACTIVE,
       })
-      await policy.getTranchInfo(1).should.eventually.matchObj({
-        state_: TRANCH_STATE_ACTIVE,
+      await policy.getTrancheInfo(1).should.eventually.matchObj({
+        state_: TRANCHE_STATE_ACTIVE,
       })
     })
 
     it('and it remains active if all premium payments are up to date', async () => {
-      await policy.payTranchPremium(0, nextPremium)
-      await policy.payTranchPremium(1, nextPremium)
+      await policy.payTranchePremium(0, nextPremium)
+      await policy.payTranchePremium(1, nextPremium)
 
-      await evmClock.moveTime(premiumIntervalSeconds)
+      await evmClock.moveTime(timeIntervalSeconds)
       await policy.checkAndUpdateState()
 
       await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_ACTIVE })
-      await policy.getTranchInfo(0).should.eventually.matchObj({
-        state_: TRANCH_STATE_ACTIVE,
+      await policy.getTrancheInfo(0).should.eventually.matchObj({
+        state_: TRANCHE_STATE_ACTIVE,
       })
-      await policy.getTranchInfo(1).should.eventually.matchObj({
-        state_: TRANCH_STATE_ACTIVE,
+      await policy.getTrancheInfo(1).should.eventually.matchObj({
+        state_: TRANCHE_STATE_ACTIVE,
       })
     })
 
-    it('and it still stays active if any tranch premium payments have been missed, though that tranch gets cancelled', async () => {
-      await policy.payTranchPremium(0, nextPremium)
-      // await policy.payTranchPremium(1) - deliberately miss this payment
+    it('and it still stays active if any tranche premium payments have been missed, though that tranche gets cancelled', async () => {
+      await policy.payTranchePremium(0, nextPremium)
+      // await policy.payTranchePremium(1) - deliberately miss this payment
 
-      await evmClock.moveTime(premiumIntervalSeconds)
+      await evmClock.moveTime(timeIntervalSeconds)
       await policy.checkAndUpdateState()
 
       await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_ACTIVE })
-      await policy.getTranchInfo(0).should.eventually.matchObj({
-        state_: TRANCH_STATE_ACTIVE,
+      await policy.getTrancheInfo(0).should.eventually.matchObj({
+        state_: TRANCHE_STATE_ACTIVE,
       })
-      await policy.getTranchInfo(1).should.eventually.matchObj({
-        state_: TRANCH_STATE_CANCELLED,
+      await policy.getTrancheInfo(1).should.eventually.matchObj({
+        state_: TRANCHE_STATE_CANCELLED,
       })
     })
 
     describe('claims can be made', () => {
       beforeEach(async () => {
-        await policy.payTranchPremium(0, nextPremium)
-        await policy.payTranchPremium(1, nextPremium)
+        await policy.payTranchePremium(0, nextPremium)
+        await policy.payTranchePremium(1, nextPremium)
 
-        await evmClock.moveTime(premiumIntervalSeconds)
+        await evmClock.moveTime(timeIntervalSeconds)
         await policy.checkAndUpdateState()
       })
 
@@ -942,35 +941,35 @@ describe('Integration: SPV', () => {
     describe('once maturation date has passed', () => {
       describe('if NOT all premium payments are up-to-date', () => {
         beforeEach(async () => {
-          await policy.payTranchPremium(0, nextPremium)
-          await policy.payTranchPremium(1, nextPremium)
+          await policy.payTranchePremium(0, nextPremium)
+          await policy.payTranchePremium(1, nextPremium)
         })
 
-        it('marks some tranches as cancelled and tries to buys back all tranch tokens', async () => {
+        it('marks some tranches as cancelled and tries to buys back all tranche tokens', async () => {
           await evmClock.setAbsoluteTime(maturationDate)
           const ret = await policy.checkAndUpdateState()
 
           const ev = extractEventArgs(ret, events.PolicyStateUpdated)
           expect(ev.state).to.eq(POLICY_STATE_BUYBACK.toString())
 
-          const evs = parseEvents(ret, events.TranchStateUpdated)
+          const evs = parseEvents(ret, events.TrancheStateUpdated)
           expect(evs.length).to.eq(2)
-          expect(evs[0].args.tranchIndex).to.eq('0')
-          expect(evs[0].args.state).to.eq(TRANCH_STATE_CANCELLED.toString())
-          expect(evs[1].args.tranchIndex).to.eq('1')
-          expect(evs[1].args.state).to.eq(TRANCH_STATE_CANCELLED.toString())
+          expect(evs[0].args.trancheIndex).to.eq('0')
+          expect(evs[0].args.state).to.eq(TRANCHE_STATE_CANCELLED.toString())
+          expect(evs[1].args.trancheIndex).to.eq('1')
+          expect(evs[1].args.state).to.eq(TRANCHE_STATE_CANCELLED.toString())
 
           await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_BUYBACK })
-          await policy.getTranchInfo(0).should.eventually.matchObj({
-            state_: TRANCH_STATE_CANCELLED,
+          await policy.getTrancheInfo(0).should.eventually.matchObj({
+            state_: TRANCHE_STATE_CANCELLED,
           })
-          await policy.getTranchInfo(1).should.eventually.matchObj({
-            state_: TRANCH_STATE_CANCELLED,
+          await policy.getTrancheInfo(1).should.eventually.matchObj({
+            state_: TRANCHE_STATE_CANCELLED,
           })
-          await policy.getTranchInfo(0).should.eventually.not.matchObj({
+          await policy.getTrancheInfo(0).should.eventually.not.matchObj({
             finalBuybackofferId_: 0,
           })
-          await policy.getTranchInfo(1).should.eventually.not.matchObj({
+          await policy.getTrancheInfo(1).should.eventually.not.matchObj({
             finalBuybackofferId_: 0,
           })
         })
@@ -987,15 +986,15 @@ describe('Integration: SPV', () => {
 
             const ev = extractEventArgs(ret, events.PolicyStateUpdated)
             expect(ev.state).to.eq(POLICY_STATE_MATURED.toString())
-            const preEvs = parseEvents(ret, events.TranchStateUpdated).filter(e => e.args.state === TRANCH_STATE_CANCELLED.toString())
+            const preEvs = parseEvents(ret, events.TrancheStateUpdated).filter(e => e.args.state === TRANCHE_STATE_CANCELLED.toString())
             expect(preEvs.length).to.eq(2)
 
             await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_MATURED })
 
-            await policy.getTranchInfo(0).should.eventually.matchObj({
+            await policy.getTrancheInfo(0).should.eventually.matchObj({
               finalBuybackofferId_: 0,
             })
-            await policy.getTranchInfo(1).should.eventually.matchObj({
+            await policy.getTrancheInfo(1).should.eventually.matchObj({
               finalBuybackofferId_: 0,
             })
 
@@ -1006,13 +1005,13 @@ describe('Integration: SPV', () => {
             const ev2 = extractEventArgs(ret2, events.PolicyStateUpdated)
             expect(ev2.state).to.eq(POLICY_STATE_BUYBACK.toString())
             await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_BUYBACK })
-            const postEvs = parseEvents(ret2, events.TranchStateUpdated)
+            const postEvs = parseEvents(ret2, events.TrancheStateUpdated)
             expect(postEvs.length).to.eq(0) // tranches are already cancelled, and so stay that way
 
-            await policy.getTranchInfo(0).should.eventually.not.matchObj({
+            await policy.getTrancheInfo(0).should.eventually.not.matchObj({
               finalBuybackofferId_: 0,
             })
-            await policy.getTranchInfo(1).should.eventually.not.matchObj({
+            await policy.getTrancheInfo(1).should.eventually.not.matchObj({
               finalBuybackofferId_: 0,
             })
           })
@@ -1029,10 +1028,10 @@ describe('Integration: SPV', () => {
 
             await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_MATURED })
 
-            await policy.getTranchInfo(0).should.eventually.matchObj({
+            await policy.getTrancheInfo(0).should.eventually.matchObj({
               finalBuybackofferId_: 0,
             })
-            await policy.getTranchInfo(1).should.eventually.matchObj({
+            await policy.getTrancheInfo(1).should.eventually.matchObj({
               finalBuybackofferId_: 0,
             })
 
@@ -1043,10 +1042,10 @@ describe('Integration: SPV', () => {
             expect(ev2.state).to.eq(POLICY_STATE_BUYBACK.toString())
             await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_BUYBACK })
 
-            await policy.getTranchInfo(0).should.eventually.not.matchObj({
+            await policy.getTrancheInfo(0).should.eventually.not.matchObj({
               finalBuybackofferId_: 0,
             })
-            await policy.getTranchInfo(1).should.eventually.not.matchObj({
+            await policy.getTrancheInfo(1).should.eventually.not.matchObj({
               finalBuybackofferId_: 0,
             })
           })
@@ -1056,24 +1055,24 @@ describe('Integration: SPV', () => {
           await evmClock.setAbsoluteTime(maturationDate)
           await policy.checkAndUpdateState()
 
-          const { finalBuybackofferId_: offer1 } = await policy.getTranchInfo(0)
+          const { finalBuybackofferId_: offer1 } = await policy.getTrancheInfo(0)
           expect(offer1).to.not.eq(0)
-          const { finalBuybackofferId_: offer2 } = await policy.getTranchInfo(1)
+          const { finalBuybackofferId_: offer2 } = await policy.getTrancheInfo(1)
           expect(offer2).to.not.eq(0)
 
           await policy.checkAndUpdateState()
 
           await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_BUYBACK })
-          await policy.getTranchInfo(0).should.eventually.matchObj({
-            state_: TRANCH_STATE_CANCELLED,
+          await policy.getTrancheInfo(0).should.eventually.matchObj({
+            state_: TRANCHE_STATE_CANCELLED,
           })
-          await policy.getTranchInfo(1).should.eventually.matchObj({
-            state_: TRANCH_STATE_CANCELLED,
+          await policy.getTrancheInfo(1).should.eventually.matchObj({
+            state_: TRANCHE_STATE_CANCELLED,
           })
-          await policy.getTranchInfo(0).should.eventually.matchObj({
+          await policy.getTrancheInfo(0).should.eventually.matchObj({
             finalBuybackofferId_: offer1,
           })
-          await policy.getTranchInfo(1).should.eventually.matchObj({
+          await policy.getTrancheInfo(1).should.eventually.matchObj({
             finalBuybackofferId_: offer2,
           })
         })
@@ -1087,7 +1086,7 @@ describe('Integration: SPV', () => {
 
       describe('if all premium payments are up-to-date', () => {
         beforeEach(async () => {
-          const t0 = await policy.getTranchPremiumsInfo(0)
+          const t0 = await policy.getTranchePremiumsInfo(0)
           let nextPremiumAmount0 = t0.nextPremiumAmount_.toNumber()
           const numPremiums0 = t0.numPremiums_.toNumber()
           const numPremiumsPaid0 = t0.numPremiumsPaid_.toNumber()
@@ -1096,9 +1095,9 @@ describe('Integration: SPV', () => {
             toPay0 += nextPremiumAmount0
             nextPremiumAmount0 += 1000
           }
-          await policy.payTranchPremium(0, toPay0)
+          await policy.payTranchePremium(0, toPay0)
 
-          const t1 = await policy.getTranchPremiumsInfo(1)
+          const t1 = await policy.getTranchePremiumsInfo(1)
           let nextPremiumAmount1 = t1.nextPremiumAmount_.toNumber()
           const numPremiums1 = t1.numPremiums_.toNumber()
           const numPremiumsPaid1 = t1.numPremiumsPaid_.toNumber()
@@ -1107,30 +1106,30 @@ describe('Integration: SPV', () => {
             toPay1 += nextPremiumAmount1
             nextPremiumAmount1 += 1000
           }
-          await policy.payTranchPremium(1, toPay1)
+          await policy.payTranchePremium(1, toPay1)
         })
 
-        it('tries to buys back all tranch tokens, and all tranches are matured', async () => {
+        it('tries to buys back all tranche tokens, and all tranches are matured', async () => {
           await evmClock.setAbsoluteTime(maturationDate)
           const ret = await policy.checkAndUpdateState()
 
           const ev = extractEventArgs(ret, events.PolicyStateUpdated)
           expect(ev.state).to.eq(POLICY_STATE_BUYBACK.toString())
 
-          const tEvs = parseEvents(ret, events.TranchStateUpdated).filter(e => e.args.state === TRANCH_STATE_MATURED.toString())
+          const tEvs = parseEvents(ret, events.TrancheStateUpdated).filter(e => e.args.state === TRANCHE_STATE_MATURED.toString())
           expect(tEvs.length).to.eq(2)
 
           await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_BUYBACK })
-          await policy.getTranchInfo(0).should.eventually.matchObj({
-            state_: TRANCH_STATE_MATURED,
+          await policy.getTrancheInfo(0).should.eventually.matchObj({
+            state_: TRANCHE_STATE_MATURED,
           })
-          await policy.getTranchInfo(1).should.eventually.matchObj({
-            state_: TRANCH_STATE_MATURED,
+          await policy.getTrancheInfo(1).should.eventually.matchObj({
+            state_: TRANCHE_STATE_MATURED,
           })
-          await policy.getTranchInfo(0).should.eventually.not.matchObj({
+          await policy.getTrancheInfo(0).should.eventually.not.matchObj({
             finalBuybackofferId_: 0,
           })
-          await policy.getTranchInfo(1).should.eventually.not.matchObj({
+          await policy.getTrancheInfo(1).should.eventually.not.matchObj({
             finalBuybackofferId_: 0,
           })
         })
@@ -1148,14 +1147,14 @@ describe('Integration: SPV', () => {
             const ev = extractEventArgs(ret, events.PolicyStateUpdated)
             expect(ev.state).to.eq(POLICY_STATE_MATURED.toString())
 
-            const preEvs = parseEvents(ret, events.TranchStateUpdated)
+            const preEvs = parseEvents(ret, events.TrancheStateUpdated)
             expect(preEvs.length).to.eq(0)
 
             await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_MATURED })
-            await policy.getTranchInfo(0).should.eventually.matchObj({
+            await policy.getTrancheInfo(0).should.eventually.matchObj({
               finalBuybackofferId_: 0,
             })
-            await policy.getTranchInfo(1).should.eventually.matchObj({
+            await policy.getTrancheInfo(1).should.eventually.matchObj({
               finalBuybackofferId_: 0,
             })
 
@@ -1167,16 +1166,16 @@ describe('Integration: SPV', () => {
             expect(ev2.state).to.eq(POLICY_STATE_BUYBACK.toString())
             await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_BUYBACK })
 
-            const postEvs = parseEvents(ret2, events.TranchStateUpdated)
+            const postEvs = parseEvents(ret2, events.TrancheStateUpdated)
             expect(postEvs.length).to.eq(2)
             const postEvStates = postEvs.map(e => e.args.state)
-            expect(postEvStates[0]).to.eq(TRANCH_STATE_MATURED.toString())
-            expect(postEvStates[1]).to.eq(TRANCH_STATE_MATURED.toString())
+            expect(postEvStates[0]).to.eq(TRANCHE_STATE_MATURED.toString())
+            expect(postEvStates[1]).to.eq(TRANCHE_STATE_MATURED.toString())
 
-            await policy.getTranchInfo(0).should.eventually.not.matchObj({
+            await policy.getTrancheInfo(0).should.eventually.not.matchObj({
               finalBuybackofferId_: 0,
             })
-            await policy.getTranchInfo(1).should.eventually.not.matchObj({
+            await policy.getTrancheInfo(1).should.eventually.not.matchObj({
               finalBuybackofferId_: 0,
             })
           })
@@ -1193,10 +1192,10 @@ describe('Integration: SPV', () => {
 
             await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_MATURED })
 
-            await policy.getTranchInfo(0).should.eventually.matchObj({
+            await policy.getTrancheInfo(0).should.eventually.matchObj({
               finalBuybackofferId_: 0,
             })
-            await policy.getTranchInfo(1).should.eventually.matchObj({
+            await policy.getTrancheInfo(1).should.eventually.matchObj({
               finalBuybackofferId_: 0,
             })
 
@@ -1207,10 +1206,10 @@ describe('Integration: SPV', () => {
             expect(ev2.state).to.eq(POLICY_STATE_BUYBACK.toString())
             await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_BUYBACK })
 
-            await policy.getTranchInfo(0).should.eventually.not.matchObj({
+            await policy.getTrancheInfo(0).should.eventually.not.matchObj({
               finalBuybackofferId_: 0,
             })
-            await policy.getTranchInfo(1).should.eventually.not.matchObj({
+            await policy.getTrancheInfo(1).should.eventually.not.matchObj({
               finalBuybackofferId_: 0,
             })
           })
@@ -1220,24 +1219,24 @@ describe('Integration: SPV', () => {
           await evmClock.setAbsoluteTime(maturationDate)
           await policy.checkAndUpdateState()
 
-          const { finalBuybackofferId_: offer1 } = await policy.getTranchInfo(0)
+          const { finalBuybackofferId_: offer1 } = await policy.getTrancheInfo(0)
           expect(offer1).to.not.eq(0)
-          const { finalBuybackofferId_: offer2 } = await policy.getTranchInfo(1)
+          const { finalBuybackofferId_: offer2 } = await policy.getTrancheInfo(1)
           expect(offer2).to.not.eq(0)
 
           await policy.checkAndUpdateState()
 
           await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_BUYBACK })
-          await policy.getTranchInfo(0).should.eventually.matchObj({
-            state_: TRANCH_STATE_MATURED,
+          await policy.getTrancheInfo(0).should.eventually.matchObj({
+            state_: TRANCHE_STATE_MATURED,
           })
-          await policy.getTranchInfo(1).should.eventually.matchObj({
-            state_: TRANCH_STATE_MATURED,
+          await policy.getTrancheInfo(1).should.eventually.matchObj({
+            state_: TRANCHE_STATE_MATURED,
           })
-          await policy.getTranchInfo(0).should.eventually.matchObj({
+          await policy.getTrancheInfo(0).should.eventually.matchObj({
             finalBuybackofferId_: offer1,
           })
-          await policy.getTranchInfo(1).should.eventually.matchObj({
+          await policy.getTrancheInfo(1).should.eventually.matchObj({
             finalBuybackofferId_: offer2,
           })
         })
@@ -1251,7 +1250,7 @@ describe('Integration: SPV', () => {
 
       describe('once it tries to buy back all tokens', async () => {
         beforeEach(async () => {
-          const t0 = await policy.getTranchPremiumsInfo(0)     
+          const t0 = await policy.getTranchePremiumsInfo(0)     
           const numPremiums0 = t0.numPremiums_.toNumber()
           let numPremiumsPaid0 = t0.numPremiumsPaid_.toNumber()
           let nextPremiumAmount0 = t0.nextPremiumAmount_.toNumber()
@@ -1260,9 +1259,9 @@ describe('Integration: SPV', () => {
             toPay0 += nextPremiumAmount0
             nextPremiumAmount0 += 1000
           }
-          await policy.payTranchPremium(0, toPay0)
+          await policy.payTranchePremium(0, toPay0)
 
-          const t1 = await policy.getTranchPremiumsInfo(1)
+          const t1 = await policy.getTranchePremiumsInfo(1)
           let nextPremiumAmount1 = t1.nextPremiumAmount_.toNumber()
           const numPremiums1 = t1.numPremiums_.toNumber()
           const numPremiumsPaid1 = t1.numPremiumsPaid_.toNumber()
@@ -1271,7 +1270,7 @@ describe('Integration: SPV', () => {
             toPay1 += nextPremiumAmount1
             nextPremiumAmount1 += 1000  
           }
-          await policy.payTranchPremium(1, toPay1)
+          await policy.payTranchePremium(1, toPay1)
 
           await evmClock.setAbsoluteTime(maturationDate)
           await policy.checkAndUpdateState()
@@ -1280,25 +1279,25 @@ describe('Integration: SPV', () => {
         })
 
         it('the market offer uses the "platform action" fee schedule', async () => {
-          const { finalBuybackofferId_: buybackOfferId } = await policy.getTranchInfo(0)
+          const { finalBuybackofferId_: buybackOfferId } = await policy.getTrancheInfo(0)
 
           await market.getOffer(buybackOfferId).should.eventually.matchObj({
             feeSchedule_: FEE_SCHEDULE_PLATFORM_ACTION,
           })
         })
 
-        it('other people can trade their previously purchased tranch tokens in for (hopefully) profit ', async () => {
-          const tranchTkn = await getTranchToken(0)
+        it('other people can trade their previously purchased tranche tokens in for (hopefully) profit ', async () => {
+          const trancheTkn = await getTrancheToken(0)
 
-          const treasuryPreBalance = (await tranchTkn.balanceOf(entity.address)).toNumber()
+          const treasuryPreBalance = (await trancheTkn.balanceOf(entity.address)).toNumber()
 
           const preBalance = (await etherToken.balanceOf(accounts[2])).toNumber()
 
-          const { finalBuybackofferId_: buybackOfferId } = await policy.getTranchInfo(0)
+          const { finalBuybackofferId_: buybackOfferId } = await policy.getTrancheInfo(0)
 
-          const tranch0Address = (await getTranchToken(0)).address
+          const tranche0Address = (await getTrancheToken(0)).address
 
-          await market.executeMarketOffer(tranch0Address, 100, etherToken.address, { from: accounts[2] });
+          await market.executeMarketOffer(tranche0Address, 100, etherToken.address, { from: accounts[2] });
 
           // check that order has been fulfilled
           await market.isActive(buybackOfferId).should.eventually.eq(false)
@@ -1315,60 +1314,60 @@ describe('Integration: SPV', () => {
 
           expect(postBalance - preBalance).to.eq(200 + expectedPremiumBalance) /* 200 = initial sold amount */
 
-          const treasuryPostBalance = (await tranchTkn.balanceOf(entity.address)).toNumber()
+          const treasuryPostBalance = (await trancheTkn.balanceOf(entity.address)).toNumber()
 
           expect(treasuryPostBalance - treasuryPreBalance).to.eq(100)
         })
 
-        it('keeps track of when a tranch has been totally bought back', async () => {
-          const tranchTkn = await getTranchToken(0)
+        it('keeps track of when a tranche has been totally bought back', async () => {
+          const trancheTkn = await getTrancheToken(0)
 
-          await tranchTkn.balanceOf(entity.address).should.eventually.eq(0)
+          await trancheTkn.balanceOf(entity.address).should.eventually.eq(0)
 
-          const numShares = (await policy.getTranchInfo(0)).numShares_.toNumber()
+          const numShares = (await policy.getTrancheInfo(0)).numShares_.toNumber()
           
-          expect((await policy.getTranchInfo(0)).buybackCompleted_).to.eq(false)
+          expect((await policy.getTrancheInfo(0)).buybackCompleted_).to.eq(false)
 
-          const { finalBuybackofferId_: buybackOfferId } = await policy.getTranchInfo(0)
+          const { finalBuybackofferId_: buybackOfferId } = await policy.getTrancheInfo(0)
 
           const offer = await market.getOffer(buybackOfferId)
 
-          await market.executeMarketOffer(tranchTkn.address, offer.buyAmount_, etherToken.address, { from: accounts[2] });
+          await market.executeMarketOffer(trancheTkn.address, offer.buyAmount_, etherToken.address, { from: accounts[2] });
 
-          await tranchTkn.balanceOf(entity.address).should.eventually.eq(numShares)
+          await trancheTkn.balanceOf(entity.address).should.eventually.eq(numShares)
  
-          expect((await policy.getTranchInfo(0)).buybackCompleted_).to.eq(true)
+          expect((await policy.getTrancheInfo(0)).buybackCompleted_).to.eq(true)
         })
 
         it('sets policy to closed once all tranches have been fully bought back', async () => {
-          // buyback tranch 0
-          expect((await policy.getTranchInfo(0)).buybackCompleted_).to.eq(false)
+          // buyback tranche 0
+          expect((await policy.getTrancheInfo(0)).buybackCompleted_).to.eq(false)
 
-          const tranchTkn0 = await getTranchToken(0)
+          const trancheTkn0 = await getTrancheToken(0)
 
-          const { finalBuybackofferId_: buybackOfferId0 } = await policy.getTranchInfo(0)
+          const { finalBuybackofferId_: buybackOfferId0 } = await policy.getTrancheInfo(0)
 
           const offer0 = await market.getOffer(buybackOfferId0)
 
-          await market.executeMarketOffer(tranchTkn0.address, offer0.buyAmount_, etherToken.address, { from: accounts[2] });
+          await market.executeMarketOffer(trancheTkn0.address, offer0.buyAmount_, etherToken.address, { from: accounts[2] });
 
-          expect((await policy.getTranchInfo(0)).buybackCompleted_).to.eq(true)
+          expect((await policy.getTrancheInfo(0)).buybackCompleted_).to.eq(true)
 
           // check: policy still in buyback state
           await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_BUYBACK })
 
-          // buyback tranch 1
-          expect((await policy.getTranchInfo(1)).buybackCompleted_).to.eq(false)
+          // buyback tranche 1
+          expect((await policy.getTrancheInfo(1)).buybackCompleted_).to.eq(false)
 
-          const tranchTkn1 = await getTranchToken(1)
+          const trancheTkn1 = await getTrancheToken(1)
 
-          const { finalBuybackofferId_: buybackOfferId1 } = await policy.getTranchInfo(1)
+          const { finalBuybackofferId_: buybackOfferId1 } = await policy.getTrancheInfo(1)
 
           const offer1 = await market.getOffer(buybackOfferId1)
 
-          await market.executeMarketOffer(tranchTkn1.address, offer1.buyAmount_, etherToken.address, { from: accounts[2] });
+          await market.executeMarketOffer(trancheTkn1.address, offer1.buyAmount_, etherToken.address, { from: accounts[2] });
 
-          expect((await policy.getTranchInfo(1)).buybackCompleted_).to.eq(true)
+          expect((await policy.getTrancheInfo(1)).buybackCompleted_).to.eq(true)
 
           // check: policy now closed
           await policy.getInfo().should.eventually.matchObj({ state_: POLICY_STATE_CLOSED })

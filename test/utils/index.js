@@ -41,7 +41,7 @@ chai.use((_chai, utils) => {
     return [result, val]
   }
 
-  utils.addMethod(_chai.Assertion.prototype, 'eq', function (val) {
+  utils.addMethod(_chai.Assertion.prototype, 'eq', function (val, message) {
     let result = utils.flag(this, 'object')
 
     if (result instanceof Array && val instanceof Array) {
@@ -58,19 +58,19 @@ chai.use((_chai, utils) => {
       const newValStr = newVal.join(', ')
 
       return (utils.flag(this, 'negate'))
-        ? new _chai.Assertion(newResultStr).to.not.be.equal(newValStr)
-        : new _chai.Assertion(newResultStr).to.be.equal(newValStr)
+        ? new _chai.Assertion(newResultStr, message).to.not.be.equal(newValStr)
+        : new _chai.Assertion(newResultStr, message).to.be.equal(newValStr)
 
     } else {
       const [r, v] = sanitizeResultVal(result, val)
 
       return (utils.flag(this, 'negate'))
-        ? new _chai.Assertion(r).to.not.be.equal(v)
-        : new _chai.Assertion(r).to.be.equal(v)
+        ? new _chai.Assertion(r, message).to.not.be.equal(v)
+        : new _chai.Assertion(r, message).to.be.equal(v)
     }
   })
 
-  utils.addMethod(_chai.Assertion.prototype, 'matchObj', function (val) {
+  utils.addMethod(_chai.Assertion.prototype, 'matchObj', function (val, message) {
     let result = utils.flag(this, 'object')
 
     if (result instanceof Object) {
@@ -88,8 +88,8 @@ chai.use((_chai, utils) => {
       })
 
       return (utils.flag(this, 'negate'))
-        ? new _chai.Assertion(newResult).to.not.contain(newVal)
-        : new _chai.Assertion(newResult).to.contain(newVal)
+        ? new _chai.Assertion(newResult, message).to.not.contain(newVal)
+        : new _chai.Assertion(newResult, message).to.contain(newVal)
 
     } else {
       throw new Error('Not an object', result)
@@ -136,19 +136,64 @@ export const outputBNs = bn => {
   })
 }
 
-export const createTranch = (policy, attrs, ...callAttrs) => {
+export const createTranche = async (policy, attrs, ...callAttrs) => {
   const {
     numShares = 10,
     pricePerShareAmount = 1,
-    premiums = [],
+    premiumsDiff = [],
   } = attrs
 
-  return policy.createTranch(
+  let premiums = []
+  let policyInfo 
+  policyInfo = await policy.getInfo()
+  const policyInitiationDate = policyInfo.initiationDate_.toNumber()
+
+  premiums = adjustTrancheDataDiffForSingleTranche(policyInitiationDate, premiumsDiff, false)
+
+  return policy.createTranche(
     numShares,
     pricePerShareAmount,
     premiums,
     ...callAttrs,
   )
+}
+
+const adjustTrancheDataDiffForSingleTranche = (policyInitiationDate, trancheDiffData, forTrancheData) => {
+  // this processes the single dimension array for createTranche()
+  // as well as the inner portion of the array for createPolicy()
+
+  let trancheData = trancheDiffData
+  let startAt = 0
+
+  // trancheData includes two extra fields at the beginning
+  if (forTrancheData){
+    startAt = 2
+  }
+  if ((trancheDiffData != undefined) && (trancheDiffData.length > 0 )){
+    for (let j = startAt; j < trancheDiffData.length; j += 2) {
+      trancheData[j] = policyInitiationDate + trancheDiffData[j]
+    }
+  }
+  else {
+    trancheData = []
+  }
+  return trancheData
+}
+
+const adjustTrancheDataDiff = (policyInitiationDate, trancheDiffData) => {
+  //this processes the full two-dimension array for create policy
+  let trancheData = trancheDiffData
+
+  if ((trancheDiffData != undefined) && (trancheDiffData.length > 0 )){
+      for (let i = 0; i < trancheDiffData.length; i += 1) {
+      trancheData[i] = adjustTrancheDataDiffForSingleTranche(policyInitiationDate, trancheData[i], true)
+    }
+  }
+  else {
+    trancheData = []
+  }
+
+  return trancheData
 }
 
 export const createEntity = async ({ acl, entityDeployer, adminAddress, entityContext = BYTES32_ZERO }) => {
@@ -160,7 +205,6 @@ export const createEntity = async ({ acl, entityDeployer, adminAddress, entityCo
   return entityAddress
 }
 
-//export const createPolicy = async (entity, attrs = {}, ...callAttrs) => {
 export const createPolicy = async (entity, attrs = {}, ...callAttrs) => {
   const currentTime = ~~(Date.now() / 1000)
   var ret = '';
@@ -173,7 +217,6 @@ export const createPolicy = async (entity, attrs = {}, ...callAttrs) => {
     startDate = currentTime + 120,
     maturationDate = currentTime + 300,
     unit = ADDRESS_ZERO,
-    premiumIntervalSeconds = 30,
 
     brokerCommissionBP = 0,
     claimsAdminCommissionBP = 0,
@@ -192,7 +235,6 @@ export const createPolicy = async (entity, attrs = {}, ...callAttrs) => {
     policyId,
     [
       type, 
-      premiumIntervalSeconds, 
       initiationDate, startDate, maturationDate, 
       brokerCommissionBP, underwriterCommissionBP, claimsAdminCommissionBP, naymsCommissionBP,
     ],
@@ -223,7 +265,7 @@ export const preSetupPolicy = async (ctx, createPolicyArgs) => {
     underwriter,
     claimsAdmin,
     insuredParty,
-    trancheData
+    trancheDataDiff
   } = (createPolicyArgs || {})
 
   // get current evm time
@@ -237,7 +279,6 @@ export const preSetupPolicy = async (ctx, createPolicyArgs) => {
     startDate: currentBlockTime + startDateDiff,
     maturationDate: currentBlockTime + maturationDateDiff,
     unit: ctx.etherToken.address,
-    premiumIntervalSeconds,
     brokerCommissionBP,
     claimsAdminCommissionBP,
     naymsCommissionBP,
@@ -246,7 +287,7 @@ export const preSetupPolicy = async (ctx, createPolicyArgs) => {
     underwriter,
     claimsAdmin,
     insuredParty,
-    trancheData
+    trancheData: adjustTrancheDataDiff(currentBlockTime + initiationDateDiff, trancheDataDiff)
   }
 
   var createPolicyTx
@@ -339,7 +380,6 @@ export class EvmClock {
     this.lastTimestamp = this.lastTimestamp + delta
   }
 }
-
 
 export class EvmSnapshot {
   constructor() {

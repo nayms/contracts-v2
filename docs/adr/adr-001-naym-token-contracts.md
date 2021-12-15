@@ -1,4 +1,4 @@
-# ADR #001: Devnet Celestia Node
+# ADR #001: NAYM token contracts
 
 ## Authors
 
@@ -8,7 +8,7 @@
 
 * 2021-12-15: initial draft
 
-## Legend
+## Legend
 
 * **Admin/admin address* - refers to the Nayms company multisig wallet.
 

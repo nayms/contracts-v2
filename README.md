@@ -44,6 +44,8 @@ The _Nayms company entity_ and its address can be obtained via `Settings.getAddr
 
 An architectural overview can be found in [docs/architecture.md](docs/architecture.md).
 
+Architectural Decision Records (ADRs) can be found in [docs/adr](docs/adr).
+
 ## Example usage
 
 ```js

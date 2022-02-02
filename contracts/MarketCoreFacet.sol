@@ -63,7 +63,7 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     external 
     override
   {
-    _buy(_offerId, _amount);
+    _buyWithObserver(_offerId, _amount, address(0), "");
   }
 
   function executeLimitOffer(
@@ -136,14 +136,15 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
       && remainingSellAmount_ >= dataUint256["dust"]
     ) {
       // new offer should be created
-      uint256 id = _createLimitOffer(
+      uint256 id = _createOffer(
         _sellToken, 
         remainingSellAmount_, 
         _buyToken, 
         remainingBuyAmount_,
         _feeSchedule,
         _notify,
-        _notifyData
+        _notifyData,
+        false
       );
 
       // ensure it's in the right position in the list
@@ -158,7 +159,8 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
   function executeMarketOffer(address _sellToken, uint256 _sellAmount, address _buyToken) 
     nonReentrant
     external 
-    override
+    override 
+    returns (uint256)
   {
     _assertValidOffer(
       _sellToken,
@@ -185,14 +187,14 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
       }
 
       // if sell amount >= offer buy amount then lets buy the whole offer
-      if (sellAmount >= offerBuyAmount) {                       //If amount to sell is higher or equal than current offer amount to buy
-        _buy(id, offerBuyAmount);
+      if (sellAmount >= offerBuyAmount) {
+        _buyWithObserver(id, offerBuyAmount, address(0), "");
         soldAmount = soldAmount.add(offerBuyAmount);
         sellAmount = sellAmount.sub(offerBuyAmount);
       } 
       // otherwise, let's just buy what we can
       else {
-        _buy(id, sellAmount);
+        _buyWithObserver(id, sellAmount, address(0), "");
         soldAmount = soldAmount.add(sellAmount);
         sellAmount = 0;
       }
@@ -200,10 +202,20 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
 
     // check that everything got sold
     require(soldAmount >= _sellAmount, "sale not fulfilled");
+
+    return _createOffer(
+      _sellToken, 
+      _sellAmount, 
+      _buyToken, 
+      0,
+      FEE_SCHEDULE_STANDARD,
+      msg.sender,
+      "",
+      true
+    );
   }
 
   // Private
-  
   function _insertOfferIntoSortedList(uint256 _offerId) private {
     // check that offer is NOT in the sorted list
     require(!_isOfferInSortedList(_offerId), "offer not in sorted list");
@@ -337,8 +349,8 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
 
       // avoid stack-too-deep
       {
-        // do the buy     
-        uint256 finalSellAmount = min(bestBuyAmount, remainingSellAmount_); 
+
+        uint256 finalSellAmount = bestBuyAmount < remainingSellAmount_ ? bestBuyAmount : remainingSellAmount_; 
 
         _buyWithObserver(
           bestOfferId, 
@@ -362,14 +374,15 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     }
   }
 
-  function _createLimitOffer(
+  function _createOffer(
     address _sellToken, 
     uint256 _sellAmount, 
     address _buyToken, 
     uint256 _buyAmount,
     uint256 _feeSchedule,
     address _notify,
-    bytes memory _notifyData
+    bytes memory _notifyData,
+    bool marketOffer
   ) 
     private 
     returns (uint256) 
@@ -387,21 +400,17 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     dataUint256[__i(id, "feeSchedule")] = _feeSchedule;
     dataAddress[__i(id, "notify")] = _notify;
     dataBytes[__i(id, "notifyData")] = _notifyData;
-    dataUint256[__i(id, "state")] = OFFER_STATE_ACTIVE;
 
-    // escrow the tokens
-    require(IERC20(_sellToken).transferFrom(msg.sender, address(this), _sellAmount), "unable to escrow tokens");
+    if(marketOffer) {
+      dataUint256[__i(id, "state")] = OFFER_STATE_FULFILLED;
+    } else {
+      dataUint256[__i(id, "state")] = OFFER_STATE_ACTIVE;
+      // escrow the tokens for limit offers,
+      // market offers are only created for historical reasons, so no need to escrow
+      require(IERC20(_sellToken).transferFrom(msg.sender, address(this), _sellAmount), "unable to escrow tokens");
+    }
 
     return id;
-  }
-
-  function _buy(uint256 _offerId, uint256 _requestedBuyAmount) private {    
-    _buyWithObserver(
-      _offerId, 
-      _requestedBuyAmount, 
-      address(0), 
-      ""
-    );
   }
 
   function _buyWithObserver(
@@ -582,9 +591,5 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
         require(grandparent == entityDeployer, "fee schedule: bad deployment");
       }
     }
-  }
-
-  function min(uint x, uint y) private pure returns (uint z) {
-    z = (x < y ? x : y);
   }
 }

@@ -57,8 +57,10 @@ interface IMarketCoreFacet {
    * @param _sellToken token to sell.
    * @param _sellAmount amount to sell.
    * @param _buyToken token to buy.
+   * 
+   * @return ID of the executed market offer
    */
-  function executeMarketOffer(address _sellToken, uint256 _sellAmount, address _buyToken) external;
+  function executeMarketOffer(address _sellToken, uint256 _sellAmount, address _buyToken) external returns (uint256);
   
   /**
    * @dev Buy an offer

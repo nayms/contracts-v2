@@ -36,7 +36,6 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
   function getSelectors () public pure override returns (bytes memory) {
     return abi.encodePacked(
       IMarketCoreFacet.executeLimitOffer.selector,
-      IMarketCoreFacet.executeLimitOfferWithObserver.selector,
       IMarketCoreFacet.executeMarketOffer.selector,
       IMarketCoreFacet.buy.selector,
       IMarketCoreFacet.cancel.selector
@@ -67,28 +66,6 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
   }
 
   function executeLimitOffer(
-    address _sellToken, 
-    uint256 _sellAmount, 
-    address _buyToken, 
-    uint256 _buyAmount,
-    uint256 _feeSchedule
-  ) 
-    external
-    override 
-    returns (uint256) 
-  {
-    return executeLimitOfferWithObserver(
-      _sellToken,
-      _sellAmount,
-      _buyToken,
-      _buyAmount,
-      _feeSchedule,
-      address(0),
-      ""
-    );
-  }
-
-  function executeLimitOfferWithObserver(
     address _sellToken, 
     uint256 _sellAmount, 
     address _buyToken, 

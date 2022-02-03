@@ -2,25 +2,6 @@
 pragma solidity 0.6.12;
 
 interface IMarketCoreFacet {
-  /**
-   * @dev Execute a limit offer.
-   *
-   * @param _sellToken token to sell.
-   * @param _sellAmount amount to sell.
-   * @param _buyToken token to buy.
-   * @param _buyAmount Amount to buy.
-   * @param _feeSchedule Requested fee schedule, one of the `FEE_SCHEDULE_...` constants.
-   *
-   * @return >0 if a limit offer was created on the market because the offer couldn't be totally fulfilled immediately. In this case the 
-   * return value is the created offer's id.
-   */
-  function executeLimitOffer(
-    address _sellToken, 
-    uint256 _sellAmount, 
-    address _buyToken, 
-    uint256 _buyAmount,
-    uint256 _feeSchedule
-  ) external returns (uint256);
 
   /**
    * @dev Execute a limit offer with an observer attached.
@@ -39,7 +20,7 @@ interface IMarketCoreFacet {
    * @return >0 if a limit offer was created on the market because the offer couldn't be totally fulfilled immediately. In this case the 
    * return value is the created offer's id.
    */
-  function executeLimitOfferWithObserver(
+  function executeLimitOffer(
     address _sellToken, 
     uint256 _sellAmount, 
     address _buyToken, 

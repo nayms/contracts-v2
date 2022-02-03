@@ -86,7 +86,7 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
     dataUint256[k] = dataUint256[k].add(_amount);
     dataUint256["tokenSupply"] = dataUint256["tokenSupply"].add(_amount);
 
-    dataUint256["tokenSaleOfferId"] = _getMarket().executeLimitOfferWithObserver(
+    dataUint256["tokenSaleOfferId"] = _getMarket().executeLimitOffer(
       dataAddress["token"], 
       _amount, 
       _priceUnit, 

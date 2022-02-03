@@ -104,7 +104,8 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
       _buyToken,
       _buyAmount,
       _notify,
-      _notifyData
+      _notifyData,
+      false
     );
 
     // if still some left
@@ -146,40 +147,23 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
       FEE_SCHEDULE_STANDARD
     );
 
-    uint256 sellAmount = _sellAmount;
-    uint256 id;
-    uint256 soldAmount;
+    uint256 remainingBuyAmount_;
+    uint256 remainingSellAmount_;
 
-    while (sellAmount > 0) {
-      id = _getBestOfferId(_buyToken, _sellToken);
-      require(id != 0, "not enough orders in market");
+    (remainingBuyAmount_, remainingSellAmount_) = _matchToExistingOffers(
+      _sellToken,
+      _sellAmount,
+      _buyToken,
+      0,
+      address(0),
+      "",
+      true
+    );
 
-      uint256 offerBuyAmount = dataUint256[__i(id, "buyAmount")];
-      uint256 offerSellAmount = dataUint256[__i(id, "sellAmount")];
+    require(remainingSellAmount_ == 0, "not enough orders in market");
 
-      // There is a chance that pay_amt is smaller than 1 wei of the other token
-      if (sellAmount * 1 ether < wdiv(offerBuyAmount, offerSellAmount)) {
-        break; // We consider that all amount is sold
-      }
-
-      // if sell amount >= offer buy amount then lets buy the whole offer
-      if (sellAmount >= offerBuyAmount) {
-        _buyWithObserver(id, offerBuyAmount, address(0), "");
-        soldAmount = soldAmount.add(offerBuyAmount);
-        sellAmount = sellAmount.sub(offerBuyAmount);
-      } 
-      // otherwise, let's just buy what we can
-      else {
-        _buyWithObserver(id, sellAmount, address(0), "");
-        soldAmount = soldAmount.add(sellAmount);
-        sellAmount = 0;
-      }
-    }
-
-    // check that everything got sold
-    require(soldAmount >= _sellAmount, "sale not fulfilled");
-
-    _createOffer(
+    // market offer settled, create offer for history
+    uint256 marketOfferId = _createOffer(
       _sellToken, 
       _sellAmount, 
       _buyToken, 
@@ -293,7 +277,8 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     address _buyToken, 
     uint256 _buyAmount,
     address _notify,
-    bytes memory _notifyData
+    bytes memory _notifyData,
+    bool marketOffer
   ) 
     private 
     returns (uint256 remainingBuyAmount_, uint256 remainingSellAmount_) 
@@ -303,9 +288,20 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
 
     // there is at least one offer stored for token pair
     uint256 bestOfferId = dataUint256[__iaa(0, _buyToken, _sellToken, "bestOfferId")];
+    if(marketOffer == true) {
+      require(bestOfferId != 0, "not enough orders in market");
+    }
+    
     while (bestOfferId > 0) {
       uint256 bestBuyAmount = dataUint256[__i(bestOfferId, "buyAmount")];
       uint256 bestSellAmount = dataUint256[__i(bestOfferId, "sellAmount")];
+
+      if(marketOffer) {
+        // market offer pay_amt is smaller than 1 wei of the other token
+        if(remainingSellAmount_ * 1 ether < wdiv(bestBuyAmount, bestSellAmount)) {
+          break; // We consider that all amount is sold
+        }
+      }
 
       // Ugly hack to work around rounding errors. Based on the idea that
       // the furthest the amounts can stray from their "true" values is 1.
@@ -316,7 +312,7 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
       //
       // (For detailed breakdown see https://hiddentao.com/archives/2019/09/08/maker-otc-on-chain-orderbook-deep-dive)
       //
-      if (bestBuyAmount.mul(remainingBuyAmount_) > remainingSellAmount_.mul(bestSellAmount).add(bestBuyAmount).add(remainingBuyAmount_).add(remainingSellAmount_).add(bestSellAmount)) {
+      else if (bestBuyAmount.mul(remainingBuyAmount_) > remainingSellAmount_.mul(bestSellAmount).add(bestBuyAmount).add(remainingBuyAmount_).add(remainingSellAmount_).add(bestSellAmount)) {
         break;
       }
 
@@ -325,9 +321,9 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
 
       // avoid stack-too-deep
       {
-
+        // do the buy     
         uint256 finalSellAmount = bestBuyAmount < remainingSellAmount_ ? bestBuyAmount : remainingSellAmount_; 
-
+        
         _buyWithObserver(
           bestOfferId, 
           finalSellAmount,
@@ -342,7 +338,7 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
       }
 
       // if nothing left to sell or buy then we're done
-      if (remainingSellAmount_ == 0 || remainingBuyAmount_ == 0) {
+      if (remainingSellAmount_ == 0 || (remainingBuyAmount_ == 0 && !marketOffer)) {
         break;
       }
 

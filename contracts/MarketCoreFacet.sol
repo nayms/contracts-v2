@@ -137,7 +137,6 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     nonReentrant
     external 
     override 
-    returns (uint256)
   {
     _assertValidOffer(
       _sellToken,
@@ -180,7 +179,7 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     // check that everything got sold
     require(soldAmount >= _sellAmount, "sale not fulfilled");
 
-    return _createOffer(
+    _createOffer(
       _sellToken, 
       _sellAmount, 
       _buyToken, 

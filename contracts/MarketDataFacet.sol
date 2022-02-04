@@ -57,6 +57,7 @@ contract MarketDataFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     address buyToken_, 
     uint256 buyAmount_,
     uint256 buyAmountInitial_,
+    uint256 averagePrice_,
     uint256 feeSchedule_,
     address notify_,
     bytes memory notifyData_,
@@ -69,6 +70,8 @@ contract MarketDataFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     buyToken_ = dataAddress[__i(_offerId, "buyToken")];
     buyAmount_ = dataUint256[__i(_offerId, "buyAmount")];
     buyAmountInitial_ = dataUint256[__i(_offerId, "buyAmountInitial")];
+    uint256 soldAmount = sellAmountInitial_ - sellAmount_;
+    averagePrice_ = soldAmount > 0 ? buyAmount_.div(soldAmount) : 0;
     feeSchedule_ = dataUint256[__i(_offerId, "feeSchedule")];
     notify_ = dataAddress[__i(_offerId, "notify")];
     notifyData_ = dataBytes[__i(_offerId, "notifyData")];

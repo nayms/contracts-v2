@@ -839,6 +839,21 @@ describe('Market', () => {
       await erc20DAI.balanceOf(accounts[3]).should.eventually.eq(toWei('970').toString())
       await erc20WETH.balanceOf(accounts[3]).should.eventually.eq(toWei('1020').toString())
     })
+
+    it('should create a fulfilled market offer after successfully executing', async () => {
+      const lastOfferId = await market.getLastOfferId()
+
+      await erc20WETH.approve( market.address, toBN(10e18), { from: accounts[1] } )
+      await market.executeMarketOffer(erc20WETH.address, toBN(10e18), erc20DAI.address, { from: accounts[1] })
+
+      const marketOfferId = await market.getLastOfferId()
+      const marketOffer = await market.getOffer(marketOfferId)
+
+      expect(marketOffer.state_).to.eq(OFFER_STATE_FULFILLED)
+      expect(marketOffer.sellAmount_.toString()).to.eq('0')
+      expect(marketOffer.averagePrice_.toString()).to.eq('1')
+
+    })
   })
 
   describe('can match a pair of matching offers', () => {

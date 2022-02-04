@@ -98,7 +98,7 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     uint256 remainingBuyAmount_;
     uint256 remainingSellAmount_;
 
-    (remainingBuyAmount_, remainingSellAmount_) = _matchToExistingOffers(
+    (remainingBuyAmount_, remainingSellAmount_, ) = _matchToExistingOffers(
       _sellToken,
       _sellAmount,
       _buyToken,
@@ -149,8 +149,9 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
 
     uint256 remainingBuyAmount_;
     uint256 remainingSellAmount_;
+    uint256 matchedAmount_;
 
-    (remainingBuyAmount_, remainingSellAmount_) = _matchToExistingOffers(
+    (remainingBuyAmount_, remainingSellAmount_, matchedAmount_) = _matchToExistingOffers(
       _sellToken,
       _sellAmount,
       _buyToken,
@@ -162,17 +163,20 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
 
     require(remainingSellAmount_ == 0, "not enough orders in market");
 
-    // market offer settled, create offer for history
+    // market offer settled, create record for history
     uint256 marketOfferId = _createOffer(
       _sellToken, 
       _sellAmount, 
       _buyToken, 
-      0,
+      matchedAmount_,
       FEE_SCHEDULE_STANDARD,
       msg.sender,
       "",
       true
     );
+    // `_sellAmount` is used above for setting the initial sell amount on the offer,
+    // then it's updated to the actual remaining sell amount after offer execution
+    dataUint256[__i(marketOfferId, "sellAmount")] = remainingSellAmount_;
   }
 
   // Private
@@ -281,18 +285,22 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     bool marketOffer
   ) 
     private 
-    returns (uint256 remainingBuyAmount_, uint256 remainingSellAmount_) 
+    returns (uint256 remainingBuyAmount_, uint256 remainingSellAmount_, uint256 matchedAmount_) 
   {
     remainingBuyAmount_ = _buyAmount;
     remainingSellAmount_ = _sellAmount;
+    matchedAmount_ = 0;
 
-    // there is at least one offer stored for token pair
-    uint256 bestOfferId = dataUint256[__iaa(0, _buyToken, _sellToken, "bestOfferId")];
-    if(marketOffer == true) {
-      require(bestOfferId != 0, "not enough orders in market");
-    }
-    
-    while (bestOfferId > 0) {
+    while (remainingSellAmount_ != 0 && (remainingBuyAmount_ != 0 || marketOffer)) {
+      
+      // there is at least one offer stored for token pair
+      uint256 bestOfferId = dataUint256[__iaa(0, _buyToken, _sellToken, "bestOfferId")];
+      if(marketOffer == true) {
+        require(bestOfferId != 0, "not enough orders in market");
+      } else if(bestOfferId == 0) {
+        break;
+      }
+      
       uint256 bestBuyAmount = dataUint256[__i(bestOfferId, "buyAmount")];
       uint256 bestSellAmount = dataUint256[__i(bestOfferId, "sellAmount")];
 
@@ -323,6 +331,7 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
       {
         // do the buy     
         uint256 finalSellAmount = bestBuyAmount < remainingSellAmount_ ? bestBuyAmount : remainingSellAmount_; 
+        matchedAmount_ += finalSellAmount;
         
         _buyWithObserver(
           bestOfferId, 
@@ -341,8 +350,6 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
       if (remainingSellAmount_ == 0 || (remainingBuyAmount_ == 0 && !marketOffer)) {
         break;
       }
-
-      bestOfferId = dataUint256[__iaa(0, _buyToken, _sellToken, "bestOfferId")];
     }
   }
 

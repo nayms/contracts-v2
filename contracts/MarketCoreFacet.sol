@@ -137,7 +137,7 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
   function executeMarketOffer(address _sellToken, uint256 _sellAmount, address _buyToken) 
     nonReentrant
     external 
-    override 
+    override
   {
     _assertValidOffer(
       _sellToken,

@@ -98,6 +98,102 @@ describe('Market', () => {
     })
   })
 
+  describe('input validation', () => {
+    describe('fails on', () => {
+      it('invalid sell amount', async () => {
+          await market.executeLimitOffer( 
+              erc20DAI.address,
+              '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff', 
+              erc20DAI.address, 
+              toWei('20'), 
+              FEE_SCHEDULE_STANDARD, 
+              ADDRESS_ZERO, 
+              BYTES_ZERO, 
+              { from: accounts[3] } 
+          )
+          .should.be.rejectedWith('sell amount must be uint128')
+      })
+      it('invalid buy amount', async () => {
+          await market.executeLimitOffer( 
+              erc20DAI.address,
+              toWei('20'), 
+              erc20DAI.address, 
+              '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff', 
+              FEE_SCHEDULE_STANDARD, 
+              ADDRESS_ZERO, 
+              BYTES_ZERO, 
+              { from: accounts[3] } 
+          )
+          .should.be.rejectedWith('buy amount must be uint128')
+      })
+      it('0 sell amount', async () => {
+          await market.executeLimitOffer( 
+              erc20DAI.address, 
+              toWei('0'), 
+              erc20WETH.address, 
+              toWei('10'), 
+              FEE_SCHEDULE_STANDARD, 
+              ADDRESS_ZERO, 
+              BYTES_ZERO, 
+              { from: accounts[3] } 
+          )
+          .should.be.rejectedWith('sell amount must be >0')
+      })
+      it('invalid sell token', async () => {
+          await market.executeLimitOffer( 
+              ADDRESS_ZERO, 
+              toWei('10'), 
+              erc20WETH.address, 
+              toWei('10'), 
+              FEE_SCHEDULE_STANDARD, 
+              ADDRESS_ZERO, 
+              BYTES_ZERO, 
+              { from: accounts[3] } 
+          )
+          .should.be.rejectedWith('sell token must be valid')
+      })
+      it('0 buy amount', async () => {
+          await market.executeLimitOffer( 
+              erc20DAI.address, 
+              toWei('10'), 
+              erc20WETH.address, 
+              toWei('0'), 
+              FEE_SCHEDULE_STANDARD, 
+              ADDRESS_ZERO, 
+              BYTES_ZERO, 
+              { from: accounts[3] } 
+          )
+          .should.be.rejectedWith('buy amount must be >0')
+      })
+      it('invalid buy token', async () => {
+          await market.executeLimitOffer( 
+              erc20DAI.address,
+              toWei('10'), 
+              ADDRESS_ZERO, 
+              toWei('20'), 
+              FEE_SCHEDULE_STANDARD, 
+              ADDRESS_ZERO, 
+              BYTES_ZERO, 
+              { from: accounts[3] } 
+          )
+          .should.be.rejectedWith('buy token must be valid')
+      })
+      it('identical buy and sell token', async () => {
+          await market.executeLimitOffer( 
+              erc20DAI.address,
+              toWei('10'), 
+              erc20DAI.address, 
+              toWei('20'), 
+              FEE_SCHEDULE_STANDARD, 
+              ADDRESS_ZERO, 
+              BYTES_ZERO, 
+              { from: accounts[3] } 
+          )
+          .should.be.rejectedWith('cannot sell and buy same token')
+      })
+    })
+  })
+
   describe('fee', () => {
     describe('can be changed', () => {
       it('but not by anyone', async () => {

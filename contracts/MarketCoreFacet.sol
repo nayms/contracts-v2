@@ -149,9 +149,9 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
 
     uint256 remainingBuyAmount_;
     uint256 remainingSellAmount_;
-    uint256 matchedAmount_;
+    uint256 boughtAmount_;
 
-    (remainingBuyAmount_, remainingSellAmount_, matchedAmount_) = _matchToExistingOffers(
+    (remainingBuyAmount_, remainingSellAmount_, boughtAmount_) = _matchToExistingOffers(
       _sellToken,
       _sellAmount,
       _buyToken,
@@ -168,7 +168,7 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
       _sellToken, 
       _sellAmount, 
       _buyToken, 
-      matchedAmount_,
+      boughtAmount_,
       FEE_SCHEDULE_STANDARD,
       msg.sender,
       "",

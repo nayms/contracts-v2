@@ -1599,6 +1599,40 @@
       ]
     },
     {
+      "id": "getLastOfferId",
+      "title": "Market: Get last offer ID",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "Market address",
+          "initialValue": "@constant[marketAddress]",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "IMarket",
+          "method": "getLastOfferId",
+          "address": "@input[contractAddress]",
+          "saveResultAsInput": "details"
+        }
+      ],
+      "outputs": [
+        {
+          "title": "Last Offer ID",
+          "type": "int",
+          "value": "@input[details]"
+        }
+      ]
+    },
+    {
       "id": "getOfferStatus",
       "title": "Market: Get offer status",
       "inputs": [

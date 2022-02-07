@@ -295,7 +295,7 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
       
       // there is at least one offer stored for token pair
       uint256 bestOfferId = dataUint256[__iaa(0, _buyToken, _sellToken, "bestOfferId")];
-      if(marketOffer == true) {
+      if(marketOffer) {
         require(bestOfferId != 0, "not enough orders in market");
       } else if(bestOfferId == 0) {
         break;
@@ -344,11 +344,6 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
         uint256 sellAmountOld = remainingSellAmount_;
         remainingSellAmount_ = remainingSellAmount_.sub(finalSellAmount);
         remainingBuyAmount_ = remainingSellAmount_.mul(remainingBuyAmount_).div(sellAmountOld);
-      }
-
-      // if nothing left to sell or buy then we're done
-      if (remainingSellAmount_ == 0 || (remainingBuyAmount_ == 0 && !marketOffer)) {
-        break;
       }
     }
   }

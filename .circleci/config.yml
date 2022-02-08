@@ -132,8 +132,7 @@ workflows:
             - build_contracts
           filters:
             branches:
-              ignore:
-                - gh-pages
+              only:
                 - master
       - deploy_admin_dapp:
           requires:

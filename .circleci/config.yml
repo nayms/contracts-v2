@@ -139,16 +139,14 @@ workflows:
             - deploy_contracts
           filters:
             branches:
-              ignore:
-                - gh-pages
+              only:
                 - master
       - publish_to_npm:
           requires:
             - deploy_contracts
           filters:
             branches:
-              ignore:
-                - gh-pages
+              only:
                 - master
       - git_tag:
           requires:

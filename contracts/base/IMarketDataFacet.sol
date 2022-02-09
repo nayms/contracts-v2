@@ -99,6 +99,7 @@ interface IMarketDataFacet {
    * @return buyToken_ buy token.
    * @return buyAmount_ buy amount.
    * @return buyAmountInitial_ initial buy amount.
+   * @return averagePrice_ average price paid.
    * @return feeSchedule_ fee schedule.
    * @return notify_ Contract to notify when a trade takes place and/or order gets cancelled.
    * @return notifyData_ Data to pass through to the notified contract.
@@ -112,6 +113,7 @@ interface IMarketDataFacet {
     address buyToken_, 
     uint256 buyAmount_,
     uint256 buyAmountInitial_,
+    uint256 averagePrice_,
     uint256 feeSchedule_,
     address notify_,
     bytes memory notifyData_,

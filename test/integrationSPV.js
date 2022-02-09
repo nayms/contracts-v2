@@ -8,6 +8,8 @@ import {
   EvmClock,
   calcPremiumsMinusCommissions,
   EvmSnapshot,
+  ADDRESS_ZERO, 
+  BYTES_ZERO
 } from './utils'
 
 import { events } from '..'
@@ -402,7 +404,7 @@ describe('Integration: SPV', () => {
 
         // make the offer on the market
         await etherToken.approve(market.address, 10, { from: accounts[2] })
-        await market.executeLimitOffer(etherToken.address, 10, trancheToken.address, 5000, FEE_SCHEDULE_STANDARD, { from: accounts[2] })
+        await market.executeLimitOffer(etherToken.address, 10, trancheToken.address, 5000, FEE_SCHEDULE_STANDARD, ADDRESS_ZERO, BYTES_ZERO, { from: accounts[2] })
 
         // check balances again
         await etherToken.balanceOf(accounts[2]).should.eventually.eq(15)
@@ -458,8 +460,8 @@ describe('Integration: SPV', () => {
 
         // make some offers on the market
         await etherToken.approve(market.address, 10, { from: accounts[2] })
-        await market.executeLimitOffer(etherToken.address, 4, trancheToken.address, 2, FEE_SCHEDULE_STANDARD, { from: accounts[2] })
-        await market.executeLimitOffer(etherToken.address, 6, trancheToken.address, 3, FEE_SCHEDULE_STANDARD, { from: accounts[2] })
+        await market.executeLimitOffer(etherToken.address, 4, trancheToken.address, 2, FEE_SCHEDULE_STANDARD, ADDRESS_ZERO, BYTES_ZERO, { from: accounts[2] })
+        await market.executeLimitOffer(etherToken.address, 6, trancheToken.address, 3, FEE_SCHEDULE_STANDARD, ADDRESS_ZERO, BYTES_ZERO, { from: accounts[2] })
 
         // check balances again
         await etherToken.balanceOf(accounts[2]).should.eventually.eq(15)
@@ -508,7 +510,7 @@ describe('Integration: SPV', () => {
       // get tranche tokens
       await etherToken.approve(market.address, 10, { from: accounts[2] })
       // buy the tranche token
-      await market.executeLimitOffer(etherToken.address, 10, trancheToken.address, 5, FEE_SCHEDULE_STANDARD, { from: accounts[2] })
+      await market.executeLimitOffer(etherToken.address, 10, trancheToken.address, 5, FEE_SCHEDULE_STANDARD, ADDRESS_ZERO, BYTES_ZERO, { from: accounts[2] })
       // check balance
       await trancheToken.balanceOf(accounts[2]).should.eventually.eq(5)
       // try trading the tranche token
@@ -526,7 +528,7 @@ describe('Integration: SPV', () => {
         // buy the whole tranche
         await etherToken.deposit({ from: accounts[2], value: 200 })
         await etherToken.approve(market.address, 200, { from: accounts[2] })
-        txResult = await market.executeLimitOffer(etherToken.address, 200, trancheToken.address, 100, FEE_SCHEDULE_STANDARD, { from: accounts[2] })
+        txResult = await market.executeLimitOffer(etherToken.address, 200, trancheToken.address, 100, FEE_SCHEDULE_STANDARD, ADDRESS_ZERO, BYTES_ZERO, { from: accounts[2] })
       })
 
       it('emits tranche state updated event', async () => {
@@ -714,7 +716,7 @@ describe('Integration: SPV', () => {
           // buy the whole tranche to make it active
           await etherToken.deposit({ from: accounts[2], value: 1000000 })
           await etherToken.approve(market.address, 200, { from: accounts[2] })
-          await market.executeLimitOffer(etherToken.address, 200, trancheToken.address, 100, FEE_SCHEDULE_STANDARD, { from: accounts[2] })
+          await market.executeLimitOffer(etherToken.address, 200, trancheToken.address, 100, FEE_SCHEDULE_STANDARD, ADDRESS_ZERO, BYTES_ZERO, { from: accounts[2] })
         })
 
         it('and updates internal state', async () => {
@@ -754,7 +756,7 @@ describe('Integration: SPV', () => {
           // buy the whole tranche to make it active
           await etherToken.deposit({ from: accounts[2], value: 1000000 })
           await etherToken.approve(market.address, 200, { from: accounts[2] })
-          const ret = await market.executeLimitOffer(etherToken.address, 200, trancheToken.address, 100, FEE_SCHEDULE_STANDARD, { from: accounts[2] })
+          const ret = await market.executeLimitOffer(etherToken.address, 200, trancheToken.address, 100, FEE_SCHEDULE_STANDARD, ADDRESS_ZERO, BYTES_ZERO, { from: accounts[2] })
 
           const ev = extractEventArgs(ret, events.TrancheStateUpdated)
           expect(ev.trancheIndex).to.eq('0')
@@ -805,7 +807,7 @@ describe('Integration: SPV', () => {
         // buy the whole tranche to make it active
         await etherToken.deposit({ from: accounts[2], value: 2000000 })
         await etherToken.approve(market.address, 200, { from: accounts[2] })
-        await market.executeLimitOffer(etherToken.address, 200, trancheToken.address, 100, FEE_SCHEDULE_STANDARD, { from: accounts[2] })
+        await market.executeLimitOffer(etherToken.address, 200, trancheToken.address, 100, FEE_SCHEDULE_STANDARD, ADDRESS_ZERO, BYTES_ZERO, { from: accounts[2] })
         // pay all premiums upto start date
         await etherToken.approve(policy.address, 1000000, { from: accounts[2] })
         let toPay = 0
@@ -819,7 +821,7 @@ describe('Integration: SPV', () => {
         await policy.checkAndUpdateState()
 
         // try trading
-        await market.executeLimitOffer(trancheToken.address, 1, etherToken.address, 1, FEE_SCHEDULE_STANDARD, { from: accounts[2] }).should.be.fulfilled
+        await market.executeLimitOffer(trancheToken.address, 1, etherToken.address, 1, FEE_SCHEDULE_STANDARD, ADDRESS_ZERO, BYTES_ZERO, { from: accounts[2] }).should.be.fulfilled
 
         // check balance
         await trancheToken.balanceOf(accounts[2]).should.eventually.eq(99)
@@ -850,10 +852,10 @@ describe('Integration: SPV', () => {
       await etherToken.approve(market.address, 2000000, { from: accounts[2] })
 
       const tranche0Address = ((await getTrancheToken(0))).address
-      await market.executeLimitOffer(etherToken.address, 200, tranche0Address, 100, FEE_SCHEDULE_STANDARD, { from: accounts[2] })
+      await market.executeLimitOffer(etherToken.address, 200, tranche0Address, 100, FEE_SCHEDULE_STANDARD, ADDRESS_ZERO, BYTES_ZERO, { from: accounts[2] })
 
       const tranche1Address = ((await getTrancheToken(1))).address
-      await market.executeLimitOffer(etherToken.address, 100, tranche1Address, 50, FEE_SCHEDULE_STANDARD, { from: accounts[2] })
+      await market.executeLimitOffer(etherToken.address, 100, tranche1Address, 50, FEE_SCHEDULE_STANDARD, ADDRESS_ZERO, BYTES_ZERO, { from: accounts[2] })
 
       // pay premiums upto start date
       let toPay = 0

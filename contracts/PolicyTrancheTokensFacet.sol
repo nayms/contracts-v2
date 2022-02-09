@@ -132,7 +132,7 @@ contract PolicyTrancheTokensFacet is EternalStorage, Controller, IDiamondFacet, 
         // if we are in the initial sale period      
         if (dataUint256[__i(trancheId, "state")] == TRANCHE_STATE_SELLING) {
           // check tranche token matches sell token
-          (, address sellToken, , , , , , , , ,) = _getMarket().getOffer(_offerId);
+          (, address sellToken, , , , , , , , , ,) = _getMarket().getOffer(_offerId);
           address trancheAddress = dataAddress[__i(trancheId, "address")];
           require(trancheAddress == sellToken, "sell token must be tranche token");
           // record how many "shares" were sold
@@ -174,7 +174,7 @@ contract PolicyTrancheTokensFacet is EternalStorage, Controller, IDiamondFacet, 
         // if we are in the policy buyback state
         if (dataUint256["state"] == POLICY_STATE_BUYBACK) {
           // check tranche token matches buy token
-          (, , , , address buyToken, , , , , ,) = _getMarket().getOffer(_offerId);
+          (, , , , address buyToken, , , , , , ,) = _getMarket().getOffer(_offerId);
           address trancheAddress = dataAddress[__i(trancheId, "address")];
           require(trancheAddress == buyToken, "buy token must be tranche token");
 

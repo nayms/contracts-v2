@@ -1599,8 +1599,42 @@
       ]
     },
     {
-      "id": "getOfferStatus",
-      "title": "Market: Get offer status",
+      "id": "getLastOfferId",
+      "title": "Market: Last Offer ID",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "Market address",
+          "initialValue": "@constant[marketAddress]",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "IMarket",
+          "method": "getLastOfferId",
+          "address": "@input[contractAddress]",
+          "saveResultAsInput": "details"
+        }
+      ],
+      "outputs": [
+        {
+          "title": "Last Offer ID",
+          "type": "int",
+          "value": "@input[details]"
+        }
+      ]
+    },
+    {
+      "id": "getOffer",
+      "title": "Market: Get Offer by ID",
       "inputs": [
         {
           "name": "contractAddress",
@@ -1616,7 +1650,7 @@
         },
         {
           "name": "offerId",
-          "title": "Offer id",
+          "title": "Offer ID",
           "type": "int",
           "validation": [
             {
@@ -1640,19 +1674,9 @@
       ],
       "outputs": [
         {
-          "title": "Is active?",
-          "type": "bool",
-          "value": "@input[details][isActive_]"
-        },
-        {
           "title": "Creator",
           "type": "address",
           "value": "@input[details][creator_]"
-        },
-        {
-          "title": "Sell amount",
-          "type": "int",
-          "value": "@input[details][sellAmount_)]"
         },
         {
           "title": "Sell token",
@@ -1660,16 +1684,672 @@
           "value": "@input[details][sellToken_]"
         },
         {
-          "title": "Buy amount",
+          "title": "Sell amount",
           "type": "int",
-          "value": "@input[details][buyAmount_]"
+          "value": "@input[details][sellAmount_]"
+        },
+        {
+          "title": "Initial Sell amount",
+          "type": "int",
+          "value": "@input[details][sellAmountInitial_]"
         },
         {
           "title": "Buy token",
           "type": "address",
           "value": "@input[details][buyToken_]"
+        },
+        {
+          "title": "Buy amount",
+          "type": "int",
+          "value": "@input[details][buyAmount_]"
+        },
+        {
+          "title": "Initial Buy amount",
+          "type": "int",
+          "value": "@input[details][buyAmountInitial_]"
+        },
+        {
+          "title": "Average Price",
+          "type": "int",
+          "value": "@input[details][averagePrice_]"
+        },
+        {
+          "title": "Fee Schedule",
+          "type": "int",
+          "value": "@input[details][feeSchedule_]"
+        },
+        {
+          "title": "Notify",
+          "type": "address",
+          "value": "@input[details][notify_]"
+        },
+        {
+          "title": "State",
+          "type": "int",
+          "value": "@input[details][state_]",
+          "transform": [
+            {
+              "type": "toMappedString",
+              "options": {
+                "1": "Active",
+                "2": "Cancelled",
+                "3": "Fulfilled"
+              }
+            }
+          ]
         }
       ]
+    },
+    {
+      "id": "isActive",
+      "title": "Market: Is Offer Active?",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "Market address",
+          "initialValue": "@constant[marketAddress]",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "offerId",
+          "title": "Offer ID",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "IMarket",
+          "method": "isActive",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_offerId": "@input[offerId]"
+          },
+          "saveResultAsInput": "details"
+        }
+      ],
+      "outputs": [
+        {
+          "title": "Is active?",
+          "type": "bool",
+          "value": "@input[details]"
+        }
+      ]
+    },
+    {
+      "id": "getOfferSiblings",
+      "title": "Market: Offer Siblings",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "Market address",
+          "initialValue": "@constant[marketAddress]",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "offerId",
+          "title": "Offer ID",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "IMarket",
+          "method": "getOfferSiblings",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_offerId": "@input[offerId]"
+          },
+          "saveResultAsInput": "details"
+        }
+      ],
+      "outputs": [
+        {
+          "title": "Next Offer ID",
+          "type": "int",
+          "value": "@input[details][nextOfferId_]"
+        },
+        {
+          "title": "Previous Offer ID",
+          "type": "int",
+          "value": "@input[details][prevOfferId_]"
+        }
+      ]
+    },
+    {
+      "id": "getBestOfferId",
+      "title": "Market: Get Best Offer ID",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "Market address",
+          "initialValue": "@constant[marketAddress]",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "_sellToken",
+          "title": "Sell Token",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "_buyToken",
+          "title": "Buy Token",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "IMarket",
+          "method": "getBestOfferId",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_sellToken": "@input[_sellToken]",
+            "_buyToken": "@input[_buyToken]"
+          },
+          "saveResultAsInput": "details"
+        }
+      ],
+      "outputs": [
+        {
+          "title": "Best Offer ID",
+          "type": "int",
+          "value": "@input[details]"
+        }
+      ]
+    },
+    {
+      "id": "calculateFee",
+      "title": "Market: Calculate Fee",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "Market address",
+          "initialValue": "@constant[marketAddress]",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "_sellToken",
+          "title": "Sell Token",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "_sellAmount",
+          "title": "Sell Amount",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        },
+        {
+          "name": "_buyToken",
+          "title": "Buy Token",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "_buyAmount",
+          "title": "Buy Amount",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        },
+        {
+          "name": "_feeSchedule",
+          "title": "Fee Schedule",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "IMarket",
+          "method": "calculateFee",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_sellToken": "@input[_sellToken]",
+            "_sellAmount": "@input[_sellAmount]",
+            "_buyToken": "@input[_buyToken]",
+            "_buyAmount": "@input[_buyAmount]",
+            "_feeSchedule": "@input[_feeSchedule]"
+          },
+          "saveResultAsInput": "details"
+        }
+      ],
+      "outputs": [
+        {
+          "title": "Fee Token",
+          "type": "address",
+          "value": "@input[details][feeToken_]"
+        },
+        {
+          "title": "Fee Amount",
+          "type": "int",
+          "value": "@input[details][feeAmount_]"
+        }
+      ]
+    },
+    {
+      "id": "simulateMarketOffer",
+      "title": "Market: Simulate Market Offer",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "Market address",
+          "initialValue": "@constant[marketAddress]",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "_sellToken",
+          "title": "Sell Token",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "_sellAmount",
+          "title": "Sell Amount",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        },
+        {
+          "name": "_buyToken",
+          "title": "Buy Token",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "IMarket",
+          "method": "simulateMarketOffer",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_sellToken": "@input[_sellToken]",
+            "_sellAmount": "@input[_sellAmount]",
+            "_buyToken": "@input[_buyToken]"
+          },
+          "saveResultAsInput": "details"
+        }
+      ],
+      "outputs": [
+        {
+          "title": "Bought Amount",
+          "type": "int",
+          "value": "@input[details]"
+        }
+      ]
+    },
+    {
+      "id": "cancel",
+      "title": "Market: Cancel Offer",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "Market address",
+          "initialValue": "@constant[marketAddress]",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "offerId",
+          "title": "Offer ID",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "IMarket",
+          "method": "cancel",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_offerId": "@input[offerId]"
+          },
+          "saveResultAsInput": "details"
+        }
+      ],
+      "outputs": [ ]
+    },
+    {
+      "id": "buy",
+      "title": "Market: Buy Offer",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "Market address",
+          "initialValue": "@constant[marketAddress]",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "offerId",
+          "title": "Offer ID",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        },
+        {
+          "name": "amount",
+          "title": "Amount",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "IMarket",
+          "method": "buy",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_offerId": "@input[offerId]",
+            "_amount": "@input[amount]"
+          },
+          "saveResultAsInput": "details"
+        }
+      ],
+      "outputs": [ ]
+    },
+    {
+      "id": "executeLimitOffer",
+      "title": "Market: Execute Limit Offer",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "Market address",
+          "initialValue": "@constant[marketAddress]",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "_sellToken",
+          "title": "Sell Token",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "_sellAmount",
+          "title": "Sell Amount",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        },
+        {
+          "name": "_buyToken",
+          "title": "Buy Token",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "_buyAmount",
+          "title": "Buy Amount",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        },
+        {
+          "name": "_feeSchedule",
+          "title": "Fee Schedule",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        },
+        {
+          "name": "_notify",
+          "title": "Notify",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "_notifyData",
+          "title": "Notify Data",
+          "type": "bytes32",
+          "optional": true
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "IMarket",
+          "method": "executeLimitOffer",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_sellToken": "@input[_sellToken]",
+            "_sellAmount": "@input[_sellAmount]",
+            "_buyToken": "@input[_buyToken]",
+            "_buyAmount": "@input[_buyAmount]",
+            "_feeSchedule": "@input[_feeSchedule]",
+            "_notify": "@input[_notify]",
+            "_notifyData": "@input[_notifyData]"
+          },
+          "saveResultAsInput": "details"
+        }
+      ],
+      "outputs": [
+        {
+          "title": "Limit Offer Id",
+          "type": "address",
+          "value": "@input[details]"
+        }
+      ]
+    },
+    {
+      "id": "executeMarketOffer",
+      "title": "Market: Execute Market Offer",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "Market address",
+          "initialValue": "@constant[marketAddress]",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "_sellToken",
+          "title": "Sell Token",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "_sellAmount",
+          "title": "Sell Amount",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        },
+        {
+          "name": "_buyToken",
+          "title": "Buy Token",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "IMarket",
+          "method": "executeMarketOffer",
+          "address": "@input[contractAddress]",
+          "args": {
+            "_sellToken": "@input[_sellToken]",
+            "_sellAmount": "@input[_sellAmount]",
+            "_buyToken": "@input[_buyToken]"
+          },
+          "saveResultAsInput": "details"
+        }
+      ],
+      "outputs": [ ]
     }
   ]
 }

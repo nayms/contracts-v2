@@ -160,7 +160,7 @@ First let's build it:
 yarn build-admin-dapp
 ```
 
-Then open [Metamask](https://metamask.io/) in your browser and configure it to use our [custom mnemonic](https://github.com/nayms/contracts/blob/master/package.json#L21) and pointing to `http://localhost:8545` as a _Custom RPC_ endpoint (Note: you may already have a "Localhost 8545" entry in your Metamask network list, in which ase you don't need to add a new one).
+Then open [Metamask](https://metamask.io/) in your browser and configure it to use our [custom mnemonic](https://github.com/nayms/contracts/blob/master/utils/constants.js#L3) and pointing to `http://localhost:8545` as a _Custom RPC_ endpoint (Note: you may already have a "Localhost 8545" entry in your Metamask network list, in which ase you don't need to add a new one).
 
 Once done, start a lightweight HTTP server to serve up the admin dapp:
 

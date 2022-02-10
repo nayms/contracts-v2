@@ -2345,6 +2345,65 @@
         }
       ],
       "outputs": [ ]
+    },
+    {
+      "id": "approve",
+      "title": "Approve Token Spending",
+      "inputs": [
+        {
+          "name": "tokenAddress",
+          "title": "Token Address",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },{
+          "name": "contractAddress",
+          "title": "Contract address",
+          "initialValue": "@constant[marketAddress]",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        },
+        {
+          "name": "spendingAmount",
+          "title": "Spending Amount",
+          "type": "int",
+          "validation": [
+            {
+              "type": "range",
+              "min": "0"
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "IERC20",
+          "method": "approve",
+          "address": "@input[tokenAddress]",
+          "args": {
+            "spender": "@input[contractAddress]",
+            "value": "@input[spendingAmount]"
+          },
+          "saveResultAsInput": "details"
+        }
+      ],
+      "outputs": [
+        {
+          "title": "Success",
+          "type": "bool",
+          "value": "@input[details]"
+        }
+      ]
     }
   ]
 }

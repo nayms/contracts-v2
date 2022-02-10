@@ -2244,11 +2244,13 @@
         {
           "name": "_notify",
           "title": "Notify",
+          "initialValue": "0x0000000000000000000000000000000000000000",
           "type": "address"
         },
         {
           "name": "_notifyData",
           "title": "Notify Data",
+          "initialValue": "0x0",
           "type": "string"
         }
       ],

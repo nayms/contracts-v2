@@ -2244,19 +2244,12 @@
         {
           "name": "_notify",
           "title": "Notify",
-          "type": "address",
-          "validation": [
-            {
-              "type": "allowedTypes",
-              "contract": true
-            }
-          ]
+          "type": "address"
         },
         {
           "name": "_notifyData",
           "title": "Notify Data",
-          "type": "bytes32",
-          "optional": true
+          "type": "string"
         }
       ],
       "execs": [

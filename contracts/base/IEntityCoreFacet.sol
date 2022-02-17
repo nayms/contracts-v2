@@ -103,23 +103,9 @@ interface IEntityCoreFacet {
   function updateAllowPolicy(bool _allow) external;
   
   /**
-   * @dev Update Allow Simple Policy.
-   *
-   * @param _allow Allow.
-   */
-  function updateAllowSimplePolicy(bool _allow) external;
-  
-  /**
    * @dev Get Allow Policy.
    *
    */
   function allowPolicy() external view returns (bool _allow);
-  
-  // /**
-  //  * @dev Get Allow Simple Policy.
-  //  *
-  //  */
-  // function allowSimplePolicy() external view returns (bool _allow);
-
   
 }

@@ -5,7 +5,8 @@ pragma experimental ABIEncoderV2;
 /**
  * @dev Entity core logic.
  */
-interface IEntityCoreFacet {
+interface IEntitySimplePolicyFacet {
+
   /**
    * @dev Create a new policy.
    *
@@ -16,10 +17,10 @@ interface IEntityCoreFacet {
    *    * Index 3: Insured party entity address.
    *
    * @param _id Unique id that represents the policy - this is what stakeholder will sign to approve the policy.
-   * @param startDate_ Start Date.
-   * @param maturationDate_ Maturation Date.
-   * @param unit_ Unit.
-   * @param limit_ Limit.
+   * @param _startDate Start Date.
+   * @param _maturationDate Maturation Date.
+   * @param _unit Unit.
+   * @param _limit Limit.
    * @param _approvalSignatures Bulk-approval signatures in order: broker, underwriter, claims admin, insured party
    */
   function createSimplePolicy(
@@ -28,27 +29,25 @@ interface IEntityCoreFacet {
     uint256 _maturationDate,
     address _unit,
     uint256 _limit,
-    address[] calldata _stakeholders
+    address[] calldata _stakeholders,
     bytes[] calldata _approvalSignatures
   ) external;
 
   /**
    * @dev Pay the next expected premium for a tranche using the assets owned by this entity.
    *
-   * @param _policy Policy which owns the tranche.
-   * @param _trancheIndex Index of the tranche in the policy.
+   * @param _id Policy which owns the tranche.
    * @param _amount Amount of premium to pay.
    */
-  function paySimplePremium(bytes32 _policyId, uint256 _amount) external;
+  function paySimplePremium(bytes32 _id, uint256 _amount) external;
 
   /**
    * @dev Emitted when a new policy has been created.
-   * @param policy The policy address.
+   * @param id The policy address.
    * @param entity The entity which owns the policy.
-   * @param deployer The person who deployed it.
    */
   event NewPolicy(
-    address indexed policyId,
+    address indexed id,
     address indexed entity
   );
   
@@ -72,24 +71,34 @@ interface IEntityCoreFacet {
   function getNumSimplePolicies() external view returns (uint256 _numPolicies);
 
   /**
-   * @dev Get somple policy ID from policy number. Policy number is a sequential integer
+   * @dev Get simple policy ID from policy number. Policy number is a sequential integer
    *
-   * @param _simplePolicyNumber
+   * @param _policyNumber sequential integer
    */
-  function getSimplePolicyId (uint256 _simplePolicyNumber) public view override returns (bytes32 _id )
+  function getSimplePolicyId (uint256 _policyNumber) external view returns (bytes32 _id );
 
   /**
    * @dev Get simple policy info.
    *
    * @param _id Unique id that represents the policy - this is what stakeholder will sign to approve the policy.
    */
-  function getSimplePolicyInfo (bytes32 _id) public view override returns (
+  function getSimplePolicyInfo (bytes32 _id) external view returns (
     uint256 startDate_,
     uint256 maturationDate_,
     address unit_,
-    uint256 limit_
-    uint256 state_
+    uint256 limit_,
+    uint256 state_,
+    uint256 premiumsPaid_,
+    uint256 claimsPaid_
   );
+
+  /**
+   * @dev Get simple policy info.
+   *
+   * @param _id Unique id that represents the policy - this is what stakeholder will sign to approve the policy.
+   * @param _amount Amount to pay.
+   */
+  function payPremium (bytes32 _id, uint256 _amount) external view;
 
   /**
    * @dev Heartbeat: Ensure the policy and tranche states are up-to-date.

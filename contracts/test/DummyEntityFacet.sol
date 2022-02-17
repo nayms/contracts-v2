@@ -5,8 +5,9 @@ pragma experimental ABIEncoderV2;
 import '../base/IDiamondFacet.sol';
 import '../base/IEntityCoreFacet.sol';
 import '../base/IEntityFundingFacet.sol';
+import '../base/IEntitySimplePolicyFacet.sol';
 
-contract DummyEntityFacet is IDiamondFacet, IEntityCoreFacet, IEntityFundingFacet {
+contract DummyEntityFacet is IDiamondFacet, IEntityCoreFacet, IEntityFundingFacet, IEntitySimplePolicyFacet {
   function getSelectors () public pure override returns (bytes memory) {
     return abi.encodePacked(
       IEntityFundingFacet.getBalance.selector
@@ -35,7 +36,16 @@ contract DummyEntityFacet is IDiamondFacet, IEntityCoreFacet, IEntityFundingFace
   function getEnabledCurrency(address _unit) external override view returns (uint256 _collateralRatio, uint256 _maxCapital) {}
   function getEnabledCurrencies() external override view returns (address[] memory) {}
   function updateAllowPolicy(bool _allow) external override {}
-  function updateAllowSimplePolicy(bool _allow) external override {}
   function allowPolicy() external override view returns (bool _allow) {}
+
+  function createSimplePolicy (bytes32 _id, uint256 _startDate, uint256 _maturationDate, address _unit, uint256 _limit, address[] calldata _stakeholders, bytes[] calldata _approvalSignatures) external override {}
+  function paySimplePremium(bytes32 _id, uint256 _amount) external override {}
+  function updateAllowSimplePolicy(bool _allow) external override {}
   function allowSimplePolicy() external override view returns (bool _allow) {}
+  function getNumSimplePolicies() external override view returns (uint256 _numPolicies) {}
+  function getSimplePolicyId (uint256 _simplePolicyNumber) public view override returns (bytes32 _id ) {}
+  function getSimplePolicyInfo (bytes32 _id) public view override returns (uint256 startDate_, uint256 maturationDate_, address unit_, uint256 limit_, uint256 state_, uint256 premiumsPaid_, uint256 claimsPaid_) {}
+  function payPremium (bytes32 _id, uint256 _amount) external override view {}
+  function checkAndUpdateState (bytes32 _id ) external override {}
+  function verifySimplePolicy (bytes32 _id ) external override {}
 }

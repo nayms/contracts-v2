@@ -4,7 +4,7 @@ pragma solidity 0.6.12;
 /**
  * @dev Policy states
  */
-abstract contract IPolicyStates {
+abstract contract ISimplePolicyStates {
   /**
    * @dev State: The policy has just been created.
    */

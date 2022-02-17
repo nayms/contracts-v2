@@ -2,25 +2,21 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
-import "./base/Controller.sol";
+//import "./base/Controller.sol";
 import "./base/EternalStorage.sol";
-import "./EntityFacetBase.sol";
-import "./base/IEntityCoreFacet.sol";
+//import "./EntityFacetBase.sol";
+// import "./base/IEntityCoreFacet.sol";
+import "./base/IEntitySimplePolicyFacet.sol";
+import "./base/ISimplePolicyStates.sol";
 import "./base/IDiamondFacet.sol";
-import "./base/IParent.sol";
-import "./base/IERC20.sol";
-import "./base/IMarket.sol";
-import "./base/IPolicy.sol";
+// import "./base/IParent.sol";
+// import "./base/IERC20.sol";
+// import "./base/IMarket.sol";
 import "./base/SafeMath.sol";
-import "./Policy.sol";
+// import "./Policy.sol";
 
-contract EntitySimplePolicyFacet is EternalStorage, Controller, EntityFacetBase, IEntitySimplePolicyFacet, IDiamondFacet {
+contract EntitySimplePolicyFacet is EternalStorage, IEntitySimplePolicyFacet, IDiamondFacet, ISimplePolicyStates {
   using SafeMath for uint256;
-
-  modifier assertCanPayTranchePremiums (address _policyAddress) {
-    require(inRoleGroup(msg.sender, ROLEGROUP_ENTITY_REPS), 'must be entity rep');
-    _;
-  }
 
   modifier assertSimplePolicyCreationEnabled () {
     require(this.allowSimplePolicy(), 'simple policy creation disabled');
@@ -30,7 +26,7 @@ contract EntitySimplePolicyFacet is EternalStorage, Controller, EntityFacetBase,
   modifier assertCurrencyIsEnabled(address _unit) {
     uint256 _collateralRatio;
     uint256 _maxCapital;
-    (_collateralRatio, _maxCapital) = this.getEnabledCurrency(_unit);
+    // (_collateralRatio, _maxCapital) = this.getEnabledCurrency(_unit);
     // require((dataUint256[__a(_unit, "collateralRatio")] > 0) && (dataUint256[__a(_unit, "maxCapital")] > 0));
     require((_collateralRatio > 0) && (_maxCapital > 0));
     _;
@@ -38,14 +34,14 @@ contract EntitySimplePolicyFacet is EternalStorage, Controller, EntityFacetBase,
 
   function getSelectors () public pure override returns (bytes memory) {
     return abi.encodePacked(
-      EntitySimplePolicyFacet.createSimplePolicy,
-      EntitySimplePolicyFacet.paySimplePremium,
-      EntitySimplePolicyFacet.updateAllowSimplePolicy,
-      EntitySimplePolicyFacet.allowSimplePolicy,
-      EntitySimplePolicyFacet.getNumSimplePolicies,
-      EntitySimplePolicyFacet.getSimplePolicyInfo,
-      EntitySimplePolicyFacet.checkAndUpdateState,
-      EntitySimplePolicyFacet.verifySimplePolicy
+      IEntitySimplePolicyFacet.createSimplePolicy.selector,
+      IEntitySimplePolicyFacet.paySimplePremium.selector,
+      IEntitySimplePolicyFacet.updateAllowSimplePolicy.selector,
+      IEntitySimplePolicyFacet.allowSimplePolicy.selector,
+      IEntitySimplePolicyFacet.getNumSimplePolicies.selector,
+      IEntitySimplePolicyFacet.getSimplePolicyInfo.selector,
+      IEntitySimplePolicyFacet.checkAndUpdateState.selector,
+      IEntitySimplePolicyFacet.verifySimplePolicy.selector
     );
   }
 
@@ -57,17 +53,17 @@ contract EntitySimplePolicyFacet is EternalStorage, Controller, EntityFacetBase,
     uint256 _maturationDate,
     address _unit,
     uint256 _limit,
-    address[] calldata _stakeholders
+    address[] calldata _stakeholders,
     bytes[] calldata _approvalSignatures
   ) 
   external 
   override 
   assertSimplePolicyCreationEnabled
-  _assertHasEnoughBalance (_unit, _limit)
+//  _assertHasEnoughBalance (_unit, _limit)
   {
-    uint255 policyNumber = dataUint256["numSimplePolicies")];
+    uint256 policyNumber = dataUint256["numSimplePolicies"];
     //forward and reverse lookups
-    dataBytes32[__b (_id, "simplePolicyNumber")] = policyNumber;
+    dataUint256[__b (_id, "simplePolicyNumber")] = policyNumber;
     dataBytes32[__i (policyNumber, "simplePolicyNumber")] = _id;
 
 
@@ -81,14 +77,12 @@ contract EntitySimplePolicyFacet is EternalStorage, Controller, EntityFacetBase,
   }
   
 
-  function paySimplePremium(bytes32 _policyId, uint256 _amount)
+  function paySimplePremium(bytes32 _id, uint256 _amount)
     external
     override
-    assertCanPayTranchePremiums(_policy)
   {
     address policyUnitAddress;
 
-    IPolicy p = IPolicy(_policy);
 
     // avoid stack too deep errors
     {
@@ -98,18 +92,18 @@ contract EntitySimplePolicyFacet is EternalStorage, Controller, EntityFacetBase,
       address a1;
 
       // policy's unit
-      (, a1, i1, i2, i3, policyUnitAddress, , ,) = p.getInfo();
+      // (, a1, i1, i2, i3, policyUnitAddress, , ,) = p.getInfo();
     }
     
     // check balance
-    _assertHasEnoughBalance(policyUnitAddress, _amount);
+    // _assertHasEnoughBalance(policyUnitAddress, _amount);
 
-    // approve transfer
-    IERC20 tok = IERC20(policyUnitAddress);
-    tok.approve(_policy, _amount);
+    // // approve transfer
+    // IERC20 tok = IERC20(policyUnitAddress);
+    // tok.approve(_id, _amount);
 
     // do it
-    p.payTranchePremium(_trancheIndex, _amount);
+    // p.payTranchePremium(_trancheIndex, _amount);
   }
 
   function updateAllowSimplePolicy(
@@ -117,7 +111,7 @@ contract EntitySimplePolicyFacet is EternalStorage, Controller, EntityFacetBase,
   ) 
   external
   override
-  assertIsSystemManager (msg.sender)
+//  assertIsSystemManager (msg.sender)
   {
       dataBool["allowSimplePolicy"] = _allow;
   }
@@ -128,7 +122,7 @@ contract EntitySimplePolicyFacet is EternalStorage, Controller, EntityFacetBase,
   }
 
 
-  function getNumSimplePolicies() external view returns (uint256 _numPolicies)
+  function getNumSimplePolicies() external override view returns (uint256 _numPolicies)
   {
 
   }
@@ -142,19 +136,27 @@ contract EntitySimplePolicyFacet is EternalStorage, Controller, EntityFacetBase,
     uint256 startDate_,
     uint256 maturationDate_,
     address unit_,
-    uint256 limit_
-    uint256 state_
+    uint256 limit_,
+    uint256 state_,
+    uint256 premiumsPaid_,
+    uint256 claimsPaid_
   )
   {
 
   }
 
-  function checkAndUpdateState (bytes32 _id ) external
+  function payPremium (bytes32 _id, uint256 _amount) external override view
   {
 
   }
 
-  function verifySimplePolicy (bytes32 _id ) external
+
+  function checkAndUpdateState (bytes32 _id ) external override 
+  {
+
+  }
+
+  function verifySimplePolicy (bytes32 _id ) external override 
   {
 
   }

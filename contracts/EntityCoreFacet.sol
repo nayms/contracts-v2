@@ -56,9 +56,7 @@ contract EntityCoreFacet is EternalStorage, Controller, EntityFacetBase, IEntity
       IEntityCoreFacet.getEnabledCurrency.selector,
       IEntityCoreFacet.getEnabledCurrencies.selector,
       IEntityCoreFacet.updateAllowPolicy.selector,
-      IEntityCoreFacet.updateAllowSimplePolicy.selector,
       IEntityCoreFacet.allowPolicy.selector,
-      IEntityCoreFacet.allowSimplePolicy.selector,
       IParent.getNumChildren.selector,
       IParent.getChild.selector,
       IParent.hasChild.selector
@@ -221,24 +219,9 @@ contract EntityCoreFacet is EternalStorage, Controller, EntityFacetBase, IEntity
       dataBool["allowPolicy"] = _allow;
   }
 
-  function updateAllowSimplePolicy(
-    bool _allow
-  ) 
-  external
-  override
-  assertIsSystemManager (msg.sender)
-  {
-      dataBool["allowSimplePolicy"] = _allow;
-  }
-
   function allowPolicy() external override view returns (bool _allow)
   {
     return dataBool["allowPolicy"];
   }
-
-  // function allowSimplePolicy() external override view returns (bool _allow)
-  // {
-  //   return dataBool["allowSimplePolicy"];
-  // }
 
 }

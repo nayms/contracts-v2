@@ -17,6 +17,11 @@ abstract contract EntityFacetBase is EternalStorage, Controller, IMarketFeeSched
     _;
   }
 
+  modifier assertIsSystemManager (address _addr) {
+    require(inRoleGroup(_addr, ROLEGROUP_SYSTEM_MANAGERS), 'must be system mgr');
+    _;
+  }
+
   modifier assertIsMyPolicy(address _addr) {
     require(hasChild(_addr), 'not my policy');
     _;

@@ -30,4 +30,12 @@ contract DummyEntityFacet is IDiamondFacet, IEntityCoreFacet, IEntityFundingFace
   function payTranchePremium(address _policy, uint256 _trancheIndex, uint256 _amount) external override {}
   function trade(address _payUnit, uint256 _payAmount, address _buyUnit, uint256 _buyAmount) external override returns (uint256) {}
   function sellAtBestPrice(address _sellUnit, uint256 _sellAmount, address _buyUnit) external override {}
+
+  function updateEnabledCurrency(address _unit, uint256 _collateralRatio, uint256 _maxCapital) external override {}
+  function getEnabledCurrency(address _unit) external override view returns (uint256 _collateralRatio, uint256 _maxCapital) {}
+  function getEnabledCurrencies() external override view returns (address[] memory) {}
+  function updateAllowPolicy(bool _allow) external override {}
+  function updateAllowSimplePolicy(bool _allow) external override {}
+  function allowPolicy() external override view returns (bool _allow) {}
+  function allowSimplePolicy() external override view returns (bool _allow) {}
 }

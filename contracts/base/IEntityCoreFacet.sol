@@ -68,4 +68,58 @@ interface IEntityCoreFacet {
     address indexed entity,
     address indexed deployer
   );
+
+  /**
+   * @dev Update enabled currency.
+   *
+   * @param _unit Asset.
+   * @param _collateralRatio Collateral Ratio.
+   * @param _maxCapital Maximum Capital.
+   */
+  function updateEnabledCurrency(
+    address _unit,
+    uint256 _collateralRatio,
+    uint256 _maxCapital
+  ) external;
+
+  /**
+   * @dev Get enabled currency.
+   *
+   * @param _unit Asset.
+   */
+  function getEnabledCurrency(address _unit) external view returns (uint256 _collateralRatio, uint256 _maxCapital);
+
+  /**
+   * @dev Get enabled currencies.
+   *
+   */
+  function getEnabledCurrencies() external view returns (address[] memory);
+
+  /**
+   * @dev Update Allow Policy.
+   *
+   * @param _allow Allow.
+   */
+  function updateAllowPolicy(bool _allow) external;
+  
+  /**
+   * @dev Update Allow Simple Policy.
+   *
+   * @param _allow Allow.
+   */
+  function updateAllowSimplePolicy(bool _allow) external;
+  
+  /**
+   * @dev Get Allow Policy.
+   *
+   */
+  function allowPolicy() external view returns (bool _allow);
+  
+  // /**
+  //  * @dev Get Allow Simple Policy.
+  //  *
+  //  */
+  // function allowSimplePolicy() external view returns (bool _allow);
+
+  
 }

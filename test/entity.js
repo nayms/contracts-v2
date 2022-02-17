@@ -47,6 +47,7 @@ describe('Entity', () => {
   let entity
   let entityCoreAddress
   let entityContext
+  let systemContext
 
   let entityAdmin
 
@@ -75,10 +76,10 @@ describe('Entity', () => {
     
     const entityAddress = await createEntity({ entityDeployer, adminAddress: entityAdmin })
     entityProxy = await Entity.at(entityAddress)
-    // now let's speak to Entity contract using EntityImpl ABI
     entity = await IEntity.at(entityProxy.address)
     entityContext = await entityProxy.aclContext()
-    
+    systemContext = await acl.systemContext()
+
     ;([ entityCoreAddress ] = await settings.getRootAddresses(SETTINGS.ENTITY_IMPL))
     
     const { facets: [marketCoreAddress] } = market
@@ -360,12 +361,15 @@ describe('Entity', () => {
     })
   })
 
+
   describe('entity tokens', () => {
     let entityManager
-
+    let systemManager
     beforeEach(async () => {
       entityManager = accounts[2]
+      systemManager = accounts[1]
       await acl.assignRole(entityContext, entityManager, ROLES.ENTITY_MANAGER)
+      await acl.assignRole(systemContext, systemManager, ROLES.SYSTEM_MANAGER)
     })
 
     it('initially do not exist', async () => {
@@ -376,12 +380,13 @@ describe('Entity', () => {
     })
 
     describe('are minted by starting a sale', () => {
-      it('but must be by entity mgr', async () => {
-        await entity.startTokenSale(500, etherToken.address, 1000).should.be.rejectedWith('must be entity mgr')
+      it('but must be by system mgr', async () => {
+        await entity.startTokenSale(500, etherToken.address, 1000).should.be.rejectedWith('must be system mgr')
       })
 
       it('and creates a market offer', async () => {
-        await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager })
+        // await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager })
+        await entity.startTokenSale(500, etherToken.address, 1000, { from: systemManager })
 
         const tokenInfo = await entity.getTokenInfo()
 
@@ -405,12 +410,15 @@ describe('Entity', () => {
       })
 
       it('and only one sale can be in progress at a time', async () => {
-        await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager })
-        await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager }).should.be.rejectedWith('token sale in progress')
+        // await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager })
+        // await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager }).should.be.rejectedWith('token sale in progress')
+        await entity.startTokenSale(500, etherToken.address, 1000, { from: systemManager })
+        await entity.startTokenSale(500, etherToken.address, 1000, { from: systemManager }).should.be.rejectedWith('token sale in progress')
+
       })
 
       it('and tokens have basic properties', async () => {
-        await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager })
+        await entity.startTokenSale(500, etherToken.address, 1000, { from: systemManager })
 
         const tokenInfo = await entity.getTokenInfo()
         const entityToken = await IERC20.at(tokenInfo.tokenContract_)
@@ -423,7 +431,7 @@ describe('Entity', () => {
       })
 
       it('and tokens can partially sell', async ()=> {
-        await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager })
+        await entity.startTokenSale(500, etherToken.address, 1000, { from: systemManager })
 
         const tokenInfo = await entity.getTokenInfo()
 
@@ -450,7 +458,7 @@ describe('Entity', () => {
       })
       
       it('and tokens can fully sell', async ()=> {
-        await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager })
+        await entity.startTokenSale(500, etherToken.address, 1000, { from: systemManager })
 
         const tokenInfo = await entity.getTokenInfo()
 
@@ -480,7 +488,7 @@ describe('Entity', () => {
         let entityToken
 
         beforeEach(async () => {
-          await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager })
+          await entity.startTokenSale(500, etherToken.address, 1000, { from: systemManager })
           await etherToken.deposit({ value: 500 })
           await etherToken.approve(market.address, 500)
 
@@ -515,7 +523,7 @@ describe('Entity', () => {
         let entityToken
 
         beforeEach(async () => {
-          await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager })
+          await entity.startTokenSale(500, etherToken.address, 1000, { from: systemManager })
 
           tokenInfo = await entity.getTokenInfo()
 
@@ -552,17 +560,17 @@ describe('Entity', () => {
 
       describe('and a sale can be cancelled', () => {
         it('but only by entity mgr', async () => {
-          await entity.cancelTokenSale().should.be.rejectedWith('must be entity mgr')
+          await entity.cancelTokenSale().should.be.rejectedWith('must be system mgr')
         })
 
         it('but only if a sale is active', async () => {
-          await entity.cancelTokenSale({ from: entityManager }).should.be.rejectedWith('no active token sale')
+          await entity.cancelTokenSale({ from: systemManager }).should.be.rejectedWith('no active token sale')
         })
 
         it('if active', async () => {
-          await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager })
+          await entity.startTokenSale(500, etherToken.address, 1000, { from: systemManager })
 
-          await entity.cancelTokenSale({ from: entityManager }).should.be.fulfilled
+          await entity.cancelTokenSale({ from: systemManager }).should.be.fulfilled
 
           await entity.getTokenInfo().should.eventually.matchObj({
             currentTokenSaleOfferId_: 0,
@@ -570,27 +578,27 @@ describe('Entity', () => {
         })
 
         it('and burns unsold tokens', async () => {
-          await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager })
+          await entity.startTokenSale(500, etherToken.address, 1000, { from: systemManager })
 
           const tokenInfo = await entity.getTokenInfo()
           const entityToken = await IERC20.at(tokenInfo.tokenContract_)
 
           await entityToken.totalSupply().should.eventually.eq(500)
 
-          await entity.cancelTokenSale({ from: entityManager }).should.be.fulfilled
+          await entity.cancelTokenSale({ from: systemManager }).should.be.fulfilled
 
           await entityToken.totalSupply().should.eventually.eq(0)
           await entityToken.balanceOf(entity.address).should.eventually.eq(0) // market sends cancelled back to entity - ensure we burn these too!
         })
 
         it('and re-uses existing token if new sale is initiated', async () => {
-          await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager }).should.be.fulfilled
+          await entity.startTokenSale(500, etherToken.address, 1000, { from: systemManager }).should.be.fulfilled
 
           const prevTokenInfo = await entity.getTokenInfo()
 
-          await entity.cancelTokenSale({ from: entityManager }).should.be.fulfilled
+          await entity.cancelTokenSale({ from: systemManager }).should.be.fulfilled
 
-          await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager })
+          await entity.startTokenSale(500, etherToken.address, 1000, { from: systemManager })
 
           await entity.getTokenInfo().should.eventually.matchObj({
             tokenContract_: prevTokenInfo.tokenContract_
@@ -600,7 +608,7 @@ describe('Entity', () => {
 
       describe('and funds withdrawals are prevented', () => {
         beforeEach(async () => {
-          await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager })
+          await entity.startTokenSale(500, etherToken.address, 1000, { from: systemManager })
           
           await etherToken.deposit({ value: 1000 })
           await etherToken.approve(entity.address, 1000)
@@ -612,7 +620,7 @@ describe('Entity', () => {
         })
 
         it('once token supply is non-zero', async () => {
-          await entity.cancelTokenSale({ from: entityManager })
+          await entity.cancelTokenSale({ from: systemManager })
           await entity.withdraw(etherToken.address, 1, { from: entityAdmin }).should.be.fulfilled
         })
       })
@@ -622,13 +630,15 @@ describe('Entity', () => {
   describe('token holder tracking', () => {
     let entityManager
     let entityToken
+    let systemManager
 
     beforeEach(async () => {
       entityManager = accounts[2]
-
+      systemManager = accounts[1]
+      await acl.assignRole(systemContext, systemManager, ROLES.SYSTEM_MANAGER)
       await acl.assignRole(entityContext, entityManager, ROLES.ENTITY_MANAGER)
 
-      await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager })
+      await entity.startTokenSale(500, etherToken.address, 1000, { from: systemManager })
 
       await entity.getNumTokenHolders().should.eventually.eq(1)
       await entity.getTokenHolderAtIndex(1).should.eventually.eq(market.address)
@@ -654,7 +664,7 @@ describe('Entity', () => {
 
     it('ensures entity is not a holder after token sale is complete', async () => {
       // now cancel the token sale
-      await entity.cancelTokenSale({ from: entityManager })
+      await entity.cancelTokenSale({ from: systemManager })
 
       // only the buyer should be a holder
       await entity.getNumTokenHolders().should.eventually.eq(1)
@@ -663,7 +673,7 @@ describe('Entity', () => {
 
     describe('between accounts', () => {
       beforeEach(async () => {
-        await entity.cancelTokenSale({ from: entityManager })
+        await entity.cancelTokenSale({ from: systemManager })
 
         // temp set accounts[0] as market so that we can send tokens around
         await settings.setAddress(settings.address, SETTINGS.MARKET, accounts[0])
@@ -730,13 +740,17 @@ describe('Entity', () => {
   describe('dividend payouts', () => {
     let entityManager
     let entityToken
+    let systemManager
+
 
     beforeEach(async () => {
       entityManager = accounts[2]
-      
+      systemManager = accounts[1]
+
+      await acl.assignRole(systemContext, systemManager, ROLES.SYSTEM_MANAGER)      
       await acl.assignRole(entityContext, entityManager, ROLES.ENTITY_MANAGER)
 
-      await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager })
+      await entity.startTokenSale(500, etherToken.address, 1000, { from: systemManager })
 
       await etherToken.deposit({ value: 500 })
       await etherToken.approve(market.address, 500)
@@ -749,7 +763,7 @@ describe('Entity', () => {
       await entityToken.balanceOf(market.address).should.eventually.eq(250)
       await entity.getBalance(etherToken.address).should.eventually.eq(500)
 
-      await entity.cancelTokenSale({ from: entityManager })
+      await entity.cancelTokenSale({ from: systemManager })
 
       await entityToken.balanceOf(accounts[0]).should.eventually.eq(250)
       await entityToken.balanceOf(market.address).should.eventually.eq(0)
@@ -758,9 +772,9 @@ describe('Entity', () => {
     })
 
     it('cannot happen when token sale is in progress', async () => {
-      await entity.startTokenSale(1, etherToken.address, 1, { from: entityManager })
+      await entity.startTokenSale(1, etherToken.address, 1, { from: systemManager })
       await entity.payDividend(etherToken.address, 1).should.be.rejectedWith('token sale in progress')
-      await entity.cancelTokenSale({ from: entityManager })
+      await entity.cancelTokenSale({ from: systemManager })
       await entity.payDividend(etherToken.address, 1).should.be.fulfilled
     })
 
@@ -845,15 +859,20 @@ describe('Entity', () => {
   })
 
   describe('policies can be created', () => {
+    let systemManager
     let entityManager
     let entityRep
 
     beforeEach(async () => {
       entityManager = accounts[2]
       entityRep = accounts[3]
+      systemManager = accounts[1]
 
       await acl.assignRole(entityContext, entityManager, ROLES.ENTITY_MANAGER)
       await acl.assignRole(entityContext, entityRep, ROLES.ENTITY_REP)
+      await acl.assignRole(systemContext, systemManager, ROLES.SYSTEM_MANAGER)
+      await entity.updateAllowPolicy(true, { from: systemManager })
+
     })
 
     it('by anyone', async () => {

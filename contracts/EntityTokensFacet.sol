@@ -86,7 +86,7 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
     dataUint256[k] = dataUint256[k].add(_amount);
     dataUint256["tokenSupply"] = dataUint256["tokenSupply"].add(_amount);
 
-    dataUint256["tokenSaleOfferId"] = _getMarket().executeLimitOfferWithObserver(
+    dataUint256["tokenSaleOfferId"] = _getMarket().executeLimitOffer(
       dataAddress["token"], 
       _amount, 
       _priceUnit, 
@@ -166,7 +166,7 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
       // if we created this offer
       if (entity == address(this)) {
         // check entity token matches sell token
-        (, address sellToken, , , address buyToken, , , , , ,) = _getMarket().getOffer(_offerId);
+        (, address sellToken, , , address buyToken, , , , , , ,) = _getMarket().getOffer(_offerId);
         address tokenAddress = dataAddress["token"];
         require(tokenAddress == sellToken, "sell token must be entity token");
 
@@ -198,7 +198,7 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
       // if we created this offer
       if (entity == address(this)) {
         // check entity token matches sell token
-        (, address sellToken, , , , , , , , ,) = _getMarket().getOffer(_offerId);
+        (, address sellToken, , , , , , , , , ,) = _getMarket().getOffer(_offerId);
         address tokenAddress = dataAddress["token"];
         require(tokenAddress == sellToken, "sell token must be entity token");
 

@@ -3,6 +3,7 @@ import {
   extractEventArgs,
   ADDRESS_ZERO,
   BYTES32_ZERO,
+  BYTES_ZERO,
   createEntity,
   createPolicy,
   createTranche,
@@ -56,8 +57,6 @@ describe('Entity', () => {
 
   let FEE_SCHEDULE_STANDARD
   let FEE_SCHEDULE_PLATFORM_ACTION
-
-  let POLICY_STATE_APPROVED
 
   before(async () => {
     accounts = await getAccounts()
@@ -318,15 +317,14 @@ describe('Entity', () => {
           // setup offers on market
           await etherToken2.deposit({ value: 100, from: accounts[7] })
           await etherToken2.approve(market.address, 100, { from: accounts[7] })
-          await market.executeLimitOffer(etherToken2.address, 100, etherToken.address, 3, FEE_SCHEDULE_STANDARD, { from: accounts[7] }); // best price, but only buying 3
-
-          let offerId, offer
+          
+          await market.executeLimitOffer(etherToken2.address, 100, etherToken.address, 3, FEE_SCHEDULE_STANDARD, ADDRESS_ZERO, BYTES_ZERO, { from: accounts[7] }); // best price, but only buying 3
 
           await etherToken2.deposit({ value: 50, from: accounts[8] })
           await etherToken2.approve(market.address, 50, { from: accounts[8] })
-          await market.executeLimitOffer(etherToken2.address, 50, etherToken.address, 5, FEE_SCHEDULE_STANDARD, { from: accounts[8] }); // worse price, but able to buy all
+          await market.executeLimitOffer(etherToken2.address, 50, etherToken.address, 5, FEE_SCHEDULE_STANDARD, ADDRESS_ZERO, BYTES_ZERO, { from: accounts[8] }); // worse price, but able to buy all
 
-          offerId = (await market.getBestOfferId(etherToken2.address, etherToken.address)).toNumber()
+          const offerId = (await market.getBestOfferId(etherToken2.address, etherToken.address)).toNumber()
 
           // now sell from the other direction
           await entity.sellAtBestPrice(etherToken.address, 5, etherToken2.address, { from: accounts[3] })
@@ -349,7 +347,7 @@ describe('Entity', () => {
           // setup matching offer
           await etherToken2.deposit({ value: 50, from: accounts[8] })
           await etherToken2.approve(market.address, 50, { from: accounts[8] })
-          await market.executeLimitOffer(etherToken2.address, 50, etherToken.address, 10, FEE_SCHEDULE_STANDARD, { from: accounts[8] });
+          await market.executeLimitOffer(etherToken2.address, 50, etherToken.address, 10, FEE_SCHEDULE_STANDARD, ADDRESS_ZERO, BYTES_ZERO, { from: accounts[8] });
 
           // trading more than is explicitly deposited should fail
           await entity.sellAtBestPrice(etherToken.address, 11, etherToken2.address, { from: accounts[3] }).should.be.rejectedWith('exceeds entity balance')
@@ -439,7 +437,7 @@ describe('Entity', () => {
 
         await etherToken.deposit({ value: 500 })
         await etherToken.approve(market.address, 500)
-        await market.executeLimitOffer(etherToken.address, 500, tokenInfo.tokenContract_, 250, FEE_SCHEDULE_STANDARD)
+        await market.executeLimitOffer(etherToken.address, 500, tokenInfo.tokenContract_, 250, FEE_SCHEDULE_STANDARD, ADDRESS_ZERO, BYTES_ZERO)
 
         await market.getOffer(offerId).should.eventually.matchObj({
           sellToken_: tokenInfo.contract_,
@@ -466,7 +464,7 @@ describe('Entity', () => {
 
         await etherToken.deposit({ value: 1000 })
         await etherToken.approve(market.address, 1000)
-        await market.executeLimitOffer(etherToken.address, 1000, tokenInfo.tokenContract_, 500, FEE_SCHEDULE_STANDARD)
+        await market.executeLimitOffer(etherToken.address, 1000, tokenInfo.tokenContract_, 500, FEE_SCHEDULE_STANDARD, ADDRESS_ZERO, BYTES_ZERO)
 
         await market.getOffer(offerId).should.eventually.matchObj({
           isActive_: false,
@@ -494,7 +492,7 @@ describe('Entity', () => {
 
           const tokenInfo = await entity.getTokenInfo()
 
-          await market.executeLimitOffer(etherToken.address, 500, tokenInfo.tokenContract_, 250, FEE_SCHEDULE_STANDARD)
+          await market.executeLimitOffer(etherToken.address, 500, tokenInfo.tokenContract_, 250, FEE_SCHEDULE_STANDARD, ADDRESS_ZERO, BYTES_ZERO)
           
           entityToken = await IERC20.at(tokenInfo.tokenContract_)
           await entityToken.balanceOf(accounts[0]).should.eventually.eq(250)
@@ -529,7 +527,7 @@ describe('Entity', () => {
 
           await etherToken.deposit({ value: 1000 })
           await etherToken.approve(market.address, 1000)
-          await market.executeLimitOffer(etherToken.address, 1000, tokenInfo.tokenContract_, 500, FEE_SCHEDULE_STANDARD)
+          await market.executeLimitOffer(etherToken.address, 1000, tokenInfo.tokenContract_, 500, FEE_SCHEDULE_STANDARD, ADDRESS_ZERO, BYTES_ZERO)
 
           entityToken = await IERC20.at(tokenInfo.tokenContract_)
 
@@ -647,7 +645,7 @@ describe('Entity', () => {
       await etherToken.approve(market.address, 500)
       const tokenInfo = await entity.getTokenInfo()
 
-      await market.executeLimitOffer(etherToken.address, 500, tokenInfo.tokenContract_, 250, FEE_SCHEDULE_STANDARD)
+      await market.executeLimitOffer(etherToken.address, 500, tokenInfo.tokenContract_, 250, FEE_SCHEDULE_STANDARD, ADDRESS_ZERO, BYTES_ZERO)
 
       // after some has been sold the market and buyer are the present holders
       await entity.getNumTokenHolders().should.eventually.eq(2)
@@ -755,7 +753,7 @@ describe('Entity', () => {
       await etherToken.deposit({ value: 500 })
       await etherToken.approve(market.address, 500)
       const tokenInfo = await entity.getTokenInfo()
-      await market.executeLimitOffer(etherToken.address, 500, tokenInfo.tokenContract_, 250, FEE_SCHEDULE_STANDARD)
+      await market.executeLimitOffer(etherToken.address, 500, tokenInfo.tokenContract_, 250, FEE_SCHEDULE_STANDARD, ADDRESS_ZERO, BYTES_ZERO)
 
       entityToken = await IERC20.at(tokenInfo.tokenContract_)
       

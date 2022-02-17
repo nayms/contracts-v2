@@ -1,9 +1,8 @@
 
 import {
-  parseEvents,
   extractEventArgs,
-  hdWallet,
   ADDRESS_ZERO,
+  BYTES_ZERO,
   createTranche,
   preSetupPolicy,
   doPolicyApproval,
@@ -275,10 +274,10 @@ describe('Policy: Claims', () => {
       buyAllTrancheTokens = async () => {
         await etherToken.deposit({ value: 40 })
         await etherToken.approve(market.address, 40)
-        await market.executeLimitOffer(etherToken.address, 10, tranche0Address, 10, FEE_SCHEDULE_STANDARD)
-        await market.executeLimitOffer(etherToken.address, 10, tranche1Address, 10, FEE_SCHEDULE_STANDARD)
-        await market.executeLimitOffer(etherToken.address, 10, tranche2Address, 10, FEE_SCHEDULE_STANDARD)
-        await market.executeLimitOffer(etherToken.address, 10, tranche3Address, 10, FEE_SCHEDULE_STANDARD)
+        await market.executeLimitOffer(etherToken.address, 10, tranche0Address, 10, FEE_SCHEDULE_STANDARD, ADDRESS_ZERO, BYTES_ZERO)
+        await market.executeLimitOffer(etherToken.address, 10, tranche1Address, 10, FEE_SCHEDULE_STANDARD, ADDRESS_ZERO, BYTES_ZERO)
+        await market.executeLimitOffer(etherToken.address, 10, tranche2Address, 10, FEE_SCHEDULE_STANDARD, ADDRESS_ZERO, BYTES_ZERO)
+        await market.executeLimitOffer(etherToken.address, 10, tranche3Address, 10, FEE_SCHEDULE_STANDARD, ADDRESS_ZERO, BYTES_ZERO)
       }
 
       evmClock = new EvmClock(baseTime)

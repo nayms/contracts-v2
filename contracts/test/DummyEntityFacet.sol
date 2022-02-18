@@ -39,7 +39,7 @@ contract DummyEntityFacet is IDiamondFacet, IEntityCoreFacet, IEntityFundingFace
   function allowPolicy() external override view returns (bool _allow) {}
 
   function createSimplePolicy (bytes32 _id, uint256 _startDate, uint256 _maturationDate, address _unit, uint256 _limit, address[] calldata _stakeholders, bytes[] calldata _approvalSignatures) external override {}
-  function paySimplePremium(bytes32 _id, uint256 _amount) external override {}
+  function paySimplePremium(bytes32 _id, address _entityAddress, uint256 _amount) external override {}
   function updateAllowSimplePolicy(bool _allow) external override {}
   function allowSimplePolicy() external override view returns (bool _allow) {}
   function getNumSimplePolicies() external override view returns (uint256 _numPolicies) {}

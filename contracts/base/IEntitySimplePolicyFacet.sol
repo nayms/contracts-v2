@@ -39,7 +39,7 @@ interface IEntitySimplePolicyFacet {
    * @param _id Policy which owns the tranche.
    * @param _amount Amount of premium to pay.
    */
-  function paySimplePremium(bytes32 _id, uint256 _amount) external;
+  function paySimplePremium(bytes32 _id, address _entityAddress, uint256 _amount) external;
 
   /**
    * @dev Emitted when a new policy has been created.

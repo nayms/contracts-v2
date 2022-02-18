@@ -79,33 +79,15 @@ contract EntitySimplePolicyFacet is EternalStorage, IEntitySimplePolicyFacet, ID
   }
   
 
-  function paySimplePremium(bytes32 _id, uint256 _amount)
+  //This is called from your entity to pay a claim on a policy in another entity.
+  // It transfers the amount from your entity to the specified entity
+  function paySimplePremium(bytes32 _id, address _entityAddress, uint256 _amount)
     external
     override
   {
     address policyUnitAddress;
 
 
-    // avoid stack too deep errors
-    {
-      uint256 i1;
-      uint256 i2;
-      uint256 i3;
-      address a1;
-
-      // policy's unit
-      // (, a1, i1, i2, i3, policyUnitAddress, , ,) = p.getInfo();
-    }
-    
-    // check balance
-    // _assertHasEnoughBalance(policyUnitAddress, _amount);
-
-    // // approve transfer
-    // IERC20 tok = IERC20(policyUnitAddress);
-    // tok.approve(_id, _amount);
-
-    // do it
-    // p.payTranchePremium(_trancheIndex, _amount);
   }
 
   function updateAllowSimplePolicy(

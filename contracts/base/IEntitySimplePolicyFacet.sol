@@ -98,7 +98,7 @@ interface IEntitySimplePolicyFacet {
    * @param _id Unique id that represents the policy - this is what stakeholder will sign to approve the policy.
    * @param _amount Amount to pay.
    */
-  function payPremium (bytes32 _id, uint256 _amount) external view;
+  function paySimpleClaim (bytes32 _id, uint256 _amount) external view;
 
   /**
    * @dev Heartbeat: Ensure the policy and tranche states are up-to-date.

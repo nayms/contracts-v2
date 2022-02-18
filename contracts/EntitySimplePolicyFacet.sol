@@ -2,18 +2,11 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
-//import "./base/Controller.sol";
 import "./base/EternalStorage.sol";
-//import "./EntityFacetBase.sol";
-// import "./base/IEntityCoreFacet.sol";
 import "./base/IEntitySimplePolicyFacet.sol";
 import "./base/ISimplePolicyStates.sol";
 import "./base/IDiamondFacet.sol";
-// import "./base/IParent.sol";
-// import "./base/IERC20.sol";
-// import "./base/IMarket.sol";
 import "./base/SafeMath.sol";
-// import "./Policy.sol";
 
 contract EntitySimplePolicyFacet is EternalStorage, IEntitySimplePolicyFacet, IDiamondFacet, ISimplePolicyStates {
   using SafeMath for uint256;
@@ -36,6 +29,7 @@ contract EntitySimplePolicyFacet is EternalStorage, IEntitySimplePolicyFacet, ID
     return abi.encodePacked(
       IEntitySimplePolicyFacet.createSimplePolicy.selector,
       IEntitySimplePolicyFacet.paySimplePremium.selector,
+      IEntitySimplePolicyFacet.paySimpleClaim.selector,
       IEntitySimplePolicyFacet.updateAllowSimplePolicy.selector,
       IEntitySimplePolicyFacet.allowSimplePolicy.selector,
       IEntitySimplePolicyFacet.getNumSimplePolicies.selector,
@@ -61,6 +55,14 @@ contract EntitySimplePolicyFacet is EternalStorage, IEntitySimplePolicyFacet, ID
   assertSimplePolicyCreationEnabled
 //  _assertHasEnoughBalance (_unit, _limit)
   {
+    // check currency is enabled
+    // check role (same as normal policy)
+    // check available balance (collateralRatio + limit)
+    // 
+
+
+
+
     uint256 policyNumber = dataUint256["numSimplePolicies"];
     //forward and reverse lookups
     dataUint256[__b (_id, "simplePolicyNumber")] = policyNumber;
@@ -145,9 +147,10 @@ contract EntitySimplePolicyFacet is EternalStorage, IEntitySimplePolicyFacet, ID
 
   }
 
-  function payPremium (bytes32 _id, uint256 _amount) external override view
+  function paySimpleClaim (bytes32 _id, uint256 _amount) external override view
   {
-
+    // nayms system manager can only do this
+    //remaining funds must be less than the claim and then they are deducted
   }
 
 
@@ -156,6 +159,7 @@ contract EntitySimplePolicyFacet is EternalStorage, IEntitySimplePolicyFacet, ID
 
   }
 
+  //to be determined
   function verifySimplePolicy (bytes32 _id ) external override 
   {
 

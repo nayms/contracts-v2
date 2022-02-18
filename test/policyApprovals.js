@@ -137,6 +137,8 @@ describe('Policy: Approvals', () => {
 
     policyId = keccak256(uuid())
 
+    await entity.updateAllowPolicy(true)
+
     const createPolicyTx = await createPolicy(entity, {
       policyId,
       initiationDate,
@@ -152,6 +154,9 @@ describe('Policy: Approvals', () => {
       claimsAdmin,
       trancheData
     }, { from: entityManagerAddress })
+
+    await entity.updateAllowPolicy(false)
+
     const policyAddress = extractEventArgs(createPolicyTx, events.NewPolicy).policy
     policyOwnerAddress = entityManagerAddress
 
@@ -212,6 +217,9 @@ describe('Policy: Approvals', () => {
     })
 
     it('when created by broker', async () => {
+
+      await entity.updateAllowPolicy(true)
+
       const tx = await createPolicy(entity, {
         initiationDate,
         startDate,
@@ -225,6 +233,8 @@ describe('Policy: Approvals', () => {
         broker,
         claimsAdmin,
       }, { from: brokerRep }).should.eventually.be.fulfilled
+
+      await entity.updateAllowPolicy(false)
 
       const addr = extractEventArgs(tx, events.NewPolicy).policy
       const pol = await IPolicy.at(addr)
@@ -435,6 +445,9 @@ describe('Policy: Approvals', () => {
     })
 
     it('and works when creating the policy', async () => {
+
+      await entity.updateAllowPolicy(true)
+
       const createPolicyTx = await createPolicy(entity, {
         policyId,
         initiationDate,
@@ -447,6 +460,9 @@ describe('Policy: Approvals', () => {
         claimsAdmin,
         approvalSignatures: [ sigs.broker, sigs.underwriter, sigs.claimsAdmin, sigs.insuredParty ],
       }, { from: entityManagerAddress })
+
+      await entity.updateAllowPolicy(false)
+
       const policyAddress = extractEventArgs(createPolicyTx, events.NewPolicy).policy
       const policy2 = await IPolicy.at(policyAddress)
       await policy2.getInfo().should.eventually.matchObj({

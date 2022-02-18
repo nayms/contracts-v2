@@ -171,12 +171,16 @@ describe('Policy: Premiums', () => {
     Object.assign(POLICY_ATTRS_2, { underwriter, insuredParty, broker, claimsAdmin })
     Object.assign(POLICY_ATTRS_3, { underwriter, insuredParty, broker, claimsAdmin })
 
+    await entity.updateAllowPolicy(true)
+
     preSetupPolicyCtx = { policies, settings, events, etherToken, entity, entityManagerAddress }
     await Promise.all([
       preSetupPolicy(preSetupPolicyCtx, POLICY_ATTRS_1),
       preSetupPolicy(preSetupPolicyCtx, POLICY_ATTRS_2),
       preSetupPolicy(preSetupPolicyCtx, POLICY_ATTRS_3),
     ])
+
+    await entity.updateAllowPolicy(false)
 
     setupPolicy = async arg => {
       const { attrs, baseTime, policyAddress } = policies.get(arg)

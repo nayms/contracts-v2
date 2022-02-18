@@ -156,6 +156,8 @@ describe('Integration: SPV', () => {
     maturationDate = startDate + 2000
     timeIntervalSeconds = 500
 
+    await entity.updateAllowPolicy(true)
+
     const createPolicyTx = await createPolicy(entity, {
       initiationDate,
       startDate,
@@ -170,6 +172,9 @@ describe('Integration: SPV', () => {
       broker,
       claimsAdmin,
     }, { from: entityManagerAddress })
+
+    await entity.updateAllowPolicy(false)
+
     const policyAddress = extractEventArgs(createPolicyTx, events.NewPolicy).policy
     policyOwnerAddress = entityManagerAddress
 

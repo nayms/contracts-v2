@@ -146,11 +146,15 @@ describe('Policy: Basic', () => {
 
     const preSetupPolicyCtx = { policies, settings, events, etherToken, entity, entityManagerAddress }
 
+    await entity.updateAllowPolicy(true)
+
     await Promise.all([
       preSetupPolicy(preSetupPolicyCtx, POLICY_ATTRS_1),
       preSetupPolicy(preSetupPolicyCtx, POLICY_ATTRS_2),
       preSetupPolicy(preSetupPolicyCtx, POLICY_ATTRS_3),
     ])
+
+    await entity.updateAllowPolicy(false)
 
     setupPolicy = async arg => {
       const { attrs, policyAddress } = policies.get(arg)
@@ -190,10 +194,14 @@ describe('Policy: Basic', () => {
         claimsAdmin
       })
 
+      await entity.updateAllowPolicy(true)
+
       await createPolicy(entity, attrs, { from: underwriterRep }).should.eventually.be.fulfilled
       await createPolicy(entity, attrs, { from: brokerRep }).should.eventually.be.fulfilled
       await createPolicy(entity, attrs, { from: claimsAdminRep }).should.be.rejectedWith('must be broker or underwriter')
       await createPolicy(entity, attrs, { from: insuredPartyRep }).should.be.rejectedWith('must be broker or underwriter')
+
+      await entity.updateAllowPolicy(false)
     })
 
     it('can return its basic info', async () => {

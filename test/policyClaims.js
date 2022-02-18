@@ -243,10 +243,15 @@ describe('Policy: Claims', () => {
     Object.assign(POLICY_ATTRS_4, approvers)
 
     const preSetupPolicyCtx = { policies, settings, events, etherToken, entity, entityManagerAddress }
+
+    await entity.updateAllowPolicy(true)
+
     await preSetupPolicyForClaims(preSetupPolicyCtx, POLICY_ATTRS_1)
     await preSetupPolicyForClaims(preSetupPolicyCtx, POLICY_ATTRS_2)
     await preSetupPolicyForClaims(preSetupPolicyCtx, POLICY_ATTRS_3)
     await preSetupPolicyForClaims(preSetupPolicyCtx, POLICY_ATTRS_4)
+
+    await entity.updateAllowPolicy(false)
 
     approvePolicy = async () => {
       await doPolicyApproval({ policy, underwriterRep, claimsAdminRep, brokerRep, insuredPartyRep })

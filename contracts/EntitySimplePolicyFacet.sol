@@ -11,6 +11,25 @@ import "./base/SafeMath.sol";
 contract EntitySimplePolicyFacet is EternalStorage, IEntitySimplePolicyFacet, IDiamondFacet, ISimplePolicyStates {
   using SafeMath for uint256;
 
+//Context
+// the context of a policy is now:
+// kekkak256(__ab (address a1, bytes32 b1))
+// Maybe add an internal function getPolicyAclContext()
+// , and use this for assigning roles, getting roles, etc
+
+
+
+// PolicyBalance
+// Every entity has the concept of policyBalance
+// policyBalance is the total amount of capital allocated to active policies
+// When creating a policy, check the policyBalance
+// policyBalance should always be > 0
+
+
+
+
+
+
   modifier assertSimplePolicyCreationEnabled () {
     require(this.allowSimplePolicy(), 'simple policy creation disabled');
     _;
@@ -55,10 +74,31 @@ contract EntitySimplePolicyFacet is EternalStorage, IEntitySimplePolicyFacet, ID
   assertSimplePolicyCreationEnabled
 //  _assertHasEnoughBalance (_unit, _limit)
   {
+
+    // Stuff:
+    // - balance is how much _unit is deposited in the entity
+    // - maxCapital
+    // - collateralRatio is what percentage of maxCapital needs to be deposited in basis points (/1000) 
+    // - policyBalance is the total capital requirement for all policies combined
+
+
+
+    // Increment policyBalance
+    // policyBalance += _limit
+
+
+
+
+
     // check currency is enabled
     // check role (same as normal policy)
-    // check available balance (collateralRatio + limit)
+    // check available balance (collateralRatio + _maxCapital)
     // 
+    // PolicyBalance
+    // Every entity has the concept of policyBalance
+    // policyBalance is the total amount of capital allocated to active policies
+    // When creating a policy, check the policyBalance
+    // policyBalance should always be > 0
 
 
 

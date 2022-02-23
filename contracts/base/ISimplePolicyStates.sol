@@ -23,5 +23,6 @@ abstract contract ISimplePolicyStates {
   uint256 constant public POLICY_STATE_CANCELLED = 4;
 
   // events
-  event PolicyStateUpdated (uint256 indexed state, address indexed caller);
+  event PolicyStateUpdated(uint256 indexed state, address indexed caller);
+  event SimplePolicyStateUpdated(bytes32 id, uint256 indexed state, address indexed caller);
 }

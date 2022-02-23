@@ -2,8 +2,6 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
-import "./base/Controller.sol";
-import "./base/EternalStorage.sol";
 import "./EntityFacetBase.sol";
 import "./base/IEntityCoreFacet.sol";
 import "./base/IDiamondFacet.sol";
@@ -14,7 +12,7 @@ import "./base/IPolicy.sol";
 import "./base/SafeMath.sol";
 import "./Policy.sol";
 
-contract EntityCoreFacet is EternalStorage, Controller, EntityFacetBase, IEntityCoreFacet, IDiamondFacet {
+contract EntityCoreFacet is EntityFacetBase, IEntityCoreFacet, IDiamondFacet {
   using SafeMath for uint256;
 
   modifier assertCanPayTranchePremiums (address _policyAddress) {
@@ -24,19 +22,6 @@ contract EntityCoreFacet is EternalStorage, Controller, EntityFacetBase, IEntity
 
   modifier assertPolicyCreationEnabled () {
     require(this.allowPolicy(), 'policy creation disabled');
-    _;
-  }
-
-  // modifier assertSimplePolicyCreationEnabled () {
-  //   require(this.allowSimplePolicy(), 'simple policy creation disabled');
-  //   _;
-  // }
-
-  modifier assertCurrencyIsEnabled(address _unit) {
-    uint256 _collateralRatio;
-    uint256 _maxCapital;
-    (_collateralRatio, _maxCapital) = this.getEnabledCurrency(_unit);
-    require((_collateralRatio > 0) && (_maxCapital > 0));
     _;
   }
 
@@ -52,9 +37,6 @@ contract EntityCoreFacet is EternalStorage, Controller, EntityFacetBase, IEntity
     return abi.encodePacked(
       IEntityCoreFacet.createPolicy.selector,
       IEntityCoreFacet.payTranchePremium.selector,
-      IEntityCoreFacet.updateEnabledCurrency.selector,
-      IEntityCoreFacet.getEnabledCurrency.selector,
-      IEntityCoreFacet.getEnabledCurrencies.selector,
       IEntityCoreFacet.updateAllowPolicy.selector,
       IEntityCoreFacet.allowPolicy.selector,
       IParent.getNumChildren.selector,
@@ -149,64 +131,6 @@ contract EntityCoreFacet is EternalStorage, Controller, EntityFacetBase, IEntity
 
     // do it
     p.payTranchePremium(_trancheIndex, _amount);
-  }
-
-  function updateEnabledCurrency(
-    address _unit,
-    uint256 _collateralRatio,
-    uint256 _maxCapital
-  )
-  external
-  override
-  assertIsSystemManager (msg.sender)
-  {
-    bool hasUnit = false;
-    address[] memory newUnits;
-    uint256 unitIndex = 0;
-    
-    if(_collateralRatio == 0 && _maxCapital == 0){
-      // remove unit
-      for (uint256 j = 0; j < dataManyAddresses["enabledUnits"].length; j += 1) {
-        if (!(dataManyAddresses["enabledUnits"][j] == _unit)){
-          newUnits[unitIndex] = (dataManyAddresses["enabledUnits"][j]);
-          unitIndex ++;
-        }
-      }
-      dataManyAddresses["enabledUnits"] = newUnits;
-    }
-    else
-    // add or update unit 
-    {
-      if (_collateralRatio > 100){
-        revert("collateral ratio is 0-100");
-      }
-
-      for (uint256 j = 0; j < dataManyAddresses["enabledUnits"].length; j += 1) {
-        if (dataManyAddresses["enabledUnits"][j] == _unit){
-          hasUnit = true;
-        }
-      }
-      if (!hasUnit){
-        unitIndex = dataManyAddresses["enabledUnits"].length;
-        dataManyAddresses["enabledUnits"][unitIndex] = _unit;
-      }
-
-    }
-
-    //Either way, update the values
-    dataUint256[__a(_unit, "maxCapital")] = _maxCapital;
-    dataUint256[__a(_unit, "collateralRatio")] = _collateralRatio;
-  }
-
-  function getEnabledCurrency(address _unit) external override view returns (uint256 _collateralRatio, uint256 _maxCapital)
-  {
-    _collateralRatio = dataUint256[__a(_unit, "collateralRatio")];
-    _maxCapital = dataUint256[__a(_unit, "maxCapital")];
-  }
-
-  function getEnabledCurrencies() external override view returns (address[] memory)
-  {
-    return dataManyAddresses["enabledUnits"];
   }
 
   function updateAllowPolicy(

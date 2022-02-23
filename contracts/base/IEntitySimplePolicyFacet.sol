@@ -43,11 +43,11 @@ interface IEntitySimplePolicyFacet {
 
   /**
    * @dev Emitted when a new policy has been created.
-   * @param id The policy address.
+   * @param id The policy id.
    * @param entity The entity which owns the policy.
    */
   event NewPolicy(
-    address indexed id,
+    bytes32 indexed id,
     address indexed entity
   );
   

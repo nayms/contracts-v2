@@ -32,9 +32,9 @@ contract DummyEntityFacet is IDiamondFacet, IEntityCoreFacet, IEntityFundingFace
   function trade(address _payUnit, uint256 _payAmount, address _buyUnit, uint256 _buyAmount) external override returns (uint256) {}
   function sellAtBestPrice(address _sellUnit, uint256 _sellAmount, address _buyUnit) external override {}
 
-  function updateEnabledCurrency(address _unit, uint256 _collateralRatio, uint256 _maxCapital) external override {}
-  function getEnabledCurrency(address _unit) external override view returns (uint256 _collateralRatio, uint256 _maxCapital) {}
-  function getEnabledCurrencies() external override view returns (address[] memory) {}
+  // function updateEnabledCurrency(address _unit, uint256 _collateralRatio, uint256 _maxCapital) external override {}
+  // function getEnabledCurrency(address _unit) external override view returns (uint256 _collateralRatio, uint256 _maxCapital) {}
+  // function getEnabledCurrencies() external override view returns (address[] memory) {}
   function updateAllowPolicy(bool _allow) external override {}
   function allowPolicy() external override view returns (bool _allow) {}
 
@@ -45,7 +45,7 @@ contract DummyEntityFacet is IDiamondFacet, IEntityCoreFacet, IEntityFundingFace
   function getNumSimplePolicies() external override view returns (uint256 _numPolicies) {}
   function getSimplePolicyId (uint256 _simplePolicyNumber) public view override returns (bytes32 _id ) {}
   function getSimplePolicyInfo (bytes32 _id) public view override returns (uint256 startDate_, uint256 maturationDate_, address unit_, uint256 limit_, uint256 state_, uint256 premiumsPaid_, uint256 claimsPaid_) {}
-  function paySimpleClaim (bytes32 _id, uint256 _amount) external override view {}
+  function paySimpleClaim (bytes32 _id, uint256 _amount) external payable override {}
   function checkAndUpdateState (bytes32 _id ) external override {}
   function verifySimplePolicy (bytes32 _id ) external override {}
 }

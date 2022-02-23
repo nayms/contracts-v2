@@ -70,17 +70,15 @@ contract EntitySimplePolicyFacet is EntityFacetBase, IEntitySimplePolicyFacet, I
   assertEnoughBalance(_unit, _limit)
   {
 
-    dataUint256[__a(_unit, "premiumsPaid")] += _limit;
-    dataUint256[__a(_unit, "claimsPaid")] = 0;
-
     dataUint256[__b(_id, "startDate")] = _startDate;
     dataUint256[__b(_id, "maturationDate")] = _maturationDate;
     dataAddress[__b(_id, "unit")] = _unit;
     dataUint256[__b(_id, "limit")] = _limit;
-
     dataUint256[__b(_id, "state")] = POLICY_STATE_CREATED;
+    dataUint256[__a(_unit, "claimsPaid")] = 0;
+    dataUint256[__a(_unit, "premiumsPaid")] = 0;
 
-    bytes32 aclContext = keccak256(__ab(address(this), _id));
+    bytes32 aclContext = keccak256(abi.encodePacked(address(this), _id));
     dataBytes32[__b(_id, "policyAclContext")] = aclContext;
 
     // set basic roles
@@ -91,12 +89,13 @@ contract EntitySimplePolicyFacet is EntityFacetBase, IEntitySimplePolicyFacet, I
     acl().assignRole(aclContext, _stakeholders[5], ROLE_INSURED_PARTY);
 
     // created by underwriter rep?
-    if (inRoleGroupWithContext(msg.sender, _stakeholders[3], ROLEGROUP_ENTITY_REPS)) {
+    bytes32 senderCtx = AccessControl(msg.sender).aclContext();
+    if (acl().hasRoleInGroup(senderCtx, _stakeholders[3], ROLEGROUP_ENTITY_REPS)) {
       acl().assignRole(aclContext, _stakeholders[3], ROLE_UNDERWRITER);
       dataBool["underwriterApproved"] = true;
     } 
     // created by broker rep?
-    else if (inRoleGroupWithContext(msg.sender, _stakeholders[2], ROLEGROUP_ENTITY_REPS)) {
+    else if (acl().hasRoleInGroup(senderCtx, _stakeholders[2], ROLEGROUP_ENTITY_REPS)) {
       acl().assignRole(aclContext, _stakeholders[2], ROLE_BROKER);
       dataBool["brokerApproved"] = true;
     } 
@@ -118,10 +117,10 @@ contract EntitySimplePolicyFacet is EntityFacetBase, IEntitySimplePolicyFacet, I
     //   pol.bulkApprove(_approvalSignatures);
     // }
 
-    emit NewPolicy(_id, address(this), msg.sender);
+    emit NewPolicy(_id, address(this));
   }
     
-  function _policyAclContext(bytes32 _id) private pure returns (bytes32) {
+  function _policyAclContext(bytes32 _id) private view returns (bytes32) {
     return dataBytes32[__b(_id, "policyAclContext")];
   }
 
@@ -134,11 +133,15 @@ contract EntitySimplePolicyFacet is EntityFacetBase, IEntitySimplePolicyFacet, I
     nonReentrant
   {
     // assert msg.sender has the role entity representative on _entityAddress
-    // add _amount to premiumsPaid_ 
-    // then move money from _entityAddress to this entity
+    bytes32 entityCtx = AccessControl(_entityAddress).aclContext();
+    require(acl().hasRoleInGroup(entityCtx, msg.sender, ROLEGROUP_ENTITY_REPS), 'not an entity rep');
 
-    address policyUnitAddress;
- 
+    // add _amount to premiumsPaid
+    address unit = dataAddress[__b(_id, "unit")];
+    dataUint256[__a(unit, "premiumsPaid")] += _amount;
+
+    // then move money from _entityAddress to this entity
+    IERC20(unit).transferFrom(_entityAddress, address(this), _amount);
 
   }
 
@@ -184,20 +187,22 @@ contract EntitySimplePolicyFacet is EntityFacetBase, IEntitySimplePolicyFacet, I
   // This is performed by a nayms system manager and pays the insured party in the event of a claim. 
   function paySimpleClaim (bytes32 _id, uint256 _amount) 
     external 
-    override 
-    view 
+    override
+    payable
     nonReentrant 
     assertIsSystemManager(msg.sender)
   {
     require(_amount > 0, 'invalid claim amount');
-    require(dataUint256[__b(_id, "limit")] >= _amount.add(dataUint256[__a(unit_, "claimsPaid")]), 'exceeds policy limit');
-
+    
     address unit_ = dataAddress[__b(_id, "unit")];
+    require(dataUint256[__b(_id, "limit")] >= _amount.add(dataUint256[__a(unit_, "claimsPaid")]), 'exceeds policy limit');
 
     dataUint256[__a(unit_, "claimsPaid")] += _amount;
 
-    // payout the insured party!
-    IERC20(unit_).transfer(_stakeholders[5], _amount);
+    // payout the insured party!    
+    bytes32 aclContext = _policyAclContext(_id);
+    address insured = acl().getUsersForRole(aclContext, ROLE_INSURED_PARTY)[0];
+    IERC20(unit_).transfer(insured, _amount);
     
   }
 

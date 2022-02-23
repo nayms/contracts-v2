@@ -11,29 +11,6 @@ import "./base/ReentrancyGuard.sol";
 
 contract EntitySimplePolicyFacet is EntityFacetBase, IEntitySimplePolicyFacet, IDiamondFacet, ISimplePolicyStates, ReentrancyGuard {
   using SafeMath for uint256;
-  
-  modifier assertSimplePolicyCreationEnabled () {
-    require(this.allowSimplePolicy(), 'simple policy creation disabled');
-    _;
-  }
-
-  modifier assertCurrencyEnabled(address _unit) {
-   uint256 _collateralRatio;
-   uint256 _maxCapital;
-   (_collateralRatio, _maxCapital) = this.getEnabledCurrency(_unit);
-    require((_collateralRatio > 0) && (_maxCapital > 0), 'currency disabled');
-    _;
-  }
-
-  modifier assertEnoughBalance(address _unit, uint256 _limit) {
-    require(_limit > 0, 'limit not > 0');
-    uint256 collateralRatio;
-    uint256 maxCapital;
-    (collateralRatio, maxCapital) = this.getEnabledCurrency(_unit);
-    uint256 balance = dataUint256[__a(_unit, "balance")];
-    require(maxCapital >= balance.add(_limit).mul(collateralRatio).div(1000), 'balance below colallateral ratio');
-    _;
-  }
 
   constructor (address _settings) Controller(_settings) public {
   }
@@ -65,42 +42,51 @@ contract EntitySimplePolicyFacet is EntityFacetBase, IEntitySimplePolicyFacet, I
   ) 
   external 
   override 
-  assertSimplePolicyCreationEnabled
-  assertCurrencyEnabled(_unit)
-  assertEnoughBalance(_unit, _limit)
   {
+    require(this.allowSimplePolicy(), 'creation disabled');
+    require(_limit > 0, 'limit not > 0');
 
-    dataUint256[__b(_id, "startDate")] = _startDate;
-    dataUint256[__b(_id, "maturationDate")] = _maturationDate;
-    dataAddress[__b(_id, "unit")] = _unit;
-    dataUint256[__b(_id, "limit")] = _limit;
-    dataUint256[__b(_id, "state")] = POLICY_STATE_CREATED;
-    dataUint256[__a(_unit, "claimsPaid")] = 0;
-    dataUint256[__a(_unit, "premiumsPaid")] = 0;
+    uint256 collateralRatio;
+    uint256 maxCapital;
+    (collateralRatio, maxCapital) = this.getEnabledCurrency(_unit);
+    require((collateralRatio > 0) && (maxCapital > 0), 'currency disabled');
+  
+    uint256 balance = dataUint256[__a(_unit, "balance")];
+    require(maxCapital >= balance.add(_limit).mul(collateralRatio).div(1000), 'balance below collateral ratio');
+   
+    {
+      dataUint256[__b(_id, "startDate")] = _startDate;
+      dataUint256[__b(_id, "maturationDate")] = _maturationDate;
+      dataAddress[__b(_id, "unit")] = _unit;
+      dataUint256[__b(_id, "limit")] = _limit;
+      dataUint256[__b(_id, "state")] = POLICY_STATE_CREATED;
+      dataUint256[__a(_unit, "claimsPaid")] = 0;
+      dataUint256[__a(_unit, "premiumsPaid")] = 0;
 
-    bytes32 aclContext = keccak256(abi.encodePacked(address(this), _id));
-    dataBytes32[__b(_id, "policyAclContext")] = aclContext;
+      bytes32 aclContext = keccak256(abi.encodePacked(address(this), _id));
+      dataBytes32[__b(_id, "policyAclContext")] = aclContext;
 
-    // set basic roles
-    acl().assignRole(aclContext, address(this), ROLE_POLICY_OWNER);
-    acl().assignRole(aclContext, _stakeholders[2], ROLE_BROKER);
-    acl().assignRole(aclContext, _stakeholders[3], ROLE_UNDERWRITER);
-    acl().assignRole(aclContext, _stakeholders[4], ROLE_CLAIMS_ADMIN);
-    acl().assignRole(aclContext, _stakeholders[5], ROLE_INSURED_PARTY);
-
-    // created by underwriter rep?
-    bytes32 senderCtx = AccessControl(msg.sender).aclContext();
-    if (acl().hasRoleInGroup(senderCtx, _stakeholders[3], ROLEGROUP_ENTITY_REPS)) {
-      acl().assignRole(aclContext, _stakeholders[3], ROLE_UNDERWRITER);
-      dataBool["underwriterApproved"] = true;
-    } 
-    // created by broker rep?
-    else if (acl().hasRoleInGroup(senderCtx, _stakeholders[2], ROLEGROUP_ENTITY_REPS)) {
+      // set basic roles
+      acl().assignRole(aclContext, address(this), ROLE_POLICY_OWNER);
       acl().assignRole(aclContext, _stakeholders[2], ROLE_BROKER);
-      dataBool["brokerApproved"] = true;
-    } 
-    else {
-      revert("must be broker or underwriter");
+      acl().assignRole(aclContext, _stakeholders[3], ROLE_UNDERWRITER);
+      acl().assignRole(aclContext, _stakeholders[4], ROLE_CLAIMS_ADMIN);
+      acl().assignRole(aclContext, _stakeholders[5], ROLE_INSURED_PARTY);
+
+      // created by underwriter rep?
+      bytes32 senderCtx = AccessControl(msg.sender).aclContext();
+      if (acl().hasRoleInGroup(senderCtx, _stakeholders[3], ROLEGROUP_ENTITY_REPS)) {
+        acl().assignRole(aclContext, _stakeholders[3], ROLE_UNDERWRITER);
+        dataBool["underwriterApproved"] = true;
+      } 
+      // created by broker rep?
+      else if (acl().hasRoleInGroup(senderCtx, _stakeholders[2], ROLEGROUP_ENTITY_REPS)) {
+        acl().assignRole(aclContext, _stakeholders[2], ROLE_BROKER);
+        dataBool["brokerApproved"] = true;
+      } 
+      else {
+        revert("must be broker or underwriter");
+      }
     }
 
     uint256 policyNumber = dataUint256["numSimplePolicies"];

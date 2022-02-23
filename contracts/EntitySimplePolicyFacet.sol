@@ -125,15 +125,20 @@ contract EntitySimplePolicyFacet is EntityFacetBase, IEntitySimplePolicyFacet, I
     return dataBytes32[__b(_id, "policyAclContext")];
   }
 
-  //This is called from your entity to pay a claim on a policy in another entity.
-  // It transfers the amount from your entity to the specified entity
+  // This is called on the entitywhere a policy is created.
+  // It transfers the amount from your entity (specified by entityAddress) to the the entity where the policy is created 
+  // entityAddress should be specified because it is possible for msg.sender to belong to multiple entities.
   function paySimplePremium(bytes32 _id, address _entityAddress, uint256 _amount)
     external
     override
     nonReentrant
   {
-    address policyUnitAddress;
+    // assert msg.sender has the role entity representative on _entityAddress
+    // add _amount to premiumsPaid_ 
+    // then move money from _entityAddress to this entity
 
+    address policyUnitAddress;
+ 
 
   }
 
@@ -176,6 +181,7 @@ contract EntitySimplePolicyFacet is EntityFacetBase, IEntitySimplePolicyFacet, I
     claimsPaid_ = dataUint256[__a(unit_, "claimsPaid")];
   }
 
+  // This is performed by a nayms system manager and pays the insured party in the event of a claim. 
   function paySimpleClaim (bytes32 _id, uint256 _amount) 
     external 
     override 

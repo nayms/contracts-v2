@@ -103,7 +103,7 @@ contract EntitySimplePolicyFacet is EntityFacetBase, IEntitySimplePolicyFacet, I
     //   pol.bulkApprove(_approvalSignatures);
     // }
 
-    emit NewPolicy(_id, address(this));
+    emit NewSimplePolicy(_id, address(this));
   }
     
   function _policyAclContext(bytes32 _id) private view returns (bytes32) {

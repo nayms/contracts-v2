@@ -1050,8 +1050,6 @@ describe('Entity', () => {
   
       describe('premiums can be payed out', () => {
 
-        it('only by the system manager', () => {})
-  
         it('if amount is greater than 0', () => {})
   
         it('and the payout goes to the entity', async () => {})

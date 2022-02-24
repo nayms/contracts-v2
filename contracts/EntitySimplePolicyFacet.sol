@@ -117,7 +117,6 @@ contract EntitySimplePolicyFacet is EntityFacetBase, IEntitySimplePolicyFacet, I
     external
     override
     nonReentrant
-    assertIsSystemManager(msg.sender)
   {
     require(_amount > 0, 'invalid premium amount');
 

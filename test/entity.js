@@ -1009,4 +1009,53 @@ describe('Entity', () => {
       })
     })
   })
+
+  describe('simple policy', () => {
+
+    describe('can be created if', () => {
+
+      it('creation is enabled on entity', () => {})
+
+      it('limit is greater than 0', () => {})
+
+      it('currency is enabled', () => {})
+
+      it('balance is lower than max capital', () => {})
+
+      it('caller is an underwriter or broker', () => {})
+    })
+
+    describe('after creation', () => {
+
+      it('they exist and have their properties set', () => {})
+
+      it('number of policies is increased', () => {})
+
+      it('forward and reverse lookup is available', () => {})
+
+      it('changes state to active, after start date', () => {})
+
+      it('changes state to matured, after maturation date', () => {})
+      
+      describe('claims can be payed out', () => {
+
+        it('only by the system manager', () => {})
+  
+        it('if amount is greater than 0', () => {})
+  
+        it('if total amount of claims paid is below the limit ', () => {})
+  
+        it('and the payout goes to the insured party', async () => {})
+      })
+  
+      describe('premiums can be payed out', () => {
+
+        it('only by the system manager', () => {})
+  
+        it('if amount is greater than 0', () => {})
+  
+        it('and the payout goes to the entity', async () => {})
+      })
+    })
+  })
 })

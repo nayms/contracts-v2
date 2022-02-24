@@ -21,3 +21,4 @@ scTopics
 dapp*
 contracts.generated.js
 releaseConfig.json
+.jshintrc

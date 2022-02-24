@@ -117,7 +117,10 @@ contract EntitySimplePolicyFacet is EntityFacetBase, IEntitySimplePolicyFacet, I
     external
     override
     nonReentrant
+    assertIsSystemManager(msg.sender)
   {
+    require(_amount > 0, 'invalid premium amount');
+
     // assert msg.sender has the role entity representative on _entityAddress
     bytes32 entityCtx = AccessControl(_entityAddress).aclContext();
     require(acl().hasRoleInGroup(entityCtx, msg.sender, ROLEGROUP_ENTITY_REPS), 'not an entity rep');

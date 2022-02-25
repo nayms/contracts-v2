@@ -1040,7 +1040,7 @@ describe('Entity', () => {
       let unit
       let limit = 100
       let stakeholders = []
-      let signatires = []
+      let signatures = []
 
       beforeEach(async () => {
         entityManager = accounts[2]
@@ -1057,21 +1057,28 @@ describe('Entity', () => {
       })
 
       it('creation is enabled on entity', async () => {
-        await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, signatires).should.be.rejectedWith('creation disabled')
+        await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, signatures).should.be.rejectedWith('creation disabled')
       })
 
       it('limit is greater than 0', async () => {
-        await entity.createSimplePolicy(id, startDate, maturationDate, unit, 0, stakeholders, signatires).should.be.rejectedWith('limit not > 0')
+        await entity.updateAllowSimplePolicy(true, { from: systemManager })
+        await entity.createSimplePolicy(id, startDate, maturationDate, unit, 0, stakeholders, signatures).should.be.rejectedWith('limit not > 0')
       })
 
       it('currency is enabled', async () => {
         await entity.updateAllowSimplePolicy(true, { from: systemManager })
-        await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, signatires).should.be.rejectedWith('currency disabled123')
+        await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, signatures).should.be.rejectedWith('currency disabled')
       })
 
-      it('balance is lower than max capital', async () => {})
+      // TODO: make this right
+      it('balance is lower than max capital ratio', async () => {
+        await entity.updateEnabledCurrency(unit, 500, 100, { from: systemManager })
+        await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, signatures).should.be.rejectedWith('balance above max capital collateral ratio')
+      })
 
-      it('caller is an underwriter or broker', async () => {})
+      it('caller is an underwriter or broker', async () => {
+        
+      })
     })
 
     describe('after creation', () => {

@@ -114,4 +114,26 @@ interface IEntitySimplePolicyFacet {
    */
   function verifySimplePolicy (bytes32 _id ) external;
 
+  /**
+   * @dev Get collateral ratio and max capital for given currency.
+   * 
+   * @param _unit unit
+   */
+  function getEnabledCurrency(address _unit) external view returns (uint256 _collateralRatio, uint256 _maxCapital);
+
+  /**
+   * @dev Get addresses of all the units/currencies
+   */
+  function getEnabledCurrencies() external view returns (address[] memory);
+
+  /**
+   * @dev Update the collateral ratio and max capital for a given unit.
+   */
+  function updateEnabledCurrency(
+    address _unit,
+    uint256 _collateralRatio,
+    uint256 _maxCapital
+  )
+  external;
+
 }

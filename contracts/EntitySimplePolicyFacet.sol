@@ -8,11 +8,12 @@ import "./base/ISimplePolicyStates.sol";
 import "./base/IDiamondFacet.sol";
 import "./base/SafeMath.sol";
 import "./base/ReentrancyGuard.sol";
+import "hardhat/console.sol";
 
 contract EntitySimplePolicyFacet is EntityFacetBase, IEntitySimplePolicyFacet, IDiamondFacet, ISimplePolicyStates, ReentrancyGuard {
   using SafeMath for uint256;
 
-  constructor (address _settings) Controller(_settings) public {
+  constructor (address _settings) public Controller(_settings) {
   }
 
   function getSelectors () public pure override returns (bytes memory) {
@@ -25,7 +26,9 @@ contract EntitySimplePolicyFacet is EntityFacetBase, IEntitySimplePolicyFacet, I
       IEntitySimplePolicyFacet.getNumSimplePolicies.selector,
       IEntitySimplePolicyFacet.getSimplePolicyInfo.selector,
       IEntitySimplePolicyFacet.checkAndUpdateState.selector,
-      IEntitySimplePolicyFacet.verifySimplePolicy.selector
+      IEntitySimplePolicyFacet.verifySimplePolicy.selector,
+      IEntitySimplePolicyFacet.getEnabledCurrency.selector,
+      IEntitySimplePolicyFacet.updateEnabledCurrency.selector
     );
   }
 
@@ -46,15 +49,15 @@ contract EntitySimplePolicyFacet is EntityFacetBase, IEntitySimplePolicyFacet, I
     require(this.allowSimplePolicy(), 'creation disabled');
     require(_limit > 0, 'limit not > 0');
 
-    uint256 collateralRatio;
-    uint256 maxCapital;
-    (collateralRatio, maxCapital) = this.getEnabledCurrency(_unit);
+    uint256 collateralRatio = dataUint256[__a(_unit, "collateralRatio")];
+    uint256 maxCapital = dataUint256[__a(_unit, "maxCapital")];
+
     require((collateralRatio > 0) && (maxCapital > 0), 'currency disabled');
-  
+
     uint256 balance = dataUint256[__a(_unit, "balance")];
-    require(maxCapital >= balance.add(_limit).mul(collateralRatio).div(1000), 'balance below collateral ratio');
+    require(maxCapital >= balance.add(_limit).mul(collateralRatio).div(100), 'balance above max capital collateral ratio');
    
-    {
+    { // stack too deep :'(
       dataUint256[__b(_id, "startDate")] = _startDate;
       dataUint256[__b(_id, "maturationDate")] = _maturationDate;
       dataAddress[__b(_id, "unit")] = _unit;
@@ -223,4 +226,67 @@ contract EntitySimplePolicyFacet is EntityFacetBase, IEntitySimplePolicyFacet, I
   {
 
   }
+
+  function updateEnabledCurrency(
+    address _unit,
+    uint256 _collateralRatio,
+    uint256 _maxCapital
+  )
+  external
+  override
+  assertIsSystemManager (msg.sender)
+  {
+    bool hasUnit = false;
+    address[] memory newUnits;
+    uint256 unitIndex = 0;
+
+    console.log("enabling currency: %s, collateralRatio: %s, maxCapital: %s", _unit, _collateralRatio, _maxCapital);
+    address[] memory enabledUnits = dataManyAddresses["enabledUnits"];
+    
+    if(_collateralRatio == 0 && _maxCapital == 0){
+      // remove unit
+      for (uint256 j = 0; j < enabledUnits.length; j += 1) {
+        if (enabledUnits[j] != _unit){
+          newUnits[unitIndex] = enabledUnits[j];
+          unitIndex ++;
+        }
+      }
+      enabledUnits = newUnits;
+    }
+    else
+    // add or update unit 
+    {
+      if (_collateralRatio > 1000){
+        revert("collateral ratio is 0-1000");
+      }
+
+      console.log(enabledUnits.length);
+
+      for (uint256 j = 0; j < enabledUnits.length; j += 1) {
+        if (enabledUnits[j] == _unit){
+          hasUnit = true;
+        }
+      }
+      if (!hasUnit){
+        unitIndex = enabledUnits.length;
+        enabledUnits[unitIndex] = _unit;
+      }
+    }
+
+    //Either way, update the values
+    dataUint256[__a(_unit, "maxCapital")] = _maxCapital;
+    dataUint256[__a(_unit, "collateralRatio")] = _collateralRatio;
+  }
+
+  function getEnabledCurrencies() external override view returns (address[] memory)
+  {
+    return dataManyAddresses["enabledUnits"];
+  }
+
+  function getEnabledCurrency(address _unit) external override view returns (uint256 _collateralRatio, uint256 _maxCapital)
+  {
+    _collateralRatio = dataUint256[__a(_unit, "collateralRatio")];
+    _maxCapital = dataUint256[__a(_unit, "maxCapital")];
+  }
+
 }

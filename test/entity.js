@@ -1011,46 +1011,95 @@ describe('Entity', () => {
   })
 
   describe('simple policy', () => {
+    
+    let systemManager
+    let entityManager
+    let entityRep
 
+    beforeEach(async () => {
+      entityManager = accounts[2]
+      entityRep = accounts[3]
+      systemManager = accounts[1]
+
+      await acl.assignRole(entityContext, entityManager, ROLES.ENTITY_MANAGER)
+      await acl.assignRole(entityContext, entityRep, ROLES.ENTITY_REP)
+      await acl.assignRole(systemContext, systemManager, ROLES.SYSTEM_MANAGER)
+      await entity.updateAllowPolicy(true, { from: systemManager })
+
+    })
+    
+    
     describe('can be created if', () => {
+      let systemManager
+      let entityManager
+      let entityRep
+      
+      let id = BYTES32_ZERO
+      let startDate = Date.now()
+      let maturationDate = startDate + 1000
+      let unit
+      let limit = 100
+      let stakeholders = []
+      let signatires = []
 
-      it('creation is enabled on entity', () => {})
+      beforeEach(async () => {
+        entityManager = accounts[2]
+        entityRep = accounts[3]
+        systemManager = accounts[1]
+  
+        await acl.assignRole(entityContext, entityManager, ROLES.ENTITY_MANAGER)
+        await acl.assignRole(entityContext, entityRep, ROLES.ENTITY_REP)
+        await acl.assignRole(systemContext, systemManager, ROLES.SYSTEM_MANAGER)
+        await entity.updateAllowPolicy(true, { from: systemManager })
+  
+        unit = etherToken.address
 
-      it('limit is greater than 0', () => {})
+      })
 
-      it('currency is enabled', () => {})
+      it('creation is enabled on entity', async () => {
+        await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, signatires).should.be.rejectedWith('creation disabled')
+      })
 
-      it('balance is lower than max capital', () => {})
+      it('limit is greater than 0', async () => {
+        await entity.createSimplePolicy(id, startDate, maturationDate, unit, 0, stakeholders, signatires).should.be.rejectedWith('limit not > 0')
+      })
 
-      it('caller is an underwriter or broker', () => {})
+      it('currency is enabled', async () => {
+        await entity.updateAllowSimplePolicy(true, { from: systemManager })
+        await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, signatires).should.be.rejectedWith('currency disabled123')
+      })
+
+      it('balance is lower than max capital', async () => {})
+
+      it('caller is an underwriter or broker', async () => {})
     })
 
     describe('after creation', () => {
 
-      it('they exist and have their properties set', () => {})
+      it('they exist and have their properties set', async () => {})
 
-      it('number of policies is increased', () => {})
+      it('number of policies is increased', async () => {})
 
-      it('forward and reverse lookup is available', () => {})
+      it('forward and reverse lookup is available', async () => {})
 
-      it('changes state to active, after start date', () => {})
+      it('changes state to active, after start date', async () => {})
 
-      it('changes state to matured, after maturation date', () => {})
+      it('changes state to matured, after maturation date', async () => {})
       
       describe('claims can be payed out', () => {
 
-        it('only by the system manager', () => {})
+        it('only by the system manager', async () => {})
   
-        it('if amount is greater than 0', () => {})
+        it('if amount is greater than 0', async () => {})
   
-        it('if total amount of claims paid is below the limit ', () => {})
+        it('if total amount of claims paid is below the limit ', async () => {})
   
         it('and the payout goes to the insured party', async () => {})
       })
   
-      describe('premiums can be payed out', () => {
+      describe('premiums can be payed out', async () => {
 
-        it('if amount is greater than 0', () => {})
+        it('if amount is greater than 0', async () => {})
   
         it('and the payout goes to the entity', async () => {})
       })

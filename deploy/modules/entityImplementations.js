@@ -16,6 +16,7 @@ export const ensureEntityImplementationsAreDeployed = async (ctx = {}) => {
       'EntityDividendsFacet',
       'EntityTreasuryFacet',
       'EntityTreasuryBridgeFacet',
+      'EntitySimplePolicyFacet',
     ].concat(extraFacets),
     facetListSettingsKey: SETTINGS.ENTITY_IMPL,
     proxySettingsKey: SETTINGS.ENTITY_DELEGATE,

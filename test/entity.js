@@ -1028,7 +1028,6 @@ describe('Entity', () => {
 
     })
     
-    
     describe('can be created if', () => {
       let systemManager
       let entityManager
@@ -1073,11 +1072,14 @@ describe('Entity', () => {
       // TODO: make this right
       it('balance is lower than max capital ratio', async () => {
         await entity.updateEnabledCurrency(unit, 500, 100, { from: systemManager })
+        await entity.updateAllowSimplePolicy(true, { from: systemManager })
         await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, signatures).should.be.rejectedWith('balance above max capital collateral ratio')
       })
 
       it('caller is an underwriter or broker', async () => {
-        
+        await entity.updateEnabledCurrency(unit, 500, 300, { from: systemManager })
+        await entity.updateAllowSimplePolicy(true, { from: systemManager })
+        await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, signatures).should.be.rejectedWith('must be broker or underwriter')
       })
     })
 

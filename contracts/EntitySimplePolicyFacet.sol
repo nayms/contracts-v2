@@ -55,7 +55,7 @@ contract EntitySimplePolicyFacet is EntityFacetBase, IEntitySimplePolicyFacet, I
     require((collateralRatio > 0) && (maxCapital > 0), 'currency disabled');
 
     uint256 balance = dataUint256[__a(_unit, "balance")];
-    require(maxCapital >= balance.add(_limit).mul(collateralRatio).div(100), 'balance above max capital collateral ratio');
+    require(maxCapital >= balance.add(_limit).mul(collateralRatio).div(1000), 'balance above max capital collateral ratio');
    
     { // stack too deep :'(
       dataUint256[__b(_id, "startDate")] = _startDate;
@@ -70,28 +70,34 @@ contract EntitySimplePolicyFacet is EntityFacetBase, IEntitySimplePolicyFacet, I
       dataBytes32[__b(_id, "policyAclContext")] = aclContext;
 
       // set basic roles
-      acl().assignRole(aclContext, address(this), ROLE_POLICY_OWNER);
+      // acl().assignRole(aclContext, msg.sender, ROLE_POLICY_OWNER);
+      console.log("assigning basic roles");
       acl().assignRole(aclContext, _stakeholders[2], ROLE_BROKER);
       acl().assignRole(aclContext, _stakeholders[3], ROLE_UNDERWRITER);
       acl().assignRole(aclContext, _stakeholders[4], ROLE_CLAIMS_ADMIN);
       acl().assignRole(aclContext, _stakeholders[5], ROLE_INSURED_PARTY);
 
+      console.log("basic roles assigned");
       // created by underwriter rep?
-      bytes32 senderCtx = AccessControl(msg.sender).aclContext();
-      if (acl().hasRoleInGroup(senderCtx, _stakeholders[3], ROLEGROUP_ENTITY_REPS)) {
-        acl().assignRole(aclContext, _stakeholders[3], ROLE_UNDERWRITER);
-        dataBool["underwriterApproved"] = true;
+      console.log("checking underwriter or broker");
+      if (acl().hasRoleInGroup(AccessControl(msg.sender).aclContext(), _stakeholders[1], ROLEGROUP_ENTITY_REPS)) {
+        console.log("he is an underwriter");
+        acl().assignRole(aclContext, _stakeholders[1], ROLE_UNDERWRITER);
+        dataBool[__b(_id, "underwriterApproved")] = true;
       } 
       // created by broker rep?
-      else if (acl().hasRoleInGroup(senderCtx, _stakeholders[2], ROLEGROUP_ENTITY_REPS)) {
-        acl().assignRole(aclContext, _stakeholders[2], ROLE_BROKER);
-        dataBool["brokerApproved"] = true;
+      else if (acl().hasRoleInGroup(AccessControl(msg.sender).aclContext(), _stakeholders[0], ROLEGROUP_ENTITY_REPS)) {
+        console.log("he is a broker");
+        acl().assignRole(aclContext, _stakeholders[0], ROLE_BROKER);
+        dataBool[__b(_id, "brokerApproved")] = true;
       } 
       else {
+        console.log("reverting");
         revert("must be broker or underwriter");
       }
     }
 
+    console.log("update number");
     uint256 policyNumber = dataUint256["numSimplePolicies"];
 
     //forward and reverse lookups
@@ -106,6 +112,7 @@ contract EntitySimplePolicyFacet is EntityFacetBase, IEntitySimplePolicyFacet, I
     //   pol.bulkApprove(_approvalSignatures);
     // }
 
+    console.log("done");
     emit NewSimplePolicy(_id, address(this));
   }
     
@@ -240,18 +247,15 @@ contract EntitySimplePolicyFacet is EntityFacetBase, IEntitySimplePolicyFacet, I
     address[] memory newUnits;
     uint256 unitIndex = 0;
 
-    console.log("enabling currency: %s, collateralRatio: %s, maxCapital: %s", _unit, _collateralRatio, _maxCapital);
-    address[] memory enabledUnits = dataManyAddresses["enabledUnits"];
-    
     if(_collateralRatio == 0 && _maxCapital == 0){
       // remove unit
-      for (uint256 j = 0; j < enabledUnits.length; j += 1) {
-        if (enabledUnits[j] != _unit){
-          newUnits[unitIndex] = enabledUnits[j];
+      for (uint256 j = 0; j < dataManyAddresses["enabledUnits"].length; j += 1) {
+        if (dataManyAddresses["enabledUnits"][j] != _unit){
+          newUnits[unitIndex] = dataManyAddresses["enabledUnits"][j];
           unitIndex ++;
         }
       }
-      enabledUnits = newUnits;
+      dataManyAddresses["enabledUnits"] = newUnits;
     }
     else
     // add or update unit 
@@ -260,16 +264,14 @@ contract EntitySimplePolicyFacet is EntityFacetBase, IEntitySimplePolicyFacet, I
         revert("collateral ratio is 0-1000");
       }
 
-      console.log(enabledUnits.length);
-
-      for (uint256 j = 0; j < enabledUnits.length; j += 1) {
-        if (enabledUnits[j] == _unit){
+      for (uint256 j = 0; j < dataManyAddresses["enabledUnits"].length; j += 1) {
+        if (dataManyAddresses["enabledUnits"][j] == _unit){
           hasUnit = true;
+          break;
         }
       }
       if (!hasUnit){
-        unitIndex = enabledUnits.length;
-        enabledUnits[unitIndex] = _unit;
+        dataManyAddresses["enabledUnits"].push(_unit);
       }
     }
 

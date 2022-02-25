@@ -46,16 +46,27 @@ contract EntitySimplePolicyFacet is EntityFacetBase, IEntitySimplePolicyFacet, I
   external 
   override 
   {
+
+    //balance is how much money is deposited into the entity. This is only updated if you deposit or withdraw
+
+
     require(this.allowSimplePolicy(), 'creation disabled');
     require(_limit > 0, 'limit not > 0');
 
     uint256 collateralRatio = dataUint256[__a(_unit, "collateralRatio")];
     uint256 maxCapital = dataUint256[__a(_unit, "maxCapital")];
+    uint256 balance = dataUint256[__a(_unit, "balance")];
+    uint256 newTotalLimit = dataUint256[__b(_unit, "totalLimit")] + _limit;
 
     require((collateralRatio > 0) && (maxCapital > 0), 'currency disabled');
+    require(balance >= newTotalLimit.mul(collateralRatio).div(1000), 'collateral ratio not met');
+    require(maxCapital >= newTotalLimit, 'total limit above max capital');
 
-    uint256 balance = dataUint256[__a(_unit, "balance")];
-    require(maxCapital >= balance.add(_limit).mul(collateralRatio).div(1000), 'balance above max capital collateral ratio');
+    dataUint256[__b(_unit, "totalLimit")] = newTotalLimit;
+
+
+
+    // require(maxCapital >= balance.add(_limit).mul(collateralRatio).div(1000), 'balance above max capital collateral ratio');
    
     { // stack too deep :'(
       dataUint256[__b(_id, "startDate")] = _startDate;
@@ -214,6 +225,8 @@ contract EntitySimplePolicyFacet is EntityFacetBase, IEntitySimplePolicyFacet, I
 
       // remove from balance
       address unit = dataAddress[__b(_id, "unit")];
+
+      //Todo: remove policy _limit from totalLimit
       dataUint256[__a(unit, "premiumsPaid")] -= dataUint256[__b(_id, "limit")];
       
       // emit event

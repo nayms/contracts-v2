@@ -8,7 +8,7 @@ import "./base/ISimplePolicyStates.sol";
 import "./base/IDiamondFacet.sol";
 import "./base/SafeMath.sol";
 import "./base/ReentrancyGuard.sol";
-import "hardhat/console.sol";
+import "./SimplePolicy.sol";
 
 contract EntitySimplePolicyFacet is EntityFacetBase, IEntitySimplePolicyFacet, IDiamondFacet, ISimplePolicyStates, ReentrancyGuard {
   using SafeMath for uint256;
@@ -47,27 +47,22 @@ contract EntitySimplePolicyFacet is EntityFacetBase, IEntitySimplePolicyFacet, I
   override 
   {
 
-    //balance is how much money is deposited into the entity. This is only updated if you deposit or withdraw
-
-
     require(this.allowSimplePolicy(), 'creation disabled');
     require(_limit > 0, 'limit not > 0');
 
     uint256 collateralRatio = dataUint256[__a(_unit, "collateralRatio")];
     uint256 maxCapital = dataUint256[__a(_unit, "maxCapital")];
-    uint256 balance = dataUint256[__a(_unit, "balance")];
-    uint256 newTotalLimit = dataUint256[__b(_unit, "totalLimit")] + _limit;
-
     require((collateralRatio > 0) && (maxCapital > 0), 'currency disabled');
-    require(balance >= newTotalLimit.mul(collateralRatio).div(1000), 'collateral ratio not met');
+
+    uint256 newTotalLimit = dataUint256[__a(_unit, "totalLimit")] + _limit;
     require(maxCapital >= newTotalLimit, 'total limit above max capital');
 
-    dataUint256[__b(_unit, "totalLimit")] = newTotalLimit;
+    //balance is how much money is deposited into the entity. This is only updated if you deposit or withdraw
+    uint256 balance = dataUint256[__a(_unit, "balance")];
+    require(balance >= newTotalLimit.mul(collateralRatio).div(1000), 'collateral ratio not met');
+    
+    dataUint256[__a(_unit, "totalLimit")] = newTotalLimit;
 
-
-
-    // require(maxCapital >= balance.add(_limit).mul(collateralRatio).div(1000), 'balance above max capital collateral ratio');
-   
     { // stack too deep :'(
       dataUint256[__b(_id, "startDate")] = _startDate;
       dataUint256[__b(_id, "maturationDate")] = _maturationDate;
@@ -77,38 +72,30 @@ contract EntitySimplePolicyFacet is EntityFacetBase, IEntitySimplePolicyFacet, I
       dataUint256[__a(_unit, "claimsPaid")] = 0;
       dataUint256[__a(_unit, "premiumsPaid")] = 0;
 
-      bytes32 aclContext = keccak256(abi.encodePacked(address(this), _id));
-      dataBytes32[__b(_id, "policyAclContext")] = aclContext;
+      dataBytes32[__b(_id, "policyAclContext")] = keccak256(abi.encodePacked(address(this), _id));
 
       // set basic roles
       // acl().assignRole(aclContext, msg.sender, ROLE_POLICY_OWNER);
-      console.log("assigning basic roles");
-      acl().assignRole(aclContext, _stakeholders[2], ROLE_BROKER);
-      acl().assignRole(aclContext, _stakeholders[3], ROLE_UNDERWRITER);
-      acl().assignRole(aclContext, _stakeholders[4], ROLE_CLAIMS_ADMIN);
-      acl().assignRole(aclContext, _stakeholders[5], ROLE_INSURED_PARTY);
+      // acl().assignRole(dataBytes32[__b(_id, "policyAclContext")], _stakeholders[2], ROLE_BROKER);
+      // acl().assignRole(dataBytes32[__b(_id, "policyAclContext")], _stakeholders[3], ROLE_UNDERWRITER);
+      // acl().assignRole(dataBytes32[__b(_id, "policyAclContext")], _stakeholders[4], ROLE_CLAIMS_ADMIN);
+      // acl().assignRole(dataBytes32[__b(_id, "policyAclContext")], _stakeholders[5], ROLE_INSURED_PARTY);
 
-      console.log("basic roles assigned");
       // created by underwriter rep?
-      console.log("checking underwriter or broker");
       if (acl().hasRoleInGroup(AccessControl(msg.sender).aclContext(), _stakeholders[1], ROLEGROUP_ENTITY_REPS)) {
-        console.log("he is an underwriter");
-        acl().assignRole(aclContext, _stakeholders[1], ROLE_UNDERWRITER);
+        acl().assignRole(dataBytes32[__b(_id, "policyAclContext")], _stakeholders[1], ROLE_UNDERWRITER);
         dataBool[__b(_id, "underwriterApproved")] = true;
       } 
       // created by broker rep?
       else if (acl().hasRoleInGroup(AccessControl(msg.sender).aclContext(), _stakeholders[0], ROLEGROUP_ENTITY_REPS)) {
-        console.log("he is a broker");
-        acl().assignRole(aclContext, _stakeholders[0], ROLE_BROKER);
+        acl().assignRole(dataBytes32[__b(_id, "policyAclContext")], _stakeholders[0], ROLE_BROKER);
         dataBool[__b(_id, "brokerApproved")] = true;
       } 
       else {
-        console.log("reverting");
         revert("must be broker or underwriter");
       }
     }
 
-    console.log("update number");
     uint256 policyNumber = dataUint256["numSimplePolicies"];
 
     //forward and reverse lookups
@@ -123,7 +110,6 @@ contract EntitySimplePolicyFacet is EntityFacetBase, IEntitySimplePolicyFacet, I
     //   pol.bulkApprove(_approvalSignatures);
     // }
 
-    console.log("done");
     emit NewSimplePolicy(_id, address(this));
   }
     
@@ -148,6 +134,7 @@ contract EntitySimplePolicyFacet is EntityFacetBase, IEntitySimplePolicyFacet, I
     // add _amount to premiumsPaid
     address unit = dataAddress[__b(_id, "unit")];
     dataUint256[__a(unit, "premiumsPaid")] += _amount;
+    dataUint256[__a(unit, "balance")] += _amount;
 
     // then move money from _entityAddress to this entity
     IERC20(unit).transferFrom(_entityAddress, address(this), _amount);
@@ -203,15 +190,16 @@ contract EntitySimplePolicyFacet is EntityFacetBase, IEntitySimplePolicyFacet, I
   {
     require(_amount > 0, 'invalid claim amount');
     
-    address unit_ = dataAddress[__b(_id, "unit")];
-    require(dataUint256[__b(_id, "limit")] >= _amount.add(dataUint256[__a(unit_, "claimsPaid")]), 'exceeds policy limit');
+    address unit = dataAddress[__b(_id, "unit")];
+    require(dataUint256[__b(_id, "limit")] >= _amount.add(dataUint256[__a(unit, "claimsPaid")]), 'exceeds policy limit');
 
-    dataUint256[__a(unit_, "claimsPaid")] += _amount;
+    dataUint256[__a(unit, "claimsPaid")] += _amount;
+    dataUint256[__a(unit, "balance")] -= _amount;
 
     // payout the insured party!    
     bytes32 aclContext = _policyAclContext(_id);
     address insured = acl().getUsersForRole(aclContext, ROLE_INSURED_PARTY)[0];
-    IERC20(unit_).transfer(insured, _amount);
+    IERC20(unit).transfer(insured, _amount);
     
   }
 
@@ -227,8 +215,9 @@ contract EntitySimplePolicyFacet is EntityFacetBase, IEntitySimplePolicyFacet, I
       address unit = dataAddress[__b(_id, "unit")];
 
       //Todo: remove policy _limit from totalLimit
-      dataUint256[__a(unit, "premiumsPaid")] -= dataUint256[__b(_id, "limit")];
-      
+      dataUint256[__a(unit, "totalLimit")] -= dataUint256[__b(_id, "limit")];
+      // dataUint256[__a(unit, "premiumsPaid")] -= dataUint256[__b(_id, "limit")];
+
       // emit event
       emit SimplePolicyStateUpdated(_id, POLICY_STATE_MATURED, msg.sender);
 

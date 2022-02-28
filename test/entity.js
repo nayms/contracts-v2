@@ -1069,11 +1069,10 @@ describe('Entity', () => {
         await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, signatures).should.be.rejectedWith('currency disabled')
       })
 
-      // TODO: make this right
-      it('balance is lower than max capital ratio', async () => {
+      it('collateral ratio is met', async () => {
         await entity.updateEnabledCurrency(unit, 500, 100, { from: systemManager })
         await entity.updateAllowSimplePolicy(true, { from: systemManager })
-        await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, signatures).should.be.rejectedWith('balance above max capital collateral ratio')
+        await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, signatures).should.be.rejectedWith('collateral ratio not met')
       })
 
       it('caller is an underwriter or broker', async () => {
@@ -1111,6 +1110,13 @@ describe('Entity', () => {
         it('if amount is greater than 0', async () => {})
   
         it('and the payout goes to the entity', async () => {})
+      })
+
+      describe('heart beat function', () => {
+        
+        it('activates the policy after start date ', async () => {})
+
+        it('updates state and total limit accordingly after maturation date', async () => {})
       })
     })
   })

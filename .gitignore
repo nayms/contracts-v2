@@ -22,3 +22,4 @@ dapp*
 contracts.generated.js
 releaseConfig.json
 .jshintrc
+.idea/

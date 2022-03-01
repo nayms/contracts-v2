@@ -5,9 +5,10 @@ pragma experimental ABIEncoderV2;
 import '../base/IDiamondFacet.sol';
 import '../base/IEntityCoreFacet.sol';
 import '../base/IEntityFundingFacet.sol';
-import '../base/IEntitySimplePolicyFacet.sol';
+import '../base/IEntitySimplePolicyCoreFacet.sol';
+import '../base/IEntitySimplePolicyDataFacet.sol';
 
-contract DummyEntityFacet is IDiamondFacet, IEntityCoreFacet, IEntityFundingFacet, IEntitySimplePolicyFacet {
+contract DummyEntityFacet is IDiamondFacet, IEntityCoreFacet, IEntityFundingFacet, IEntitySimplePolicyCoreFacet, IEntitySimplePolicyDataFacet {
   function getSelectors () public pure override returns (bytes memory) {
     return abi.encodePacked(
       IEntityFundingFacet.getBalance.selector
@@ -43,9 +44,7 @@ contract DummyEntityFacet is IDiamondFacet, IEntityCoreFacet, IEntityFundingFace
   function updateAllowSimplePolicy(bool _allow) external override {}
   function allowSimplePolicy() external override view returns (bool _allow) {}
   function getNumSimplePolicies() external override view returns (uint256 _numPolicies) {}
-  function getSimplePolicyId (uint256 _simplePolicyNumber) public view override returns (bytes32 _id ) {}
-  function getSimplePolicyInfo (bytes32 _id) public view override returns (uint256 startDate_, uint256 maturationDate_, address unit_, uint256 limit_, uint256 state_, uint256 premiumsPaid_, uint256 claimsPaid_) {}
   function paySimpleClaim (bytes32 _id, uint256 _amount) external payable override {}
   function checkAndUpdateState (bytes32 _id ) external override {}
-  function verifySimplePolicy (bytes32 _id ) external override {}
+  function getPremiumsAndClaimsPaid(bytes32 _id) external view override returns(uint256 premiumsPaid_, uint256 claimsPaid_) {}
 }

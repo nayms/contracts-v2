@@ -13,7 +13,8 @@ import "./IEntityTokensFacet.sol";
 import "./IEntityDividendsFacet.sol";
 import "./IEntityTreasuryBridgeFacet.sol";
 import "./IPolicyTreasury.sol";
-import "./IEntitySimplePolicyFacet.sol";
+import "./IEntitySimplePolicyCoreFacet.sol";
+import "./IEntitySimplePolicyDataFacet.sol";
 
 /**
  * @dev Super-interface for entities
@@ -30,5 +31,6 @@ abstract contract IEntity is
   IEntityDividendsFacet,
   IEntityTreasuryBridgeFacet,
   IPolicyTreasury,
-  IEntitySimplePolicyFacet
+  IEntitySimplePolicyCoreFacet,
+  IEntitySimplePolicyDataFacet
   {}

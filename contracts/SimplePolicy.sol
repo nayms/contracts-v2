@@ -17,7 +17,7 @@ contract SimplePolicy is Controller, Proxy, ISimplePolicy, ISimplePolicyStates {
    *    * Index 1: Underwriter entity address.
    *    * Index 2: Claims admin entity address.
    *    * Index 3: Insured party entity address.
-   *    * Index 3: Treasury address.
+   *    * Index 4: Treasury address.
    */
   constructor (
     bytes32 _id,

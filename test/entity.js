@@ -1045,6 +1045,8 @@ describe('Entity', () => {
         entityManager = accounts[2]
         entityRep = accounts[3]
         systemManager = accounts[1]
+
+        stakeholders = [ ADDRESS_ZERO, entity.address, ADDRESS_ZERO, ADDRESS_ZERO, entity.address ]
   
         await acl.assignRole(entityContext, entityManager, ROLES.ENTITY_MANAGER)
         await acl.assignRole(entityContext, entityRep, ROLES.ENTITY_REP)
@@ -1077,7 +1079,12 @@ describe('Entity', () => {
       })
 
       it('caller is an underwriter or broker', async () => {
-        await entity.updateEnabledCurrency(unit, 500, 300, { from: systemManager })
+        const balance = 500
+        await etherToken.deposit({ value: balance })
+        await etherToken.approve(entityProxy.address, balance)
+        await entity.deposit(etherToken.address, balance).should.be.fulfilled
+
+        await entity.updateEnabledCurrency(unit, 500, 1000, { from: systemManager })
         await entity.updateAllowSimplePolicy(true, { from: systemManager })
         await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, signatures).should.be.rejectedWith('must be broker or underwriter')
       })

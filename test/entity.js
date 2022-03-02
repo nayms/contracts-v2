@@ -1061,6 +1061,7 @@ describe('Entity', () => {
 
       it('limit is greater than 0', async () => {
         await entity.updateAllowSimplePolicy(true, { from: systemManager })
+        await entity.updateEnabledCurrency(unit, 500, 100, { from: systemManager })
         await entity.createSimplePolicy(id, startDate, maturationDate, unit, 0, stakeholders, signatures).should.be.rejectedWith('limit not > 0')
       })
 

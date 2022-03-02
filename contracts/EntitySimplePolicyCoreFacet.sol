@@ -6,10 +6,9 @@ import "./EntityFacetBase.sol";
 import "./base/IEntitySimplePolicyCoreFacet.sol";
 import "./base/IDiamondFacet.sol";
 import "./base/SafeMath.sol";
-import "./base/ReentrancyGuard.sol";
 import "./SimplePolicy.sol";
 
-contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCoreFacet, IDiamondFacet, ReentrancyGuard {
+contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCoreFacet, IDiamondFacet {
   
   using SafeMath for uint256;
 
@@ -94,7 +93,8 @@ contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCore
 
     ISimplePolicy policy = ISimplePolicy(dataAddress[__b(_id, "simplePolicyAddress")]);
 
-    address unit = policy.getUnit();
+    address unit;
+    (, , unit, , ) = policy.getSimplePolicyInfo();
 
     // add _amount to premiumsPaid
     dataUint256[__a(unit, "premiumsPaid")] += _amount;
@@ -115,7 +115,6 @@ contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCore
     external 
     override
     payable
-    nonReentrant 
     assertIsSystemManager(msg.sender)
   {
     require(_amount > 0, 'invalid claim amount');
@@ -124,7 +123,7 @@ contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCore
     
     address unit;
     uint256 limit;
-    (unit, limit) = policy.getUnitAndLimit();
+    ( , , unit, limit, ) = policy.getSimplePolicyInfo();
 
     uint256 claimsPaid = dataUint256[__a(unit, "claimsPaid")];
 
@@ -148,8 +147,8 @@ contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCore
     if(reduceTotalLimit) {
       // remove from balance
       address unit;
-      uint256 limit;
-      (unit, limit) = policy.getUnitAndLimit();
+    uint256 limit;
+    ( , , unit, limit, ) = policy.getSimplePolicyInfo();
 
       dataUint256[__a(unit, "totalLimit")] -= limit;
     }

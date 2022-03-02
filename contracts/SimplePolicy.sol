@@ -17,6 +17,7 @@ contract SimplePolicy is Controller, Proxy, ISimplePolicy, ISimplePolicyStates {
    *    * Index 1: Underwriter entity address.
    *    * Index 2: Claims admin entity address.
    *    * Index 3: Insured party entity address.
+   *    * Index 3: Treasury address.
    */
   constructor (
     bytes32 _id,
@@ -40,13 +41,14 @@ contract SimplePolicy is Controller, Proxy, ISimplePolicy, ISimplePolicyStates {
     dataAddress["unit"] = _unit;
     dataUint256["limit"] = _limit;
     dataUint256["state"] = POLICY_STATE_CREATED;
+    dataAddress["treasury"] = _stakeholders[4];
     
     // set roles
     acl().assignRole(aclContext(), _caller, ROLE_POLICY_OWNER);
-    acl().assignRole(aclContext(), _stakeholders[2], ROLE_BROKER);
-    acl().assignRole(aclContext(), _stakeholders[3], ROLE_UNDERWRITER);
-    acl().assignRole(aclContext(), _stakeholders[4], ROLE_CLAIMS_ADMIN);
-    acl().assignRole(aclContext(), _stakeholders[5], ROLE_INSURED_PARTY);
+    acl().assignRole(aclContext(), _stakeholders[0], ROLE_BROKER);
+    acl().assignRole(aclContext(), _stakeholders[1], ROLE_UNDERWRITER);
+    acl().assignRole(aclContext(), _stakeholders[2], ROLE_CLAIMS_ADMIN);
+    acl().assignRole(aclContext(), _stakeholders[3], ROLE_INSURED_PARTY);
 
     // created by underwriter rep?
     if (acl().hasRoleInGroup(aclContext(), _stakeholders[1], ROLEGROUP_ENTITY_REPS)) {
@@ -85,14 +87,9 @@ contract SimplePolicy is Controller, Proxy, ISimplePolicy, ISimplePolicyStates {
     state_ = dataUint256["state"];
   }
 
-  function getUnit() external virtual override view returns (address unit_) {
-    unit_ = dataAddress["unit"];
-  }
-
-  function getUnitAndLimit() external virtual override view returns (address unit_, uint256 limit_) {
-    unit_ = dataAddress["unit"];
-    limit_ = dataUint256["limit"];
-  }
+  /**
+   * 
+   */
 
   function checkAndUpdateState() external virtual override returns (bool reduceTotalLimit_) {
 
@@ -108,6 +105,7 @@ contract SimplePolicy is Controller, Proxy, ISimplePolicy, ISimplePolicyStates {
 
       // emit event
       emit SimplePolicyStateUpdated(id, POLICY_STATE_MATURED, msg.sender);
+
     } else if (block.timestamp >= dataUint256["startDate"] && state < POLICY_STATE_ACTIVE) {
       // move state to active
       dataUint256["state"] = POLICY_STATE_ACTIVE;
@@ -116,4 +114,5 @@ contract SimplePolicy is Controller, Proxy, ISimplePolicy, ISimplePolicyStates {
       emit SimplePolicyStateUpdated(id, POLICY_STATE_ACTIVE, msg.sender);
     }
   }
+
 }

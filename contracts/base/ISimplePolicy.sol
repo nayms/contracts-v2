@@ -25,18 +25,6 @@ abstract contract ISimplePolicy is IAccessControl {
   );
 
   /**
-   * @dev Get simple policy unit.
-   *
-   */
-  function getUnit() external virtual view returns (address unit_);
-
-  /**
-   * @dev Get simple policy unit and limit.
-   *
-   */
-  function getUnitAndLimit() external virtual view returns (address unit_, uint256 limit_);
-
-  /**
    * @dev Emitted when a new policy has been created.
    * @param id The policy id.
    * @param entity The entity which owns the policy.

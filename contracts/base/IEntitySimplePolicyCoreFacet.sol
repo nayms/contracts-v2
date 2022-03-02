@@ -15,6 +15,7 @@ interface IEntitySimplePolicyCoreFacet {
    *    * Index 1: Underwriter entity address.
    *    * Index 2: Claims admin entity address.
    *    * Index 3: Insured party entity address.
+   *    * Index 4: Treasury address. 
    *
    * @param _id Unique id that represents the policy - this is what stakeholder will sign to approve the policy.
    * @param _startDate Start Date.

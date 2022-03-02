@@ -30,7 +30,8 @@ contract EntitySimplePolicyDataFacet is Controller, IDiamondFacet, IEntitySimple
 
   function getPremiumsAndClaimsPaid(bytes32 _id) external view override returns(uint256 premiumsPaid_, uint256 claimsPaid_) {
     ISimplePolicy policy = ISimplePolicy(dataAddress[__b(_id, "simplePolicyAddress")]);
-    address unit = policy.getUnit();
+    address unit;
+    (, , unit, , ) = policy.getSimplePolicyInfo();
 
     premiumsPaid_ = dataUint256[__a(unit, "premiumsPaid")];
     claimsPaid_ = dataUint256[__a(unit, "claimsPaid")];

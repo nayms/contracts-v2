@@ -87,10 +87,6 @@ contract SimplePolicy is Controller, Proxy, ISimplePolicy, ISimplePolicyStates {
     state_ = dataUint256["state"];
   }
 
-  /**
-   * 
-   */
-
   function checkAndUpdateState() external virtual override returns (bool reduceTotalLimit_) {
 
     bytes32 id = dataBytes32["id"];

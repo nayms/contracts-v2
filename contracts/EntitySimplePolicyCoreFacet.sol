@@ -2,11 +2,11 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
-import "./EntityFacetBase.sol";
+import {EntityFacetBase, IERC20} from "./EntityFacetBase.sol";
 import "./base/IEntitySimplePolicyCoreFacet.sol";
 import "./base/IDiamondFacet.sol";
 import "./base/SafeMath.sol";
-import "./SimplePolicy.sol";
+import {SimplePolicy, Controller, AccessControl, ISimplePolicy} from "./SimplePolicy.sol";
 
 contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCoreFacet, IDiamondFacet {
   

@@ -64,14 +64,4 @@ interface IEntitySimplePolicyCoreFacet {
    */
   function checkAndUpdateState(bytes32 _id ) external;
 
-  /**
-   * @dev Update the collateral ratio and max capital for a given unit.
-   */
-  function updateEnabledCurrency(
-    address _unit,
-    uint256 _collateralRatio,
-    uint256 _maxCapital
-  )
-  external;
-
 }

@@ -19,9 +19,8 @@ contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCore
       IEntitySimplePolicyCoreFacet.createSimplePolicy.selector,
       IEntitySimplePolicyCoreFacet.paySimplePremium.selector,
       IEntitySimplePolicyCoreFacet.paySimpleClaim.selector,
-      IEntitySimplePolicyCoreFacet.updateAllowSimplePolicy.selector,
       IEntitySimplePolicyCoreFacet.checkAndUpdateState.selector,
-      IEntitySimplePolicyCoreFacet.updateEnabledCurrency.selector
+      IEntitySimplePolicyCoreFacet.updateAllowSimplePolicy.selector
     );
   }
 
@@ -152,52 +151,6 @@ contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCore
 
       dataUint256[__a(unit, "totalLimit")] -= limit;
     }
-  }
-
-  function updateEnabledCurrency(
-    address _unit,
-    uint256 _collateralRatio,
-    uint256 _maxCapital
-  )
-  external
-  override
-  assertIsSystemManager (msg.sender)
-  {
-    bool hasUnit = false;
-    address[] memory newUnits;
-    uint256 unitIndex = 0;
-
-    if(_collateralRatio == 0 && _maxCapital == 0){
-      // remove unit
-      for (uint256 j = 0; j < dataManyAddresses["enabledUnits"].length; j += 1) {
-        if (dataManyAddresses["enabledUnits"][j] != _unit){
-          newUnits[unitIndex] = dataManyAddresses["enabledUnits"][j];
-          unitIndex ++;
-        }
-      }
-      dataManyAddresses["enabledUnits"] = newUnits;
-    }
-    else
-    // add or update unit 
-    {
-      if (_collateralRatio > 1000){
-        revert("collateral ratio is 0-1000");
-      }
-
-      for (uint256 j = 0; j < dataManyAddresses["enabledUnits"].length; j += 1) {
-        if (dataManyAddresses["enabledUnits"][j] == _unit){
-          hasUnit = true;
-          break;
-        }
-      }
-      if (!hasUnit){
-        dataManyAddresses["enabledUnits"].push(_unit);
-      }
-    }
-
-    //Either way, update the values
-    dataUint256[__a(_unit, "maxCapital")] = _maxCapital;
-    dataUint256[__a(_unit, "collateralRatio")] = _collateralRatio;
   }
 
 }

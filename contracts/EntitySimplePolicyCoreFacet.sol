@@ -18,7 +18,6 @@ contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCore
     return abi.encodePacked(
       IEntitySimplePolicyCoreFacet.createSimplePolicy.selector,
       IEntitySimplePolicyCoreFacet.paySimplePremium.selector,
-      IEntitySimplePolicyCoreFacet.paySimpleClaim.selector,
       IEntitySimplePolicyCoreFacet.checkAndUpdateState.selector,
       IEntitySimplePolicyCoreFacet.updateAllowSimplePolicy.selector
     );
@@ -107,34 +106,6 @@ contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCore
   function updateAllowSimplePolicy(bool _allow) external override assertIsSystemManager(msg.sender)
   {
       dataBool["allowSimplePolicy"] = _allow;
-  }
-
-  // This is performed by a nayms system manager and pays the insured party in the event of a claim.
-  function paySimpleClaim (bytes32 _id, uint256 _amount) 
-    external 
-    override
-    payable
-    assertIsSystemManager(msg.sender)
-  {
-    require(_amount > 0, 'invalid claim amount');
-    
-    ISimplePolicy policy = ISimplePolicy(dataAddress[__b(_id, "simplePolicyAddress")]);
-    
-    address unit;
-    uint256 limit;
-    ( , , unit, limit, ) = policy.getSimplePolicyInfo();
-
-    uint256 claimsPaid = dataUint256[__a(unit, "claimsPaid")];
-
-    require(limit >= _amount.add(claimsPaid), 'exceeds policy limit');
-
-    dataUint256[__a(unit, "claimsPaid")] += _amount;
-    dataUint256[__a(unit, "balance")] -= _amount;
-
-    // payout the insured party!    
-    address insured = acl().getUsersForRole(policy.aclContext(), ROLE_INSURED_PARTY)[0];
-    IERC20(unit).transfer(insured, _amount);
-    
   }
 
   function checkAndUpdateState(bytes32 _id) external override 

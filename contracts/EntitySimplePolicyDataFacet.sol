@@ -2,13 +2,16 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
-import {EntityFacetBase} from "./EntityFacetBase.sol";
+import {EntityFacetBase, IERC20} from "./EntityFacetBase.sol";
 import "./base/Controller.sol";
 import "./base/IDiamondFacet.sol";
 import "./base/IEntitySimplePolicyDataFacet.sol";
 import "./base/ISimplePolicy.sol";
+import "./base/SafeMath.sol";
 
 contract EntitySimplePolicyDataFacet is EntityFacetBase, IDiamondFacet, IEntitySimplePolicyDataFacet {
+  
+  using SafeMath for uint256;
 
   constructor (address _settings) Controller(_settings) public { }
 
@@ -18,7 +21,8 @@ contract EntitySimplePolicyDataFacet is EntityFacetBase, IDiamondFacet, IEntityS
       IEntitySimplePolicyDataFacet.getNumSimplePolicies.selector,
       IEntitySimplePolicyDataFacet.getPremiumsAndClaimsPaid.selector,
       IEntitySimplePolicyDataFacet.getEnabledCurrency.selector,
-      IEntitySimplePolicyDataFacet.updateEnabledCurrency.selector
+      IEntitySimplePolicyDataFacet.updateEnabledCurrency.selector,
+      IEntitySimplePolicyDataFacet.paySimpleClaim.selector
     );
   }
 
@@ -97,4 +101,30 @@ contract EntitySimplePolicyDataFacet is EntityFacetBase, IDiamondFacet, IEntityS
     dataUint256[__a(_unit, "collateralRatio")] = _collateralRatio;
   }
 
+  // This is performed by a nayms system manager and pays the insured party in the event of a claim.
+  function paySimpleClaim (bytes32 _id, uint256 _amount) 
+    external 
+    override
+    payable
+    assertIsSystemManager(msg.sender)
+  {
+    require(_amount > 0, 'invalid claim amount');
+    
+    ISimplePolicy policy = ISimplePolicy(dataAddress[__b(_id, "simplePolicyAddress")]);
+    
+    address unit;
+    uint256 limit;
+    ( , , unit, limit, ) = policy.getSimplePolicyInfo();
+
+    uint256 claimsPaid = dataUint256[__a(unit, "claimsPaid")];
+
+    require(limit >= _amount.add(claimsPaid), 'exceeds policy limit');
+
+    dataUint256[__a(unit, "claimsPaid")] += _amount;
+    dataUint256[__a(unit, "balance")] -= _amount;
+
+    // payout the insured party!    
+    address insured = acl().getUsersForRole(policy.aclContext(), ROLE_INSURED_PARTY)[0];
+    IERC20(unit).transfer(insured, _amount);
+  }
 }

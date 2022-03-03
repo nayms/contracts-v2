@@ -32,6 +32,8 @@ const FreezeUpgradesFacet = artifacts.require("test/FreezeUpgradesFacet")
 const IMarketFeeSchedules = artifacts.require("base/IMarketFeeSchedules")
 const Entity = artifacts.require("Entity")
 const IPolicy = artifacts.require("IPolicy")
+const ISimplePolicy = artifacts.require("ISimplePolicy")
+const ISimplePolicyStates = artifacts.require("base/ISimplePolicyStates")
 
 describe('Entity', () => {
   const evmSnapshot = new EvmSnapshot()
@@ -1015,47 +1017,32 @@ describe('Entity', () => {
     let systemManager
     let entityManager
     let entityRep
+    
+    let id = BYTES32_ZERO
+    let startDate = Date.now()
+    let maturationDate = startDate + 1000
+    let unit
+    let limit = 100
+    let stakeholders = []
+    let signatures = []
 
     beforeEach(async () => {
       entityManager = accounts[2]
       entityRep = accounts[3]
       systemManager = accounts[1]
-
+      
       await acl.assignRole(entityContext, entityManager, ROLES.ENTITY_MANAGER)
       await acl.assignRole(entityContext, entityRep, ROLES.ENTITY_REP)
       await acl.assignRole(systemContext, systemManager, ROLES.SYSTEM_MANAGER)
       await entity.updateAllowPolicy(true, { from: systemManager })
-
+      
+      stakeholders = [ entityManager, entityRep, ADDRESS_ZERO, ADDRESS_ZERO, entity.address ]
+      
+      unit = etherToken.address
+      
     })
     
     describe('can be created if', () => {
-      let systemManager
-      let entityManager
-      let entityRep
-      
-      let id = BYTES32_ZERO
-      let startDate = Date.now()
-      let maturationDate = startDate + 1000
-      let unit
-      let limit = 100
-      let stakeholders = []
-      let signatures = []
-
-      beforeEach(async () => {
-        entityManager = accounts[2]
-        entityRep = accounts[3]
-        systemManager = accounts[1]
-
-        stakeholders = [ ADDRESS_ZERO, entity.address, ADDRESS_ZERO, ADDRESS_ZERO, entity.address ]
-  
-        await acl.assignRole(entityContext, entityManager, ROLES.ENTITY_MANAGER)
-        await acl.assignRole(entityContext, entityRep, ROLES.ENTITY_REP)
-        await acl.assignRole(systemContext, systemManager, ROLES.SYSTEM_MANAGER)
-        await entity.updateAllowPolicy(true, { from: systemManager })
-  
-        unit = etherToken.address
-
-      })
 
       it('creation is enabled on entity', async () => {
         await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, signatures).should.be.rejectedWith('creation disabled')
@@ -1080,19 +1067,46 @@ describe('Entity', () => {
 
       it('caller is an underwriter or broker', async () => {
         const balance = 500
+        const zeroStakeholders = [ accounts[5], accounts[6], ADDRESS_ZERO, ADDRESS_ZERO, ADDRESS_ZERO ]
+
         await etherToken.deposit({ value: balance })
         await etherToken.approve(entityProxy.address, balance)
         await entity.deposit(etherToken.address, balance).should.be.fulfilled
 
         await entity.updateEnabledCurrency(unit, 500, 1000, { from: systemManager })
         await entity.updateAllowSimplePolicy(true, { from: systemManager })
-        await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, signatures).should.be.rejectedWith('must be broker or underwriter')
+        await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, zeroStakeholders, signatures).should.be.rejectedWith('must be broker or underwriter')
       })
     })
 
     describe('after creation', () => {
 
-      it('they exist and have their properties set', async () => {})
+      beforeEach(async () => {
+        const balance = 500
+        await etherToken.deposit({ value: balance })
+        await etherToken.approve(entityProxy.address, balance)
+        await entity.deposit(etherToken.address, balance).should.be.fulfilled
+
+        await entity.updateEnabledCurrency(unit, 500, 1000, { from: systemManager })
+        await entity.updateAllowSimplePolicy(true, { from: systemManager })
+      })
+
+      it('they exist and have their properties set', async () => {
+        const result = await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, signatures, { from: entityRep }).should.be.fulfilled
+        const eventArgs = extractEventArgs(result, events.NewSimplePolicy)
+        
+        const policyStates = await ISimplePolicyStates.at(eventArgs.simplePolicy)
+        POLICY_STATE_CREATED = await policyStates.POLICY_STATE_CREATED()
+        
+        const policy = await ISimplePolicy.at(eventArgs.simplePolicy)
+        await policy.getSimplePolicyInfo().should.eventually.matchObj({
+          startDate_: startDate,
+          maturationDate_: maturationDate,
+          unit_: unit,
+          limit_: limit,
+          state_: POLICY_STATE_CREATED
+        })
+      })
 
       it('number of policies is increased', async () => {})
 

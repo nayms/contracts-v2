@@ -27,11 +27,11 @@ abstract contract ISimplePolicy is IAccessControl {
   /**
    * @dev Emitted when a new policy has been created.
    * @param id The policy id.
-   * @param entity The entity which owns the policy.
+   * @param simplePolicy The policy address.
    */
   event NewSimplePolicy(
     bytes32 indexed id,
-    address indexed entity
+    address indexed simplePolicy
   );
 
   /**

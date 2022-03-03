@@ -2,6 +2,7 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
+import "./base/AccessControl.sol";
 import "./base/Controller.sol";
 import "./base/Proxy.sol";
 import "./base/ISimplePolicy.sol";
@@ -50,26 +51,48 @@ contract SimplePolicy is Controller, Proxy, ISimplePolicy, ISimplePolicyStates {
     acl().assignRole(aclContext(), _stakeholders[2], ROLE_CLAIMS_ADMIN);
     acl().assignRole(aclContext(), _stakeholders[3], ROLE_INSURED_PARTY);
 
-    // created by underwriter rep?
-    if (acl().hasRoleInGroup(aclContext(), _stakeholders[1], ROLEGROUP_ENTITY_REPS)) {
-      acl().assignRole(aclContext(), _stakeholders[1], ROLE_UNDERWRITER);
-      dataBool["underwriterApproved"] = true;
-    } 
-    // created by broker rep?
-    else if (acl().hasRoleInGroup(aclContext(), _stakeholders[0], ROLEGROUP_ENTITY_REPS)) {
-      acl().assignRole(aclContext(), _stakeholders[0], ROLE_BROKER);
-      dataBool["brokerApproved"] = true;
-    } 
-    else {
-      revert("must be broker or underwriter");
-    }
+    bool underwriterRep_;
+    bool brokerRep_;
+    (underwriterRep_, brokerRep_) = _isBrokerOrUnderwriterRep(_caller, _stakeholders[0], _stakeholders[1]);
+    
+    require(underwriterRep_ || brokerRep_, "must be broker or underwriter");
 
+    dataBool["underwriterApproved"] = underwriterRep_;
+    dataBool["brokerApproved"] = brokerRep_;
+    
     // TODO: Only bulk approve
     // if (_approvalSignatures.length = 4) {
     //   pol.bulkApprove(_approvalSignatures);
     // }
 
     emit NewSimplePolicy(_id, address(this));
+  }
+
+  function _isBrokerOrUnderwriterRep(
+    address _caller, 
+    address _broker, 
+    address _underwriter
+  ) 
+  internal 
+  view
+  returns (bool underwriterRep_, bool brokerRep_) 
+  {
+    bytes32 ctxSystem = acl().getContextAtIndex(0);
+    bytes32 ctxBroker = AccessControl(_broker).aclContext();
+    bytes32 ctxUnderwriter = AccessControl(_underwriter).aclContext();
+
+    // entity has underwriter role in system context?
+    bool isUnderwriter = acl().hasRoleInGroup(ctxSystem, _underwriter, ROLEGROUP_UNDERWRITERS);
+
+    // caller is underwriter entity rep?
+    underwriterRep_ = isUnderwriter && acl().hasRoleInGroup(ctxUnderwriter, _caller, ROLEGROUP_ENTITY_REPS);
+
+    // entity has broker role in system context?
+    bool isBroker = acl().hasRoleInGroup(ctxSystem, _broker, ROLE_BROKER);
+
+    // caller is broker entity rep?
+    brokerRep_ = isBroker && acl().hasRoleInGroup(ctxBroker, _caller, ROLEGROUP_ENTITY_REPS);
+
   }
 
   function getSimplePolicyInfo() external override view returns (

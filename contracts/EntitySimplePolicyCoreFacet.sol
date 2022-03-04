@@ -70,7 +70,7 @@ contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCore
     );
 
     dataAddress[__i(dataUint256["numSimplePolicies"], "simplePolicyAddress")] = address(simplePolicy);
-    dataUint256["numSimplePolicies"]++;
+    dataUint256["numSimplePolicies"] = dataUint256["numSimplePolicies"].add(1);
   }
 
   function _verifyPremiumRep(address _entityAddress) internal view {

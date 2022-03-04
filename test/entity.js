@@ -1092,19 +1092,19 @@ describe('Entity', () => {
         await entity.updateEnabledCurrency(unit, 500, 1000, { from: systemManager })
         await entity.updateAllowSimplePolicy(true, { from: systemManager })
 
-      })
-
-      it('they exist and have their properties set', async () => {
         await acl.assignRole(systemContext, entity.address, ROLES.UNDERWRITER)
-        await acl.hasRole(systemContext, entity.address, ROLES.UNDERWRITER).should.eventually.eq(HAS_ROLE_CONTEXT)
 
+      })
+      
+      it('they exist and have their properties set', async () => {
         const result = await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, signatures, { from: entityRep }).should.be.fulfilled
         const eventArgs = extractEventArgs(result, events.NewSimplePolicy)
         
+        const policy = await ISimplePolicy.at(eventArgs.simplePolicy)
+  
         const policyStates = await ISimplePolicyStates.at(eventArgs.simplePolicy)
         const POLICY_STATE_CREATED = await policyStates.POLICY_STATE_CREATED()
-        
-        const policy = await ISimplePolicy.at(eventArgs.simplePolicy)
+
         await policy.getSimplePolicyInfo().should.eventually.matchObj({
           startDate_: startDate,
           maturationDate_: maturationDate,
@@ -1114,9 +1114,19 @@ describe('Entity', () => {
         })
       })
 
-      it('number of policies is increased', async () => {})
+      it('number of policies is increased', async () => {
+        const numberOfSimplePolicies = await entity.getNumSimplePolicies()
+        const result = await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, signatures, { from: entityRep }).should.be.fulfilled
+        
+        const newNumSimplePolicies = await entity.getNumSimplePolicies()
+        
+        newNumSimplePolicies.should.eq(parseInt(numberOfSimplePolicies, 10) + 1)
+      })
 
-      it('forward and reverse lookup is available', async () => {})
+      it('forward and reverse lookup is available', async () => {
+
+
+      })
 
       it('changes state to active, after start date', async () => {})
 

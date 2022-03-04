@@ -90,6 +90,8 @@ contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCore
     
     _verifyPremiumRep(_entityAddress);
 
+    require(_amount > 0, 'invalid premium amount');
+
     ISimplePolicy policy = ISimplePolicy(dataAddress[__b(_id, "addressById")]);
 
     address unit;

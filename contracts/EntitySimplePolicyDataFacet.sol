@@ -128,7 +128,7 @@ contract EntitySimplePolicyDataFacet is EntityFacetBase, IDiamondFacet, IEntityS
   {
     require(_amount > 0, 'invalid claim amount');
     
-    ISimplePolicy policy = ISimplePolicy(dataAddress[__b(_id, "simplePolicyAddress")]);
+    ISimplePolicy policy = ISimplePolicy(dataAddress[__b(_id, "addressById")]);
     
     address unit;
     uint256 limit;

@@ -1054,6 +1054,12 @@ describe('Entity', () => {
         await entity.createSimplePolicy(id, startDate, maturationDate, unit, 0, stakeholders, signatures).should.be.rejectedWith('limit not > 0')
       })
 
+      it('limit is below max capital', async () => {
+        await entity.updateAllowSimplePolicy(true, { from: systemManager })
+        await entity.updateEnabledCurrency(unit, 500, 100, { from: systemManager })
+        await entity.createSimplePolicy(id, startDate, maturationDate, unit, 150, stakeholders, signatures).should.be.rejectedWith('max capital exceeded')
+      })
+
       it('currency is enabled', async () => {
         await entity.updateAllowSimplePolicy(true, { from: systemManager })
         await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, signatures).should.be.rejectedWith('currency disabled')
@@ -1067,7 +1073,6 @@ describe('Entity', () => {
 
       it('caller is an underwriter or broker', async () => {
         const balance = 500
-        const zeroStakeholders = [ accounts[5], accounts[6], ADDRESS_ZERO, ADDRESS_ZERO, ADDRESS_ZERO ]
 
         await etherToken.deposit({ value: balance })
         await etherToken.approve(entityProxy.address, balance)
@@ -1105,6 +1110,7 @@ describe('Entity', () => {
         const POLICY_STATE_CREATED = await policyStates.POLICY_STATE_CREATED()
 
         await policy.getSimplePolicyInfo().should.eventually.matchObj({
+          id_: id,
           startDate_: startDate,
           maturationDate_: maturationDate,
           unit_: unit,
@@ -1115,14 +1121,14 @@ describe('Entity', () => {
 
       it('number of policies is increased', async () => {
         const numberOfSimplePolicies = await entity.getNumSimplePolicies()
-        const result = await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, signatures, { from: entityRep }).should.be.fulfilled
+        await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, signatures, { from: entityRep }).should.be.fulfilled
         
         const newNumSimplePolicies = await entity.getNumSimplePolicies()
         
         newNumSimplePolicies.should.eq(parseInt(numberOfSimplePolicies, 10) + 1)
       })
 
-      it('forward and reverse lookup is available', async () => {
+      it('lookup is available', async () => {
         const result = await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, signatures, { from: entityRep }).should.be.fulfilled
         const eventArgs = extractEventArgs(result, events.NewSimplePolicy)
         const policy = await ISimplePolicy.at(eventArgs.simplePolicy)
@@ -1149,10 +1155,11 @@ describe('Entity', () => {
   
         it('then the payout goes to the insured party', async () => {
           const result = await entity.createSimplePolicy(id, startDate, startDate, unit, limit, stakeholders, signatures, { from: entityRep }).should.be.fulfilled
-          // await entity.paySimpleClaim(id, 30, { from: systemManager }).should.be.rejectedWith('exceeds policy limit')
+          // await entity.paySimpleClaim(id, 30, { from: systemManager }).should.be.fulfilled
 
           const entityBalance = await entity.getBalance(etherToken.address)
           // await etherToken.balanceOf(entity.address).should.eventually.eq(110)
+
         })
       })
   
@@ -1168,6 +1175,7 @@ describe('Entity', () => {
         })
   
         it('and the payout goes to the entity', async () => {
+          const result = await entity.createSimplePolicy(id, startDate, startDate, unit, limit, stakeholders, signatures, { from: entityRep }).should.be.fulfilled
           // TODO !!!
         })
       })
@@ -1197,14 +1205,19 @@ describe('Entity', () => {
           const policyStates = await ISimplePolicyStates.at(eventArgs.simplePolicy)
           const POLICY_STATE_MATURED = await policyStates.POLICY_STATE_MATURED()
           
+          const { totalLimit_: totalLimitBefore } = await entity.getEnabledCurrency(unit)
+
           entity.checkAndUpdateState(id)
           
           const policy = await ISimplePolicy.at(eventArgs.simplePolicy)
           await policy.getSimplePolicyInfo().should.eventually.matchObj({
             state_: POLICY_STATE_MATURED
           })
+          
+          const { totalLimit_: totalLimitAfter } = await entity.getEnabledCurrency(unit)
 
-        // TODO test entity total limit is reduced
+          totalLimitAfter.should.eq(totalLimitBefore - limit)
+
         })
       })
     })

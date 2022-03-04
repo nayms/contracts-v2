@@ -34,7 +34,7 @@ contract DummyEntityFacet is IDiamondFacet, IEntityCoreFacet, IEntityFundingFace
   function sellAtBestPrice(address _sellUnit, uint256 _sellAmount, address _buyUnit) external override {}
 
   function updateEnabledCurrency(address _unit, uint256 _collateralRatio, uint256 _maxCapital) external override {}
-  function getEnabledCurrency(address _unit) external override view returns (uint256 _collateralRatio, uint256 _maxCapital) {}
+  function getEnabledCurrency(address _unit) external override view returns (uint256 collateralRatio_, uint256 maxCapital_, uint256 totalLimit_) {}
   function getEnabledCurrencies() external override view returns (address[] memory) {}
   function updateAllowPolicy(bool _allow) external override {}
   function allowPolicy() external override view returns (bool _allow) {}

@@ -35,7 +35,7 @@ interface IEntitySimplePolicyDataFacet {
    *
    * @param _unit unit
    */
-  function getEnabledCurrency(address _unit) external view returns (uint256 _collateralRatio, uint256 _maxCapital);
+  function getEnabledCurrency(address _unit) external view returns (uint256 collateralRatio_, uint256 maxCapital_, uint256 totalLimit_);
 
   /**
    * @dev Get addresses of all the units/currencies

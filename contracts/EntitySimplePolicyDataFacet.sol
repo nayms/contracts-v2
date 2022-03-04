@@ -56,10 +56,11 @@ contract EntitySimplePolicyDataFacet is EntityFacetBase, IDiamondFacet, IEntityS
 
   function getEnabledCurrency(address _unit)
     external override view
-    returns (uint256 _collateralRatio, uint256 _maxCapital)
+    returns (uint256 collateralRatio_, uint256 maxCapital_, uint256 totalLimit_)
   {
-    _collateralRatio = dataUint256[__a(_unit, "collateralRatio")];
-    _maxCapital = dataUint256[__a(_unit, "maxCapital")];
+    collateralRatio_ = dataUint256[__a(_unit, "collateralRatio")];
+    maxCapital_ = dataUint256[__a(_unit, "maxCapital")];
+    totalLimit_ = dataUint256[__a(_unit, "totalLimit")];
   }
 
   /**

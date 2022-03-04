@@ -1019,7 +1019,7 @@ describe('Entity', () => {
     let entityRep
     
     let id = BYTES32_ZERO
-    let startDate = Date.now()
+    let startDate = parseInt(Date.now() / 1000)
     let maturationDate = startDate + 1000
     let unit
     let limit = 100
@@ -1135,9 +1135,38 @@ describe('Entity', () => {
         await entity.getSimplePolicyId(number_).should.eventually.eq(policyID)
       })
 
-      it('changes state to active, after start date', async () => {})
+      it('changes state to active, after start date', async () => {
+        const result = await entity.createSimplePolicy(id, startDate - 1, maturationDate, unit, limit, stakeholders, signatures, { from: entityRep }).should.be.fulfilled
+        const eventArgs = extractEventArgs(result, events.NewSimplePolicy)
+        
+        const policy = await ISimplePolicy.at(eventArgs.simplePolicy)
+        const shouldReduce = await policy.checkAndUpdateState()
 
-      it('changes state to matured, after maturation date', async () => {})
+        const policyStates = await ISimplePolicyStates.at(eventArgs.simplePolicy)
+        const POLICY_STATE_ACTIVE = await policyStates.POLICY_STATE_ACTIVE()
+
+        await policy.getSimplePolicyInfo().should.eventually.matchObj({
+          state_: POLICY_STATE_ACTIVE
+        })
+      })
+
+      it('changes state to matured, after maturation date', async () => {
+
+        const result = await entity.createSimplePolicy(id, startDate - 10, startDate - 5, unit, limit, stakeholders, signatures, { from: entityRep }).should.be.fulfilled
+        const eventArgs = extractEventArgs(result, events.NewSimplePolicy)
+        
+        const policyStates = await ISimplePolicyStates.at(eventArgs.simplePolicy)
+        const POLICY_STATE_MATURED = await policyStates.POLICY_STATE_MATURED()
+        
+        entity.checkAndUpdateState(id)
+        
+        const policy = await ISimplePolicy.at(eventArgs.simplePolicy)
+        await policy.getSimplePolicyInfo().should.eventually.matchObj({
+          state_: POLICY_STATE_MATURED
+        })
+
+        // TODO test entity total limit is reduced
+      })
       
       describe('claims can be payed out', () => {
 

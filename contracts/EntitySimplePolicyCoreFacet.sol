@@ -70,7 +70,7 @@ contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCore
     );
 
     dataAddress[__i(dataUint256["numSimplePolicies"], "addressByNumber")] = address(simplePolicy);
-    dataAddress[__b(_id, "addressByNumber")] = address(simplePolicy);
+    dataAddress[__b(_id, "addressById")] = address(simplePolicy);
     dataUint256["numSimplePolicies"] = dataUint256["numSimplePolicies"].add(1);
   }
 
@@ -90,7 +90,7 @@ contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCore
     
     _verifyPremiumRep(_entityAddress);
 
-    ISimplePolicy policy = ISimplePolicy(dataAddress[__b(_id, "simplePolicyAddress")]);
+    ISimplePolicy policy = ISimplePolicy(dataAddress[__b(_id, "addressById")]);
 
     address unit;
     (, , , , unit, , ) = policy.getSimplePolicyInfo();
@@ -111,7 +111,7 @@ contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCore
 
   function checkAndUpdateState(bytes32 _id) external override 
   {
-    ISimplePolicy policy = ISimplePolicy(dataAddress[__b(_id, "simplePolicyAddress")]);
+    ISimplePolicy policy = ISimplePolicy(dataAddress[__b(_id, "addressById")]);
     
     bool reduceTotalLimit = policy.checkAndUpdateState();
     

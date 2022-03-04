@@ -1036,7 +1036,7 @@ describe('Entity', () => {
       await acl.assignRole(systemContext, systemManager, ROLES.SYSTEM_MANAGER)
       await entity.updateAllowPolicy(true, { from: systemManager })
       
-      stakeholders = [ entity.address, entity.address, ADDRESS_ZERO, ADDRESS_ZERO, entity.address ]
+      stakeholders = [ entity.address, entity.address, ADDRESS_ZERO, entity.address, entity.address ]
       
       unit = etherToken.address
 
@@ -1149,17 +1149,18 @@ describe('Entity', () => {
         })
 
         it('and total amount of claims paid is below the limit ', async () => {
-          const result = await entity.createSimplePolicy(id, startDate, startDate, unit, limit, stakeholders, signatures, { from: entityRep }).should.be.fulfilled
+          await entity.createSimplePolicy(id, startDate, startDate, unit, limit, stakeholders, signatures, { from: entityRep }).should.be.fulfilled
           await entity.paySimpleClaim(id, 101, { from: systemManager }).should.be.rejectedWith('exceeds policy limit')
         })
   
         it('then the payout goes to the insured party', async () => {
-          const result = await entity.createSimplePolicy(id, startDate, startDate, unit, limit, stakeholders, signatures, { from: entityRep }).should.be.fulfilled
-          // await entity.paySimpleClaim(id, 30, { from: systemManager }).should.be.fulfilled
+          const claimAmount = 30
+          const balanceBefore = await entity.getBalance(unit)
 
-          const entityBalance = await entity.getBalance(etherToken.address)
-          // await etherToken.balanceOf(entity.address).should.eventually.eq(110)
+          await entity.createSimplePolicy(id, startDate, startDate, unit, limit, stakeholders, signatures, { from: entityRep }).should.be.fulfilled
+          await entity.paySimpleClaim(id, claimAmount, { from: systemManager }).should.be.fulfilled
 
+          await entity.getBalance(unit).should.eventually.eq(balanceBefore - claimAmount)
         })
       })
   
@@ -1170,13 +1171,21 @@ describe('Entity', () => {
         })
 
         it('if amount is greater than 0', async () => {
-          const result = await entity.createSimplePolicy(id, startDate, startDate, unit, limit, stakeholders, signatures, { from: entityRep }).should.be.fulfilled
+          await entity.createSimplePolicy(id, startDate, startDate, unit, limit, stakeholders, signatures, { from: entityRep }).should.be.fulfilled
           await entity.paySimplePremium(id, entity.address, 0, { from: entityRep }).should.be.rejectedWith('invalid premium amount')
         })
   
         it('and the payout goes to the entity', async () => {
-          const result = await entity.createSimplePolicy(id, startDate, startDate, unit, limit, stakeholders, signatures, { from: entityRep }).should.be.fulfilled
-          // TODO !!!
+          const premiumAmount = 10
+          const balanceBefore = await entity.getBalance(unit)
+
+          await etherToken.approve(entity.address, premiumAmount)
+
+          await entity.createSimplePolicy(id, startDate, startDate, unit, limit, stakeholders, signatures, { from: entityRep }).should.be.fulfilled
+          await entity.paySimplePremium(id, entity.address, premiumAmount, { from: entityRep }).should.be.rejectedWith('invalid premium amount')
+          
+          await entity.getBalance(unit).should.eventually.eq(balanceBefore + premiumAmount)
+
         })
       })
 

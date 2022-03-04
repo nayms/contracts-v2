@@ -96,6 +96,8 @@ contract SimplePolicy is Controller, Proxy, ISimplePolicy, ISimplePolicyStates {
   }
 
   function getSimplePolicyInfo() external override view returns (
+    bytes32 id_,
+    uint256 number_,
     uint256 startDate_,
     uint256 maturationDate_,
     address unit_,
@@ -103,6 +105,8 @@ contract SimplePolicy is Controller, Proxy, ISimplePolicy, ISimplePolicyStates {
     uint256 state_
   )
   {
+    id_ = dataBytes32["id"];
+    number_ = dataUint256["number"];
     startDate_ = dataUint256["startDate"];
     maturationDate_ = dataUint256["maturationDate"];
     unit_ = dataAddress["unit"];

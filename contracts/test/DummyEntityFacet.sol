@@ -44,6 +44,7 @@ contract DummyEntityFacet is IDiamondFacet, IEntityCoreFacet, IEntityFundingFace
   function updateAllowSimplePolicy(bool _allow) external override {}
   function allowSimplePolicy() external override view returns (bool _allow) {}
   function getNumSimplePolicies() external override view returns (uint256 _numPolicies) {}
+  function getSimplePolicyId (uint256 _simplePolicyNumber) external override view returns (bytes32 id_){}
   function paySimpleClaim (bytes32 _id, uint256 _amount) external payable override {}
   function checkAndUpdateState (bytes32 _id ) external override {}
   function getPremiumsAndClaimsPaid(bytes32 _id) external view override returns(uint256 premiumsPaid_, uint256 claimsPaid_) {}

@@ -1101,7 +1101,7 @@ describe('Entity', () => {
         const eventArgs = extractEventArgs(result, events.NewSimplePolicy)
         
         const policy = await ISimplePolicy.at(eventArgs.simplePolicy)
-  
+        
         const policyStates = await ISimplePolicyStates.at(eventArgs.simplePolicy)
         const POLICY_STATE_CREATED = await policyStates.POLICY_STATE_CREATED()
 
@@ -1124,8 +1124,15 @@ describe('Entity', () => {
       })
 
       it('forward and reverse lookup is available', async () => {
+        const policyID = web3.eth.abi.encodeEventSignature('SimplePolicyTestID')
+        
+        const result = await entity.createSimplePolicy(policyID, startDate, maturationDate, unit, limit, stakeholders, signatures, { from: entityRep }).should.be.fulfilled
+        const eventArgs = extractEventArgs(result, events.NewSimplePolicy)
+        const policy = await ISimplePolicy.at(eventArgs.simplePolicy)
 
+        const { number_ } = await policy.getSimplePolicyInfo()
 
+        await entity.getSimplePolicyId(number_).should.eventually.eq(policyID)
       })
 
       it('changes state to active, after start date', async () => {})

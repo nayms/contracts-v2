@@ -19,6 +19,7 @@ contract EntitySimplePolicyDataFacet is EntityFacetBase, IDiamondFacet, IEntityS
     return abi.encodePacked(
       IEntitySimplePolicyDataFacet.allowSimplePolicy.selector,
       IEntitySimplePolicyDataFacet.getNumSimplePolicies.selector,
+      IEntitySimplePolicyDataFacet.getSimplePolicyId.selector,
       IEntitySimplePolicyDataFacet.getPremiumsAndClaimsPaid.selector,
       IEntitySimplePolicyDataFacet.getEnabledCurrency.selector,
       IEntitySimplePolicyDataFacet.updateEnabledCurrency.selector,
@@ -34,10 +35,16 @@ contract EntitySimplePolicyDataFacet is EntityFacetBase, IDiamondFacet, IEntityS
     return dataUint256["numSimplePolicies"];
   }
 
+  function getSimplePolicyId(uint256 _simplePolicyNumber) external view override returns (bytes32 id_)
+  {
+    ISimplePolicy policy = ISimplePolicy(dataAddress[__i(_simplePolicyNumber, "addressByNumber")]);
+    (id_, , , , , ,) = policy.getSimplePolicyInfo();
+  }
+
   function getPremiumsAndClaimsPaid(bytes32 _id) external view override returns(uint256 premiumsPaid_, uint256 claimsPaid_) {
-    ISimplePolicy policy = ISimplePolicy(dataAddress[__b(_id, "simplePolicyAddress")]);
+    ISimplePolicy policy = ISimplePolicy(dataAddress[__b(_id, "addressById")]);
     address unit;
-    (, , unit, , ) = policy.getSimplePolicyInfo();
+    (, , , , unit, , ) = policy.getSimplePolicyInfo();
 
     premiumsPaid_ = dataUint256[__a(unit, "premiumsPaid")];
     claimsPaid_ = dataUint256[__a(unit, "claimsPaid")];
@@ -55,6 +62,11 @@ contract EntitySimplePolicyDataFacet is EntityFacetBase, IDiamondFacet, IEntityS
     _maxCapital = dataUint256[__a(_unit, "maxCapital")];
   }
 
+  /**
+   * @dev Semantically this method belongs to the EntitySimplePolicyCoreFacet along with
+   * rest of the state mutating methods, but due to the contract size limitation 
+   * it had to be moved here.
+   */
   function updateEnabledCurrency(
     address _unit,
     uint256 _collateralRatio,
@@ -101,7 +113,13 @@ contract EntitySimplePolicyDataFacet is EntityFacetBase, IDiamondFacet, IEntityS
     dataUint256[__a(_unit, "collateralRatio")] = _collateralRatio;
   }
 
-  // This is performed by a nayms system manager and pays the insured party in the event of a claim.
+  /**
+   * @dev Performed by a nayms system manager and pays the insured party in the event of a claim.
+   * 
+   * Semantically this method belongs to the EntitySimplePolicyCoreFacet along with
+   * rest of the state mutating methods, but due to the contract size limitation 
+   * it had to be moved here.
+   */
   function paySimpleClaim (bytes32 _id, uint256 _amount) 
     external 
     override
@@ -114,7 +132,7 @@ contract EntitySimplePolicyDataFacet is EntityFacetBase, IDiamondFacet, IEntityS
     
     address unit;
     uint256 limit;
-    ( , , unit, limit, ) = policy.getSimplePolicyInfo();
+    (, , , , unit, limit, ) = policy.getSimplePolicyInfo();
 
     uint256 claimsPaid = dataUint256[__a(unit, "claimsPaid")];
 

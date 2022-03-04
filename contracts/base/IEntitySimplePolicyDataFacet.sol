@@ -20,6 +20,11 @@ interface IEntitySimplePolicyDataFacet {
   function getNumSimplePolicies() external view returns (uint256 _numPolicies);
 
   /**
+   * @dev Get simple policy ID for given policy number.
+   */
+  function getSimplePolicyId (uint256 _simplePolicyNumber) external view returns (bytes32 id_);
+
+  /**
    * @dev Get premiums and claims paid totals.
    * @param _id Unique id that represents the policy.
    */

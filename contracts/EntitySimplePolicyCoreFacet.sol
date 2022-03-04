@@ -69,7 +69,8 @@ contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCore
       _approvalSignatures
     );
 
-    dataAddress[__i(dataUint256["numSimplePolicies"], "simplePolicyAddress")] = address(simplePolicy);
+    dataAddress[__i(dataUint256["numSimplePolicies"], "addressByNumber")] = address(simplePolicy);
+    dataAddress[__b(_id, "addressByNumber")] = address(simplePolicy);
     dataUint256["numSimplePolicies"] = dataUint256["numSimplePolicies"].add(1);
   }
 
@@ -92,7 +93,7 @@ contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCore
     ISimplePolicy policy = ISimplePolicy(dataAddress[__b(_id, "simplePolicyAddress")]);
 
     address unit;
-    (, , unit, , ) = policy.getSimplePolicyInfo();
+    (, , , , unit, , ) = policy.getSimplePolicyInfo();
 
     // add _amount to premiumsPaid
     dataUint256[__a(unit, "premiumsPaid")] += _amount;
@@ -117,8 +118,8 @@ contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCore
     if(reduceTotalLimit) {
       // remove from balance
       address unit;
-    uint256 limit;
-    ( , , unit, limit, ) = policy.getSimplePolicyInfo();
+      uint256 limit;
+      (, , , , unit, limit, ) = policy.getSimplePolicyInfo();
 
       dataUint256[__a(unit, "totalLimit")] -= limit;
     }

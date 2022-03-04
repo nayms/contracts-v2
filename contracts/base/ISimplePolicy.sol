@@ -17,6 +17,8 @@ abstract contract ISimplePolicy is IAccessControl {
    *
    */
   function getSimplePolicyInfo() external virtual view returns (
+    bytes32 id_,
+    uint256 number_,
     uint256 startDate_,
     uint256 maturationDate_,
     address unit_,

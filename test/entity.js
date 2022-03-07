@@ -1062,6 +1062,7 @@ describe('Entity', () => {
 
       it('currency is enabled', async () => {
         await entity.updateAllowSimplePolicy(true, { from: systemManager })
+        await entity.allowSimplePolicy().should.eventually.eq(true)
         await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, signatures).should.be.rejectedWith('currency disabled')
       })
 
@@ -1101,6 +1102,7 @@ describe('Entity', () => {
       })
       
       it('they exist and have their properties set', async () => {
+
         const result = await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, signatures, { from: entityRep }).should.be.fulfilled
         const eventArgs = extractEventArgs(result, events.NewSimplePolicy)
         
@@ -1161,6 +1163,10 @@ describe('Entity', () => {
           await entity.paySimpleClaim(id, claimAmount, { from: systemManager }).should.be.fulfilled
 
           await entity.getBalance(unit).should.eventually.eq(balanceBefore - claimAmount)
+
+          await entity.getPremiumsAndClaimsPaid(id).should.eventually.matchObj({
+            claimsPaid_: claimAmount
+          })
         })
       })
   
@@ -1183,6 +1189,10 @@ describe('Entity', () => {
           await entity.paySimplePremium(id, entity.address, premiumAmount, { from: entityRep }).should.be.fulfilled
           
           await entity.getBalance(unit).should.eventually.eq(+balanceBefore + premiumAmount)
+
+          await entity.getPremiumsAndClaimsPaid(id).should.eventually.matchObj({
+            premiumsPaid_: premiumAmount
+          })
 
         })
       })

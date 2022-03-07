@@ -1179,12 +1179,10 @@ describe('Entity', () => {
           const premiumAmount = 10
           const balanceBefore = await entity.getBalance(unit)
 
-          await etherToken.approve(entity.address, premiumAmount)
-
           await entity.createSimplePolicy(id, startDate, startDate, unit, limit, stakeholders, signatures, { from: entityRep }).should.be.fulfilled
-          await entity.paySimplePremium(id, entity.address, premiumAmount, { from: entityRep }).should.be.rejectedWith('invalid premium amount')
+          await entity.paySimplePremium(id, entity.address, premiumAmount, { from: entityRep }).should.be.fulfilled
           
-          await entity.getBalance(unit).should.eventually.eq(balanceBefore + premiumAmount)
+          await entity.getBalance(unit).should.eventually.eq(+balanceBefore + premiumAmount)
 
         })
       })

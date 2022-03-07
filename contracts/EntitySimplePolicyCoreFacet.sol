@@ -74,7 +74,7 @@ contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCore
     dataUint256["numSimplePolicies"] = dataUint256["numSimplePolicies"].add(1);
   }
 
-  function _verifyPremiumRep(address _entityAddress) internal view {
+  function _verifyEntityRep(address _entityAddress) internal view {
     // assert msg.sender has the role entity representative on _entityAddress
     bytes32 entityCtx = AccessControl(_entityAddress).aclContext();
     require(acl().hasRoleInGroup(entityCtx, msg.sender, ROLEGROUP_ENTITY_REPS), 'not an entity rep');
@@ -88,7 +88,7 @@ contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCore
     override
   {
     
-    _verifyPremiumRep(_entityAddress);
+    _verifyEntityRep(_entityAddress);
 
     require(_amount > 0, 'invalid premium amount');
 
@@ -102,7 +102,9 @@ contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCore
     dataUint256[__a(unit, "balance")] += _amount;
 
     // then move money from _entityAddress to this entity
-    IERC20(unit).transferFrom(_entityAddress, address(policy), _amount);
+    IERC20 token = IERC20(unit);
+    token.approve(address(this), _amount);
+    token.transferFrom(_entityAddress, address(policy), _amount);
 
   }
 

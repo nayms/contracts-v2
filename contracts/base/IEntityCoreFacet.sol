@@ -68,4 +68,18 @@ interface IEntityCoreFacet {
     address indexed entity,
     address indexed deployer
   );
+  
+  /**
+   * @dev Update Allow Policy.
+   *
+   * @param _allow Allow.
+   */
+  function updateAllowPolicy(bool _allow) external;
+  
+  /**
+   * @dev Get Allow Policy.
+   *
+   */
+  function allowPolicy() external view returns (bool _allow);
+  
 }

@@ -147,6 +147,8 @@ describe('Integration: Portfolio underwriting', () => {
     startDate = initiationDate + 1000
     maturationDate = startDate + 2000
 
+    await entity.updateAllowPolicy(true)
+
     const createPolicyTx = await createPolicy(entity, {
       type: 1 /* portfolio type */,
       initiationDate,
@@ -161,6 +163,9 @@ describe('Integration: Portfolio underwriting', () => {
       broker,
       claimsAdmin,
     }, { from: entityManagerAddress })
+
+    await entity.updateAllowPolicy(false)
+
     const policyAddress = extractEventArgs(createPolicyTx, events.NewPolicy).policy
     policyOwnerAddress = entityManagerAddress
 

@@ -2,8 +2,6 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
-import "./base/Controller.sol";
-import "./base/EternalStorage.sol";
 import "./EntityFacetBase.sol";
 import "./base/IEntityCoreFacet.sol";
 import "./base/IDiamondFacet.sol";
@@ -14,11 +12,16 @@ import "./base/IPolicy.sol";
 import "./base/SafeMath.sol";
 import "./Policy.sol";
 
-contract EntityCoreFacet is EternalStorage, Controller, EntityFacetBase, IEntityCoreFacet, IDiamondFacet {
+contract EntityCoreFacet is EntityFacetBase, IEntityCoreFacet, IDiamondFacet {
   using SafeMath for uint256;
 
   modifier assertCanPayTranchePremiums (address _policyAddress) {
     require(inRoleGroup(msg.sender, ROLEGROUP_ENTITY_REPS), 'must be entity rep');
+    _;
+  }
+
+  modifier assertPolicyCreationEnabled () {
+    require(this.allowPolicy(), 'policy creation disabled');
     _;
   }
 
@@ -34,6 +37,8 @@ contract EntityCoreFacet is EternalStorage, Controller, EntityFacetBase, IEntity
     return abi.encodePacked(
       IEntityCoreFacet.createPolicy.selector,
       IEntityCoreFacet.payTranchePremium.selector,
+      IEntityCoreFacet.updateAllowPolicy.selector,
+      IEntityCoreFacet.allowPolicy.selector,
       IParent.getNumChildren.selector,
       IParent.getChild.selector,
       IParent.hasChild.selector
@@ -50,8 +55,9 @@ contract EntityCoreFacet is EternalStorage, Controller, EntityFacetBase, IEntity
     uint256[][] calldata _trancheData,
     bytes[] calldata _approvalSignatures
   ) 
-    external 
-    override 
+  external 
+  override 
+  assertPolicyCreationEnabled
   {
     require(
       IAccessControl(_unitAndTreasuryAndStakeholders[3]).aclContext() == aclContext(),
@@ -126,4 +132,20 @@ contract EntityCoreFacet is EternalStorage, Controller, EntityFacetBase, IEntity
     // do it
     p.payTranchePremium(_trancheIndex, _amount);
   }
+
+  function updateAllowPolicy(
+    bool _allow
+  )
+  external
+  override
+  assertIsSystemManager (msg.sender)
+  {
+      dataBool["allowPolicy"] = _allow;
+  }
+
+  function allowPolicy() external override view returns (bool _allow)
+  {
+    return dataBool["allowPolicy"];
+  }
+
 }

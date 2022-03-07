@@ -19,12 +19,12 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
   using Strings for string;
 
   modifier assertCanStartTokenSale () {
-    require(inRoleGroup(msg.sender, ROLEGROUP_ENTITY_MANAGERS), 'must be entity mgr');
+    require(inRoleGroup(msg.sender, ROLEGROUP_SYSTEM_MANAGERS), 'must be system mgr');
     _;
   }
 
   modifier assertCanCancelTokenSale () {
-    require(inRoleGroup(msg.sender, ROLEGROUP_ENTITY_MANAGERS), 'must be entity mgr');
+    require(inRoleGroup(msg.sender, ROLEGROUP_SYSTEM_MANAGERS), 'must be system mgr');
     _;
   }
 

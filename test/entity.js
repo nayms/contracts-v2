@@ -1054,6 +1054,11 @@ describe('Entity', () => {
         await entity.createSimplePolicy(id, startDate, maturationDate, unit, 0, stakeholders, signatures).should.be.rejectedWith('limit not > 0')
       })
 
+      it('collateral ratio is valid', async () => {
+        await entity.updateAllowSimplePolicy(true, { from: systemManager })
+        await entity.updateEnabledCurrency(unit, 1500, 100, { from: systemManager }).should.be.rejectedWith('collateral ratio is 0-1000')
+      })
+
       it('limit is below max capital', async () => {
         await entity.updateAllowSimplePolicy(true, { from: systemManager })
         await entity.updateEnabledCurrency(unit, 500, 100, { from: systemManager })

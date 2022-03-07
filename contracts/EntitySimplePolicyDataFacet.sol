@@ -74,9 +74,9 @@ contract EntitySimplePolicyDataFacet is EntityFacetBase, IDiamondFacet, IEntityS
     uint256 _collateralRatio,
     uint256 _maxCapital
   )
-  external
-  override
-  assertIsSystemManager (msg.sender)
+    external
+    override
+    assertIsSystemManager(msg.sender)
   {
     bool hasUnit = false;
     address[] memory newUnits;

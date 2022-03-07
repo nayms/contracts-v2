@@ -35,7 +35,6 @@ contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCore
     uint256 newTotalLimit = dataUint256[__a(_unit, "totalLimit")] + _limit;
     require(maxCapital >= newTotalLimit, 'max capital exceeded');
 
-    //balance is how much money is deposited into the entity. This is only updated if you deposit or withdraw
     uint256 balance = dataUint256[__a(_unit, "balance")];
     require(balance >= newTotalLimit.mul(collateralRatio).div(1000), 'collateral ratio not met');
   }
@@ -49,8 +48,8 @@ contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCore
     address[] calldata _stakeholders,
     bytes[] calldata _approvalSignatures
   ) 
-  external 
-  override 
+    external 
+    override 
   {
 
     _validateSimplePolicyCreation(_unit, _limit);
@@ -75,14 +74,10 @@ contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCore
   }
 
   function _verifyEntityRep(address _entityAddress) internal view {
-    // assert msg.sender has the role entity representative on _entityAddress
     bytes32 entityCtx = AccessControl(_entityAddress).aclContext();
     require(acl().hasRoleInGroup(entityCtx, msg.sender, ROLEGROUP_ENTITY_REPS), 'not an entity rep');
   }
 
-  // This is called on the entitywhere a policy is created.
-  // It transfers the amount from your entity (specified by entityAddress) to the the entity where the policy is created 
-  // entityAddress should be specified because it is possible for msg.sender to belong to multiple entities.
   function paySimplePremium(bytes32 _id, address _entityAddress, uint256 _amount)
     external
     override
@@ -97,11 +92,9 @@ contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCore
     address unit;
     (, , , , unit, , ) = policy.getSimplePolicyInfo();
 
-    // add _amount to premiumsPaid
     dataUint256[__a(unit, "premiumsPaid")] += _amount;
     dataUint256[__a(unit, "balance")] += _amount;
 
-    // then move money from _entityAddress to this entity
     IERC20 token = IERC20(unit);
     token.approve(address(this), _amount);
     token.transferFrom(_entityAddress, address(policy), _amount);
@@ -120,7 +113,6 @@ contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCore
     bool reduceTotalLimit = policy.checkAndUpdateState();
     
     if(reduceTotalLimit) {
-      // remove from balance
       address unit;
       uint256 limit;
       (, , , , unit, limit, ) = policy.getSimplePolicyInfo();

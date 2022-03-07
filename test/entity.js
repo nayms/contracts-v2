@@ -19,6 +19,7 @@ import { ensureEntityDeployerIsDeployed } from '../deploy/modules/entityDeployer
 import { ensureEntityImplementationsAreDeployed } from '../deploy/modules/entityImplementations'
 import { ensurePolicyImplementationsAreDeployed } from '../deploy/modules/policyImplementations'
 import { getAccounts } from '../deploy/utils'
+import { expect } from 'chai'
 
 const IEntity = artifacts.require("base/IEntity")
 const Proxy = artifacts.require('base/Proxy')
@@ -876,6 +877,7 @@ describe('Entity', () => {
     })
 
     it('by anyone', async () => {
+      await entity.allowPolicy().should.eventually.eq(true)
       await createPolicy(entity, {}, { from: accounts[9] }).should.be.fulfilled
     })
 
@@ -1041,7 +1043,7 @@ describe('Entity', () => {
       unit = etherToken.address
 
     })
-    
+
     describe('can be created if', () => {
 
       it('creation is enabled on entity', async () => {
@@ -1242,6 +1244,19 @@ describe('Entity', () => {
 
         })
       })
+
+      it('currency can be disabled', async () => {
+        await entity.updateEnabledCurrency(unit, 500, 100, { from: systemManager })
+        
+        const currencies = await entity.getEnabledCurrencies()
+        expect(currencies).to.have.members([ unit ])
+
+        await entity.updateEnabledCurrency(unit, 0, 0, { from: systemManager })
+        
+        const currencies2 = await entity.getEnabledCurrencies()
+        expect(currencies2).to.not.have.members([ unit ])
+      })
+
     })
   })
 })

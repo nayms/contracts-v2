@@ -22,6 +22,7 @@ contract EntitySimplePolicyDataFacet is EntityFacetBase, IDiamondFacet, IEntityS
       IEntitySimplePolicyDataFacet.getSimplePolicyId.selector,
       IEntitySimplePolicyDataFacet.getPremiumsAndClaimsPaid.selector,
       IEntitySimplePolicyDataFacet.getEnabledCurrency.selector,
+      IEntitySimplePolicyDataFacet.getEnabledCurrencies.selector,
       IEntitySimplePolicyDataFacet.updateEnabledCurrency.selector,
       IEntitySimplePolicyDataFacet.paySimpleClaim.selector
     );

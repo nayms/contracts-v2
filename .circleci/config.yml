@@ -69,6 +69,7 @@ jobs:
       - run:
           name: Deploy to Rinkeby
           command: yarn deploy:rinkeby
+          no_output_timeout: 20m
       - persist_to_workspace:
           root: ~/repo
           paths: .

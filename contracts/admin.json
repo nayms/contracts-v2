@@ -808,6 +808,39 @@
       ]
     },
     {
+      "id": "allowPolicy",
+      "title": "Entity: get allow policy",
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "title": "Entity contract address",
+          "type": "address",
+          "validation": [
+            {
+              "type": "allowedTypes",
+              "contract": true
+            }
+          ]
+        }
+      ],
+      "execs": [
+        {
+          "type": "call",
+          "contract": "IEntity",
+          "method": "allowPolicy",
+          "address": "@input[contractAddress]",
+          "saveResultAsInput": "allowPolicy"
+        }
+      ],
+      "outputs": [
+        {
+          "title": "Allow Policy",
+          "type": "bool",
+          "value": "@input[allowPolicy]"
+        }
+      ]
+    },
+    {
       "id": "heartbeat",
       "title": "Policy: Heartbeat",
       "description": "Anyone can call this",

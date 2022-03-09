@@ -45,7 +45,7 @@ library ECDSA {
         assembly {
             r := mload(add(signature, 0x20))
             s := mload(add(signature, 0x40))
-            v := byte(0, mload(add(signature, 0x60)))
+            v := bytes1(0, mload(add(signature, 0x60)))
         }
 
         // EIP-2 still allows signature malleability for ecrecover(). Remove this possibility and make the signature

@@ -50,7 +50,7 @@ library Address {
      * From https://ethereum.stackexchange.com/a/58341/56159
      */
     function toString(address _addr) internal pure returns (string memory) {
-        bytes32 value = bytes32(uint256(_addr));
+        bytes32 value = bytes32(uint256(uint160(_addr)));
         bytes memory alphabet = "0123456789abcdef";
 
         bytes memory str = new bytes(42);

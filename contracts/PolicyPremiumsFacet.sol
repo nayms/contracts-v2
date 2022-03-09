@@ -86,7 +86,7 @@ contract PolicyPremiumsFacet is EternalStorage, Controller, IDiamondFacet, IPoli
 
       (expectedAmount, expectedAt, paidSoFar) = _getNextTranchePremium(_index);
 
-      require(expectedAt >= now, 'payment too late');
+      require(expectedAt >= block.timestamp, 'payment too late');
 
       uint256 pending = expectedAmount.sub(paidSoFar);
 
@@ -98,7 +98,7 @@ contract PolicyPremiumsFacet is EternalStorage, Controller, IDiamondFacet, IPoli
         _amount = _amount.sub(pending);
 
         dataUint256[__i(_index, "numPremiumsPaid")] = numPremiumsPaid + 1;
-        dataUint256[__ii(_index, numPremiumsPaid, "premiumPaidAt")] = now;
+        dataUint256[__ii(_index, numPremiumsPaid, "premiumPaidAt")] = block.timestamp;
         dataUint256[__ii(_index, numPremiumsPaid, "premiumPaidSoFar")] = dataUint256[__ii(_index, numPremiumsPaid, "premiumAmount")];
       } else {
         netPremium += _applyPremiumPaymentAmount(_index, _amount);

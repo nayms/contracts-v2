@@ -144,10 +144,14 @@ describe('Policy: Commissions', () => {
     TRANCHE_STATE_ACTIVE = await policyStates.TRANCHE_STATE_ACTIVE()
     TRANCHE_STATE_MATURED = await policyStates.TRANCHE_STATE_MATURED()
 
+    await entity.updateAllowPolicy(true)
+
     const preSetupPolicyCtx = { policies, settings, events, etherToken, entity, entityManagerAddress }
     await Promise.all([
       preSetupPolicy(preSetupPolicyCtx, POLICY_ATTRS_1),
     ])
+
+    await entity.updateAllowPolicy(false)
 
     setupPolicy = async arg => {
       const { attrs, policyAddress } = policies.get(arg)

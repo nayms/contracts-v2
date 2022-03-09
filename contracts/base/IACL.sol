@@ -119,6 +119,7 @@ interface IACL {
    * @return either `DOES_NOT_HAVE_ROLE` or one of the `HAS_ROLE_...` constants
    */
   function hasRole(bytes32 _context, address _addr, bytes32 _role) external view returns (uint256);
+
   /**
    * @dev Get whether given address has any of the given roles in the given context.
    * @param _context Context name.
@@ -127,6 +128,7 @@ interface IACL {
    * @return true if so
    */
   function hasAnyRole(bytes32 _context, address _addr, bytes32[] calldata _roles) external view returns (bool);
+
   /**
    * @dev Assign a role to the given address in the given context.
    * @param _context Context name.
@@ -134,6 +136,16 @@ interface IACL {
    * @param _role The role.
    */
   function assignRole(bytes32 _context, address _addr, bytes32 _role) external;
+
+  /**
+   * @dev Assign a role to the given address in the given context and id.
+   * @param _context Context name.
+   * @param _id Id.
+   * @param _addr Address.
+   * @param _role The role.
+   */
+  // function assignRoleToId(bytes32 _context, bytes32 _id, address _addr, bytes32 _role) external;
+
   /**
    * @dev Remove a role from the given address in the given context.
    * @param _context Context name.
@@ -141,6 +153,16 @@ interface IACL {
    * @param _role The role to unassign.
    */
   function unassignRole(bytes32 _context, address _addr, bytes32 _role) external;
+  
+  /**
+   * @dev Remove a role from the given address in the given context.
+   * @param _context Context name.
+   * @param _id Id.
+   * @param _addr Address.
+   * @param _role The role to unassign.
+   */
+  // function unassignRoleToId(bytes32 _context, bytes32 _id, address _addr, bytes32 _role) external;
+  
   /**
    * @dev Get all role for given address in the given context.
    * @param _context Context name.

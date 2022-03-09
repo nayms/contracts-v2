@@ -10,7 +10,7 @@
     "index.js",
     "releaseConfig.json",
     "contracts.generated.js",
-    "build/**",
+    "artifacts/**",
     "utils/**",
     "contracts/**",
     "deployedAddresses.json",

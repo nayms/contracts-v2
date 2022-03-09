@@ -31,7 +31,7 @@ abstract contract MarketFacetBase is EternalStorage, Controller, IMarketFeeSched
     sell_.amount = dataUint256[__i(_offerId, "sellAmount")];
     buy_.token = dataAddress[__i(_offerId, "buyToken")];
     buy_.amount = dataUint256[__i(_offerId, "buyAmount")];
-  }  
+  }
 
   function _calculateFee(
     address _sellToken, 

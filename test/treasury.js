@@ -96,6 +96,8 @@ describe('Treasury', () => {
     entity = await IEntity.at(entityProxy.address)
     entityContext = await entityProxy.aclContext()
 
+    await entity.updateAllowPolicy(true)
+
     // policy
     policies = []
     for (let i = 1; 3 >= i; i += 1) {
@@ -110,6 +112,8 @@ describe('Treasury', () => {
         testFacet: await IPolicyTreasuryTestFacet.at(policyAddress),
       })
     }
+
+    await entity.updateAllowPolicy(false)
 
     // test facets
     entityTreasuryTestFacet = await IEntityTreasuryTestFacet.at(entity.address)

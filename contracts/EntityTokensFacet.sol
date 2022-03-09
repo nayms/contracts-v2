@@ -168,12 +168,13 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
       // if we created this offer
       if (entity == address(this)) {
         // check entity token matches sell token
-        (, address sellToken, , , address buyToken, , , , , , ,) = _getMarket().getOffer(_offerId);
+        OfferState memory offerState = _getMarket().getOffer(_offerId);
+        // (, address sellToken, , , address buyToken, , , , , , ,) = _getMarket().getOffer(_offerId);
         address tokenAddress = dataAddress["token"];
-        require(tokenAddress == sellToken, "sell token must be entity token");
+        require(tokenAddress == offerState.sellToken, "sell token must be entity token");
 
         // add bought amount to balance
-        string memory balKey = __a(buyToken, "balance");
+        string memory balKey = __a(offerState.buyToken, "balance");
         dataUint256[balKey] = dataUint256[balKey].add(_boughtAmount);
       }
     }    
@@ -200,9 +201,10 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
       // if we created this offer
       if (entity == address(this)) {
         // check entity token matches sell token
-        (, address sellToken, , , , , , , , , ,) = _getMarket().getOffer(_offerId);
+        OfferState memory offerState = _getMarket().getOffer(_offerId);
+        // (, address sellToken, , , , , , , , , ,) = _getMarket().getOffer(_offerId);
         address tokenAddress = dataAddress["token"];
-        require(tokenAddress == sellToken, "sell token must be entity token");
+        require(tokenAddress == offerState.sellToken, "sell token must be entity token");
 
         // burn the unsold amount (currently owned by the entity since the market has already sent it back)
         if (_unsoldAmount > 0) {

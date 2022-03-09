@@ -1339,7 +1339,7 @@ describe('Integration: SPV', () => {
 
           const offer = await market.getOffer(buybackOfferId)
 
-          await market.executeMarketOffer(trancheTkn.address, offer.buyAmount_, etherToken.address, { from: accounts[2] });
+          await market.executeMarketOffer(trancheTkn.address, offer.buyAmount, etherToken.address, { from: accounts[2] });
 
           await trancheTkn.balanceOf(entity.address).should.eventually.eq(numShares)
  
@@ -1356,7 +1356,7 @@ describe('Integration: SPV', () => {
 
           const offer0 = await market.getOffer(buybackOfferId0)
 
-          await market.executeMarketOffer(trancheTkn0.address, offer0.buyAmount_, etherToken.address, { from: accounts[2] });
+          await market.executeMarketOffer(trancheTkn0.address, offer0.buyAmount, etherToken.address, { from: accounts[2] });
 
           expect((await policy.getTrancheInfo(0)).buybackCompleted_).to.eq(true)
 
@@ -1372,7 +1372,7 @@ describe('Integration: SPV', () => {
 
           const offer1 = await market.getOffer(buybackOfferId1)
 
-          await market.executeMarketOffer(trancheTkn1.address, offer1.buyAmount_, etherToken.address, { from: accounts[2] });
+          await market.executeMarketOffer(trancheTkn1.address, offer1.buyAmount, etherToken.address, { from: accounts[2] });
 
           expect((await policy.getTrancheInfo(1)).buybackCompleted_).to.eq(true)
 

@@ -32,6 +32,11 @@ async function main() {
         throw new Error('Release config does not allow Rinkeby deployment')
       }
       break
+    case 'kovan':
+      if (releaseConfig.deployNetwork !== 'kovan') {
+        throw new Error('Release config does not allow Kovan deployment')
+      }
+      break
     default:
     // do nothing
   }

@@ -51,6 +51,14 @@ module.exports = {
         mnemonic,
       },
       timeout: 120000,
+    },
+    kovan: {
+      chainId: 42,
+      url: `https://kovan.infura.io/v3/${infuraKey}`,
+      accounts: {
+        mnemonic,
+      },
+      timeout: 120000,
     }
   },
 

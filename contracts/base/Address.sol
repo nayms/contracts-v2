@@ -41,7 +41,7 @@ library Address {
      * @dev Get it via `npm install @openzeppelin/contracts@next`.
      */
     function toPayable(address _account) internal pure returns (address payable) {
-        return address(uint160(_account));
+        return payable(address(uint160(_account)));
     }
 
 

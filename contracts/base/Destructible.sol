@@ -22,6 +22,6 @@ contract Destructible is Controller {
     public
     assertIsAdmin
   {
-    selfdestruct(msg.sender);
+    selfdestruct(payable(msg.sender));
   }
 }

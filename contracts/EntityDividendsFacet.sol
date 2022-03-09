@@ -18,7 +18,7 @@ contract EntityDividendsFacet is EternalStorage, Controller, EntityFacetBase, IE
   /**
    * Constructor
    */
-  constructor (address _settings) Controller(_settings) public {
+  constructor (address _settings) Controller(_settings) {
   }
 
   // IDiamondFacet

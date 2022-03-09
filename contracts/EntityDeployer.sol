@@ -19,7 +19,7 @@ contract EntityDeployer is EternalStorage, Destructible, IEntityDeployer, Parent
   /**
    * Constructor
    */
-  constructor (address _settings) Destructible(_settings) public {
+  constructor (address _settings) Destructible(_settings) {
     // empty
   }
 

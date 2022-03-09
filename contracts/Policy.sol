@@ -14,7 +14,7 @@ contract Policy is Controller, Proxy, PolicyFacetBase, Child {
     address _caller,
     uint256[] memory _typeAndDatesAndCommissionsBP,
     address[] memory _unitAndTreasuryAndStakeholders
-  ) Controller(_settings) Proxy() public
+  ) Controller(_settings) Proxy() 
   {
     _setParent(msg.sender);
     _setDelegateAddress(settings().getRootAddress(SETTING_POLICY_DELEGATE));

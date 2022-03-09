@@ -31,7 +31,7 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
   /**
    * Constructor
    */
-  constructor (address _settings) Controller(_settings) public {
+  constructor (address _settings) Controller(_settings) {
   }
 
   // IDiamondFacet

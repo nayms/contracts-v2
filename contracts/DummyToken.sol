@@ -15,7 +15,7 @@ contract DummyToken is IDummyToken, PlatformToken {
   uint8 public override decimals;
   uint256 public override totalSupply;
 
-  constructor (string memory _name, string memory _symbol, uint8 _decimals, uint256 _initialSupply, bool _isPlatformToken) public {
+  constructor (string memory _name, string memory _symbol, uint8 _decimals, uint256 _initialSupply, bool _isPlatformToken) {
     name = _name;
     symbol = _symbol;
     decimals = _decimals;

@@ -12,7 +12,7 @@ import "./IDiamondFacet.sol";
 import "./IDiamondProxy.sol";
 
 abstract contract DiamondProxy is DiamondStorageBase, IDiamondProxy {
-  constructor () public {
+  constructor () {
     DiamondCutter diamondCutter = new DiamondCutter();
     dataAddress["diamondCutter"] = address(diamondCutter);
   }

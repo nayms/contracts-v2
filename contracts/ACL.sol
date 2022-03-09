@@ -334,7 +334,7 @@ contract ACL is IACL, IACLConstants {
     _;
   }
 
-  constructor (bytes32 _adminRole, bytes32 _adminRoleGroup) public {
+  constructor (bytes32 _adminRole, bytes32 _adminRoleGroup) {
     adminRole = _adminRole;
     adminRoleGroup = _adminRoleGroup;
     systemContext = keccak256(abi.encodePacked(address(this)));

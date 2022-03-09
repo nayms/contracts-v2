@@ -28,7 +28,7 @@ contract EntityCoreFacet is EntityFacetBase, IEntityCoreFacet, IDiamondFacet {
   /**
    * Constructor
    */
-  constructor (address _settings) Controller(_settings) public {
+  constructor (address _settings) Controller(_settings) {
   }
 
   // IDiamondFacet

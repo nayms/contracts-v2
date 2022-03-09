@@ -15,7 +15,6 @@ contract Controller is AccessControl, SettingsControl {
   constructor (address _settings)
     AccessControl(_settings)
     SettingsControl(_settings)
-    public
   {
   }
 }

@@ -11,7 +11,7 @@ contract Destructible is Controller {
    * @dev Constructor.
    * @param _settings Settings address.
    */
-  constructor(address _settings) Controller(_settings) public {
+  constructor(address _settings) Controller(_settings) {
     // empty
   }
 

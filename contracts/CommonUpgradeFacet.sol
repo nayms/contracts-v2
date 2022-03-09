@@ -6,7 +6,7 @@ import "./base/IDiamondUpgradeFacet.sol";
 import "./base/IDiamondProxy.sol";
 
 contract CommonUpgradeFacet is Controller, IDiamondUpgradeFacet {
-  constructor (address _settings) Controller(_settings) public {
+  constructor (address _settings) Controller(_settings) {
     // empty
   }
 

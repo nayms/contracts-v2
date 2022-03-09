@@ -11,7 +11,7 @@ import './base/PlatformToken.sol';
 contract EntityToken is IERC20, PlatformToken {
   IEntityTokensFacet public impl;
 
-  constructor (address _impl) public {
+  constructor (address _impl) {
     impl = IEntityTokensFacet(_impl);
   }
 

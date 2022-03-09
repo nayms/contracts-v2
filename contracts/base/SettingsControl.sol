@@ -14,7 +14,7 @@ contract SettingsControl is EternalStorage, ISettingsControl, ISettingsKeys {
    * @dev Constructor.
    * @param _settings Settings address.
    */
-  constructor (address _settings) public {
+  constructor (address _settings) {
     dataAddress["settings"] = _settings;
   }
 

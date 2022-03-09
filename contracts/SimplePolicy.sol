@@ -31,7 +31,7 @@ contract SimplePolicy is Controller, Proxy, ISimplePolicy, ISimplePolicyStates {
     uint256 _limit,
     address[] memory _stakeholders,
     bytes[] memory _approvalSignatures
-  ) Controller(_settings) Proxy() public
+  ) Controller(_settings) Proxy() 
   { 
     require(_limit > 0, 'limit not > 0');
 

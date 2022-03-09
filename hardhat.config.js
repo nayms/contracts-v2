@@ -8,7 +8,7 @@ require('solidity-coverage')
 const { TEST_MNEMONIC } = require('./utils/constants')
 
 const mnemonic = process.env.MNEMONIC || 'notset'
-const infuraKey = process.env.INFURA_KEY || process.env.INFURA_ID || 'notset'
+const alchemyKey = process.env.ALCHEMY_KEY || process.env.ALCHEMY_ID || 'notset'
 
 module.exports = {
   solidity: {
@@ -38,7 +38,7 @@ module.exports = {
     },
     mainnet: {
       chainId: 1,
-      url: `https://mainnet.infura.io/v3/${infuraKey}`,
+      url: `https://eth-mainnet.alchemyapi.io/v2/${alchemyKey}`,
       accounts: {
         mnemonic,
       },
@@ -46,15 +46,17 @@ module.exports = {
     },
     rinkeby: {
       chainId: 4,
-      url: `https://rinkeby.infura.io/v3/${infuraKey}`,
+      url: `https://eth-rinkeby.alchemyapi.io/v2/${alchemyKey}`,
       accounts: {
         mnemonic,
       },
       timeout: 120000,
+      gasPrice: 8000000000,
+      gasMultiplier: 1
     },
     kovan: {
       chainId: 42,
-      url: `https://kovan.infura.io/v3/${infuraKey}`,
+      url: `https://eth-kovan.alchemyapi.io/v2/${alchemyKey}`,
       accounts: {
         mnemonic,
       },

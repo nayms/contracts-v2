@@ -12,7 +12,7 @@ contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCore
   
   using SafeMath for uint256;
 
-  constructor (address _settings) public Controller(_settings) { }
+  constructor (address _settings) Controller(_settings) { }
 
   function getSelectors () public pure override returns (bytes memory) {
     return abi.encodePacked(

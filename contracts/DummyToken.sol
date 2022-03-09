@@ -75,7 +75,7 @@ contract DummyToken is IDummyToken, PlatformToken {
       // Balance covers value
       balances[msg.sender] = balances[msg.sender].sub(value, 'DummyToken: insufficient balance');
       totalSupply = totalSupply.sub(value);
-      msg.sender.transfer(value);
+      payable(msg.sender).transfer(value);
       emit Withdrawal(msg.sender, value);
   }
 }

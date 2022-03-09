@@ -12,7 +12,7 @@ contract TrancheToken is IERC20, PlatformToken {
   IPolicyTrancheTokensFacet public impl;
   uint256 public index;
 
-  constructor (address _impl, uint256 _index) public {
+  constructor (address _impl, uint256 _index) {
     impl = IPolicyTrancheTokensFacet(_impl);
     index = _index;
   }

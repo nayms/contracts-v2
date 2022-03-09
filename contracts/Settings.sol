@@ -23,7 +23,7 @@ import "./base/IACL.sol";
    * Constructor
    * @param _acl ACL address.
    */
-  constructor (address _acl) public {
+  constructor (address _acl) {
     dataAddress["acl"] = _acl;
   }
 

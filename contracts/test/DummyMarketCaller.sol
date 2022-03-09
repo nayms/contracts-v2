@@ -16,7 +16,7 @@ contract DummyParent is Parent {
 contract DummyMarketCaller is Child, DummyParent {
   address private market;
 
-  constructor (address _market, address _parent) public {
+  constructor (address _market, address _parent) {
     market = _market;
     _setParent(_parent);
   }

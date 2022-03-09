@@ -16,7 +16,7 @@ interface IPolicyTreasuryTestFacet is IDiamondFacet {
 }
 
 contract PolicyTreasuryTestFacet is EternalStorage, PolicyFacetBase, IPolicyTreasuryTestFacet, Controller, IMarketFeeSchedules {
-  constructor (address _settings) Controller(_settings) public {
+  constructor (address _settings) Controller(_settings) {
     // nothing
   }
 

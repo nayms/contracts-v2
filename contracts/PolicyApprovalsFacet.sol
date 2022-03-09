@@ -25,7 +25,7 @@ contract PolicyApprovalsFacet is EternalStorage, Controller, IDiamondFacet, IPol
   /**
    * Constructor
    */
-  constructor (address _settings) Controller(_settings) public {
+  constructor (address _settings) Controller(_settings) {
     // empty
   }
 

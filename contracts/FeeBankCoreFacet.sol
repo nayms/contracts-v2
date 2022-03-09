@@ -14,7 +14,7 @@ contract FeeBankCoreFacet is EternalStorage, Controller, IDiamondFacet, IFeeBank
   /**
    * Constructor
    */
-  constructor (address _settings) Controller(_settings) public {
+  constructor (address _settings) Controller(_settings) {
   }
 
   // IDiamondFacet

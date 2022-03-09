@@ -28,7 +28,7 @@ contract PolicyTrancheTokensFacet is EternalStorage, Controller, IDiamondFacet, 
   /**
    * Constructor
    */
-  constructor (address _settings) Controller(_settings) public {
+  constructor (address _settings) Controller(_settings) {
     // empty
   }
 

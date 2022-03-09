@@ -14,7 +14,7 @@ contract MarketDataFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
   /**
    * Constructor
    */
-  constructor (address _settings) Controller(_settings) public {
+  constructor (address _settings) Controller(_settings) {
   }
 
   // IDiamondFacet

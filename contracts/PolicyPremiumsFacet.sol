@@ -26,7 +26,7 @@ contract PolicyPremiumsFacet is EternalStorage, Controller, IDiamondFacet, IPoli
   /**
    * Constructor
    */
-  constructor (address _settings) Controller(_settings) public {
+  constructor (address _settings) Controller(_settings) {
     // empty
   }
 

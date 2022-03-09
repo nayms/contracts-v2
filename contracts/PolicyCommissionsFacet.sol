@@ -23,7 +23,7 @@ contract PolicyCommissionsFacet is EternalStorage, Controller, IDiamondFacet, IP
   /**
    * Constructor
    */
-  constructor (address _settings) Controller(_settings) public {
+  constructor (address _settings) Controller(_settings) {
     // empty
   }
 

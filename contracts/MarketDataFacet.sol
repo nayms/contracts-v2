@@ -7,8 +7,10 @@ import "./base/IMarketOfferStates.sol";
 import "./base/IDiamondFacet.sol";
 import "./base/Controller.sol";
 import "./MarketFacetBase.sol";
+import "./base/SafeMath.sol";
 
 contract MarketDataFacet is EternalStorage, Controller, MarketFacetBase, IDiamondFacet, IMarketDataFacet, IMarketOfferStates {
+  using SafeMath for uint256;
   /**
    * Constructor
    */

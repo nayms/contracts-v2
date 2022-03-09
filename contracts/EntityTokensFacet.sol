@@ -13,10 +13,12 @@ import "./base/SafeMath.sol";
 import "./base/Strings.sol";
 import "./EntityFacetBase.sol";
 import "./EntityToken.sol";
+import {Address} from "./base/Address.sol";
 
 contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEntityTokensFacet, IMarketObserver, IMarketObserverDataTypes, IDiamondFacet {
   using SafeMath for uint256;
   using Strings for string;
+  using Address for address;
 
   modifier assertCanStartTokenSale () {
     require(inRoleGroup(msg.sender, ROLEGROUP_SYSTEM_MANAGERS), 'must be system mgr');

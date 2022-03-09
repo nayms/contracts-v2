@@ -73,7 +73,7 @@ async function main () {
 
   // update solidity contract
   fs.writeFileSync(commonUpgradeFacetContract, `// SPDX-License-Identifier: MIT
-pragma solidity >=0.6.7;
+pragma solidity 0.8.12;
 
 import "./base/Controller.sol";
 import "./base/IDiamondUpgradeFacet.sol";

@@ -25,6 +25,7 @@ module.exports = {
     "base/DiamondStorageBase.sol",
     "base/DiamondCutter.sol",
   ],
+  configureYulOptimizer: true,
   onCompileComplete: async () => {
     await spawn('yarn', ['generate-index'], { cwd: __dirname })
   }

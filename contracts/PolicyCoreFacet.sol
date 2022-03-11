@@ -16,7 +16,6 @@ import "./base/IMarketObserverDataTypes.sol";
 import "./base/IMarketFeeSchedules.sol";
 import "./base/IPolicyTypes.sol";
 import "./PolicyFacetBase.sol";
-import "./base/SafeMath.sol";
 import "./TrancheToken.sol";
 import "./base/ReentrancyGuard.sol";
 
@@ -24,7 +23,6 @@ import "./base/ReentrancyGuard.sol";
  * @dev Core policy logic
  */
 contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCoreFacet, IPolicyTypes, PolicyFacetBase, IPolicyTreasuryConstants, ReentrancyGuard, IMarketObserverDataTypes, IMarketFeeSchedules, Child {
-  using SafeMath for uint;
   using Address for address;
 
   // Modifiers //
@@ -249,7 +247,7 @@ contract PolicyCoreFacet is EternalStorage, Controller, IDiamondFacet, IPolicyCo
         uint256 totalSupply = IPolicyTrancheTokensFacet(address(this)).tknTotalSupply(i);
         // calculate sale values
         uint256 pricePerShare = dataUint256[__i(i, "pricePerShareAmount")];
-        uint256 totalPrice = totalSupply.mul(pricePerShare);
+        uint256 totalPrice = totalSupply * pricePerShare;
         // set tranche state
         _setTrancheState(i, TRANCHE_STATE_SELLING);
         // offer tokens in initial sale

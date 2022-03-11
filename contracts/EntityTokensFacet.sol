@@ -9,14 +9,12 @@ import "./base/IERC20.sol";
 import "./base/IMarket.sol";
 import "./base/IMarketObserver.sol";
 import "./base/IMarketObserverDataTypes.sol";
-import "./base/SafeMath.sol";
 import "./base/Strings.sol";
 import "./EntityFacetBase.sol";
 import "./EntityToken.sol";
 import {Address} from "./base/Address.sol";
 
 contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEntityTokensFacet, IMarketObserver, IMarketObserverDataTypes, IDiamondFacet {
-  using SafeMath for uint256;
   using Strings for string;
   using Address for address;
 
@@ -85,8 +83,8 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
 
     string memory k = __a(address(this), "tokenBalance");
 
-    dataUint256[k] = dataUint256[k].add(_amount);
-    dataUint256["tokenSupply"] = dataUint256["tokenSupply"].add(_amount);
+    dataUint256[k] = dataUint256[k] + _amount;
+    dataUint256["tokenSupply"] = dataUint256["tokenSupply"] + _amount;
 
     dataUint256["tokenSaleOfferId"] = _getMarket().executeLimitOffer(
       dataAddress["token"], 
@@ -175,7 +173,7 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
 
         // add bought amount to balance
         string memory balKey = __a(offerState.buyToken, "balance");
-        dataUint256[balKey] = dataUint256[balKey].add(_boughtAmount);
+        dataUint256[balKey] = dataUint256[balKey] + _boughtAmount;
       }
     }    
   }
@@ -227,8 +225,8 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
 
     require(dataUint256[fromKey] >= _value, 'not enough balance');
 
-    dataUint256[fromKey] = dataUint256[fromKey].sub(_value);
-    dataUint256[toKey] = dataUint256[toKey].add(_value);
+    dataUint256[fromKey] = dataUint256[fromKey] - _value;
+    dataUint256[toKey] = dataUint256[toKey] + _value;
 
     // add recipient to the token holder list
     if (dataUint256[__a(_to, "tokenHolderIndex")] == 0) {
@@ -264,12 +262,12 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
     
     string memory k = __a(_holder, "tokenBalance");
     require(dataUint256[k] >= _amount, "not enough balance to burn");    
-    dataUint256[k] = dataUint256[k].sub(_amount);
+    dataUint256[k] = dataUint256[k] - _amount;
 
     if (dataUint256[k] == 0) {
       _removeTokenHolder(_holder);
     }
 
-    dataUint256["tokenSupply"] = dataUint256["tokenSupply"].sub(_amount);
+    dataUint256["tokenSupply"] = dataUint256["tokenSupply"] - _amount;
   }
 }

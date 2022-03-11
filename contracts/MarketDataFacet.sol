@@ -7,10 +7,8 @@ import "./base/IMarketOfferStates.sol";
 import "./base/IDiamondFacet.sol";
 import "./base/Controller.sol";
 import "./MarketFacetBase.sol";
-import "./base/SafeMath.sol";
 
 contract MarketDataFacet is EternalStorage, Controller, MarketFacetBase, IDiamondFacet, IMarketDataFacet, IMarketOfferStates {
-  using SafeMath for uint256;
   /**
    * Constructor
    */
@@ -121,14 +119,14 @@ contract MarketDataFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
 
       // if sell amount >= offer buy amount then lets buy the whole offer
       if (sellAmount >= offerBuyAmount) {
-        soldAmount_ = soldAmount_.add(offerBuyAmount);
-        boughtAmount_ = boughtAmount_.add(offerSellAmount);
-        sellAmount = sellAmount.sub(offerBuyAmount);
+        soldAmount_ = soldAmount_ + offerBuyAmount;
+        boughtAmount_ = boughtAmount_ + offerSellAmount;
+        sellAmount = sellAmount - offerBuyAmount;
       } 
       // otherwise, let's just buy what we can
       else {
-        soldAmount_ = soldAmount_.add(sellAmount);
-        boughtAmount_ = boughtAmount_.add(sellAmount.mul(offerSellAmount).div(offerBuyAmount));
+        soldAmount_ = soldAmount_ + sellAmount;
+        boughtAmount_ = boughtAmount_ + (sellAmount * offerSellAmount / offerBuyAmount);
         sellAmount = 0;
       }
 

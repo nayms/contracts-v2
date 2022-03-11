@@ -9,11 +9,9 @@ import "./base/IParent.sol";
 import "./base/IERC20.sol";
 import "./base/IMarket.sol";
 import "./base/IPolicy.sol";
-import "./base/SafeMath.sol";
 import "./Policy.sol";
 
 contract EntityCoreFacet is EntityFacetBase, IEntityCoreFacet, IDiamondFacet {
-  using SafeMath for uint256;
 
   modifier assertCanPayTranchePremiums (address _policyAddress) {
     require(inRoleGroup(msg.sender, ROLEGROUP_ENTITY_REPS), 'must be entity rep');

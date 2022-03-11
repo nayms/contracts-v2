@@ -9,7 +9,6 @@ import "./base/IMarket.sol";
 import "./base/IMarketObserver.sol";
 import "./base/IMarketObserverDataTypes.sol";
 import "./base/AccessControl.sol";
-import "./base/SafeMath.sol";
 import "./base/Address.sol";
 import "./base/Strings.sol";
 import "./base/Uint.sol";
@@ -20,7 +19,6 @@ import "./PolicyFacetBase.sol";
  * @dev Business-logic for Policy commissions
  */
 contract PolicyTrancheTokensFacet is EternalStorage, Controller, IDiamondFacet, IPolicyTrancheTokensFacet, PolicyFacetBase, IMarketObserver, IMarketObserverDataTypes {
-  using SafeMath for uint;
   using Uint for uint;
   using Address for address;
   using Strings for string;
@@ -103,8 +101,8 @@ contract PolicyTrancheTokensFacet is EternalStorage, Controller, IDiamondFacet, 
 
     require(dataUint256[fromKey] >= _value, 'not enough balance');
 
-    dataUint256[fromKey] = dataUint256[fromKey].sub(_value);
-    dataUint256[toKey] = dataUint256[toKey].add(_value);
+    dataUint256[fromKey] = dataUint256[fromKey] - _value;
+    dataUint256[toKey] = dataUint256[toKey] + _value;
   }
 
   function handleTrade(
@@ -137,9 +135,9 @@ contract PolicyTrancheTokensFacet is EternalStorage, Controller, IDiamondFacet, 
           address trancheAddress = dataAddress[__i(trancheId, "address")];
           require(trancheAddress == offerState.sellToken, "sell token must be tranche token");
           // record how many "shares" were sold
-          dataUint256[__i(trancheId, "sharesSold")] = dataUint256[__i(trancheId, "sharesSold")].add(_soldAmount);
+          dataUint256[__i(trancheId, "sharesSold")] = dataUint256[__i(trancheId, "sharesSold")] + _soldAmount;
           // update tranche balance
-          dataUint256[__i(trancheId, "balance")] = dataUint256[__i(trancheId, "balance")].add(_boughtAmount);
+          dataUint256[__i(trancheId, "balance")] = dataUint256[__i(trancheId, "balance")] + _boughtAmount;
           // tell treasury to add tranche balance value to overall policy balance
           _getTreasury().incPolicyBalance(_boughtAmount);
           // if the tranche has fully sold out

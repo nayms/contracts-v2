@@ -4,13 +4,11 @@ pragma solidity 0.8.12;
 import "./base/IACL.sol";
 import "./base/IACLConstants.sol";
 import "./base/IAccessControl.sol";
-import "./base/SafeMath.sol";
 
 /**
  * @dev Library for managing addresses assigned to a Role within a context.
  */
 library Assignments {
-  using SafeMath for *;
 
   struct RoleUsers {
     mapping (address => uint256) map;
@@ -69,12 +67,12 @@ library Assignments {
     // remove from addr -> role map
     uint256 idx = ur.map[_role];
     if (idx > 0) {
-      uint256 actualIdx = idx.sub(1);
+      uint256 actualIdx = idx - 1;
 
       // replace item to remove with last item in list and update mappings
-      if (ur.list.length.sub(1) > actualIdx) {
-        ur.list[actualIdx] = ur.list[ur.list.length.sub(1)];
-        ur.map[ur.list[actualIdx]] = actualIdx.add(1);
+      if (ur.list.length - 1 > actualIdx) {
+        ur.list[actualIdx] = ur.list[ur.list.length - 1];
+        ur.map[ur.list[actualIdx]] = actualIdx + 1;
       }
 
       ur.list.pop();
@@ -84,12 +82,12 @@ library Assignments {
     // remove from role -> addr map
     idx = ru.map[_addr];
     if (idx > 0) {
-      uint256 actualIdx = idx.sub(1);
+      uint256 actualIdx = idx - 1;
 
       // replace item to remove with last item in list and update mappings
-      if (ru.list.length.sub(1) > actualIdx) {
-        ru.list[actualIdx] = ru.list[ru.list.length.sub(1)];
-        ru.map[ru.list[actualIdx]] = actualIdx.add(1);
+      if (ru.list.length - 1 > actualIdx) {
+        ru.list[actualIdx] = ru.list[ru.list.length - 1];
+        ru.map[ru.list[actualIdx]] = actualIdx + 1;
       }
 
       ru.list.pop();
@@ -98,12 +96,12 @@ library Assignments {
 
     // remove user if they don't have roles anymore
     if (ur.list.length == 0) {
-      uint256 actualIdx = _context.userMap[_addr].sub(1);
+      uint256 actualIdx = _context.userMap[_addr] - 1;
 
       // replace item to remove with last item in list and update mappings
-      if (_context.userList.length.sub(1) > actualIdx) {
-        _context.userList[actualIdx] = _context.userList[_context.userList.length.sub(1)];
-        _context.userMap[_context.userList[actualIdx]] = actualIdx.add(1);
+      if (_context.userList.length - 1 > actualIdx) {
+        _context.userList[actualIdx] = _context.userList[_context.userList.length - 1];
+        _context.userMap[_context.userList[actualIdx]] = actualIdx + 1;
       }
 
       _context.userList.pop();
@@ -200,7 +198,6 @@ library Assignments {
  * @dev Library for lists of byte32 value.
  */
 library Bytes32 {
-  using SafeMath for *;
 
   struct Set {
     mapping (bytes32 => uint256) map;
@@ -228,12 +225,12 @@ library Bytes32 {
     uint256 idx = _obj.map[_assignerRole];
 
     if (idx > 0) {
-      uint256 actualIdx = idx.sub(1);
+      uint256 actualIdx = idx - 1;
 
       // replace item to remove with last item in list and update mappings
-      if (_obj.list.length.sub(1) > actualIdx) {
-        _obj.list[actualIdx] = _obj.list[_obj.list.length.sub(1)];
-        _obj.map[_obj.list[actualIdx]] = actualIdx.add(1);
+      if (_obj.list.length - 1 > actualIdx) {
+        _obj.list[actualIdx] = _obj.list[_obj.list.length - 1];
+        _obj.map[_obj.list[actualIdx]] = actualIdx + 1;
       }
 
       _obj.list.pop();

@@ -96,7 +96,7 @@
     "solc": "=0.6.12",
     "solgraph": "^0.3.2",
     "solhint": "^2.2.0",
-    "solidity-coverage": "^0.7.16",
+    "solidity-coverage": "^0.7.20",
     "uuid": "^3.0.1",
     "web3": "^1.5.3",
     "web3-eth-abi": "^1.0.0-beta.55",

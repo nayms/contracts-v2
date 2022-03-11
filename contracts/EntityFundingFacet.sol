@@ -7,11 +7,9 @@ import "./base/IEntityFundingFacet.sol";
 import "./base/IDiamondFacet.sol";
 import "./base/IERC20.sol";
 import "./base/IMarket.sol";
-import "./base/SafeMath.sol";
 import "./EntityFacetBase.sol";
 
 contract EntityFundingFacet is EternalStorage, Controller, EntityFacetBase, IEntityFundingFacet, IDiamondFacet {
-  using SafeMath for uint256;
 
   modifier assertCanTradeTrancheTokens () {
     require(inRoleGroup(msg.sender, ROLEGROUP_TRADERS), 'must be trader');
@@ -49,7 +47,7 @@ contract EntityFundingFacet is EternalStorage, Controller, EntityFacetBase, IEnt
   {
     IERC20 tok = IERC20(_unit);
     tok.transferFrom(msg.sender, address(this), _amount);
-    dataUint256[__a(_unit, "balance")] = dataUint256[__a(_unit, "balance")].add(_amount);
+    dataUint256[__a(_unit, "balance")] = dataUint256[__a(_unit, "balance")] + _amount;
     
     emit EntityDeposit(msg.sender, _unit, _amount);
   }
@@ -63,7 +61,7 @@ contract EntityFundingFacet is EternalStorage, Controller, EntityFacetBase, IEnt
 
     _assertHasEnoughBalance(_unit, _amount);
 
-    dataUint256[__a(_unit, "balance")] = dataUint256[__a(_unit, "balance")].sub(_amount);
+    dataUint256[__a(_unit, "balance")] = dataUint256[__a(_unit, "balance")] - _amount;
 
     IERC20 tok = IERC20(_unit);
     tok.transfer(msg.sender, _amount);

@@ -5,13 +5,11 @@ import "./base/IMarketFeeSchedules.sol";
 import "./base/EternalStorage.sol";
 import "./base/Controller.sol";
 import "./base/Utils.sol";
-import "./base/SafeMath.sol";
 
 /**
  * @dev Market facet base class
  */
 abstract contract MarketFacetBase is EternalStorage, Controller, IMarketFeeSchedules {
-  using SafeMath for uint256;
 
   struct TokenAmount {
     address token;
@@ -54,10 +52,10 @@ abstract contract MarketFacetBase is EternalStorage, Controller, IMarketFeeSched
 
     if (sellTokenIsPlatformToken) {
       fee_.token = _buyToken;
-      fee_.amount = feeBP.mul(_buyAmount).div(10000);
+      fee_.amount = feeBP * _buyAmount / 10000;
     } else {
       fee_.token = _sellToken;
-      fee_.amount = feeBP.mul(_sellAmount).div(10000);
+      fee_.amount = feeBP * _sellAmount / 10000;
     }
 
     // if fee schedule is "platform action" then no fee is to be charged
@@ -68,6 +66,6 @@ abstract contract MarketFacetBase is EternalStorage, Controller, IMarketFeeSched
 
   // These are from https://github.com/nayms/maker-otc/blob/master/contracts/math.sol
   function wdiv(uint x, uint y) internal pure returns (uint z) {
-    z = SafeMath.add(SafeMath.mul(x, (10 ** 18)), y.div(2)).div(y);
+    z = ((x * 10 ** 18) + (y / 2)) / y;
   }
 }

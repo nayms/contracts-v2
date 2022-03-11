@@ -9,13 +9,11 @@ import "./base/IEntityTreasuryBridgeFacet.sol";
 import "./base/IPolicyCoreFacet.sol";
 import "./base/IERC20.sol";
 import "./base/IDiamondFacet.sol";
-import "./base/SafeMath.sol";
 
 /**
  * @dev Business-logic for policy treasuries inside entities
  */
  contract EntityTreasuryBridgeFacet is EternalStorage, Controller, EntityTreasuryFacetBase, IEntityTreasuryBridgeFacet, IDiamondFacet {
-  using SafeMath for uint256;
 
   /**
    * Constructor
@@ -36,9 +34,9 @@ import "./base/SafeMath.sol";
 
   function transferToTreasury(address _unit, uint256 _amount) external override {
     _assertHasEnoughBalance(_unit, _amount);
-    dataUint256[__a(_unit, "balance")] = dataUint256[__a(_unit, "balance")].sub(_amount);
+    dataUint256[__a(_unit, "balance")] = dataUint256[__a(_unit, "balance")] - _amount;
     string memory trbKey = __a(_unit, "treasuryRealBalance");
-    dataUint256[trbKey] = dataUint256[trbKey].add(_amount);
+    dataUint256[trbKey] = dataUint256[trbKey] + _amount;
     _resolveClaims(_unit);
     emit TransferToTreasury(msg.sender, _unit, _amount);
   }
@@ -48,8 +46,8 @@ import "./base/SafeMath.sol";
     string memory trbKey = __a(_unit, "treasuryRealBalance");
     require(dataUint256[trbKey] >= _amount, "exceeds treasury balance");
 
-    dataUint256[trbKey] = dataUint256[trbKey].sub(_amount);
-    dataUint256[__a(_unit, "balance")] = dataUint256[__a(_unit, "balance")].add(_amount);
+    dataUint256[trbKey] = dataUint256[trbKey] - _amount;
+    dataUint256[__a(_unit, "balance")] = dataUint256[__a(_unit, "balance")] + _amount;
     emit TransferFromTreasury(msg.sender, _unit, _amount);
   }
 }

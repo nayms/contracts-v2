@@ -5,12 +5,10 @@ import "./base/EternalStorage.sol";
 import "./base/IFeeBankCoreFacet.sol";
 import "./base/IDiamondFacet.sol";
 import "./base/Controller.sol";
-import "./base/SafeMath.sol";
 import "./base/IERC20.sol";
 import "./base/ReentrancyGuard.sol";
 
 contract FeeBankCoreFacet is EternalStorage, Controller, IDiamondFacet, IFeeBankCoreFacet, ReentrancyGuard {
-  using SafeMath for uint256;
   /**
    * Constructor
    */

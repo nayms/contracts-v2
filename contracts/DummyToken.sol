@@ -3,10 +3,8 @@ pragma solidity 0.8.12;
 
 import "./base/IDummyToken.sol";
 import "./base/PlatformToken.sol";
-import "./base/SafeMath.sol";
 
 contract DummyToken is IDummyToken, PlatformToken {
-  using SafeMath for *;
 
   mapping (address => uint256) private balances;
   mapping (address => mapping (address => uint256)) private allowances;
@@ -43,7 +41,11 @@ contract DummyToken is IDummyToken, PlatformToken {
   }
 
   function transferFrom(address sender, address recipient, uint256 amount) public override returns (bool) {
-      _approve(sender, msg.sender, allowances[sender][msg.sender].sub(amount, "DummyToken: transfer amount exceeds allowance"));
+      unchecked {
+        require(amount <= allowances[sender][msg.sender], "DummyToken: transfer amount exceeds allowance");          
+        _approve(sender, msg.sender, allowances[sender][msg.sender] - amount);          
+      }
+
       _transfer(sender, recipient, amount);
       return true;
   }
@@ -51,8 +53,11 @@ contract DummyToken is IDummyToken, PlatformToken {
   function _transfer(address sender, address recipient, uint256 amount) internal {
       require(recipient != address(0), "DummyToken: transfer to the zero address");
 
-      balances[sender] = balances[sender].sub(amount, "DummyToken: transfer amount exceeds balance");
-      balances[recipient] = balances[recipient].add(amount);
+      unchecked {
+        require(amount <= balances[sender], "DummyToken: transfer amount exceeds balance");
+        balances[sender] = balances[sender] - amount;
+      }
+      balances[recipient] = balances[recipient] + amount;
       emit Transfer(sender, recipient, amount);
   }
 
@@ -66,15 +71,18 @@ contract DummyToken is IDummyToken, PlatformToken {
   // IDummyToken
 
   function deposit() public payable override {
-      balances[msg.sender] = balances[msg.sender].add(msg.value);
-      totalSupply = totalSupply.add(msg.value);
+      balances[msg.sender] = balances[msg.sender] + msg.value;
+      totalSupply = totalSupply + msg.value;
       emit Deposit(msg.sender, msg.value);
   }
 
   function withdraw(uint value) public override {
       // Balance covers value
-      balances[msg.sender] = balances[msg.sender].sub(value, 'DummyToken: insufficient balance');
-      totalSupply = totalSupply.sub(value);
+      unchecked {
+        require(value <= balances[msg.sender], 'DummyToken: insufficient balance');          
+        balances[msg.sender] = balances[msg.sender] - value;
+      }
+      totalSupply = totalSupply - value;
       payable(msg.sender).transfer(value);
       emit Withdrawal(msg.sender, value);
   }

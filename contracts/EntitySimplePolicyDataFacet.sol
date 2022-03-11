@@ -7,12 +7,9 @@ import "./base/Controller.sol";
 import "./base/IDiamondFacet.sol";
 import "./base/IEntitySimplePolicyDataFacet.sol";
 import "./base/ISimplePolicy.sol";
-import "./base/SafeMath.sol";
 
 contract EntitySimplePolicyDataFacet is EntityFacetBase, IDiamondFacet, IEntitySimplePolicyDataFacet {
   
-  using SafeMath for uint256;
-
   constructor (address _settings) Controller(_settings) { }
 
   function getSelectors () public pure override returns (bytes memory) {
@@ -138,7 +135,7 @@ contract EntitySimplePolicyDataFacet is EntityFacetBase, IDiamondFacet, IEntityS
 
     uint256 claimsPaid = dataUint256[__a(unit, "claimsPaid")];
 
-    require(limit >= _amount.add(claimsPaid), 'exceeds policy limit');
+    require(limit >= _amount + claimsPaid, 'exceeds policy limit');
 
     dataUint256[__a(unit, "claimsPaid")] += _amount;
     dataUint256[__a(unit, "balance")] -= _amount;

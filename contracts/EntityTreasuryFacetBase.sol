@@ -4,13 +4,11 @@ pragma solidity 0.8.12;
 import "./EntityFacetBase.sol";
 import "./base/IPolicyCoreFacet.sol";
 import "./base/IPolicyTreasuryConstants.sol";
-import "./base/SafeMath.sol";
 
 /**
  * @dev Entity treasury facets base class
  */
 abstract contract EntityTreasuryFacetBase is EntityFacetBase, IPolicyTreasuryConstants {
-  using SafeMath for uint256;
   
   function _getPolicyUnit (address _policy) internal view returns (address) {
     address policyUnitAddress;
@@ -32,9 +30,9 @@ abstract contract EntityTreasuryFacetBase is EntityFacetBase, IPolicyTreasuryCon
     string memory trbKey = __a(unit, "treasuryRealBalance");
     string memory tvbKey = __a(unit, "treasuryVirtualBalance");
 
-    dataUint256[trbKey] = dataUint256[trbKey].sub(_amount);
-    dataUint256[tvbKey] = dataUint256[tvbKey].sub(_amount);
-    dataUint256[pbKey] = dataUint256[pbKey].sub(_amount);
+    dataUint256[trbKey] = dataUint256[trbKey] - _amount;
+    dataUint256[tvbKey] = dataUint256[tvbKey] - _amount;
+    dataUint256[pbKey] = dataUint256[pbKey] - _amount;
 
     emit UpdatePolicyBalance(_policy, dataUint256[pbKey]);
   }
@@ -58,14 +56,14 @@ abstract contract EntityTreasuryFacetBase is EntityFacetBase, IPolicyTreasuryCon
           // update internals
           address pol = dataAddress[__ia(i, _unit, "claimPolicy")];
           string memory pcutaKey = __a(pol, "policyClaimsUnpaidTotalAmount");
-          dataUint256[pcutaKey] = dataUint256[pcutaKey].sub(amt);
+          dataUint256[pcutaKey] = dataUint256[pcutaKey] - amt;
           _decPolicyBalance(pol, amt);
           // payout
           IERC20(_unit).transfer(dataAddress[__ia(i, _unit, "claimRecipient")], amt);
           // mark as paid
           dataBool[__ia(i, _unit, "claimPaid")] = true;
           dataUint256[__a(_unit, "claimsUnpaidCount")] -= 1;
-          dataUint256[cutaKey] = dataUint256[cutaKey].sub(amt);
+          dataUint256[cutaKey] = dataUint256[cutaKey] - amt;
         } else {
           // stop looping once we hit a claim we can't process
           break;

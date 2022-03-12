@@ -94,7 +94,7 @@
     "sol-merger": "^0.1.2",
     "solc": "=0.8.12",
     "solgraph": "^0.3.2",
-    "solhint": "^2.2.0",
+    "solhint": "^3.3.7",
     "solidity-coverage": "^0.7.20",
     "uuid": "^3.0.1",
     "web3": "^1.5.3",

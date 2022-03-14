@@ -6,7 +6,7 @@ import "./base/IDiamondUpgradeFacet.sol";
 import "./base/IDiamondProxy.sol";
 
 contract CommonUpgradeFacet is Controller, IDiamondUpgradeFacet {
-  constructor (address _settings) Controller(_settings) {
+  constructor (address _settings) Controller(_settings) public {
     // empty
   }
 
@@ -15,8 +15,8 @@ contract CommonUpgradeFacet is Controller, IDiamondUpgradeFacet {
   }
 
   function getVersionInfo () public override pure returns (string memory num_, uint256 date_, string memory hash_) {
-    num_ = "1.0.0-local.1637846745255";
-    date_ = 1637846745;
-    hash_ = "b1e7ce9e4ab847a3d9ae9eedd0c7c429a72044b1";
+    num_ = "1.0.0-build.1671";
+    date_ = 1647270338;
+    hash_ = "fb36050eb8ea11fb7381d2beeaa69b4f20ab36a5";
   }
 }

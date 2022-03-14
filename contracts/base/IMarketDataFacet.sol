@@ -1,6 +1,21 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.6.12;
+pragma solidity 0.8.12;
 
+  struct OfferState {
+    address creator;
+    address sellToken; 
+    uint256 sellAmount;
+    uint256 sellAmountInitial;
+    address buyToken;
+    uint256 buyAmount;
+    uint256 buyAmountInitial;
+    uint256 averagePrice;
+    uint256 feeSchedule;
+    address notify;
+    bytes notifyData;
+    uint256 state;
+  }
+  
 interface IMarketDataFacet {
   /**
    * @dev Get market config.
@@ -92,33 +107,22 @@ interface IMarketDataFacet {
    *
    * @param _offerId offer id.
    *
-   * @return creator_ owner/creator.
-   * @return sellToken_ sell token.
-   * @return sellAmount_ sell amount.
-   * @return sellAmountInitial_ initial sell amount.
-   * @return buyToken_ buy token.
-   * @return buyAmount_ buy amount.
-   * @return buyAmountInitial_ initial buy amount.
-   * @return averagePrice_ average price paid.
-   * @return feeSchedule_ fee schedule.
-   * @return notify_ Contract to notify when a trade takes place and/or order gets cancelled.
-   * @return notifyData_ Data to pass through to the notified contract.
-   * @return state_ offer state.
+   * @return _offerState OfferState struct
+   *  creator_ owner/creator.
+   *  sellToken_ sell token.
+   *  sellAmount_ sell amount.
+   *  sellAmountInitial_ initial sell amount.
+   *  buyToken_ buy token.
+   *  buyAmount_ buy amount.
+   *  buyAmountInitial_ initial buy amount.
+   *  averagePrice_ average price paid.
+   *  feeSchedule_ fee schedule.
+   *  notify_ Contract to notify when a trade takes place and/or order gets cancelled.
+   *  notifyData_ Data to pass through to the notified contract.
+   *  state_ offer state.
    */
-  function getOffer(uint256 _offerId) external view returns ( 
-    address creator_,
-    address sellToken_, 
-    uint256 sellAmount_, 
-    uint256 sellAmountInitial_,
-    address buyToken_, 
-    uint256 buyAmount_,
-    uint256 buyAmountInitial_,
-    uint256 averagePrice_,
-    uint256 feeSchedule_,
-    address notify_,
-    bytes memory notifyData_,
-    uint256 state_
-  );
+  function getOffer(uint256 _offerId) external view returns (OfferState memory _offerState);
+
 
 
   /**

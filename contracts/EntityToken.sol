@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.6.12;
+pragma solidity 0.8.12;
 
 import './base/IERC20.sol';
 import './base/IEntityTokensFacet.sol';
@@ -11,7 +11,7 @@ import './base/PlatformToken.sol';
 contract EntityToken is IERC20, PlatformToken {
   IEntityTokensFacet public impl;
 
-  constructor (address _impl) public {
+  constructor (address _impl) {
     impl = IEntityTokensFacet(_impl);
   }
 

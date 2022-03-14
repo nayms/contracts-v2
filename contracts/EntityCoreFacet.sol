@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.6.12;
-pragma experimental ABIEncoderV2;
+pragma solidity 0.8.12;
+
 
 import "./EntityFacetBase.sol";
 import "./base/IEntityCoreFacet.sol";
@@ -9,11 +9,9 @@ import "./base/IParent.sol";
 import "./base/IERC20.sol";
 import "./base/IMarket.sol";
 import "./base/IPolicy.sol";
-import "./base/SafeMath.sol";
 import "./Policy.sol";
 
 contract EntityCoreFacet is EntityFacetBase, IEntityCoreFacet, IDiamondFacet {
-  using SafeMath for uint256;
 
   modifier assertCanPayTranchePremiums (address _policyAddress) {
     require(inRoleGroup(msg.sender, ROLEGROUP_ENTITY_REPS), 'must be entity rep');
@@ -28,7 +26,7 @@ contract EntityCoreFacet is EntityFacetBase, IEntityCoreFacet, IDiamondFacet {
   /**
    * Constructor
    */
-  constructor (address _settings) Controller(_settings) public {
+  constructor (address _settings) Controller(_settings) {
   }
 
   // IDiamondFacet

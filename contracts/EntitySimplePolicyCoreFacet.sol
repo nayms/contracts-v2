@@ -1,18 +1,15 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.6.12;
-pragma experimental ABIEncoderV2;
+pragma solidity 0.8.12;
+
 
 import {EntityFacetBase, IERC20} from "./EntityFacetBase.sol";
 import "./base/IEntitySimplePolicyCoreFacet.sol";
 import "./base/IDiamondFacet.sol";
-import "./base/SafeMath.sol";
 import {SimplePolicy, Controller, AccessControl, ISimplePolicy} from "./SimplePolicy.sol";
 
 contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCoreFacet, IDiamondFacet {
-  
-  using SafeMath for uint256;
 
-  constructor (address _settings) public Controller(_settings) { }
+  constructor (address _settings) Controller(_settings) { }
 
   function getSelectors () public pure override returns (bytes memory) {
     return abi.encodePacked(
@@ -36,7 +33,7 @@ contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCore
     require(maxCapital >= newTotalLimit, 'max capital exceeded');
 
     uint256 balance = dataUint256[__a(_unit, "balance")];
-    require(balance >= newTotalLimit.mul(collateralRatio).div(1000), 'collateral ratio not met');
+    require(balance >= newTotalLimit * collateralRatio / 1000, 'collateral ratio not met');
   }
 
   function createSimplePolicy(
@@ -70,7 +67,7 @@ contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCore
 
     dataAddress[__i(dataUint256["numSimplePolicies"], "addressByNumber")] = address(simplePolicy);
     dataAddress[__b(_id, "addressById")] = address(simplePolicy);
-    dataUint256["numSimplePolicies"] = dataUint256["numSimplePolicies"].add(1);
+    dataUint256["numSimplePolicies"] = dataUint256["numSimplePolicies"] + 1;
   }
 
   function _verifyEntityRep(address _entityAddress) internal view {

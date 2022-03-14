@@ -1,24 +1,22 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.6.12;
+pragma solidity 0.8.12;
 
 import "./base/Controller.sol";
 import "./base/EternalStorage.sol";
 import "./base/IEntityDividendsFacet.sol";
 import "./base/IDiamondFacet.sol";
 import "./base/IERC20.sol";
-import "./base/SafeMath.sol";
 import "./base/Strings.sol";
 import "./EntityFacetBase.sol";
 import "./EntityToken.sol";
 
 contract EntityDividendsFacet is EternalStorage, Controller, EntityFacetBase, IEntityDividendsFacet, IDiamondFacet {
-  using SafeMath for uint256;
   using Strings for string;
 
   /**
    * Constructor
    */
-  constructor (address _settings) Controller(_settings) public {
+  constructor (address _settings) Controller(_settings) {
   }
 
   // IDiamondFacet
@@ -60,11 +58,11 @@ contract EntityDividendsFacet is EternalStorage, Controller, EntityFacetBase, IE
       address a = dataAddress[__i(i, "tokenHolder")];
       uint256 bal = dataUint256[__a(a, "tokenBalance")];
       // calculate dividend
-      uint256 div = bal.mul(_amount).div(supply);
+      uint256 div = bal * _amount / supply;
       // transfer
-      entityBal = entityBal.sub(div);
+      entityBal = entityBal - div;
       string memory divKey = __iaa(0, a, _unit, "dividend");
-      dataUint256[divKey] = dataUint256[divKey].add(div);
+      dataUint256[divKey] = dataUint256[divKey] + div;
     }
 
     dataUint256[__a(_unit, "balance")] = entityBal;

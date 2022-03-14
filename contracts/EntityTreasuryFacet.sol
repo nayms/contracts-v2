@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.6.12;
+pragma solidity 0.8.12;
 
 import "./base/Controller.sol";
 import "./base/EternalStorage.sol";
@@ -7,18 +7,16 @@ import "./EntityTreasuryFacetBase.sol";
 import "./base/IPolicyTreasury.sol";
 import "./base/IERC20.sol";
 import "./base/IDiamondFacet.sol";
-import "./base/SafeMath.sol";
 
 /**
  * @dev Business-logic for policy treasuries inside entities
  */
  contract EntityTreasuryFacet is EternalStorage, Controller, EntityTreasuryFacetBase, IPolicyTreasury, IDiamondFacet {
-  using SafeMath for uint256;
 
   /**
    * Constructor
    */
-  constructor (address _settings) Controller(_settings) public {
+  constructor (address _settings) Controller(_settings) {
   }
 
   // IDiamondFacet
@@ -130,10 +128,10 @@ import "./base/SafeMath.sol";
 
     if (dataUint256[trbKey] < _amount) {
       string memory cutaKey = __a(unit, "claimsUnpaidTotalAmount");
-      dataUint256[cutaKey] = dataUint256[cutaKey].add(_amount);
+      dataUint256[cutaKey] = dataUint256[cutaKey] + _amount;
 
       string memory pcutaKey = __a(msg.sender, "policyClaimsUnpaidTotalAmount");
-      dataUint256[pcutaKey] = dataUint256[pcutaKey].add(_amount);
+      dataUint256[pcutaKey] = dataUint256[pcutaKey] + _amount;
 
       dataUint256[__a(unit, "claimsCount")] += 1;
       dataUint256[__a(unit, "claimsUnpaidCount")] += 1;
@@ -171,7 +169,7 @@ import "./base/SafeMath.sol";
     require(dataUint256[key] == 0, 'already set');
 
     dataUint256[key] = _bal;
-    dataUint256[tmbKey] = dataUint256[tmbKey].add(_bal);
+    dataUint256[tmbKey] = dataUint256[tmbKey] + _bal;
 
     emit SetMinPolicyBalance(msg.sender, _bal);
   }
@@ -200,9 +198,9 @@ import "./base/SafeMath.sol";
     string memory trbKey = __a(unit, "treasuryRealBalance");
     string memory tvbKey = __a(unit, "treasuryVirtualBalance");
 
-    dataUint256[trbKey] = dataUint256[trbKey].add(_amount);
-    dataUint256[tvbKey] = dataUint256[tvbKey].add(_amount);
-    dataUint256[pbKey] = dataUint256[pbKey].add(_amount);
+    dataUint256[trbKey] = dataUint256[trbKey] + _amount;
+    dataUint256[tvbKey] = dataUint256[tvbKey] + _amount;
+    dataUint256[pbKey] = dataUint256[pbKey] + _amount;
 
     emit UpdatePolicyBalance(_policy, dataUint256[pbKey]);
   }

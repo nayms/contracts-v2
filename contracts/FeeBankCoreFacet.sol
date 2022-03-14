@@ -1,20 +1,18 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.6.12;
+pragma solidity 0.8.12;
 
 import "./base/EternalStorage.sol";
 import "./base/IFeeBankCoreFacet.sol";
 import "./base/IDiamondFacet.sol";
 import "./base/Controller.sol";
-import "./base/SafeMath.sol";
 import "./base/IERC20.sol";
 import "./base/ReentrancyGuard.sol";
 
 contract FeeBankCoreFacet is EternalStorage, Controller, IDiamondFacet, IFeeBankCoreFacet, ReentrancyGuard {
-  using SafeMath for uint256;
   /**
    * Constructor
    */
-  constructor (address _settings) Controller(_settings) public {
+  constructor (address _settings) Controller(_settings) {
   }
 
   // IDiamondFacet

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.6.12;
+pragma solidity 0.8.12;
 
 import './base/IERC20.sol';
 import './base/PlatformToken.sol';
@@ -12,7 +12,7 @@ contract TrancheToken is IERC20, PlatformToken {
   IPolicyTrancheTokensFacet public impl;
   uint256 public index;
 
-  constructor (address _impl, uint256 _index) public {
+  constructor (address _impl, uint256 _index) {
     impl = IPolicyTrancheTokensFacet(_impl);
     index = _index;
   }

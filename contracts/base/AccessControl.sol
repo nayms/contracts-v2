@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.6.12;
+pragma solidity 0.8.12;
 
 import "./Address.sol";
 import "./EternalStorage.sol";
@@ -18,7 +18,7 @@ contract AccessControl is EternalStorage, IAccessControl, IACLConstants {
    * @dev Constructor.
    * @param _settings Address of Settings.
    */
-  constructor (address _settings) public {
+  constructor (address _settings) {
     dataAddress["settings"] = _settings;
     dataBytes32["aclContext"] = acl().generateContextFromAddress(address(this));
   }

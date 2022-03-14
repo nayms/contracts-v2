@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.6.12;
+pragma solidity 0.8.12;
 
 import "./SettingsControl.sol";
 import "./AccessControl.sol";
@@ -15,7 +15,6 @@ contract Controller is AccessControl, SettingsControl {
   constructor (address _settings)
     AccessControl(_settings)
     SettingsControl(_settings)
-    public
   {
   }
 }

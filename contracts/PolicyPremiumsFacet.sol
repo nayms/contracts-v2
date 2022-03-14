@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.6.12;
+pragma solidity 0.8.12;
 
-import "./base/SafeMath.sol";
 import "./base/EternalStorage.sol";
 import "./base/Controller.sol";
 import "./base/IDiamondFacet.sol";
@@ -15,7 +14,6 @@ import "./base/IERC20.sol";
  * @dev Business-logic for Policy premiums
  */
 contract PolicyPremiumsFacet is EternalStorage, Controller, IDiamondFacet, IPolicyPremiumsFacet, PolicyFacetBase {
-  using SafeMath for uint;
 
   modifier assertTranchePaymentAllowed (uint256 _index) {
     uint256 _trancheState = dataUint256[__i(_index, "state")];
@@ -26,7 +24,7 @@ contract PolicyPremiumsFacet is EternalStorage, Controller, IDiamondFacet, IPoli
   /**
    * Constructor
    */
-  constructor (address _settings) Controller(_settings) public {
+  constructor (address _settings) Controller(_settings) {
     // empty
   }
 
@@ -86,24 +84,24 @@ contract PolicyPremiumsFacet is EternalStorage, Controller, IDiamondFacet, IPoli
 
       (expectedAmount, expectedAt, paidSoFar) = _getNextTranchePremium(_index);
 
-      require(expectedAt >= now, 'payment too late');
+      require(expectedAt >= block.timestamp, 'payment too late');
 
-      uint256 pending = expectedAmount.sub(paidSoFar);
+      uint256 pending = expectedAmount - paidSoFar;
 
       uint256 numPremiumsPaid = dataUint256[__i(_index, "numPremiumsPaid")];
 
       if (_amount >= pending) {
         netPremium += _applyPremiumPaymentAmount(_index, pending);
-        totalPaid = totalPaid.add(pending);
-        _amount = _amount.sub(pending);
+        totalPaid = totalPaid + pending;
+        _amount = _amount - pending;
 
         dataUint256[__i(_index, "numPremiumsPaid")] = numPremiumsPaid + 1;
-        dataUint256[__ii(_index, numPremiumsPaid, "premiumPaidAt")] = now;
+        dataUint256[__ii(_index, numPremiumsPaid, "premiumPaidAt")] = block.timestamp;
         dataUint256[__ii(_index, numPremiumsPaid, "premiumPaidSoFar")] = dataUint256[__ii(_index, numPremiumsPaid, "premiumAmount")];
       } else {
         netPremium += _applyPremiumPaymentAmount(_index, _amount);
-        totalPaid = totalPaid.add(_amount);
-        dataUint256[__ii(_index, numPremiumsPaid, "premiumPaidSoFar")] = dataUint256[__ii(_index, numPremiumsPaid, "premiumPaidSoFar")].add(_amount);
+        totalPaid = totalPaid + _amount;
+        dataUint256[__ii(_index, numPremiumsPaid, "premiumPaidSoFar")] = dataUint256[__ii(_index, numPremiumsPaid, "premiumPaidSoFar")] + _amount;
         _amount = 0;
       }
     }
@@ -123,20 +121,20 @@ contract PolicyPremiumsFacet is EternalStorage, Controller, IDiamondFacet, IPoli
 
   function _applyPremiumPaymentAmount (uint256 _index, uint256 _amount) private returns (uint256) {
     // calculate commissions
-    uint256 brokerCommission = dataUint256["brokerCommissionBP"].mul(_amount).div(10000);
-    uint256 claimsAdminCommission = dataUint256["claimsAdminCommissionBP"].mul(_amount).div(10000);
-    uint256 naymsCommission = dataUint256["naymsCommissionBP"].mul(_amount).div(10000);
-    uint256 underwriterCommission = dataUint256["underwriterCommissionBP"].mul(_amount).div(10000);
+    uint256 brokerCommission = dataUint256["brokerCommissionBP"] * _amount / 10000;
+    uint256 claimsAdminCommission = dataUint256["claimsAdminCommissionBP"] * _amount / 10000;
+    uint256 naymsCommission = dataUint256["naymsCommissionBP"] * _amount / 10000;
+    uint256 underwriterCommission = dataUint256["underwriterCommissionBP"] * _amount / 10000;
 
     // add to commission balances
-    dataUint256["brokerCommissionBalance"] = dataUint256["brokerCommissionBalance"].add(brokerCommission);
-    dataUint256["claimsAdminCommissionBalance"] = dataUint256["claimsAdminCommissionBalance"].add(claimsAdminCommission);
-    dataUint256["naymsCommissionBalance"] = dataUint256["naymsCommissionBalance"].add(naymsCommission);
-    dataUint256["underwriterCommissionBalance"] = dataUint256["underwriterCommissionBalance"].add(underwriterCommission);
+    dataUint256["brokerCommissionBalance"] = dataUint256["brokerCommissionBalance"] + brokerCommission;
+    dataUint256["claimsAdminCommissionBalance"] = dataUint256["claimsAdminCommissionBalance"] + claimsAdminCommission;
+    dataUint256["naymsCommissionBalance"] = dataUint256["naymsCommissionBalance"] + naymsCommission;
+    dataUint256["underwriterCommissionBalance"] = dataUint256["underwriterCommissionBalance"] + underwriterCommission;
 
     // add to tranche balance
-    uint256 trancheBalanceDelta = _amount.sub(brokerCommission.add(claimsAdminCommission).add(naymsCommission).add(underwriterCommission));
-    dataUint256[__i(_index, "balance")] = dataUint256[__i(_index, "balance")].add(trancheBalanceDelta);
+    uint256 trancheBalanceDelta = _amount - (brokerCommission + claimsAdminCommission + naymsCommission + underwriterCommission);
+    dataUint256[__i(_index, "balance")] = dataUint256[__i(_index, "balance")] + trancheBalanceDelta;
 
     return trancheBalanceDelta;
   }

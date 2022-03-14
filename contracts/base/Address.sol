@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.6.12;
+pragma solidity 0.8.12;
 
 /**
  * @dev Collection of functions related to the address type
@@ -41,7 +41,7 @@ library Address {
      * @dev Get it via `npm install @openzeppelin/contracts@next`.
      */
     function toPayable(address _account) internal pure returns (address payable) {
-        return address(uint160(_account));
+        return payable(address(uint160(_account)));
     }
 
 
@@ -50,7 +50,7 @@ library Address {
      * From https://ethereum.stackexchange.com/a/58341/56159
      */
     function toString(address _addr) internal pure returns (string memory) {
-        bytes32 value = bytes32(uint256(_addr));
+        bytes32 value = bytes32(uint256(uint160(_addr)));
         bytes memory alphabet = "0123456789abcdef";
 
         bytes memory str = new bytes(42);

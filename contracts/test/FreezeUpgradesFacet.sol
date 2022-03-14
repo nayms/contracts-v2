@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.6.12;
+pragma solidity 0.8.12;
 
 import '../base/IDiamondFacet.sol';
 import '../base/IDiamondUpgradeFacet.sol';

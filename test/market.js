@@ -552,10 +552,10 @@ describe('Market', () => {
     describe('getOwner', () => {
       it('should get correct offer owners', async () => {
         const firstOffer = await market.getOffer(1)
-        expect(firstOffer.creator_).to.eq(accounts[1])
+        expect(firstOffer.creator).to.eq(accounts[1])
 
         const secondOffer = await market.getOffer(2)
-        expect(secondOffer.creator_).to.eq(accounts[2])
+        expect(secondOffer.creator).to.eq(accounts[2])
       })
 
     })
@@ -563,32 +563,32 @@ describe('Market', () => {
     describe('getOffer', () => {
       it('should get correct offer details for non-matching offers without matching them', async () => {
         const firstOffer = await market.getOffer(1)
-        expect(firstOffer.creator_).to.eq(accounts[1])
-        expect(firstOffer.sellToken_).to.eq(erc20WETH.address)
-        expect(firstOffer.sellAmount_.toString()).to.eq(first_offer_pay_amt)
-        expect(firstOffer.sellAmountInitial_.toString()).to.eq(first_offer_pay_amt)
-        expect(firstOffer.buyToken_).to.eq(erc20DAI.address)
-        expect(firstOffer.buyAmount_.toString()).to.eq(first_offer_buy_amt)
-        expect(firstOffer.buyAmountInitial_.toString()).to.eq(first_offer_buy_amt)
-        expect(firstOffer.notify_).to.eq(ADDRESS_ZERO)
-        expect(firstOffer.state_).to.eq(OFFER_STATE_ACTIVE)
-        expect(firstOffer.feeSchedule_).to.eq(FEE_SCHEDULE_STANDARD)
+        expect(firstOffer.creator).to.eq(accounts[1])
+        expect(firstOffer.sellToken).to.eq(erc20WETH.address)
+        expect(firstOffer.sellAmount.toString()).to.eq(first_offer_pay_amt)
+        expect(firstOffer.sellAmountInitial.toString()).to.eq(first_offer_pay_amt)
+        expect(firstOffer.buyToken).to.eq(erc20DAI.address)
+        expect(firstOffer.buyAmount.toString()).to.eq(first_offer_buy_amt)
+        expect(firstOffer.buyAmountInitial.toString()).to.eq(first_offer_buy_amt)
+        expect(firstOffer.notify).to.eq(ADDRESS_ZERO)
+        expect(firstOffer.state).to.eq(OFFER_STATE_ACTIVE.toString())
+        expect(firstOffer.feeSchedule).to.eq(FEE_SCHEDULE_STANDARD.toString())
 
         const firstSiblings = await market.getOfferSiblings(1)
         expect(firstSiblings.nextOfferId_.toNumber()).to.eq(2)
         expect(firstSiblings.prevOfferId_.toNumber()).to.eq(0)
 
         const secondOffer = await market.getOffer(2)
-        expect(secondOffer.creator_).to.eq(accounts[2])
-        expect(secondOffer.sellToken_).to.eq(erc20WETH.address)
-        expect(secondOffer.sellAmount_.toString()).to.eq(second_offer_pay_amt)
-        expect(secondOffer.sellAmountInitial_.toString()).to.eq(second_offer_pay_amt)
-        expect(secondOffer.buyToken_).to.eq(erc20DAI.address)
-        expect(secondOffer.buyAmount_.toString()).to.eq(second_offer_buy_amt)
-        expect(secondOffer.buyAmountInitial_.toString()).to.eq(second_offer_buy_amt)
-        expect(secondOffer.notify_).to.eq(ADDRESS_ZERO)
-        expect(secondOffer.state_).to.eq(OFFER_STATE_ACTIVE)
-        expect(secondOffer.feeSchedule_).to.eq(FEE_SCHEDULE_STANDARD)
+        expect(secondOffer.creator).to.eq(accounts[2])
+        expect(secondOffer.sellToken).to.eq(erc20WETH.address)
+        expect(secondOffer.sellAmount.toString()).to.eq(second_offer_pay_amt)
+        expect(secondOffer.sellAmountInitial.toString()).to.eq(second_offer_pay_amt)
+        expect(secondOffer.buyToken).to.eq(erc20DAI.address)
+        expect(secondOffer.buyAmount.toString()).to.eq(second_offer_buy_amt)
+        expect(secondOffer.buyAmountInitial.toString()).to.eq(second_offer_buy_amt)
+        expect(secondOffer.notify).to.eq(ADDRESS_ZERO)
+        expect(secondOffer.state).to.eq(OFFER_STATE_ACTIVE.toString())
+        expect(secondOffer.feeSchedule).to.eq(FEE_SCHEDULE_STANDARD.toString())
 
         const secondSiblings = await market.getOfferSiblings(2)
         expect(secondSiblings.nextOfferId_.toNumber()).to.eq(0)
@@ -627,16 +627,16 @@ describe('Market', () => {
         await market.cancel(2, { from: accounts[2] }).should.be.fulfilled
 
         const secondOffer = await market.getOffer(2)
-        expect(secondOffer.creator_).to.eq(accounts[2])
-        expect(secondOffer.sellToken_).to.eq(erc20WETH.address)
-        expect(secondOffer.sellAmount_.toString()).to.eq(second_offer_pay_amt)
-        expect(secondOffer.sellAmountInitial_.toString()).to.eq(second_offer_pay_amt)
-        expect(secondOffer.buyToken_).to.eq(erc20DAI.address)
-        expect(secondOffer.buyAmount_.toString()).to.eq(second_offer_buy_amt)
-        expect(secondOffer.buyAmountInitial_.toString()).to.eq(second_offer_buy_amt)
-        expect(secondOffer.notify_).to.eq(ADDRESS_ZERO)
-        expect(secondOffer.state_).to.eq(OFFER_STATE_CANCELLED)
-        expect(secondOffer.feeSchedule_).to.eq(FEE_SCHEDULE_STANDARD)
+        expect(secondOffer.creator).to.eq(accounts[2])
+        expect(secondOffer.sellToken).to.eq(erc20WETH.address)
+        expect(secondOffer.sellAmount.toString()).to.eq(second_offer_pay_amt)
+        expect(secondOffer.sellAmountInitial.toString()).to.eq(second_offer_pay_amt)
+        expect(secondOffer.buyToken).to.eq(erc20DAI.address)
+        expect(secondOffer.buyAmount.toString()).to.eq(second_offer_buy_amt)
+        expect(secondOffer.buyAmountInitial.toString()).to.eq(second_offer_buy_amt)
+        expect(secondOffer.notify).to.eq(ADDRESS_ZERO)
+        expect(secondOffer.state).to.eq(OFFER_STATE_CANCELLED.toString())
+        expect(secondOffer.feeSchedule).to.eq(FEE_SCHEDULE_STANDARD.toString())
 
         const secondSiblings = await market.getOfferSiblings(2)
         expect(secondSiblings.nextOfferId_.toNumber()).to.eq(0)
@@ -707,13 +707,13 @@ describe('Market', () => {
         await erc20DAI.balanceOf(accounts[3]).should.eventually.eq(toWei('990').toString())
 
         const firstOffer = await market.getOffer(1)
-        expect(firstOffer.creator_).to.eq(accounts[1])
-        expect(firstOffer.sellToken_).to.eq(erc20WETH.address)
-        expect(firstOffer.sellAmount_.toString()).to.eq(`${first_offer_pay_amt / 2}`)
-        expect(firstOffer.sellAmountInitial_.toString()).to.eq(first_offer_pay_amt)
-        expect(firstOffer.buyToken_).to.eq(erc20DAI.address)
-        expect(firstOffer.buyAmount_.toString()).to.eq(`${first_offer_buy_amt / 2}`)
-        expect(firstOffer.buyAmountInitial_.toString()).to.eq(first_offer_buy_amt)
+        expect(firstOffer.creator).to.eq(accounts[1])
+        expect(firstOffer.sellToken).to.eq(erc20WETH.address)
+        expect(firstOffer.sellAmount.toString()).to.eq(`${first_offer_pay_amt / 2}`)
+        expect(firstOffer.sellAmountInitial.toString()).to.eq(first_offer_pay_amt)
+        expect(firstOffer.buyToken).to.eq(erc20DAI.address)
+        expect(firstOffer.buyAmount.toString()).to.eq(`${first_offer_buy_amt / 2}`)
+        expect(firstOffer.buyAmountInitial.toString()).to.eq(first_offer_buy_amt)
       })
 
       it('should buy all of first offer successfully with 1:2 price ratio in two buy transactions', async () => {
@@ -749,14 +749,14 @@ describe('Market', () => {
         await erc20DAI.balanceOf(accounts[4]).should.eventually.eq(toWei('990').toString())
 
         const firstOffer = await market.getOffer(1)
-        expect(firstOffer.creator_).to.eq(accounts[1])
-        expect(firstOffer.sellToken_).to.eq(erc20WETH.address)
-        expect(firstOffer.sellAmount_.toString()).to.eq(`0`)
-        expect(firstOffer.sellAmountInitial_.toString()).to.eq(first_offer_pay_amt)
-        expect(firstOffer.buyToken_).to.eq(erc20DAI.address)
-        expect(firstOffer.buyAmount_.toString()).to.eq(`0`)
-        expect(firstOffer.buyAmountInitial_.toString()).to.eq(first_offer_buy_amt)
-        expect(firstOffer.state_).to.eq(OFFER_STATE_FULFILLED)
+        expect(firstOffer.creator).to.eq(accounts[1])
+        expect(firstOffer.sellToken).to.eq(erc20WETH.address)
+        expect(firstOffer.sellAmount.toString()).to.eq(`0`)
+        expect(firstOffer.sellAmountInitial.toString()).to.eq(first_offer_pay_amt)
+        expect(firstOffer.buyToken).to.eq(erc20DAI.address)
+        expect(firstOffer.buyAmount.toString()).to.eq(`0`)
+        expect(firstOffer.buyAmountInitial.toString()).to.eq(first_offer_buy_amt)
+        expect(firstOffer.state).to.eq(OFFER_STATE_FULFILLED.toString())
       })
 
       it('should set offer status to fulfilled and delete it if pay amount is all bought', async () => {
@@ -779,15 +779,15 @@ describe('Market', () => {
         await erc20DAI.balanceOf(accounts[3]).should.eventually.eq(toWei('980').toString())
 
         const firstOffer = await market.getOffer(1)
-        expect(firstOffer.creator_).to.eq(accounts[1])
-        expect(firstOffer.sellToken_).to.eq(erc20WETH.address)
-        expect(firstOffer.sellAmount_.toNumber()).to.eq(0)
-        expect(firstOffer.sellAmountInitial_.toString()).to.eq(`${first_offer_pay_amt}`)
-        expect(firstOffer.buyToken_).to.eq(erc20DAI.address)
-        expect(firstOffer.buyAmount_.toNumber()).to.eq(0)
-        expect(firstOffer.buyAmountInitial_.toString()).to.eq(`${first_offer_buy_amt}`)
-        expect(firstOffer.notify_).to.eq(ADDRESS_ZERO)
-        expect(firstOffer.state_).to.eq(OFFER_STATE_FULFILLED)
+        expect(firstOffer.creator).to.eq(accounts[1])
+        expect(firstOffer.sellToken).to.eq(erc20WETH.address)
+        expect(firstOffer.sellAmount).to.eq('0')
+        expect(firstOffer.sellAmountInitial.toString()).to.eq(`${first_offer_pay_amt}`)
+        expect(firstOffer.buyToken).to.eq(erc20DAI.address)
+        expect(firstOffer.buyAmount).to.eq('0')
+        expect(firstOffer.buyAmountInitial.toString()).to.eq(`${first_offer_buy_amt}`)
+        expect(firstOffer.notify).to.eq(ADDRESS_ZERO)
+        expect(firstOffer.state).to.eq(OFFER_STATE_FULFILLED.toString())
 
         const firstOfferSiblings = await market.getOfferSiblings(1)
         expect(firstOfferSiblings.nextOfferId_.toNumber()).to.eq(0)
@@ -864,8 +864,8 @@ describe('Market', () => {
       await market.executeMarketOffer(erc20WETH.address, toBN(5e18), erc20DAI.address, { from: accounts[1] })
 
       await market.getOffer(1).should.eventually.matchObj({
-        sellAmount_: toBN(10e18), // prev 20
-        buyAmount_: toBN(5e18), // prev 10
+        sellAmount: '10000000000000000000', // prev 20
+        buyAmount: '5000000000000000000', // prev 10
       })
 
       await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('1010').toString())
@@ -881,13 +881,13 @@ describe('Market', () => {
       await market.executeMarketOffer(erc20WETH.address, toBN(15e18), erc20DAI.address, { from: accounts[1] })
 
       await market.getOffer(1).should.eventually.matchObj({
-        sellAmount_: toBN(0),
-        buyAmount_: toBN(0),
+        sellAmount: '0',
+        buyAmount: '0',
       })
 
       await market.getOffer(2).should.eventually.matchObj({
-        sellAmount_: toBN(5e18),
-        buyAmount_: toBN(5e18),
+        sellAmount: '5000000000000000000',
+        buyAmount: '5000000000000000000',
       })
 
       await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('1025').toString())
@@ -903,8 +903,8 @@ describe('Market', () => {
       await market.executeMarketOffer(erc20WETH.address, toBN(10e18), erc20DAI.address, { from: accounts[1] })
 
       await market.getOffer(1).should.eventually.matchObj({
-        sellAmount_: toBN(0), // prev 20
-        buyAmount_: toBN(0), // prev 10
+        sellAmount: '0', // prev 20
+        buyAmount: '0', // prev 10
       })
 
       await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('1020').toString())
@@ -920,13 +920,13 @@ describe('Market', () => {
       await market.executeMarketOffer(erc20WETH.address, toBN(20e18), erc20DAI.address, { from: accounts[1] })
 
       await market.getOffer(1).should.eventually.matchObj({
-        sellAmount_: toBN(0), // prev 20
-        buyAmount_: toBN(0), // prev 10
+        sellAmount: '0', // prev 20
+        buyAmount: '0', // prev 10
       })
 
       await market.getOffer(2).should.eventually.matchObj({
-        sellAmount_: toBN(0), // prev 10
-        buyAmount_: toBN(0), // prev 10
+        sellAmount: '0', // prev 10
+        buyAmount: '0', // prev 10
       })
 
       await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('1030').toString())
@@ -945,9 +945,9 @@ describe('Market', () => {
       const marketOfferId = await market.getLastOfferId()
       const marketOffer = await market.getOffer(marketOfferId)
 
-      expect(marketOffer.state_).to.eq(OFFER_STATE_FULFILLED)
-      expect(marketOffer.sellAmount_.toString()).to.eq('0')
-      expect(marketOffer.averagePrice_.toString()).to.eq('1')
+      expect(marketOffer.state).to.eq(OFFER_STATE_FULFILLED.toString())
+      expect(marketOffer.sellAmount.toString()).to.eq('0')
+      expect(marketOffer.averagePrice.toString()).to.eq('1')
 
     })
   })
@@ -1006,12 +1006,12 @@ describe('Market', () => {
 
     it('should match both matching offers partly and get correct last offer id after complete and active offers', async () => {
       const firstOffer = await market.getOffer(1)
-      expect(firstOffer.sellAmount_.toNumber()).to.eq(0) // previously 10
-      expect(firstOffer.buyAmount_.toNumber()).to.eq(0) // previously 5
+      expect(firstOffer.sellAmount).to.eq('0') // previously 10
+      expect(firstOffer.buyAmount).to.eq('0') // previously 5
 
       const secondOffer = await market.getOffer(2)
-      expect(secondOffer.sellAmount_.toString()).to.eq(toWei('5')) // previously 10
-      expect(secondOffer.buyAmount_.toString()).to.eq(toWei('10')) // previously 20
+      expect(secondOffer.sellAmount.toString()).to.eq(toWei('5')) // previously 10
+      expect(secondOffer.buyAmount.toString()).to.eq(toWei('10')) // previously 20
 
       await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('990').toString())
       await erc20WETH.balanceOf(accounts[1]).should.eventually.eq(toWei('1005').toString())
@@ -1129,16 +1129,16 @@ describe('Market', () => {
       await market.getLastOfferId().should.eventually.eq(3)
 
       const secondOffer = await market.getOffer(2)
-      expect(secondOffer.sellAmount_.toNumber()).to.eq(0)
-      expect(secondOffer.buyAmount_.toNumber()).to.eq(0)
+      expect(secondOffer.sellAmount).to.eq('0')
+      expect(secondOffer.buyAmount).to.eq('0')
 
       const thirdOffer = await market.getOffer(3)
-      expect(thirdOffer.sellAmount_.toString()).to.eq(toWei('10')) // previously 40
-      expect(thirdOffer.buyAmount_.toString()).to.eq(toWei('5')) // previously 20
+      expect(thirdOffer.sellAmount.toString()).to.eq(toWei('10')) // previously 40
+      expect(thirdOffer.buyAmount.toString()).to.eq(toWei('5')) // previously 20
 
       const fourthOffer = await market.getOffer(4)
-      expect(fourthOffer.sellAmount_.toNumber()).to.eq(0)  // previously 5
-      expect(fourthOffer.buyAmount_.toNumber()).to.eq(0) // previously 10
+      expect(fourthOffer.sellAmount).to.eq('0')  // previously 5
+      expect(fourthOffer.buyAmount).to.eq('0') // previously 10
 
       await market.getLastOfferId().should.eventually.eq(3)
 
@@ -1204,12 +1204,12 @@ describe('Market', () => {
       )
 
       const firstOffer = await market.getOffer(1)
-      expect(firstOffer.sellAmount_.toNumber()).to.eq(0)  // previously 10
-      expect(firstOffer.buyAmount_.toNumber()).to.eq(0) // previously 5
+      expect(firstOffer.sellAmount).to.eq('0')  // previously 10
+      expect(firstOffer.buyAmount).to.eq('0') // previously 5
 
       const secondOffer = await market.getOffer(2)
-      expect(secondOffer.sellAmount_.toString()).to.eq(toWei('5')) // previously 10
-      expect(secondOffer.buyAmount_.toString()).to.eq(toWei('10')) // previously 20
+      expect(secondOffer.sellAmount.toString()).to.eq(toWei('5')) // previously 10
+      expect(secondOffer.buyAmount.toString()).to.eq(toWei('10')) // previously 20
     })
 
     it('should get correct balances after creating offers', async () => {
@@ -1270,12 +1270,12 @@ describe('Market', () => {
       )
 
       const firstOffer = await market.getOffer(1)
-      expect(firstOffer.sellAmount_.toNumber()).to.eq(0)  // previously 10
-      expect(firstOffer.buyAmount_.toNumber()).to.eq(0) // previously 5
+      expect(firstOffer.sellAmount).to.eq('0')  // previously 10
+      expect(firstOffer.buyAmount).to.eq('0') // previously 5
 
       const secondOffer = await market.getOffer(2)
-      expect(secondOffer.sellAmount_.toNumber()).to.eq(0)  // previously 5
-      expect(secondOffer.buyAmount_.toNumber()).to.eq(0) // previously 10
+      expect(secondOffer.sellAmount).to.eq('0')  // previously 5
+      expect(secondOffer.buyAmount).to.eq('0') // previously 10
 
     })
 
@@ -1348,12 +1348,12 @@ describe('Market', () => {
 
     it('should not match the two created offers if the prices do not match', async () => {
       const firstOffer = await market.getOffer(1)
-      expect(firstOffer.sellAmount_.toString()).to.eq(toWei('20'))
-      expect(firstOffer.buyAmount_.toString()).to.eq(toWei('40'))
+      expect(firstOffer.sellAmount.toString()).to.eq(toWei('20'))
+      expect(firstOffer.buyAmount.toString()).to.eq(toWei('40'))
 
       const secondOffer = await market.getOffer(2)
-      expect(secondOffer.sellAmount_.toString()).to.eq(toWei('20'))
-      expect(secondOffer.buyAmount_.toString()).to.eq(toWei('30'))
+      expect(secondOffer.sellAmount.toString()).to.eq(toWei('20'))
+      expect(secondOffer.buyAmount.toString()).to.eq(toWei('30'))
 
 
       await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('980').toString())
@@ -1444,12 +1444,12 @@ describe('Market', () => {
       expect(secondOrderInfo._data).to.be.eq(null)
 
       const firstOffer = await market.getOffer(1)
-      expect(firstOffer.sellAmount_.toString()).to.eq(toWei('10'))
-      expect(firstOffer.buyAmount_.toString()).to.eq(toWei('10'))
+      expect(firstOffer.sellAmount.toString()).to.eq(toWei('10'))
+      expect(firstOffer.buyAmount.toString()).to.eq(toWei('10'))
 
       const secondOffer = await market.getOffer(2)
-      expect(secondOffer.sellAmount_.toString()).to.eq(toWei('10'))
-      expect(secondOffer.buyAmount_.toString()).to.eq(toWei('10'))
+      expect(secondOffer.sellAmount.toString()).to.eq(toWei('10'))
+      expect(secondOffer.buyAmount.toString()).to.eq(toWei('10'))
 
       await erc20WETH.balanceOf(accounts[1]).should.eventually.eq(toWei('990').toString())
       await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('1000').toString())
@@ -1516,12 +1516,12 @@ describe('Market', () => {
       expect(secondOrderInfo._data).to.be.eq(null)
 
       const firstOffer = await market.getOffer(1)
-      expect(firstOffer.sellAmount_.toNumber()).to.eq(0)
-      expect(firstOffer.buyAmount_.toNumber()).to.eq(0)
+      expect(firstOffer.sellAmount).to.eq('0')
+      expect(firstOffer.buyAmount).to.eq('0')
 
       const secondOffer = await market.getOffer(2)
-      expect(secondOffer.sellAmount_.toNumber()).to.eq(0)
-      expect(secondOffer.buyAmount_.toNumber()).to.eq(0)
+      expect(secondOffer.sellAmount).to.eq('0')
+      expect(secondOffer.buyAmount).to.eq('0')
 
 
       await erc20WETH.balanceOf(accounts[1]).should.eventually.eq(toWei('990').toString())
@@ -1582,12 +1582,12 @@ describe('Market', () => {
       expect(secondOrderInfo._data).to.be.eq(null)
 
       const firstOffer = await market.getOffer(1)
-      expect(firstOffer.sellAmount_.toNumber()).to.eq(0)
-      expect(firstOffer.buyAmount_.toNumber()).to.eq(0)
+      expect(firstOffer.sellAmount).to.eq('0')
+      expect(firstOffer.buyAmount).to.eq('0')
 
       let secondOffer = await market.getOffer(2)
-      expect(secondOffer.sellAmount_.toString()).to.eq(toWei('20'))
-      expect(secondOffer.buyAmount_.toString()).to.eq(toWei('10'))
+      expect(secondOffer.sellAmount.toString()).to.eq(toWei('20'))
+      expect(secondOffer.buyAmount.toString()).to.eq(toWei('10'))
 
       await erc20WETH.balanceOf(accounts[1]).should.eventually.eq(toWei('990').toString())
       await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('1020').toString())
@@ -1621,12 +1621,12 @@ describe('Market', () => {
       expect(secondOrderInfo._data).to.be.eq(notifyData)
 
       const thirdOffer = await market.getOffer(3)
-      expect(thirdOffer.sellAmount_.toNumber()).to.eq(0)
-      expect(thirdOffer.buyAmount_.toNumber()).to.eq(0)
+      expect(thirdOffer.sellAmount).to.eq('0')
+      expect(thirdOffer.buyAmount).to.eq('0')
 
       secondOffer = await market.getOffer(2)
-      expect(secondOffer.sellAmount_.toNumber()).to.eq(0)
-      expect(secondOffer.buyAmount_.toNumber()).to.eq(0)
+      expect(secondOffer.sellAmount).to.eq('0')
+      expect(secondOffer.buyAmount).to.eq('0')
 
       await erc20WETH.balanceOf(accounts[1]).should.eventually.eq(toWei('980').toString())
       await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('1040').toString())
@@ -1662,8 +1662,8 @@ describe('Market', () => {
       expect(firstOrderInfo._data).to.be.eq(null)
 
       let firstOffer = await market.getOffer(1)
-      expect(firstOffer.sellAmount_.toString()).to.eq(toWei('10'))
-      expect(firstOffer.buyAmount_.toString()).to.eq(toWei('20'))
+      expect(firstOffer.sellAmount.toString()).to.eq(toWei('10'))
+      expect(firstOffer.buyAmount.toString()).to.eq(toWei('20'))
 
       await erc20WETH.balanceOf(accounts[1]).should.eventually.eq(toWei('990').toString())
       await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('1000').toString())
@@ -1676,8 +1676,8 @@ describe('Market', () => {
       expect(firstOrderInfo._data).to.be.eq(notifyData)
 
       firstOffer = await market.getOffer(1)
-      expect(firstOffer.sellAmount_.toString()).to.eq(toWei('10'))
-      expect(firstOffer.buyAmount_.toString()).to.eq(toWei('20'))
+      expect(firstOffer.sellAmount.toString()).to.eq(toWei('10'))
+      expect(firstOffer.buyAmount.toString()).to.eq(toWei('20'))
       
       const firstOfferState = await market.isActive(1)
       expect(firstOfferState).to.be.equal(false)
@@ -1712,8 +1712,8 @@ describe('Market', () => {
       expect(firstOrderInfo._data).to.be.eq(null)
 
       let firstOffer = await market.getOffer(1)
-      expect(firstOffer.sellAmount_.toString()).to.eq(toWei('10'))
-      expect(firstOffer.buyAmount_.toString()).to.eq(toWei('20'))
+      expect(firstOffer.sellAmount.toString()).to.eq(toWei('10'))
+      expect(firstOffer.buyAmount.toString()).to.eq(toWei('20'))
 
       await erc20WETH.balanceOf(accounts[1]).should.eventually.eq(toWei('990').toString())
       await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('1000').toString())
@@ -1725,8 +1725,8 @@ describe('Market', () => {
       expect(firstOrderInfo._data).to.be.eq("0x00")
 
       firstOffer = await market.getOffer(1)
-      expect(firstOffer.sellAmount_.toString()).to.eq(toWei('10'))
-      expect(firstOffer.buyAmount_.toString()).to.eq(toWei('20'))
+      expect(firstOffer.sellAmount.toString()).to.eq(toWei('10'))
+      expect(firstOffer.buyAmount.toString()).to.eq(toWei('20'))
       
       const firstOfferState = await market.isActive(1)
       expect(firstOfferState).to.be.equal(false)

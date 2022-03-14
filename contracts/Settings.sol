@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.6.12;
+pragma solidity 0.8.12;
 
 import "./base/EternalStorage.sol";
 import "./base/ISettings.sol";
@@ -23,7 +23,7 @@ import "./base/IACL.sol";
    * Constructor
    * @param _acl ACL address.
    */
-  constructor (address _acl) public {
+  constructor (address _acl) {
     dataAddress["acl"] = _acl;
   }
 

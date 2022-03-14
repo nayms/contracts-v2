@@ -12,7 +12,7 @@ const alchemyKey = process.env.ALCHEMY_KEY || process.env.ALCHEMY_ID || 'notset'
 
 module.exports = {
   solidity: {
-    version: "0.6.12",
+    version: "0.8.12",
     settings: {
       optimizer: {
         enabled: true,

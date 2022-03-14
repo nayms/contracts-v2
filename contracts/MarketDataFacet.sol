@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.6.12;
+pragma solidity 0.8.12;
 
 import "./base/EternalStorage.sol";
 import "./base/IMarketDataFacet.sol";
@@ -12,7 +12,7 @@ contract MarketDataFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
   /**
    * Constructor
    */
-  constructor (address _settings) Controller(_settings) public {
+  constructor (address _settings) Controller(_settings) {
   }
 
   // IDiamondFacet
@@ -50,32 +50,24 @@ contract MarketDataFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
   }
 
   function getOffer(uint256 _offerId) external view override returns ( 
-    address creator_,
-    address sellToken_, 
-    uint256 sellAmount_, 
-    uint256 sellAmountInitial_,
-    address buyToken_, 
-    uint256 buyAmount_,
-    uint256 buyAmountInitial_,
-    uint256 averagePrice_,
-    uint256 feeSchedule_,
-    address notify_,
-    bytes memory notifyData_,
-    uint256 state_
+    OfferState memory _offerState
   ) {
-    creator_ = dataAddress[__i(_offerId, "creator")];
-    sellToken_ = dataAddress[__i(_offerId, "sellToken")];
-    sellAmount_ = dataUint256[__i(_offerId, "sellAmount")];
-    sellAmountInitial_ = dataUint256[__i(_offerId, "sellAmountInitial")];
-    buyToken_ = dataAddress[__i(_offerId, "buyToken")];
-    buyAmount_ = dataUint256[__i(_offerId, "buyAmount")];
-    buyAmountInitial_ = dataUint256[__i(_offerId, "buyAmountInitial")];
-    uint256 soldAmount = sellAmountInitial_ - sellAmount_;
-    averagePrice_ = soldAmount > 0 ? buyAmount_.div(soldAmount) : 0;
-    feeSchedule_ = dataUint256[__i(_offerId, "feeSchedule")];
-    notify_ = dataAddress[__i(_offerId, "notify")];
-    notifyData_ = dataBytes[__i(_offerId, "notifyData")];
-    state_ = dataUint256[__i(_offerId, "state")];
+    _offerState.creator = dataAddress[__i(_offerId, "creator")];
+    _offerState.sellToken = dataAddress[__i(_offerId, "sellToken")];
+    _offerState.buyToken = dataAddress[__i(_offerId, "buyToken")];
+
+    _offerState.sellAmountInitial = dataUint256[__i(_offerId, "sellAmountInitial")];
+    _offerState.sellAmount = dataUint256[__i(_offerId, "sellAmount")];
+    uint256 soldAmount = _offerState.sellAmountInitial - _offerState.sellAmount;
+
+    _offerState.buyAmount = dataUint256[__i(_offerId, "buyAmount")];
+    _offerState.averagePrice = soldAmount > 0 ? _offerState.buyAmount / soldAmount : 0;
+
+    _offerState.buyAmountInitial = dataUint256[__i(_offerId, "buyAmountInitial")];
+    _offerState.feeSchedule = dataUint256[__i(_offerId, "feeSchedule")];
+    _offerState.notify = dataAddress[__i(_offerId, "notify")];
+    _offerState.notifyData = dataBytes[__i(_offerId, "notifyData")];
+    _offerState.state = dataUint256[__i(_offerId, "state")];
   }
 
   function getOfferSiblings(uint256 _offerId) external view override returns ( 
@@ -127,14 +119,14 @@ contract MarketDataFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
 
       // if sell amount >= offer buy amount then lets buy the whole offer
       if (sellAmount >= offerBuyAmount) {
-        soldAmount_ = soldAmount_.add(offerBuyAmount);
-        boughtAmount_ = boughtAmount_.add(offerSellAmount);
-        sellAmount = sellAmount.sub(offerBuyAmount);
+        soldAmount_ = soldAmount_ + offerBuyAmount;
+        boughtAmount_ = boughtAmount_ + offerSellAmount;
+        sellAmount = sellAmount - offerBuyAmount;
       } 
       // otherwise, let's just buy what we can
       else {
-        soldAmount_ = soldAmount_.add(sellAmount);
-        boughtAmount_ = boughtAmount_.add(sellAmount.mul(offerSellAmount).div(offerBuyAmount));
+        soldAmount_ = soldAmount_ + sellAmount;
+        boughtAmount_ = boughtAmount_ + (sellAmount * offerSellAmount / offerBuyAmount);
         sellAmount = 0;
       }
 

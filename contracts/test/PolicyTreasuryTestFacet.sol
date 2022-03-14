@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.6.12;
+pragma solidity 0.8.12;
 
 import "../base/EternalStorage.sol";
 import "../base/IDiamondFacet.sol";
@@ -16,7 +16,7 @@ interface IPolicyTreasuryTestFacet is IDiamondFacet {
 }
 
 contract PolicyTreasuryTestFacet is EternalStorage, PolicyFacetBase, IPolicyTreasuryTestFacet, Controller, IMarketFeeSchedules {
-  constructor (address _settings) Controller(_settings) public {
+  constructor (address _settings) Controller(_settings) {
     // nothing
   }
 

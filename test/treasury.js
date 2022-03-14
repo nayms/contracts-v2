@@ -729,10 +729,10 @@ describe('Treasury', () => {
       await market.isActive(offerId).should.eventually.eq(true)
       const offer = await market.getOffer(offerId)
 
-      expect(offer.sellAmount_.toNumber()).to.eq(1)
-      expect(offer.sellToken_).to.eq(etherToken.address)
-      expect(offer.buyAmount_.toNumber()).to.eq(5)
-      expect(offer.buyToken_).to.eq(etherToken2.address)
+      expect(offer.sellAmount).to.eq('1')
+      expect(offer.sellToken).to.eq(etherToken.address)
+      expect(offer.buyAmount).to.eq('5')
+      expect(offer.buyToken).to.eq(etherToken2.address)
 
       await policies[0].testFacet.treasuryCancelOrder(offerId)
 

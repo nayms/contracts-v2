@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.6.12;
+pragma solidity 0.8.12;
 
 import "../base/IMarket.sol";
 import "../base/IERC20.sol";
@@ -16,7 +16,7 @@ contract DummyParent is Parent {
 contract DummyMarketCaller is Child, DummyParent {
   address private market;
 
-  constructor (address _market, address _parent) public {
+  constructor (address _market, address _parent) {
     market = _market;
     _setParent(_parent);
   }

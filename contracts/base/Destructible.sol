@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.6.12;
+pragma solidity 0.8.12;
 
 import "./Controller.sol";
 
@@ -11,7 +11,7 @@ contract Destructible is Controller {
    * @dev Constructor.
    * @param _settings Settings address.
    */
-  constructor(address _settings) Controller(_settings) public {
+  constructor(address _settings) Controller(_settings) {
     // empty
   }
 
@@ -22,6 +22,6 @@ contract Destructible is Controller {
     public
     assertIsAdmin
   {
-    selfdestruct(msg.sender);
+    selfdestruct(payable(msg.sender));
   }
 }

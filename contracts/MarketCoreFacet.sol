@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.6.12;
+pragma solidity 0.8.12;
 
 import "./base/EternalStorage.sol";
 import "./base/IMarketCoreFacet.sol";
@@ -9,7 +9,6 @@ import "./base/IParent.sol";
 import "./base/IChild.sol";
 import "./base/IDiamondFacet.sol";
 import "./base/Controller.sol";
-import "./base/SafeMath.sol";
 import "./base/IERC20.sol";
 import "./base/ReentrancyGuard.sol";
 import "./MarketFacetBase.sol";
@@ -18,7 +17,6 @@ import "./MarketFacetBase.sol";
  * Forked from https://github.com/nayms/maker-otc/blob/master/contracts/matching_market.sol
  */
 contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamondFacet, IMarketCoreFacet, IMarketOfferStates, ReentrancyGuard {
-  using SafeMath for uint256;
 
   modifier assertIsActive (uint256 _offerId) {
     require(dataUint256[__i(_offerId, "state")] == OFFER_STATE_ACTIVE, "offer not active");
@@ -28,7 +26,7 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
   /**
    * Constructor
    */
-  constructor (address _settings) Controller(_settings) public {
+  constructor (address _settings) Controller(_settings) {
   }
 
   // IDiamondFacet
@@ -263,7 +261,7 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     uint256 highSellAmount = dataUint256[__i(_highOfferId, "sellAmount")];
     uint256 highBuyAmount = dataUint256[__i(_highOfferId, "buyAmount")];
 
-    return lowBuyAmount.mul(highSellAmount) >= highBuyAmount.mul(lowSellAmount);
+    return lowBuyAmount * highSellAmount >= highBuyAmount * lowSellAmount;
   }
 
   function _isOfferInSortedList(uint _offerId) private view returns(bool) {
@@ -318,7 +316,7 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
       //
       // (For detailed breakdown see https://hiddentao.com/archives/2019/09/08/maker-otc-on-chain-orderbook-deep-dive)
       //
-      else if (bestBuyAmount.mul(remainingBuyAmount_) > remainingSellAmount_.mul(bestSellAmount).add(bestBuyAmount).add(remainingBuyAmount_).add(remainingSellAmount_).add(bestSellAmount)) {
+      else if (bestBuyAmount * remainingBuyAmount_ > remainingSellAmount_ * bestSellAmount + bestBuyAmount + remainingBuyAmount_ + remainingSellAmount_ + bestSellAmount) {
         break;
       }
 
@@ -340,8 +338,8 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
 
         // calculate how much is left to buy/sell
         uint256 sellAmountOld = remainingSellAmount_;
-        remainingSellAmount_ = remainingSellAmount_.sub(finalSellAmount);
-        remainingBuyAmount_ = remainingSellAmount_.mul(remainingBuyAmount_).div(sellAmountOld);
+        remainingSellAmount_ = remainingSellAmount_ - finalSellAmount;
+        remainingBuyAmount_ = remainingSellAmount_ * remainingBuyAmount_ / sellAmountOld;
       }
     }
   }
@@ -394,7 +392,7 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     (TokenAmount memory offerSell, TokenAmount memory offerBuy) = _getOfferTokenAmounts(_offerId);
 
     // (a / b) * c = c * a / b  -> do multiplication first to avoid underflow
-    uint256 thisSaleSellAmount = _requestedBuyAmount.mul(offerSell.amount).div(offerBuy.amount);
+    uint256 thisSaleSellAmount = _requestedBuyAmount * offerSell.amount / offerBuy.amount;
 
     // check bounds and update balances
     _checkBoundsAndUpdateBalances(_offerId, thisSaleSellAmount, _requestedBuyAmount);
@@ -444,8 +442,8 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     require(_sellAmount <= offerSell.amount, "calculated sell amount too large");
 
     // update balances
-    dataUint256[__i(_offerId, "sellAmount")] = offerSell.amount.sub(_sellAmount);
-    dataUint256[__i(_offerId, "buyAmount")] = offerBuy.amount.sub(_buyAmount);
+    dataUint256[__i(_offerId, "sellAmount")] = offerSell.amount - _sellAmount;
+    dataUint256[__i(_offerId, "buyAmount")] = offerBuy.amount - _buyAmount;
   }
 
   function _takeFees(
@@ -468,7 +466,7 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
       require(IERC20(_buyToken).transferFrom(msg.sender, feeBank, fee_.amount), "sender -> feebank fee transfer failed");
     } else {
       // if fee is to be paid in the sell token then it must be paid from the received amount
-      finalSellAmount_ = finalSellAmount_.sub(fee_.amount);
+      finalSellAmount_ = finalSellAmount_ - fee_.amount;
       require(IERC20(_sellToken).transfer(feeBank, fee_.amount), "market -> feebank fee transfer failed");    
     }
   }

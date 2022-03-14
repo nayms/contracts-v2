@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.6.12;
+pragma solidity 0.8.12;
 
 import './base/EternalStorage.sol';
 import './base/Destructible.sol';
@@ -19,7 +19,7 @@ contract EntityDeployer is EternalStorage, Destructible, IEntityDeployer, Parent
   /**
    * Constructor
    */
-  constructor (address _settings) Destructible(_settings) public {
+  constructor (address _settings) Destructible(_settings) {
     // empty
   }
 

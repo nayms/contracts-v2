@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.6.12;
+pragma solidity 0.8.12;
 
 import "./EternalStorage.sol";
 import "./ISettings.sol";
@@ -14,7 +14,7 @@ contract SettingsControl is EternalStorage, ISettingsControl, ISettingsKeys {
    * @dev Constructor.
    * @param _settings Settings address.
    */
-  constructor (address _settings) public {
+  constructor (address _settings) {
     dataAddress["settings"] = _settings;
   }
 

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.6.12;
+pragma solidity 0.8.12;
 
-import "./base/SafeMath.sol";
 import "./base/EternalStorage.sol";
 import "./base/Controller.sol";
 import "./base/IDiamondFacet.sol";
@@ -16,7 +15,6 @@ import "./base/ReentrancyGuard.sol";
  * @dev Business-logic for Policy claims
  */
 contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicyClaimsFacet, PolicyFacetBase, ReentrancyGuard {
-  using SafeMath for uint;
 
   modifier assertActiveState () {
     require(dataUint256["state"] == POLICY_STATE_ACTIVE, 'must be in active state');
@@ -26,7 +24,7 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
   /**
    * Constructor
    */
-  constructor (address _settings) Controller(_settings) public {
+  constructor (address _settings) Controller(_settings) {
     // empty
   }
 
@@ -81,7 +79,7 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
 
     // check amount
     require(
-      _getTranchePendingClaimsAmount(_trancheIndex).add(_amount) <= dataUint256[string(abi.encodePacked(_trancheIndex, "balance"))],
+      _getTranchePendingClaimsAmount(_trancheIndex) + _amount <= dataUint256[string(abi.encodePacked(_trancheIndex, "balance"))],
       'claim too high'
     );
 
@@ -134,7 +132,7 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
     // remove from tranche balance
     uint256 claimAmount = dataUint256[__i(_claimIndex, "claimAmount")];
     uint256 claimTranche = dataUint256[__i(_claimIndex, "claimTranche")];
-    dataUint256[__i(claimTranche, "balance")] = dataUint256[__i(claimTranche, "balance")].sub(claimAmount);
+    dataUint256[__i(claimTranche, "balance")] = dataUint256[__i(claimTranche, "balance")] - claimAmount;
 
     // update pending count
     dataUint256["claimsPendingCount"] -= 1;
@@ -204,7 +202,7 @@ contract PolicyClaimsFacet is EternalStorage, Controller, IDiamondFacet, IPolicy
       uint256 trancheNum = dataUint256[__i(i, "claimTranche")];
 
       if (trancheNum == _index && isPending) {
-        amount = amount.add(dataUint256[__i(i, "claimAmount")]);
+        amount = amount + dataUint256[__i(i, "claimAmount")];
       }
     }
 

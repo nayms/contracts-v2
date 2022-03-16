@@ -51,10 +51,10 @@ module.exports = {
         mnemonic,
       },
       timeout: 120000,
-      blockGasLimit: 30000000000,
+      blockGasLimit: 3000000000,
       gasPrice: 8000000000,
       gas: 20000000000,
-      gasMultiplier: 5
+      gasMultiplier: 2
     },
     kovan: {
       chainId: 42,

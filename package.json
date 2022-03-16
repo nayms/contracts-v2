@@ -1,6 +1,6 @@
 {
   "name": "@nayms/contracts",
-  "version": "1.0.0-local.1646847576196",
+  "version": "1.0.0-pr.148.build.1693",
   "description": "Nayms smart contracts",
   "main": "index.js",
   "publishConfig": {

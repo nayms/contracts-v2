@@ -51,6 +51,8 @@ module.exports = {
         mnemonic,
       },
       timeout: 120000,
+      initialBaseFeePerGas: 0,
+      blockGasLimit: 30000000,
       gasPrice: 8000000000,
       gasMultiplier: 1
     },

@@ -50,7 +50,10 @@ module.exports = {
       accounts: {
         mnemonic,
       },
-      timeout: 120000
+      timeout: 120000,
+      blockGasLimit: 3000000000,
+      gasPrice: 8000000000,
+      gasMultiplier: 1
     },
     kovan: {
       chainId: 42,

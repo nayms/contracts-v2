@@ -133,21 +133,24 @@ workflows:
             - build_contracts
           filters:
             branches:
-              only:
+              ignore:
+                - gh-pages
                 - master
       - deploy_admin_dapp:
           requires:
             - deploy_contracts
           filters:
             branches:
-              only:
+              ignore:
+                - gh-pages
                 - master
       - publish_to_npm:
           requires:
             - deploy_contracts
           filters:
             branches:
-              only:
+              ignore:
+                - gh-pages
                 - master
       - git_tag:
           requires:

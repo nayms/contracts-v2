@@ -4,6 +4,7 @@
   "rules": {
     "use-forbidden-name": false,
     "indentation": ["warn", 2],
-    "quotes": false
+    "quotes": false,
+    "compiler-version": ["error", "^0.8.0"]
   }
 }

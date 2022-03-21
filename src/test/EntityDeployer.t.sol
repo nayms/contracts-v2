@@ -29,6 +29,8 @@ contract EntityDeployerTest is DSTestPlusF, IACLConstants, ISettingsKeys {
     // AccessControl internal accessControl;
     bytes32 internal systemContext;
 
+    EntityDeployer internal entityDeployer;
+
     EntityCoreFacet internal entityCoreFacet;
     EntityFundingFacet internal entityFundingFacet;
     EntityTokensFacet internal entityTokensFacet;
@@ -37,9 +39,7 @@ contract EntityDeployerTest is DSTestPlusF, IACLConstants, ISettingsKeys {
     EntityTreasuryBridgeFacet internal entityTreasuryBridgeFacet;
     EntitySimplePolicyCoreFacet internal entitySimplePolicyCoreFacet;
     EntitySimplePolicyDataFacet internal entitySimplePolicyDataFacet;
-
     EntityDelegate internal entityDelegate;
-    EntityDeployer internal entityDeployer;
 
     event NewEntity(address indexed entity, address indexed deployer);
 

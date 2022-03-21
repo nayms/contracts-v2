@@ -23,4 +23,12 @@ contract DSTestPlusF is DSTest, stdCheats {
     ) internal {
         stdstore.target(token).sig(IERC20(token).balanceOf.selector).with_key(who).checked_write(amt);
     }
+
+    function enforceHasContractCode(address _contract, string memory _errorMessage) internal view {
+        uint256 contractSize;
+        assembly {
+            contractSize := extcodesize(_contract)
+        }
+        require(contractSize > 0, _errorMessage);
+    }
 }

@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.12;
+pragma solidity 0.8.9;
 
 import "./base/Controller.sol";
 import "./base/IDiamondUpgradeFacet.sol";
 import "./base/IDiamondProxy.sol";
 
 contract CommonUpgradeFacet is Controller, IDiamondUpgradeFacet {
-  constructor (address _settings) Controller(_settings) {
+  constructor (address _settings) Controller(_settings) public {
     // empty
   }
 
@@ -15,8 +15,8 @@ contract CommonUpgradeFacet is Controller, IDiamondUpgradeFacet {
   }
 
   function getVersionInfo () public override pure returns (string memory num_, uint256 date_, string memory hash_) {
-    num_ = "1.0.0-local.1637846745255";
-    date_ = 1637846745;
-    hash_ = "b1e7ce9e4ab847a3d9ae9eedd0c7c429a72044b1";
+    num_ = "1.0.0-local.1647543426924";
+    date_ = 1647543426;
+    hash_ = "6218d9fff6eb1747c2c78385d0118a35881fb32f";
   }
 }

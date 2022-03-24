@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.12;
+pragma solidity 0.8.9;
+
+interface IMarketDataFacet {
 
   struct OfferState {
     address creator;
@@ -15,8 +17,7 @@ pragma solidity 0.8.12;
     bytes notifyData;
     uint256 state;
   }
-  
-interface IMarketDataFacet {
+
   /**
    * @dev Get market config.
    *

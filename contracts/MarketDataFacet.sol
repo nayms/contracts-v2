@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.12;
+pragma solidity 0.8.9;
 
 import "./base/EternalStorage.sol";
 import "./base/IMarketDataFacet.sol";
@@ -50,7 +50,7 @@ contract MarketDataFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
   }
 
   function getOffer(uint256 _offerId) external view override returns ( 
-    OfferState memory _offerState
+    IMarketDataFacet.OfferState memory _offerState
   ) {
     _offerState.creator = dataAddress[__i(_offerId, "creator")];
     _offerState.sellToken = dataAddress[__i(_offerId, "sellToken")];

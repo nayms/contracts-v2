@@ -12,7 +12,7 @@ const alchemyKey = process.env.ALCHEMY_KEY || process.env.ALCHEMY_ID || 'notset'
 
 module.exports = {
   solidity: {
-    version: "0.8.12",
+    version: "0.8.9",
     settings: {
       optimizer: {
         enabled: true,
@@ -51,8 +51,7 @@ module.exports = {
         mnemonic,
       },
       timeout: 120000,
-      gasPrice: 8000000000,
-      gasMultiplier: 1
+      blockGasLimit: 30000000000,
     },
     kovan: {
       chainId: 42,

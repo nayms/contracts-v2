@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.12;
+pragma solidity 0.8.9;
 
 import "./base/Controller.sol";
 import "./base/EternalStorage.sol";
@@ -166,7 +166,7 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
       // if we created this offer
       if (entity == address(this)) {
         // check entity token matches sell token
-        OfferState memory offerState = _getMarket().getOffer(_offerId);
+        IMarketDataFacet.OfferState memory offerState = _getMarket().getOffer(_offerId);
         // (, address sellToken, , , address buyToken, , , , , , ,) = _getMarket().getOffer(_offerId);
         address tokenAddress = dataAddress["token"];
         require(tokenAddress == offerState.sellToken, "sell token must be entity token");
@@ -199,7 +199,7 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
       // if we created this offer
       if (entity == address(this)) {
         // check entity token matches sell token
-        OfferState memory offerState = _getMarket().getOffer(_offerId);
+        IMarketDataFacet.OfferState memory offerState = _getMarket().getOffer(_offerId);
         // (, address sellToken, , , , , , , , , ,) = _getMarket().getOffer(_offerId);
         address tokenAddress = dataAddress["token"];
         require(tokenAddress == offerState.sellToken, "sell token must be entity token");

@@ -1,6 +1,6 @@
 {
   "name": "@nayms/contracts",
-  "version": "1.0.0-local.1646847576196",
+  "version": "1.0.0-local.1647543426924",
   "description": "Nayms smart contracts",
   "main": "index.js",
   "publishConfig": {
@@ -92,7 +92,7 @@
     "prompt": "^1.0.0",
     "regenerator-runtime": "^0.13.9",
     "sol-merger": "^0.1.2",
-    "solc": "=0.8.12",
+    "solc": "=0.8.9",
     "solgraph": "^0.3.2",
     "solhint": "^3.3.7",
     "solidity-coverage": "^0.7.20",

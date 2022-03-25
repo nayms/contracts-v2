@@ -86,7 +86,13 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
     dataUint256[k] = dataUint256[k] + _amount;
     dataUint256["tokenSupply"] = dataUint256["tokenSupply"] + _amount;
 
-    dataUint256["tokenSaleOfferId"] = _getMarket().executeLimitOffer(
+    IMarket mkt = _getMarket();
+
+    // approve market contract to use my tokens
+    IERC20 tok = IERC20(dataAddress["token"]);
+    tok.approve(address(mkt), _amount);
+
+    dataUint256["tokenSaleOfferId"] = mkt.executeLimitOffer(
       dataAddress["token"], 
       _amount, 
       _priceUnit, 
@@ -95,6 +101,7 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
       address(this), 
       abi.encode(MODT_ENTITY_SALE, address(this))
     );
+
   }
 
   function cancelTokenSale() 

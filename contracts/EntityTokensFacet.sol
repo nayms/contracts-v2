@@ -241,7 +241,7 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
 
     if (dataUint256[toTokenHolderIndexKey] == 0) {
       dataUint256[numHoldersKey] += 1;
-      dataAddress[__i(dataUint256[numHoldersKey], "tokenHolder")] = _to;
+      dataAddress[__ia(dataUint256[numHoldersKey], _unit, "tokenHolder")] = _to;
       dataUint256[toTokenHolderIndexKey] = dataUint256[numHoldersKey];
     }
 

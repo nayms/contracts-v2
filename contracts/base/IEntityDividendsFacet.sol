@@ -7,13 +7,18 @@ pragma solidity 0.8.9;
 interface IEntityDividendsFacet {
   /**
    * @dev Get no. of token holders.
+   *
+   * @param _unit Unit token address.
    */
-  function getNumTokenHolders() external view returns (uint256);
+  function getNumTokenHolders(address _unit) external view returns (uint256);
 
   /**
    * @dev Get token holder at given 1-based index.
+   * 
+   * @param _unit Unit token address.
+   * @param _index holder at given position
    */
-  function getTokenHolderAtIndex(uint256 _index) external view returns (address);
+  function getTokenHolderAtIndex(address _unit, uint256 _index) external view returns (address);
 
   /**
    * @dev Pay dividends to all current token holders.

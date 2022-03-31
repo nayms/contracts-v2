@@ -57,7 +57,8 @@ contract EntityFundingFacet is EternalStorage, Controller, EntityFacetBase, IEnt
     override 
     assertIsEntityAdmin(msg.sender)
   {
-    require(dataUint256["tokenSupply"] == 0, "cannot withdraw while tokens exist");
+
+    require(dataUint256[__a(_unit, "tokenSupply")] == 0, "cannot withdraw while tokens exist");
 
     _assertHasEnoughBalance(_unit, _amount);
 

@@ -6944,15 +6944,15 @@ camelize@^1.0.0:
   resolved "https://registry.yarnpkg.com/camelize/-/camelize-1.0.0.tgz#164a5483e630fa4321e5af07020e531831b2609b"
   integrity sha1-FkpUg+Yw+kMh5a8HAg5TGDGyYJs=
 
-caniuse-lite@^1.0.30000844, caniuse-lite@^1.0.30001181:
-  version "1.0.30001204"
-  resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30001204.tgz#256c85709a348ec4d175e847a3b515c66e79f2aa"
-  integrity sha512-JUdjWpcxfJ9IPamy2f5JaRDCaqJOxDzOSKtbdx4rH9VivMd1vIzoPumsJa9LoMIi4Fx2BV2KZOxWhNkBjaYivQ==
+caniuse-lite@^1.0.30000844, caniuse-lite@^1.0.30001181, caniuse-lite@^1.0.30001254:
+  version "1.0.30001322"
+  resolved "https://registry.npmjs.org/caniuse-lite/-/caniuse-lite-1.0.30001322.tgz"
+  integrity sha512-neRmrmIrCGuMnxGSoh+x7zYtQFFgnSY2jaomjU56sCkTA6JINqQrxutF459JpWcWRajvoyn95sOXq4Pqrnyjew==
 
-caniuse-lite@^1.0.30001254:
-  version "1.0.30001257"
-  resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30001257.tgz#150aaf649a48bee531104cfeda57f92ce587f6e5"
-  integrity sha512-JN49KplOgHSXpIsVSF+LUyhD8PUp6xPpAXeRrrcBh4KBeP7W864jHn6RvzJgDlrReyeVjMFJL3PLpPvKIxlIHA==
+caniuse-lite@^1.0.30001322:
+  version "1.0.30001322"
+  resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30001322.tgz#2e4c09d11e1e8f852767dab287069a8d0c29d623"
+  integrity sha512-neRmrmIrCGuMnxGSoh+x7zYtQFFgnSY2jaomjU56sCkTA6JINqQrxutF459JpWcWRajvoyn95sOXq4Pqrnyjew==
 
 caseless@^0.12.0, caseless@~0.12.0:
   version "0.12.0"
@@ -18500,16 +18500,18 @@ solc@0.7.3:
     semver "^5.5.0"
     tmp "0.0.33"
 
-solc@=0.8.12:
-  version "0.8.12"
-  resolved "https://registry.yarnpkg.com/solc/-/solc-0.8.12.tgz#3002ed3092ee2f7672f1a2ab80c0d8df8df3ef2b"
-  integrity sha512-TU3anAhKWBQ/WrerJ9EcHrNwGOA1y5vIk5Flz7dBNamLDkX9VQTIwcKd3FiZsT0Ew8rSU7RTmJyGNHRGzP5TBA==
+solc@=0.8.9:
+  version "0.8.9"
+  resolved "https://registry.yarnpkg.com/solc/-/solc-0.8.9.tgz#e57eb1c65c1eea273cc9b2b0d6cca051b878cbf8"
+  integrity sha512-dD8tQgGCrdWQPpbDTbQF048S3JAcpytOax2r5qPgQluKJPCRFT6c/fec0ZkbrRwRSeYT/qiKz0OKBDOinnGeWw==
   dependencies:
     command-exists "^1.2.8"
     commander "^8.1.0"
     follow-redirects "^1.12.1"
+    fs-extra "^0.30.0"
     js-sha3 "0.8.0"
     memorystream "^0.3.1"
+    require-from-string "^2.0.0"
     semver "^5.5.0"
     tmp "0.0.33"
 

@@ -372,11 +372,11 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
     dataBytes[__i(id, "notifyData")] = _notifyData;
 
     if(marketOffer) {
+      // market offers are only created for historical reasons, no need to escrow
       dataUint256[__i(id, "state")] = OFFER_STATE_FULFILLED;
     } else {
       dataUint256[__i(id, "state")] = OFFER_STATE_ACTIVE;
-      // escrow the tokens for limit offers,
-      // market offers are only created for historical reasons, so no need to escrow
+      // escrow the tokens for limit offers
       require(IERC20(_sellToken).transferFrom(msg.sender, address(this), _sellAmount), "unable to escrow tokens");
     }
 

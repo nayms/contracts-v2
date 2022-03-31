@@ -45,7 +45,7 @@ contract EntityDividendsFacet is EternalStorage, Controller, EntityFacetBase, IE
   function payDividend(address _unit, uint256 _amount) external override {
     // if a sale is in progress then some tokens are hold by market on behalf of entity
     // - let's wait until tokens have been allocated to holder
-    _assertNoTokenSaleInProgress();
+    _assertNoTokenSaleInProgress(_unit);
 
     _assertHasEnoughBalance(_unit, _amount);
 

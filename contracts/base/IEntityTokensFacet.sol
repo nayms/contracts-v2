@@ -34,12 +34,11 @@ interface IEntityTokensFacet {
    * The given amount will be minted and immediately put on sale via the market at the given price, in order to raise funds. If there is 
    * already such a sale in progress on the market then this call will fail.
    *
-   * @param _unit Unit token address.
    * @param _amount Amount to mint.
    * @param _priceUnit The token to trade entity tokens for.
    * @param _totalPrice The total price for the `_amount`, denominated in the `_priceUnit`.
    */
-  function startTokenSale(address _unit, uint256 _amount, address _priceUnit, uint256 _totalPrice) external;
+  function startTokenSale(uint256 _amount, address _priceUnit, uint256 _totalPrice) external;
 
   /**
    * @dev Cancel previously started entity token sale.

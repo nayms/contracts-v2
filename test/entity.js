@@ -382,21 +382,14 @@ describe('Entity', () => {
 
     describe('are minted by starting a sale', () => {
 
-      let unitToken
-
-      before(async () => {
-        unitToken = await DummyToken.new('Wrapped Unit ETH', 'uWETH', 18, 0, false)
-      })
-
       it('but must be by system mgr', async () => {
-        await entity.startTokenSale(unitToken.address, 500, etherToken.address, 1000).should.be.rejectedWith('must be system mgr')
+        await entity.startTokenSale(500, etherToken.address, 1000).should.be.rejectedWith('must be system mgr')
       })
 
       it('and creates a market offer', async () => {
-        // await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager })
-        await entity.startTokenSale(unitToken.address, 500, etherToken.address, 1000, { from: systemManager })
+        await entity.startTokenSale(500, etherToken.address, 1000, { from: systemManager })
 
-        const tokenInfo = await entity.getTokenInfo(unitToken.address)
+        const tokenInfo = await entity.getTokenInfo(etherToken.address)
 
         expect(tokenInfo.tokenContract_).to.not.eq(ADDRESS_ZERO)
         expect(tokenInfo.currentTokenSaleOfferId_).to.not.eq(0)
@@ -418,21 +411,18 @@ describe('Entity', () => {
       })
 
       it('and only one sale can be in progress at a time', async () => {
-        // await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager })
-        // await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager }).should.be.rejectedWith('token sale in progress')
-        await entity.startTokenSale(unitToken.address, 500, etherToken.address, 1000, { from: systemManager })
-        await entity.startTokenSale(unitToken.address, 500, etherToken.address, 1000, { from: systemManager }).should.be.rejectedWith('token sale in progress')
-
+        await entity.startTokenSale(500, etherToken.address, 1000, { from: systemManager })
+        await entity.startTokenSale(500, etherToken.address, 1000, { from: systemManager }).should.be.rejectedWith('token sale in progress')
       })
 
       it('and tokens have basic properties', async () => {
-        await entity.startTokenSale(unitToken.address, 500, etherToken.address, 1000, { from: systemManager })
+        await entity.startTokenSale(500, etherToken.address, 1000, { from: systemManager })
 
-        const tokenInfo = await entity.getTokenInfo(unitToken.address)
+        const tokenInfo = await entity.getTokenInfo(etherToken.address)
         const entityToken = await IERC20.at(tokenInfo.tokenContract_)
 
-        expect((await entityToken.name()).toLowerCase()).to.eq(`NAYMS-${unitToken.address}-${entity.address}-ENTITY`.toLowerCase())
-        expect((await entityToken.symbol()).toLowerCase()).to.eq(`N-${unitToken.address.substr(0, 3)}-${entity.address.substr(0, 3)}-E`.toLowerCase())
+        expect((await entityToken.name()).toLowerCase()).to.eq(`NAYMS-${etherToken.address}-${entity.address}-ENTITY`.toLowerCase())
+        expect((await entityToken.symbol()).toLowerCase()).to.eq(`N-${etherToken.address.substr(0, 3)}-${entity.address.substr(0, 3)}-E`.toLowerCase())
 
         await entityToken.totalSupply().should.eventually.eq(500)
         await entityToken.balanceOf(market.address).should.eventually.eq(500)
@@ -441,9 +431,9 @@ describe('Entity', () => {
       })
 
       it('and tokens can partially sell', async ()=> {
-        await entity.startTokenSale(unitToken.address, 500, etherToken.address, 1000, { from: systemManager })
+        await entity.startTokenSale(500, etherToken.address, 1000, { from: systemManager })
 
-        const tokenInfo = await entity.getTokenInfo(unitToken.address)
+        const tokenInfo = await entity.getTokenInfo(etherToken.address)
 
         const offerId = await market.getLastOfferId()
 
@@ -468,9 +458,9 @@ describe('Entity', () => {
       })
       
       it('and tokens can fully sell', async ()=> {
-        await entity.startTokenSale(unitToken.address, 500, etherToken.address, 1000, { from: systemManager })
+        await entity.startTokenSale(500, etherToken.address, 1000, { from: systemManager })
 
-        const tokenInfo = await entity.getTokenInfo(unitToken.address)
+        const tokenInfo = await entity.getTokenInfo(etherToken.address)
 
         const offerId = await market.getLastOfferId()
 
@@ -489,25 +479,20 @@ describe('Entity', () => {
         await entityToken.totalSupply().should.eventually.eq(500)
         await entityToken.balanceOf(accounts[0]).should.eventually.eq(500)
 
-        await entity.getTokenInfo(unitToken.address).should.eventually.matchObj({
+        await entity.getTokenInfo(etherToken.address).should.eventually.matchObj({
           currentTokenSaleOfferId_: 0,
         })
       })
 
       describe('and token transfers are controlled such that', () => {
         let entityToken
-        let unitToken
-
-        before(async () => {
-          unitToken = await DummyToken.new('Wrapped Unit ETH', 'uWETH', 18, 0, false)
-        })
 
         beforeEach(async () => {
-          await entity.startTokenSale(unitToken.address, 500, etherToken.address, 1000, { from: systemManager })
+          await entity.startTokenSale(500, etherToken.address, 1000, { from: systemManager })
           await etherToken.deposit({ value: 500 })
           await etherToken.approve(market.address, 500)
 
-          const tokenInfo = await entity.getTokenInfo(unitToken.address)
+          const tokenInfo = await entity.getTokenInfo(etherToken.address)
 
           await market.executeLimitOffer(etherToken.address, 500, tokenInfo.tokenContract_, 250, FEE_SCHEDULE_STANDARD, ADDRESS_ZERO, BYTES_ZERO)
           
@@ -536,16 +521,11 @@ describe('Entity', () => {
       describe('and once sold', () => {
         let tokenInfo
         let entityToken
-        let unitToken
-
-        before(async () => {
-          unitToken = await DummyToken.new('Wrapped Unit ETH', 'uWETH', 18, 0, false)
-        })
 
         beforeEach(async () => {
-          await entity.startTokenSale(unitToken.address, 500, etherToken.address, 1000, { from: systemManager })
+          await entity.startTokenSale(500, etherToken.address, 1000, { from: systemManager })
 
-          tokenInfo = await entity.getTokenInfo(unitToken.address)
+          tokenInfo = await entity.getTokenInfo(etherToken.address)
 
           await etherToken.deposit({ value: 1000 })
           await etherToken.approve(market.address, 1000)
@@ -563,84 +543,73 @@ describe('Entity', () => {
         })
 
         it('can be burnt', async () => {
-          await entity.burnTokens(unitToken.address, 1).should.be.fulfilled
+          await entity.burnTokens(etherToken.address, 1).should.be.fulfilled
           
           await entityToken.balanceOf(accounts[0]).should.eventually.eq(499)
           await entityToken.totalSupply().should.eventually.eq(499)
         })
 
         it('cannot be burnt if more than balance', async () => {
-          await entity.burnTokens(unitToken.address, 1001).should.be.rejectedWith('not enough balance to burn')
+          await entity.burnTokens(etherToken.address, 1001).should.be.rejectedWith('not enough balance to burn')
         })
 
         it('cannot be burnt if zero', async () => {
-          await entity.burnTokens(unitToken.address, 0).should.be.rejectedWith('cannot burn zero')
+          await entity.burnTokens(etherToken.address, 0).should.be.rejectedWith('cannot burn zero')
         })
       })
 
       describe('and a sale can be cancelled', () => {
-        let unitToken
-
-        before(async () => {
-          unitToken = await DummyToken.new('Wrapped Unit ETH', 'uWETH', 18, 0, false)
-        })
 
         it('but only by entity mgr', async () => {
-          await entity.cancelTokenSale(unitToken.address).should.be.rejectedWith('must be system mgr')
+          await entity.cancelTokenSale(etherToken.address).should.be.rejectedWith('must be system mgr')
         })
 
         it('but only if a sale is active', async () => {
-          await entity.cancelTokenSale(unitToken.address, { from: systemManager }).should.be.rejectedWith('no active token sale')
+          await entity.cancelTokenSale(etherToken.address, { from: systemManager }).should.be.rejectedWith('no active token sale')
         })
 
         it('if active', async () => {
-          await entity.startTokenSale(unitToken.address, 500, etherToken.address, 1000, { from: systemManager })
+          await entity.startTokenSale(500, etherToken.address, 1000, { from: systemManager })
+          await entity.cancelTokenSale(etherToken.address, { from: systemManager }).should.be.fulfilled
 
-          await entity.cancelTokenSale(unitToken.address, { from: systemManager }).should.be.fulfilled
-
-          await entity.getTokenInfo(unitToken.address).should.eventually.matchObj({
+          await entity.getTokenInfo(etherToken.address).should.eventually.matchObj({
             currentTokenSaleOfferId_: 0,
           })
         })
 
         it('and burns unsold tokens', async () => {
-          await entity.startTokenSale(unitToken.address, 500, etherToken.address, 1000, { from: systemManager })
+          await entity.startTokenSale(500, etherToken.address, 1000, { from: systemManager })
 
-          const tokenInfo = await entity.getTokenInfo(unitToken.address)
+          const tokenInfo = await entity.getTokenInfo(etherToken.address)
           const entityToken = await IERC20.at(tokenInfo.tokenContract_)
 
           await entityToken.totalSupply().should.eventually.eq(500)
 
-          await entity.cancelTokenSale(unitToken.address, { from: systemManager }).should.be.fulfilled
+          await entity.cancelTokenSale(etherToken.address, { from: systemManager }).should.be.fulfilled
 
           await entityToken.totalSupply().should.eventually.eq(0)
           await entityToken.balanceOf(entity.address).should.eventually.eq(0) // market sends cancelled back to entity - ensure we burn these too!
         })
 
         it('and re-uses existing token if new sale is initiated', async () => {
-          await entity.startTokenSale(unitToken.address, 500, etherToken.address, 1000, { from: systemManager }).should.be.fulfilled
+          await entity.startTokenSale(500, etherToken.address, 1000, { from: systemManager }).should.be.fulfilled
 
-          const prevTokenInfo = await entity.getTokenInfo(unitToken.address)
+          const prevTokenInfo = await entity.getTokenInfo(etherToken.address)
 
-          await entity.cancelTokenSale(unitToken.address, { from: systemManager }).should.be.fulfilled
+          await entity.cancelTokenSale(etherToken.address, { from: systemManager }).should.be.fulfilled
 
-          await entity.startTokenSale(unitToken.address, 500, etherToken.address, 1000, { from: systemManager })
+          await entity.startTokenSale(500, etherToken.address, 1000, { from: systemManager })
 
-          await entity.getTokenInfo(unitToken.address).should.eventually.matchObj({
+          await entity.getTokenInfo(etherToken.address).should.eventually.matchObj({
             tokenContract_: prevTokenInfo.tokenContract_
           })
         })
       })
 
       describe('and funds withdrawals are prevented', () => {
-        let unitToken
-
-        before(async () => {
-          unitToken = await DummyToken.new('Wrapped Unit ETH', 'uWETH', 18, 0, false)
-        })
 
         beforeEach(async () => {
-          await entity.startTokenSale(unitToken.address, 500, etherToken.address, 1000, { from: systemManager })
+          await entity.startTokenSale(500, etherToken.address, 1000, { from: systemManager })
           
           await etherToken.deposit({ value: 1000 })
           await etherToken.approve(entity.address, 1000)
@@ -652,7 +621,7 @@ describe('Entity', () => {
         })
 
         it('once token supply is non-zero', async () => {
-          await entity.cancelTokenSale(unitToken.address, { from: systemManager })
+          await entity.cancelTokenSale(etherToken.address, { from: systemManager })
           await entity.withdraw(etherToken.address, 1, { from: entityAdmin }).should.be.fulfilled
         })
       })
@@ -663,11 +632,6 @@ describe('Entity', () => {
     let entityManager
     let entityToken
     let systemManager
-    let unitToken
-
-    before(async () => {
-      unitToken = await DummyToken.new('Wrapped Unit ETH', 'uWETH', 18, 0, false)
-    })
 
     beforeEach(async () => {
       entityManager = accounts[2]
@@ -675,14 +639,14 @@ describe('Entity', () => {
       await acl.assignRole(systemContext, systemManager, ROLES.SYSTEM_MANAGER)
       await acl.assignRole(entityContext, entityManager, ROLES.ENTITY_MANAGER)
 
-      await entity.startTokenSale(unitToken.address, 500, etherToken.address, 1000, { from: systemManager })
+      await entity.startTokenSale(500, etherToken.address, 1000, { from: systemManager })
 
       await entity.getNumTokenHolders().should.eventually.eq(1)
       await entity.getTokenHolderAtIndex(1).should.eventually.eq(market.address)
 
       await etherToken.deposit({ value: 500 })
       await etherToken.approve(market.address, 500)
-      const tokenInfo = await entity.getTokenInfo(unitToken.address)
+      const tokenInfo = await entity.getTokenInfo(etherToken.address)
 
       await market.executeLimitOffer(etherToken.address, 500, tokenInfo.tokenContract_, 250, FEE_SCHEDULE_STANDARD, ADDRESS_ZERO, BYTES_ZERO)
 
@@ -701,7 +665,7 @@ describe('Entity', () => {
 
     it('ensures entity is not a holder after token sale is complete', async () => {
       // now cancel the token sale
-      await entity.cancelTokenSale(unitToken.address, { from: systemManager })
+      await entity.cancelTokenSale(etherToken.address, { from: systemManager })
 
       // only the buyer should be a holder
       await entity.getNumTokenHolders().should.eventually.eq(1)
@@ -710,7 +674,7 @@ describe('Entity', () => {
 
     describe('between accounts', () => {
       beforeEach(async () => {
-        await entity.cancelTokenSale(unitToken.address, { from: systemManager })
+        await entity.cancelTokenSale(etherToken.address, { from: systemManager })
 
         // temp set accounts[0] as market so that we can send tokens around
         await settings.setAddress(settings.address, SETTINGS.MARKET, accounts[0])
@@ -778,11 +742,6 @@ describe('Entity', () => {
     let entityManager
     let entityToken
     let systemManager
-    let unitToken
-
-    before(async () => {
-      unitToken = await DummyToken.new('Wrapped Unit ETH', 'uWETH', 18, 0, false)
-    })
 
     beforeEach(async () => {
       entityManager = accounts[2]
@@ -791,11 +750,11 @@ describe('Entity', () => {
       await acl.assignRole(systemContext, systemManager, ROLES.SYSTEM_MANAGER)      
       await acl.assignRole(entityContext, entityManager, ROLES.ENTITY_MANAGER)
 
-      await entity.startTokenSale(unitToken.address, 500, etherToken.address, 1000, { from: systemManager })
+      await entity.startTokenSale(500, etherToken.address, 1000, { from: systemManager })
 
       await etherToken.deposit({ value: 500 })
       await etherToken.approve(market.address, 500)
-      const tokenInfo = await entity.getTokenInfo(unitToken.address)
+      const tokenInfo = await entity.getTokenInfo(etherToken.address)
       await market.executeLimitOffer(etherToken.address, 500, tokenInfo.tokenContract_, 250, FEE_SCHEDULE_STANDARD, ADDRESS_ZERO, BYTES_ZERO)
 
       entityToken = await IERC20.at(tokenInfo.tokenContract_)
@@ -804,7 +763,7 @@ describe('Entity', () => {
       await entityToken.balanceOf(market.address).should.eventually.eq(250)
       await entity.getBalance(etherToken.address).should.eventually.eq(500)
 
-      await entity.cancelTokenSale(unitToken.address, { from: systemManager })
+      await entity.cancelTokenSale(etherToken.address, { from: systemManager })
 
       await entityToken.balanceOf(accounts[0]).should.eventually.eq(250)
       await entityToken.balanceOf(market.address).should.eventually.eq(0)
@@ -813,9 +772,9 @@ describe('Entity', () => {
     })
 
     it('cannot happen when token sale is in progress', async () => {
-      await entity.startTokenSale(unitToken.address, 1, etherToken.address, 1, { from: systemManager })
+      await entity.startTokenSale(1, etherToken.address, 1, { from: systemManager })
       await entity.payDividend(etherToken.address, 1).should.be.rejectedWith('token sale in progress')
-      await entity.cancelTokenSale(unitToken.address, { from: systemManager })
+      await entity.cancelTokenSale(etherToken.address, { from: systemManager })
       await entity.payDividend(etherToken.address, 1).should.be.fulfilled
     })
 

@@ -68,29 +68,29 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
     _burn(_unit, msg.sender, _amount);
   }
 
-  function startTokenSale(address _unit, uint256 _amount, address _priceUnit, uint256 _totalPrice) 
+  function startTokenSale(uint256 _amount, address _priceUnit, uint256 _totalPrice) 
     external
     override
     assertCanStartTokenSale
   {
-    _assertNoTokenSaleInProgress(_unit);
+    _assertNoTokenSaleInProgress(_priceUnit);
 
     // mint token if it doesn't exist for given unit
-    if (dataAddress[__a(_unit, "token")] == address(0)) {
-      dataAddress[__a(_unit, "token")] = address(new EntityToken(address(this), _unit));
+    if (dataAddress[__a(_priceUnit, "token")] == address(0)) {
+      dataAddress[__a(_priceUnit, "token")] = address(new EntityToken(address(this), _priceUnit));
     }
 
-    dataUint256[__aa(_unit, address(this), "tokenBalance")] += _amount;
-    dataUint256[__a(_unit, "tokenSupply")] += _amount;
+    dataUint256[__aa(_priceUnit, address(this), "tokenBalance")] += _amount;
+    dataUint256[__a(_priceUnit, "tokenSupply")] += _amount;
     
     IMarket mkt = _getMarket();
 
     // approve market contract to use my tokens
-    IERC20 tok = IERC20(dataAddress[__a(_unit, "token")]);
+    IERC20 tok = IERC20(dataAddress[__a(_priceUnit, "token")]);
     tok.approve(address(mkt), _amount);
 
     uint256 offerId = mkt.executeLimitOffer(
-      dataAddress[__a(_unit, "token")], 
+      dataAddress[__a(_priceUnit, "token")], 
       _amount, 
       _priceUnit, 
       _totalPrice, 
@@ -100,8 +100,8 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
     );
 
     // setup lookup tables
-    dataUint256[__a(_unit, "tokenSaleOfferId")] = offerId;
-    dataAddress[__i(offerId, "offerUnit")] = _unit;
+    dataUint256[__a(_priceUnit, "tokenSaleOfferId")] = offerId;
+    dataAddress[__i(offerId, "offerUnit")] = _priceUnit;
   }
 
   function cancelTokenSale(address _unit) 
@@ -217,7 +217,7 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
         }
 
         // reset sale id
-        dataUint256["tokenSaleOfferId"] = 0;
+        dataUint256[__a(unit, "tokenSaleOfferId")] = 0;
       }
     }    
   }

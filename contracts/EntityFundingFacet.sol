@@ -8,7 +8,6 @@ import "./base/IDiamondFacet.sol";
 import "./base/IERC20.sol";
 import "./base/IMarket.sol";
 import "./EntityFacetBase.sol";
-import "hardhat/console.sol";
 
 contract EntityFundingFacet is EternalStorage, Controller, EntityFacetBase, IEntityFundingFacet, IDiamondFacet {
 

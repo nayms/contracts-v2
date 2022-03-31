@@ -232,8 +232,8 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
 
     require(dataUint256[fromBalanceKey] >= _value, 'not enough balance');
 
-    dataUint256[fromBalanceKey] = dataUint256[fromBalanceKey] - _value;
-    dataUint256[toBalanceKey] = dataUint256[toBalanceKey] + _value;
+    dataUint256[fromBalanceKey] -= _value;
+    dataUint256[toBalanceKey] += _value;
 
     // add recipient to the token holder list
     string memory toTokenHolderIndexKey = __aa(_unit, _to, "tokenHolderIndex");

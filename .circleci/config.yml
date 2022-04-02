@@ -141,7 +141,9 @@ workflows:
             branches:
               ignore:
                 - gh-pages
-      - slither
+      - slither:
+          requires:
+            - build_contracts
       - deploy_contracts:
           requires:
             - build_contracts

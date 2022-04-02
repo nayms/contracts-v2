@@ -57,6 +57,19 @@ jobs:
       - persist_to_workspace:
           root: ~/repo
           paths: .
+  slither:
+      docker:
+          - image: trailofbits/eth-security-toolbox
+      steps:
+          - checkout
+          - attach_workspace:
+              at: .
+          - run:
+              command: |
+                  set +e
+                  slither .
+                  exit 0
+              name: Show Slither output
   deploy_contracts:
     executor: smart_contracts
     working_directory: ~/repo

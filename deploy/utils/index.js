@@ -23,21 +23,28 @@ export const getAccounts = async () => {
 
 export const getAccountWallet = (address) => accounts.find(a => a.address === address)
 
-export const deployContract = async ({ log, artifacts, getTxParams = defaultGetTxParams }, name, args, overrides = {}) => {
+export const deployContract = async ({ ctx = {}, artifacts, getTxParams = defaultGetTxParams }, name, args, overrides = {}) => {
   const C = artifacts.require(name)
   const c = await C.new(...args, { ...getTxParams(), ...overrides })
 
-  await log.task(`Verifying contract ${name} ${c.address} on etherscan`, async task => { 
-    try {
-      await hre.run("verify:verify", {
-        address: c.address,
-        constructorArguments: args,
-      })
-    }
-    catch(e) {
-      task.log(`hre verify contract error: ${e}`)
-    }
-  })
+  const log = createLog(ctx.log)
+
+  const chainId = hre.network.config.chainId
+  const chainList = [1, 3, 4, 5, 42]
+
+  if (chainList.includes(chainId)) {
+    await log.task(`Verifying contract ${name} ${c.address} on etherscan`, async task => { 
+      try {
+        await hre.run("verify:verify", {
+          address: c.address,
+          constructorArguments: args,
+        })
+      }
+      catch(e) {
+        task.log(`deployContract() hre etherscan verify contract error: ${e}`)
+      }
+    })
+  }
 
   return c
 }

@@ -40,6 +40,9 @@ jobs:
           name: Setup release config
           command: yarn setup-release-config-for-local
       - run:
+          name: Format and lint solidity files
+          command: yarn lint
+      - run:
           name: Compile
           command: yarn compile
       - run:

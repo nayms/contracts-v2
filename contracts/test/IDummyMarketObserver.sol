@@ -5,17 +5,21 @@ pragma solidity 0.8.9;
  * @dev Super-interface for dummy market observer
  */
 abstract contract IDummyMarketObserver {
-  enum ORDER_TYPE{NONE, TRADE, CLOSURE}
-  
-  event TRADE(uint256 orderId);
-  event CLOSURE(uint256 orderId);
+    enum ORDER_TYPE {
+        NONE,
+        TRADE,
+        CLOSURE
+    }
 
-  /**
-   * @dev Get order details.
-   *
-   * @param orderId The order id.
-   * @return _type trade or closure.
-   * @return _data passed optional data.
-   */
-  function getOrder(uint256 orderId) external view virtual returns (ORDER_TYPE _type, bytes memory _data);
+    event TRADE(uint256 orderId);
+    event CLOSURE(uint256 orderId);
+
+    /**
+     * @dev Get order details.
+     *
+     * @param orderId The order id.
+     * @return _type trade or closure.
+     * @return _data passed optional data.
+     */
+    function getOrder(uint256 orderId) external view virtual returns (ORDER_TYPE _type, bytes memory _data);
 }

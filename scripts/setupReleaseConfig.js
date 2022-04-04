@@ -20,6 +20,7 @@ const GNOSIS_SAFES = {
 const network = process.env.NETWORK || 'local'
 const isForTesting = network === 'local'
 const pullRequestUrl = process.env.CIRCLE_PULL_REQUEST
+const triggerFreshDeployment = process.env.FRESH_DEPLOYMENT
 
 let pullRequestNum
 if (pullRequestUrl) {
@@ -38,7 +39,7 @@ async function main () {
 
   const releaseInfo = {}
 
-  if ((!isForTesting) && (network || pullRequestNum)) {
+  if (triggerFreshDeployment || ((!isForTesting) && (network || pullRequestNum))) {
     if (pullRequestNum) {
       releaseInfo.freshDeployment = true
       releaseInfo.extractDeployedAddresses = true

@@ -23,3 +23,5 @@ contracts.generated.js
 releaseConfig.json
 .jshintrc
 .idea/
+mnemonic.txt
+.env

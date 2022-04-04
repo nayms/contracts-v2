@@ -2,8 +2,9 @@
   "extends": "solhint:recommended",
   "plugins": [],
   "rules": {
-    "use-forbidden-name": false,
+    "compiler-version": ["error", "^0.8.0"],
+    "use-forbidden-name": "off",
     "indentation": ["warn", 2],
-    "quotes": false
+    "quotes": "off" 
   }
 }

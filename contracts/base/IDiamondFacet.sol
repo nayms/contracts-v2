@@ -2,7 +2,5 @@
 pragma solidity 0.8.9;
 
 interface IDiamondFacet {
-  function getSelectors () external pure returns (bytes memory);
+    function getSelectors() external pure returns (bytes memory);
 }
-
-

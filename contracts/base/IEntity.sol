@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
-
 import "./IDiamondUpgradeFacet.sol";
 import "./IAccessControl.sol";
 import "./ISettingsControl.sol";
@@ -20,17 +19,19 @@ import "./IEntitySimplePolicyDataFacet.sol";
  * @dev Super-interface for entities
  */
 abstract contract IEntity is
-  IDiamondUpgradeFacet,
-  IAccessControl,
-  ISettingsControl,
-  IParent,
-  IChild,
-  IEntityCoreFacet,
-  IEntityFundingFacet,
-  IEntityTokensFacet,
-  IEntityDividendsFacet,
-  IEntityTreasuryBridgeFacet,
-  IPolicyTreasury,
-  IEntitySimplePolicyCoreFacet,
-  IEntitySimplePolicyDataFacet
-  {}
+    IDiamondUpgradeFacet,
+    IAccessControl,
+    ISettingsControl,
+    IParent,
+    IChild,
+    IEntityCoreFacet,
+    IEntityFundingFacet,
+    IEntityTokensFacet,
+    IEntityDividendsFacet,
+    IEntityTreasuryBridgeFacet,
+    IPolicyTreasury,
+    IEntitySimplePolicyCoreFacet,
+    IEntitySimplePolicyDataFacet
+{
+
+}

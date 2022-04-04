@@ -6,9 +6,4 @@ import "./IAccessControl.sol";
 import "./ISettingsControl.sol";
 import "./IFeeBankCoreFacet.sol";
 
-abstract contract IFeeBank is 
-  IDiamondUpgradeFacet,
-  IAccessControl,
-  ISettingsControl,
-  IFeeBankCoreFacet
-  {}
+abstract contract IFeeBank is IDiamondUpgradeFacet, IAccessControl, ISettingsControl, IFeeBankCoreFacet {}

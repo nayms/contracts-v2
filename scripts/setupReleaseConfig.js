@@ -47,6 +47,13 @@ async function main () {
       releaseInfo.deployNetwork = network
       releaseInfo.npmTag = `pr${pullRequestNum}`
       releaseInfo.npmPkgVersion = `1.0.0-pr.${pullRequestNum}.build.${buildNum}`
+    } else if (triggerFreshDeployment) {
+      releaseInfo.freshDeployment = true
+      releaseInfo.extractDeployedAddresses = true
+      releaseInfo.deployNetwork = network
+      releaseInfo.multisig = GNOSIS_SAFES[network]
+      releaseInfo.npmTag = `latest`
+      releaseInfo.npmPkgVersion = `1.0.0-build.${buildNum}`
     } else {
       releaseInfo.deployNetwork = network
       releaseInfo.multisig = GNOSIS_SAFES[network]

@@ -113,19 +113,7 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
 
     function tknSymbol(address _unit) public view override returns (string memory) {
         // max len = 11 chars
-        return string(abi.encodePacked("N-", _substring(_unit, 3, 5), "-", _substring(address(this), 3, 5), "-E"));
-    }
-    
-    function _substring(
-        address text,
-        uint256 begin,
-        uint256 end
-    ) private pure returns (string memory) {
-        bytes memory a = new bytes(end - begin + 1);
-        for (uint256 i = 0; i <= end - begin; i++) {
-            a[i] = bytes(text.toString())[i + begin - 1];
-        }
-        return string(a);
+        return string(abi.encodePacked("N-", _unit.toString().substring(2, 3), "-", address(this).toString().substring(2, 3), "-E"));
     }
 
     function tknTotalSupply(address _unit) public view override returns (uint256) {

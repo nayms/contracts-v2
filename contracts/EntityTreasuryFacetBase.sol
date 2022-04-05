@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.9;
-
+pragma solidity >=0.8.9;
 import "./EntityFacetBase.sol";
 import "./base/IPolicyCoreFacet.sol";
 import "./base/IPolicyTreasuryConstants.sol";

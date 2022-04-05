@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.9;
-
+pragma solidity >=0.8.9;
 import "./base/EternalStorage.sol";
 import "./base/IFeeBankCoreFacet.sol";
 import "./base/IDiamondFacet.sol";

@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.12;
-
+pragma solidity >=0.8.9;
 /// @dev pre-evaluate constants to save gas? Or will the compiler know to do this when deployed? 
 /// compiler should do this in newer versions
 contract ConstantsTest {

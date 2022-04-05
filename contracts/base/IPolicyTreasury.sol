@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.9;
-
+pragma solidity >=0.8.9;
 interface IPolicyTreasury {
     /**
      * @dev Get aggregate treasury info for given token.

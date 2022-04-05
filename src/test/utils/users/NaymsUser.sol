@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.12;
-
+pragma solidity >=0.8.9;
 import {NaymsMock} from "../mocks/NaymsMock.sol";
 
 import {IACL} from "../../../../contracts/base/IACL.sol";

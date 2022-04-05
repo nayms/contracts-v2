@@ -1,12 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.12;
-
+pragma solidity 0.8.9;
 
 /******************************************************************************\
 Forked from https://github.com/mudgen/Diamond/blob/master/contracts/DiamondHeaders.sol
 /******************************************************************************/
-
-
 
 // A loupe is a small magnifying glass used to look at diamonds.
 // These functions look at diamonds
@@ -27,24 +24,24 @@ interface IDiamondLoupeFacet {
     /// ]
     /// facet is the address of a facet.
     /// sel1, sel2, sel3 etc. are four-byte function selectors.
-    function facets() external view returns(bytes[] memory);
+    function facets() external view returns (bytes[] memory);
 
     /// @notice Gets all the function selectors supported by a specific facet.
     /// @param _facet The facet address.
     /// @return A byte array of function selectors.
     /// The return value is tightly packed. Here is an example:
     /// return abi.encodePacked(selector1, selector2, selector3, ...)
-    function facetFunctionSelectors(address _facet) external view returns(bytes memory);
+    function facetFunctionSelectors(address _facet) external view returns (bytes memory);
 
     /// @notice Get all the facet addresses used by a diamond.
     /// @return A byte array of tightly packed facet addresses.
     /// Example return value:
     /// return abi.encodePacked(facet1, facet2, facet3, ...)
-    function facetAddresses() external view returns(bytes memory);
+    function facetAddresses() external view returns (bytes memory);
 
     /// @notice Gets the facet that supports the given selector.
     /// @dev If facet is not found return address(0).
     /// @param _functionSelector The function selector.
     /// @return The facet address.
-    function facetAddress(bytes4 _functionSelector) external view returns(address);
+    function facetAddress(bytes4 _functionSelector) external view returns (address);
 }

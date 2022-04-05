@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.12;
+pragma solidity 0.8.9;
 
 import "../base/IMarketObserver.sol";
 import "./IDummyMarketObserver.sol";
@@ -9,20 +9,17 @@ contract DummyMarketObserver is IMarketObserver, IDummyMarketObserver {
     mapping(uint256 => ORDER_TYPE) private order;
     mapping(uint256 => bytes) private notifyData;
 
-    function getOrder(uint256 orderId)
-        external view override
-        returns (ORDER_TYPE _type, bytes memory _data)
-    {
+    function getOrder(uint256 orderId) external view override returns (ORDER_TYPE _type, bytes memory _data) {
         return (order[orderId], notifyData[orderId]);
     }
 
     function handleTrade(
         uint256 _offerId,
-        uint256 /*_soldAmount*/,
-        uint256 /*_boughtAmount*/,
-        address /*_feeToken*/,
-        uint256 /*_feeAmount*/,
-        address /*_buyer*/,
+        uint256, /*_soldAmount*/
+        uint256, /*_boughtAmount*/
+        address, /*_feeToken*/
+        uint256, /*_feeAmount*/
+        address, /*_buyer*/
         bytes memory _data
     ) external override {
         order[_offerId] = ORDER_TYPE.TRADE;
@@ -32,8 +29,8 @@ contract DummyMarketObserver is IMarketObserver, IDummyMarketObserver {
 
     function handleClosure(
         uint256 _offerId,
-        uint256 /*_unsoldAmount*/,
-        uint256 /*_unboughtAmount*/,
+        uint256, /*_unsoldAmount*/
+        uint256, /*_unboughtAmount*/
         bytes memory _data
     ) external override {
         order[_offerId] = ORDER_TYPE.CLOSURE;

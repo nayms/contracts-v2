@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.12;
+pragma solidity 0.8.9;
 
 /**
  * @dev Collection of functions related to the address type
@@ -29,7 +29,9 @@ library Address {
         bytes32 codehash;
         bytes32 accountHash = 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470;
         // solhint-disable-next-line no-inline-assembly
-        assembly { codehash := extcodehash(_account) }
+        assembly {
+            codehash := extcodehash(_account)
+        }
         return (codehash != 0x0 && codehash != accountHash);
     }
 
@@ -44,7 +46,6 @@ library Address {
         return payable(address(uint160(_account)));
     }
 
-
     /**
      * @dev Converts an `address` into `string` hex representation.
      * From https://ethereum.stackexchange.com/a/58341/56159
@@ -54,11 +55,11 @@ library Address {
         bytes memory alphabet = "0123456789abcdef";
 
         bytes memory str = new bytes(42);
-        str[0] = '0';
-        str[1] = 'x';
-        for (uint i = 0; i < 20; i++) {
-            str[2+i*2] = alphabet[uint(uint8(value[i + 12] >> 4))];
-            str[3+i*2] = alphabet[uint(uint8(value[i + 12] & 0x0f))];
+        str[0] = "0";
+        str[1] = "x";
+        for (uint256 i = 0; i < 20; i++) {
+            str[2 + i * 2] = alphabet[uint256(uint8(value[i + 12] >> 4))];
+            str[3 + i * 2] = alphabet[uint256(uint8(value[i + 12] & 0x0f))];
         }
         return string(str);
     }

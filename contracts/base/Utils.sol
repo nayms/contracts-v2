@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.12;
+pragma solidity 0.8.9;
 
 import "./PlatformToken.sol";
 
@@ -12,10 +12,10 @@ library Utils {
      * @return true if so, false otherwise.
      */
     function isNaymsPlatformToken(address _token) internal view returns (bool) {
-      try PlatformToken(_token).isNaymsPlatformToken() returns (bool v) {
-        return v;
-      } catch {
-        return false;
-      }
+        try PlatformToken(_token).isNaymsPlatformToken() returns (bool v) {
+            return v;
+        } catch {
+            return false;
+        }
     }
 }

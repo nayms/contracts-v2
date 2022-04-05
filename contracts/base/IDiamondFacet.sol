@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.12;
+pragma solidity 0.8.9;
 
 interface IDiamondFacet {
-  function getSelectors () external pure returns (bytes memory);
+    function getSelectors() external pure returns (bytes memory);
 }
-
-

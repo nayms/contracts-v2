@@ -24,3 +24,5 @@ releaseConfig.json
 .jshintrc
 .idea/
 out
+mnemonic.txt
+.env

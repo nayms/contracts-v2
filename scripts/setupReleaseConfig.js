@@ -20,6 +20,7 @@ const GNOSIS_SAFES = {
 const network = process.env.NETWORK || 'local'
 const isForTesting = network === 'local'
 const pullRequestUrl = process.env.CIRCLE_PULL_REQUEST
+const triggerFreshDeployment = process.env.FRESH_DEPLOYMENT
 
 let pullRequestNum
 if (pullRequestUrl) {
@@ -38,7 +39,7 @@ async function main () {
 
   const releaseInfo = {}
 
-  if ((!isForTesting) && (network || pullRequestNum)) {
+  if (triggerFreshDeployment || ((!isForTesting) && (network || pullRequestNum))) {
     if (pullRequestNum) {
       releaseInfo.freshDeployment = true
       releaseInfo.extractDeployedAddresses = true
@@ -46,6 +47,13 @@ async function main () {
       releaseInfo.deployNetwork = network
       releaseInfo.npmTag = `pr${pullRequestNum}`
       releaseInfo.npmPkgVersion = `1.0.0-pr.${pullRequestNum}.build.${buildNum}`
+    } else if (triggerFreshDeployment) {
+      releaseInfo.freshDeployment = true
+      releaseInfo.extractDeployedAddresses = true
+      releaseInfo.deployNetwork = network
+      releaseInfo.multisig = GNOSIS_SAFES[network]
+      releaseInfo.npmTag = `latest`
+      releaseInfo.npmPkgVersion = `1.0.0-build.${buildNum}`
     } else {
       releaseInfo.deployNetwork = network
       releaseInfo.multisig = GNOSIS_SAFES[network]
@@ -73,7 +81,7 @@ async function main () {
 
   // update solidity contract
   fs.writeFileSync(commonUpgradeFacetContract, `// SPDX-License-Identifier: MIT
-pragma solidity 0.8.12;
+pragma solidity 0.8.9;
 
 import "./base/Controller.sol";
 import "./base/IDiamondUpgradeFacet.sol";

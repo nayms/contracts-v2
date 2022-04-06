@@ -422,7 +422,7 @@ describe('Entity', () => {
         const entityToken = await IERC20.at(tokenInfo.tokenContract_)
 
         expect((await entityToken.name()).toLowerCase()).to.eq(`NAYMS-${etherToken.address}-${entity.address}-ENTITY`.toLowerCase())
-        expect((await entityToken.symbol()).toLowerCase()).to.eq(`N-${etherToken.address.substr(0, 3)}-${entity.address.substr(0, 3)}-E`.toLowerCase())
+        expect((await entityToken.symbol()).toLowerCase()).to.eq(`N-${etherToken.address.substr(2, 3)}-${entity.address.substr(2, 3)}-E`.toLowerCase())
 
         await entityToken.totalSupply().should.eventually.eq(500)
         await entityToken.balanceOf(market.address).should.eventually.eq(500)

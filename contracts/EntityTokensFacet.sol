@@ -296,5 +296,4 @@ contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEnti
 
         dataUint256[__a(_unit, "tokenSupply")] -= _amount;
     }
-    
 }

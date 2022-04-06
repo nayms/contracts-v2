@@ -40,7 +40,11 @@ library Strings {
      * @param _length The length of the sub string to be extracted from the base
      * @return string The extracted sub string
      */
-    function substring(string memory _base, int256 _start, int256 _length) internal pure returns (string memory) {
+    function substring(
+        string memory _base,
+        int256 _start,
+        int256 _length
+    ) internal pure returns (string memory) {
         return _substring(_base, _length, _start);
     }
 

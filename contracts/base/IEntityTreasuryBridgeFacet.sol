@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.9;
+
 /**
  * @dev Entity treasury helper facet logic.
  */

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.9;
+
 /**
  * A `IMarket` observer which receives notifications of trades and cancellations.
  */

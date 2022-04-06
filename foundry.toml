@@ -2,7 +2,7 @@
 [default]
 src = 'src'
 # test = './src/test'
-out = 'out'
+out = 'forge-artifacts'
 libs = ['lib']
 libraries = []
 remappings = [
@@ -14,9 +14,9 @@ cache = true
 force = false
 evm_version = 'london'
 ## Sets the concrete solc version to use, this overrides the `auto_detect_solc` value
-solc_version = '0.8.12'
+solc_version = '0.8.13'
 auto_detect_solc = true
-optimizer = true
+optimizer = false
 optimizer_runs = 200000
 verbosity = 0
 ignored_error_codes = []

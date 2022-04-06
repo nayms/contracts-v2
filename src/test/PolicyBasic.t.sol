@@ -10,6 +10,7 @@ import {Settings} from "../../contracts/Settings.sol";
 import {AccessControl} from "../../contracts/base/AccessControl.sol";
 import {ISettings} from "../../contracts/base/ISettings.sol";
 
+import {IMarketFeeSchedules} from "../../contracts/base/IMarketFeeSchedules.sol";
 import {IMarket} from "../../contracts/base/IMarket.sol";
 import {Market} from "../../contracts/Market.sol";
 import {MarketCoreFacet} from "../../contracts/MarketCoreFacet.sol";
@@ -21,6 +22,8 @@ import {FeeBankCoreFacet} from "../../contracts/FeeBankCoreFacet.sol";
 
 import {FeeBank} from "../../contracts/FeeBank.sol";
 
+import {IPolicyStates} from "../../contracts/base/IPolicyStates.sol";
+import {IPolicyTypes} from "../../contracts/base/IPolicyTypes.sol";
 import {PolicyCoreFacet} from "../../contracts/PolicyCoreFacet.sol";
 import {PolicyClaimsFacet} from "../../contracts/PolicyClaimsFacet.sol";
 import {PolicyCommissionsFacet} from "../../contracts/PolicyCommissionsFacet.sol";
@@ -39,14 +42,32 @@ import {EntityTreasuryBridgeFacet} from "../../contracts/EntityTreasuryBridgeFac
 import {EntitySimplePolicyCoreFacet} from "../../contracts/EntitySimplePolicyCoreFacet.sol";
 import {EntitySimplePolicyDataFacet} from "../../contracts/EntitySimplePolicyDataFacet.sol";
 
+import {IEntity} from "../../contracts/base/IEntity.sol";
 import {EntityDelegate} from "../../contracts/EntityDelegate.sol";
 
-/// @notice deploy / initialize entire nayms v2 system
+import {DummyEntityFacet} from "../../contracts/test/DummyEntityFacet.sol";
 
-contract DeploymentTest is DSTestPlusF, IACLConstants, ISettingsKeys {
+import {DummyToken} from "../../contracts/DummyToken.sol";
+
+import {CommonUpgradeFacet} from "../../contracts/CommonUpgradeFacet.sol";
+
+import {FreezeUpgradesFacet} from "../../contracts/test/FreezeUpgradesFacet.sol";
+
+import {IDiamondProxy} from "../../contracts/base/IDiamondProxy.sol";
+
+struct PolicyInfo {
+    uint256 initiationDateDiff;
+    uint256 startDateDiff;
+    uint256 maturationDateDiff;
+    uint256 brokerCommissionBP;
+    uint256 underwriterCommissionBP;
+    uint256 claimsAdminCommissionBP;
+    uint256 naymsCommissionBP;
+}
+
+contract PolicyBasicTest is DSTestPlusF, IACLConstants, ISettingsKeys, IMarketFeeSchedules, IPolicyStates, IPolicyTypes {
     ACL internal acl;
     Settings internal settings;
-    // AccessControl internal accessControl;
     bytes32 internal systemContext;
 
     MarketCoreFacet internal marketCoreFacet;
@@ -76,13 +97,39 @@ contract DeploymentTest is DSTestPlusF, IACLConstants, ISettingsKeys {
     EntitySimplePolicyDataFacet internal entitySimplePolicyDataFacet;
     EntityDelegate internal entityDelegate;
 
-    function setUp() public {}
+    CommonUpgradeFacet internal commonUpgradeFacet;
 
-    function testDeploy() public {
+    address internal entityAdmin;
+    bytes32 internal entityContext;
+    address internal entity;
+
+    DummyToken internal wethFalse;
+    DummyToken internal wethTrue;
+
+    address internal constant underwriterRep;
+
+    address internal constant account0;
+    address internal constant account1;
+    address internal constant account2;
+    address internal constant account3;
+    address internal constant account4;
+    address internal constant account5;
+    address internal constant account6;
+    address internal constant account7;
+    address internal constant account8;
+    address internal constant account9;
+
+    event EntityDeposit(address indexed caller, address indexed unit, uint256 indexed amount);
+
+    function setUp() public {
         acl = new ACL(ROLE_SYSTEM_ADMIN, ROLEGROUP_SYSTEM_ADMINS);
         settings = new Settings(address(acl));
-        // accessControl = new AccessControl(address(settings));
         systemContext = acl.systemContext();
+
+        commonUpgradeFacet = new CommonUpgradeFacet(address(settings));
+
+        wethFalse = new DummyToken("Wrapped ETH", "WETH", 18, 0, false);
+        wethTrue = new DummyToken("Wrapped ETH True", "WETH-TRUE", 18, 0, true);
 
         // setup role groups
         bytes32[] memory rg1 = new bytes32[](1);
@@ -137,7 +184,7 @@ contract DeploymentTest is DSTestPlusF, IACLConstants, ISettingsKeys {
         acl.addAssigner(ROLE_INSURED_PARTY, ROLEGROUP_POLICY_OWNERS);
         acl.addAssigner(ROLE_ENTITY_ADMIN, ROLEGROUP_SYSTEM_ADMINS);
         acl.addAssigner(ROLE_ENTITY_MANAGER, ROLEGROUP_ENTITY_ADMINS);
-        acl.addAssigner(ROLE_ENTITY_REP, ROLEGROUP_ENTITY_ADMINS);
+        acl.addAssigner(ROLE_ENTITY_REP, ROLEGROUP_ENTITY_MANAGERS);
         acl.addAssigner(ROLE_ENTITY_REP, ROLEGROUP_SYSTEM_MANAGERS);
         acl.addAssigner(ROLE_SYSTEM_MANAGER, ROLEGROUP_SYSTEM_ADMINS);
 
@@ -193,7 +240,7 @@ contract DeploymentTest is DSTestPlusF, IACLConstants, ISettingsKeys {
         entitySimplePolicyCoreFacet = new EntitySimplePolicyCoreFacet(address(settings));
         entitySimplePolicyDataFacet = new EntitySimplePolicyDataFacet(address(settings));
 
-        address[] memory entityFacetAddys = new address[](8);
+        address[] memory entityFacetAddys = new address[](9);
         entityFacetAddys[0] = address(entityCoreFacet);
         entityFacetAddys[1] = address(entityFundingFacet);
         entityFacetAddys[2] = address(entityTokensFacet);
@@ -202,19 +249,47 @@ contract DeploymentTest is DSTestPlusF, IACLConstants, ISettingsKeys {
         entityFacetAddys[5] = address(entityTreasuryBridgeFacet);
         entityFacetAddys[6] = address(entitySimplePolicyCoreFacet);
         entityFacetAddys[7] = address(entitySimplePolicyDataFacet);
+        entityFacetAddys[8] = address(commonUpgradeFacet);
         settings.setAddresses(address(settings), SETTING_ENTITY_IMPL, entityFacetAddys);
 
         entityDelegate = new EntityDelegate(address(settings));
         vm.label(address(entityDelegate), "Entity Delegate");
         settings.setAddress(address(settings), SETTING_ENTITY_DELEGATE, address(entityDelegate));
+
+        acl.assignRole(systemContext, address(this), ROLE_SYSTEM_MANAGER);
+        acl.assignRole(systemContext, address(this), ROLE_ENTITY_MANAGER);
+
+        entityAdmin = address(this);
+        entityDeployer.deploy(entityAdmin, entityContext);
+
+        entity = entityDeployer.getChild(1);
+
+        vm.label(address(wethFalse), "WETH False");
+        vm.label(address(wethTrue), "WETH True");
+        vm.label(address(0xAAAA), "Account 0");
+        vm.label(address(0xBEEF), "Account 1");
+        vm.label(address(0xCAFE), "Account 2");
+        vm.label(address(0xD00D), "Account 3");
+        vm.label(address(0x4EEE), "Account 4");
+        vm.label(address(0xFEED), "Account 5");
+        vm.label(address(0x6FFF), "Account 6");
+        vm.label(address(0x7AAA), "Account 7");
+        vm.label(address(0x8BBB), "Account 8");
+        vm.label(address(0x9CCC), "Account 9");
+    }
+
+    function testBasicPolicy() public {
+        address underwriterRep = entityAdminAddress;
+        address insuredPartyRep = account7;
+        address brokerRep = account8;
+        address claimsAdminRep = account9;
+
+        entityDeployer.deploy(insuredPartyRep, entityContext);
+        entityDeployer.deploy(brokerRep, entityContext);
+        entityDeployer.deploy(claimsAdminRep, entityContext);
+
+        address insuredParty = entityDeployer.getChild(2);
+        address broker = entityDeployer.getChild(3);
+        address claimsAdmin = entityDeployer.getChild(4);
     }
 }
-
-// 1. ACL
-// 2. Settings
-// - Market?
-// 3. EntityDeployer
-// 4. FeeBank
-// Platform Token(s)
-// Policy Delegate
-// Entity Delegate

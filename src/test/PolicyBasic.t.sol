@@ -106,18 +106,18 @@ contract PolicyBasicTest is DSTestPlusF, IACLConstants, ISettingsKeys, IMarketFe
     DummyToken internal wethFalse;
     DummyToken internal wethTrue;
 
-    address internal constant underwriterRep;
+    // address internal underwriterRep;
 
-    address internal constant account0;
-    address internal constant account1;
-    address internal constant account2;
-    address internal constant account3;
-    address internal constant account4;
-    address internal constant account5;
-    address internal constant account6;
-    address internal constant account7;
-    address internal constant account8;
-    address internal constant account9;
+    address internal constant account0 = address(0xAAAA);
+    address internal constant account1 = address(0xBEEF);
+    address internal constant account2 = address(0xCAFE);
+    address internal constant account3 = address(0xD00D);
+    address internal constant account4 = address(0x4EEE);
+    address internal constant account5 = address(0xFEED);
+    address internal constant account6 = address(0x6FFF);
+    address internal constant account7 = address(0x7AAA);
+    address internal constant account8 = address(0x8BBB);
+    address internal constant account9 = address(0x9CCC);
 
     event EntityDeposit(address indexed caller, address indexed unit, uint256 indexed amount);
 
@@ -279,7 +279,7 @@ contract PolicyBasicTest is DSTestPlusF, IACLConstants, ISettingsKeys, IMarketFe
     }
 
     function testBasicPolicy() public {
-        address underwriterRep = entityAdminAddress;
+        address underwriterRep = entityAdmin;
         address insuredPartyRep = account7;
         address brokerRep = account8;
         address claimsAdminRep = account9;
@@ -287,9 +287,81 @@ contract PolicyBasicTest is DSTestPlusF, IACLConstants, ISettingsKeys, IMarketFe
         entityDeployer.deploy(insuredPartyRep, entityContext);
         entityDeployer.deploy(brokerRep, entityContext);
         entityDeployer.deploy(claimsAdminRep, entityContext);
-
         address insuredParty = entityDeployer.getChild(2);
         address broker = entityDeployer.getChild(3);
         address claimsAdmin = entityDeployer.getChild(4);
+
+        IEntity(entity).updateAllowPolicy(true);
+        // acl.assignRole(systemContext, address(entityCoreFacet), ROLEGROUP_POLICY_OWNERS);
+
+        uint256 initiationDateDiff;
+        uint256 startDateDiff;
+        uint256 maturationDateDiff;
+        uint256 brokerCommissionBP;
+        uint256 underwriterCommissionBP;
+        uint256 claimsAdminCommissionBP;
+        uint256 naymsCommissionBP;
+
+        initiationDateDiff = 1000;
+        startDateDiff = 2000;
+        maturationDateDiff = 3000;
+
+        uint256[] memory types = new uint256[](9);
+        // policy type
+        types[0] = POLICY_TYPE_SPV;
+        // time between successive premium payments
+        types[1] = 10;
+        // initiation date
+        types[2] = block.timestamp + initiationDateDiff;
+        // start date
+        types[3] = block.timestamp + startDateDiff;
+        // maturation date
+        types[4] = block.timestamp + maturationDateDiff;
+        // broker commission
+        types[5] = brokerCommissionBP;
+        // underwriter commission
+        types[6] = underwriterCommissionBP;
+        // claims admin commission
+        types[7] = claimsAdminCommissionBP;
+        // nayms commission
+        types[8] = naymsCommissionBP;
+
+        address[] memory addresses = new address[](6);
+        // policy premium currency address
+        addresses[0] = address(0);
+        // treasury address
+        addresses[1] = entity;
+        // broker entity address
+        addresses[2] = broker;
+        // underwriter entity address
+        addresses[3] = entity;
+        // claims admin entity address
+        addresses[4] = address(0);
+        // insured party entity address
+        addresses[5] = address(0);
+
+        uint256[][] memory trancheData = new uint256[][](1);
+
+        uint256 len = trancheData.length;
+        console.log(len);
+
+        uint256[] memory innerTrancheData = new uint256[](4);
+        innerTrancheData[0] = 100; // num shares
+        innerTrancheData[1] = 1; // price per share amount
+        innerTrancheData[2] = 1100;
+        innerTrancheData[3] = 20;
+        // innerTrancheData[4] = 0;
+        // innerTrancheData[5] = 10;
+
+        trancheData[0] = innerTrancheData;
+        uint256 len2 = trancheData[0].length;
+        console.log(len2);
+        bytes[] memory approvalSignatures = new bytes[](0);
+        // approvalSignatures[0] =
+        bytes32 policyId = "0x1";
+
+        // IEntity(entity).createPolicy(policyId, types, addresses, "", "");
+        IEntity(entity).createPolicy(policyId, types, addresses, trancheData, approvalSignatures);
     }
 }
+// when creating policy, is it necessary to bulk approve?

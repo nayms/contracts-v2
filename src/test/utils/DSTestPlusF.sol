@@ -5,9 +5,11 @@ import "forge-std/Vm.sol";
 import "ds-test/test.sol";
 import "./console.sol";
 
-interface IERC20 {
-    function balanceOf(address) external view returns (uint256);
-}
+import {IERC20} from "../../../contracts/base/IERC20.sol";
+
+// interface IERC20 {
+//     function balanceOf(address) external view returns (uint256);
+// }
 
 contract DSTestPlusF is DSTest, stdCheats {
     Vm public constant vm = Vm(HEVM_ADDRESS);

@@ -114,6 +114,8 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
 
     IEntity internal entity;
 
+    address internal immutable account0 = address(this);
+
     address internal constant systemManager = account1;
     address internal constant entityManager = account2;
     address internal constant entityRep = account3;

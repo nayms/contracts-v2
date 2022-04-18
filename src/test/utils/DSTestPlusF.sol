@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.9;
-import "forge-std/stdlib.sol";
+import "forge-std/Test.sol";
 import "forge-std/Vm.sol";
 import "ds-test/test.sol";
-import "./console.sol";
 
 import {IERC20} from "../../../contracts/base/IERC20.sol";
 
@@ -11,11 +10,8 @@ import {IERC20} from "../../../contracts/base/IERC20.sol";
 //     function balanceOf(address) external view returns (uint256);
 // }
 
-contract DSTestPlusF is DSTest, stdCheats {
-    Vm public constant vm = Vm(HEVM_ADDRESS);
-
+contract DSTestPlusF is Test {
     using stdStorage for StdStorage;
-    StdStorage stdstore;
 
     function writeTokenBalance(
         address who,

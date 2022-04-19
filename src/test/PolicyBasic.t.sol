@@ -2,6 +2,7 @@
 pragma solidity >=0.8.9;
 
 import "./utils/DSTestPlusF.sol";
+import "./utils/users/MockAccounts.sol";
 
 import {IACLConstants} from "../../contracts/base/IACLConstants.sol";
 import {ISettingsKeys} from "../../contracts/base/ISettingsKeys.sol";
@@ -65,7 +66,7 @@ struct PolicyInfo {
     uint256 naymsCommissionBP;
 }
 
-contract PolicyBasicTest is DSTestPlusF, IACLConstants, ISettingsKeys, IMarketFeeSchedules, IPolicyStates, IPolicyTypes {
+contract PolicyBasicTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, IMarketFeeSchedules, IPolicyStates, IPolicyTypes {
     ACL internal acl;
     Settings internal settings;
     bytes32 internal systemContext;
@@ -99,25 +100,24 @@ contract PolicyBasicTest is DSTestPlusF, IACLConstants, ISettingsKeys, IMarketFe
 
     CommonUpgradeFacet internal commonUpgradeFacet;
 
-    address internal entityAdmin;
-    bytes32 internal entityContext;
-    address internal entity;
-
-    DummyToken internal wethFalse;
+    DummyToken internal weth;
     DummyToken internal wethTrue;
 
-    // address internal underwriterRep;
+    bytes32 internal entityContext;
+    address internal entityAddress;
 
-    address internal constant account0 = address(0xAAAA);
-    address internal constant account1 = address(0xBEEF);
-    address internal constant account2 = address(0xCAFE);
-    address internal constant account3 = address(0xD00D);
-    address internal constant account4 = address(0x4EEE);
-    address internal constant account5 = address(0xFEED);
-    address internal constant account6 = address(0x6FFF);
-    address internal constant account7 = address(0x7AAA);
-    address internal constant account8 = address(0x8BBB);
-    address internal constant account9 = address(0x9CCC);
+    IEntity internal entity;
+
+    address internal account0 = address(this);
+
+    address internal systemManager = account0;
+    address internal constant entityManager = account1;
+    address internal constant entityAdmin = account2;
+    // address internal constant entityRep = account3;
+    address internal constant insuredPartyRep = account4;
+    address internal constant underwriterRep = account5;
+    address internal constant brokerRep = account6;
+    address internal constant claimsAdminRep = account7;
 
     event EntityDeposit(address indexed caller, address indexed unit, uint256 indexed amount);
 
@@ -128,7 +128,7 @@ contract PolicyBasicTest is DSTestPlusF, IACLConstants, ISettingsKeys, IMarketFe
 
         commonUpgradeFacet = new CommonUpgradeFacet(address(settings));
 
-        wethFalse = new DummyToken("Wrapped ETH", "WETH", 18, 0, false);
+        weth = new DummyToken("Wrapped ETH", "WETH", 18, 0, false);
         wethTrue = new DummyToken("Wrapped ETH True", "WETH-TRUE", 18, 0, true);
 
         // setup role groups
@@ -259,40 +259,33 @@ contract PolicyBasicTest is DSTestPlusF, IACLConstants, ISettingsKeys, IMarketFe
         acl.assignRole(systemContext, address(this), ROLE_SYSTEM_MANAGER);
         acl.assignRole(systemContext, address(this), ROLE_ENTITY_MANAGER);
 
-        entityAdmin = address(this);
+        entityContext = systemContext;
         entityDeployer.deploy(entityAdmin, entityContext);
 
-        entity = entityDeployer.getChild(1);
+        entityAddress = entityDeployer.getChild(1);
+        entity = IEntity(entityAddress);
 
-        vm.label(address(wethFalse), "WETH False");
+        vm.label(address(weth), "WETH False");
         vm.label(address(wethTrue), "WETH True");
-        vm.label(address(0xAAAA), "Account 0");
-        vm.label(address(0xBEEF), "Account 1");
-        vm.label(address(0xCAFE), "Account 2");
-        vm.label(address(0xD00D), "Account 3");
-        vm.label(address(0x4EEE), "Account 4");
-        vm.label(address(0xFEED), "Account 5");
-        vm.label(address(0x6FFF), "Account 6");
-        vm.label(address(0x7AAA), "Account 7");
-        vm.label(address(0x8BBB), "Account 8");
-        vm.label(address(0x9CCC), "Account 9");
+        vm.label(address(this), "Account 0 - Test Contract");
+        vm.label(address(0xACC1), "Account 1");
+        vm.label(address(0xACC2), "Account 2");
+        vm.label(address(0xACC3), "Account 3");
+        vm.label(address(0xACC4), "Account 4");
+        vm.label(address(0xACC5), "Account 5");
+        vm.label(address(0xACC6), "Account 6");
+        vm.label(address(0xACC7), "Account 7");
+        vm.label(address(0xACC8), "Account 8");
+        vm.label(address(0xACC9), "Account 9");
     }
 
     function testBasicPolicy() public {
-        address underwriterRep = entityAdmin;
-        address insuredPartyRep = account7;
-        address brokerRep = account8;
-        address claimsAdminRep = account9;
-
         entityDeployer.deploy(insuredPartyRep, entityContext);
         entityDeployer.deploy(brokerRep, entityContext);
         entityDeployer.deploy(claimsAdminRep, entityContext);
-        address insuredParty = entityDeployer.getChild(2);
-        address broker = entityDeployer.getChild(3);
-        address claimsAdmin = entityDeployer.getChild(4);
+        entityDeployer.deploy(underwriterRep, entityContext);
 
         IEntity(entity).updateAllowPolicy(true);
-        // acl.assignRole(systemContext, address(entityCoreFacet), ROLEGROUP_POLICY_OWNERS);
 
         uint256 initiationDateDiff;
         uint256 startDateDiff;
@@ -306,62 +299,74 @@ contract PolicyBasicTest is DSTestPlusF, IACLConstants, ISettingsKeys, IMarketFe
         startDateDiff = 2000;
         maturationDateDiff = 3000;
 
-        uint256[] memory types = new uint256[](9);
+        uint256[] memory types = new uint256[](8);
         // policy type
         types[0] = POLICY_TYPE_SPV;
-        // time between successive premium payments
-        types[1] = 10;
         // initiation date
-        types[2] = block.timestamp + initiationDateDiff;
+        types[1] = block.timestamp + initiationDateDiff;
         // start date
-        types[3] = block.timestamp + startDateDiff;
+        types[2] = block.timestamp + startDateDiff;
         // maturation date
-        types[4] = block.timestamp + maturationDateDiff;
+        types[3] = block.timestamp + maturationDateDiff;
         // broker commission
-        types[5] = brokerCommissionBP;
+        types[4] = brokerCommissionBP;
         // underwriter commission
-        types[6] = underwriterCommissionBP;
+        types[5] = underwriterCommissionBP;
         // claims admin commission
-        types[7] = claimsAdminCommissionBP;
+        types[6] = claimsAdminCommissionBP;
         // nayms commission
-        types[8] = naymsCommissionBP;
+        types[7] = naymsCommissionBP;
+
+        address insuredParty = entityDeployer.getChild(2);
+        address broker = entityDeployer.getChild(3);
+        address claimsAdmin = entityDeployer.getChild(4);
+        address underwriter = entityDeployer.getChild(5);
 
         address[] memory addresses = new address[](6);
         // policy premium currency address
         addresses[0] = address(0);
         // treasury address
-        addresses[1] = entity;
+        addresses[1] = entityAddress;
         // broker entity address
         addresses[2] = broker;
         // underwriter entity address
-        addresses[3] = entity;
+        addresses[3] = address(underwriter);
         // claims admin entity address
-        addresses[4] = address(0);
+        addresses[4] = claimsAdmin;
         // insured party entity address
-        addresses[5] = address(0);
+        addresses[5] = insuredParty;
 
         uint256[][] memory trancheData = new uint256[][](1);
-
-        uint256 len = trancheData.length;
-        console.log(len);
 
         uint256[] memory innerTrancheData = new uint256[](4);
         innerTrancheData[0] = 100; // num shares
         innerTrancheData[1] = 1; // price per share amount
         innerTrancheData[2] = 1100;
         innerTrancheData[3] = 20;
-        // innerTrancheData[4] = 0;
-        // innerTrancheData[5] = 10;
 
         trancheData[0] = innerTrancheData;
-        uint256 len2 = trancheData[0].length;
-        console.log(len2);
         bytes[] memory approvalSignatures = new bytes[](0);
-        // approvalSignatures[0] =
-        bytes32 policyId = "0x1";
 
-        // IEntity(entity).createPolicy(policyId, types, addresses, "", "");
-        IEntity(entity).createPolicy(policyId, types, addresses, trancheData, approvalSignatures);
+        bytes32 policyId = "0x1";
+        acl.assignRole(entity.aclContext(), underwriterRep, ROLE_ENTITY_REP);
+        // acl.assignRole(entity.aclContext(), insuredPartyRep, ROLE_ENTITY_REP);
+        acl.assignRole(entity.aclContext(), brokerRep, ROLE_ENTITY_REP);
+        // acl.assignRole(entity.aclContext(), claimsAdminRep, ROLE_ENTITY_REP);
+
+        vm.prank(brokerRep);
+        entity.createPolicy(policyId, types, addresses, trancheData, approvalSignatures);
+
+        vm.prank(underwriterRep);
+        entity.createPolicy(policyId, types, addresses, trancheData, approvalSignatures);
+
+        vm.expectRevert("must be broker or underwriter");
+        vm.prank(claimsAdminRep);
+        entity.createPolicy(policyId, types, addresses, trancheData, approvalSignatures);
+
+        vm.expectRevert("must be broker or underwriter");
+        vm.prank(insuredPartyRep);
+        entity.createPolicy(policyId, types, addresses, trancheData, approvalSignatures);
+
+        entity.updateAllowPolicy(false);
     }
 }
-// when creating policy, is it necessary to bulk approve?

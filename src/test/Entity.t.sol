@@ -78,7 +78,9 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
 
     MarketCoreFacet internal marketCoreFacet;
     MarketDataFacet internal marketDataFacet;
-    Market internal market;
+    Market internal marketProxy;
+
+    IMarket internal market;
 
     EntityDeployer internal entityDeployer;
 
@@ -198,10 +200,12 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         // facets use the key with suffix _IMPL
         settings.setAddresses(address(settings), SETTING_MARKET_IMPL, marketFacetAddys);
 
-        market = new Market(address(settings));
-        vm.label(address(market), "Market Proxy Diamond");
-        // market proxy diamond
-        settings.setAddress(address(settings), SETTING_MARKET, address(market));
+        marketProxy = new Market(address(settings));
+        vm.label(address(marketProxy), "Market Proxy Diamond");
+        // marketProxy proxy diamond
+        settings.setAddress(address(settings), SETTING_MARKET, address(marketProxy));
+
+        market = IMarket(address(marketProxy));
 
         entityDeployer = new EntityDeployer(address(settings));
         vm.label(address(entityDeployer), "Entity Deployer");
@@ -424,10 +428,10 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         vm.startPrank(address(0xFEED));
         wethTrue.deposit{value: 1}();
 
-        wethTrue.approve(address(market), 1);
-        uint256 offerId = IMarket(address(market)).getLastOfferId();
+        wethTrue.approve(address(marketProxy), 1);
+        uint256 offerId = market.getLastOfferId();
 
-        IMarket(address(market)).buy(offerId, 1);
+        market.buy(offerId, 1);
 
         assertEq(weth.balanceOf(address(0xFEED)), 1);
 
@@ -457,18 +461,18 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         vm.deal(address(0x7AAA), 1 ether);
         vm.startPrank(address(0x7AAA));
         wethTrue.deposit{value: 100}();
-        wethTrue.approve(address(market), 100);
-        IMarket(address(market)).executeLimitOffer(address(wethTrue), 100, address(weth), 3, FEE_SCHEDULE_STANDARD, address(0), "");
+        wethTrue.approve(address(marketProxy), 100);
+        market.executeLimitOffer(address(wethTrue), 100, address(weth), 3, FEE_SCHEDULE_STANDARD, address(0), "");
         vm.stopPrank();
 
         vm.deal(address(0x8BBB), 1 ether);
         vm.startPrank(address(0x8BBB));
         wethTrue.deposit{value: 50}();
-        wethTrue.approve(address(market), 50);
-        IMarket(address(market)).executeLimitOffer(address(wethTrue), 50, address(weth), 5, FEE_SCHEDULE_STANDARD, address(0), "");
+        wethTrue.approve(address(marketProxy), 50);
+        market.executeLimitOffer(address(wethTrue), 50, address(weth), 5, FEE_SCHEDULE_STANDARD, address(0), "");
         vm.stopPrank();
 
-        uint256 offerId = IMarket(address(market)).getBestOfferId(address(wethTrue), address(weth));
+        uint256 offerId = market.getBestOfferId(address(wethTrue), address(weth));
 
         vm.prank(address(0xD00D));
         entity.sellAtBestPrice(address(weth), 5, address(wethTrue));
@@ -486,8 +490,8 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
 
         vm.startPrank(address(0x8BBB));
         wethTrue.deposit{value: 50}();
-        wethTrue.approve(address(market), 50);
-        IMarket(address(market)).executeLimitOffer(address(wethTrue), 50, address(weth), 10, FEE_SCHEDULE_STANDARD, address(0), "");
+        wethTrue.approve(address(marketProxy), 50);
+        market.executeLimitOffer(address(wethTrue), 50, address(weth), 10, FEE_SCHEDULE_STANDARD, address(0), "");
         vm.stopPrank();
 
         vm.startPrank(address(0xD00D));
@@ -524,20 +528,20 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         // assertEq(tokenInfo.tokenAddress, address(weth));
         assertEq(tokenInfo.currentTokenSaleOfferId, 1);
 
-        uint256 offerId = IMarket(address(market)).getLastOfferId();
+        uint256 offerId = market.getLastOfferId();
 
-        IMarketDataFacet.OfferState memory offerState = IMarket(address(market)).getOffer(offerId);
+        IMarketDataFacet.OfferState memory offerState = market.getOffer(offerId);
         assertEq(offerState.creator, entityAddress);
         assertEq(offerState.sellToken, tokenInfo.tokenAddress);
         assertEq(offerState.sellAmount, 500);
         assertEq(offerState.buyToken, address(weth));
         assertEq(offerState.buyAmount, 1000);
-        assertTrue(IMarket(address(market)).isActive(offerId));
+        assertTrue(market.isActive(offerId));
         assertEq(offerState.feeSchedule, FEE_SCHEDULE_PLATFORM_ACTION);
 
         assertEq(IERC20(tokenInfo.tokenAddress).totalSupply(), 500);
-        assertEq(IERC20(tokenInfo.tokenAddress).balanceOf(address(market)), 500);
-        assertEq(IERC20(tokenInfo.tokenAddress).allowance(address(market), entityAddress), 0);
+        assertEq(IERC20(tokenInfo.tokenAddress).balanceOf(address(marketProxy)), 500);
+        assertEq(IERC20(tokenInfo.tokenAddress).allowance(address(marketProxy), entityAddress), 0);
         assertEq(IERC20(tokenInfo.tokenAddress).name(), string.concat("NAYMS-", address(weth).toString(), "-", entityAddress.toString(), "-ENTITY"));
         assertEq(IERC20(tokenInfo.tokenAddress).symbol(), string.concat("N-", address(weth).toString().substring(3), "-", entityAddress.toString().substring(3), "-E"));
 
@@ -546,15 +550,15 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         entity.startTokenSale(500, address(weth), 1000);
 
         weth.deposit{value: 500}();
-        weth.approve(address(market), 500);
-        IMarket(address(market)).executeLimitOffer(address(weth), 500, tokenInfo.tokenAddress, 250, FEE_SCHEDULE_STANDARD, address(0), "");
+        weth.approve(address(marketProxy), 500);
+        market.executeLimitOffer(address(weth), 500, tokenInfo.tokenAddress, 250, FEE_SCHEDULE_STANDARD, address(0), "");
 
-        offerState = IMarket(address(market)).getOffer(offerId);
+        offerState = market.getOffer(offerId);
         assertEq(offerState.sellToken, tokenInfo.tokenAddress);
         assertEq(offerState.sellAmount, 250);
         assertEq(offerState.buyToken, address(weth));
         assertEq(offerState.buyAmount, 500);
-        assertTrue(IMarket(address(market)).isActive(offerId));
+        assertTrue(market.isActive(offerId));
 
         assertEq(weth.balanceOf(entityAddress), 500);
         assertEq(entity.getBalance(address(weth)), 500);
@@ -564,11 +568,11 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
 
         // fully sell tokens
         weth.deposit{value: 500}();
-        weth.approve(address(market), 500);
+        weth.approve(address(marketProxy), 500);
 
-        IMarket(address(market)).executeLimitOffer(address(weth), 500, tokenInfo.tokenAddress, 250, FEE_SCHEDULE_STANDARD, address(0), "");
+        market.executeLimitOffer(address(weth), 500, tokenInfo.tokenAddress, 250, FEE_SCHEDULE_STANDARD, address(0), "");
 
-        IMarket(address(market)).isActive(offerId);
+        market.isActive(offerId);
 
         assertEq(weth.balanceOf(entityAddress), 1000);
         assertEq(entity.getBalance(address(weth)), 1000);
@@ -587,38 +591,38 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         entity.startTokenSale(500, address(weth), 1000);
 
         weth.deposit{value: 500}();
-        weth.approve(address(market), 500);
+        weth.approve(address(marketProxy), 500);
 
         TokenInfo memory tokenInfo;
         (tokenInfo.tokenAddress, tokenInfo.currentTokenSaleOfferId) = entity.getTokenInfo(address(weth));
 
-        IMarket(address(market)).executeLimitOffer(address(weth), 500, tokenInfo.tokenAddress, 250, FEE_SCHEDULE_STANDARD, address(0), "");
+        market.executeLimitOffer(address(weth), 500, tokenInfo.tokenAddress, 250, FEE_SCHEDULE_STANDARD, address(0), "");
 
-        // settings.setAddress(address(settings), SETTING_MARKET, address(market));
+        // settings.setAddress(address(settings), SETTING_MARKET, address(marketProxy));
 
-        // only market can transfer tokens
-        vm.prank(address(market));
+        // only marketProxy can transfer tokens
+        vm.prank(address(marketProxy));
         IERC20(tokenInfo.tokenAddress).transfer(account1, 1);
 
-        vm.expectRevert("only nayms market is allowed to transfer");
+        vm.expectRevert("only nayms marketProxy is allowed to transfer");
         IERC20(tokenInfo.tokenAddress).transfer(account0, 1);
 
-        // only market can be approved for transfers
-        IERC20(tokenInfo.tokenAddress).approve(address(market), 1);
+        // only marketProxy can be approved for transfers
+        IERC20(tokenInfo.tokenAddress).approve(address(marketProxy), 1);
 
-        vm.expectRevert("only nayms market is allowed to transfer");
+        vm.expectRevert("only nayms marketProxy is allowed to transfer");
         IERC20(tokenInfo.tokenAddress).approve(account1, 1);
 
         // transfers must be non-zero
-        vm.prank(address(market));
+        vm.prank(address(marketProxy));
         vm.expectRevert("cannot transfer zero");
         IERC20(tokenInfo.tokenAddress).transfer(account1, 0);
 
         // console.log(address(this).balance);
         // weth.deposit{value: 500}();
-        // weth.approve(address(market), 500);
-        // IMarket(address(market)).executeLimitOffer(address(weth), 500, tokenInfo.tokenAddress, 250, FEE_SCHEDULE_STANDARD, address(0), "");
-        //can only be transferred by the market
+        // weth.approve(address(marketProxy), 500);
+        // market.executeLimitOffer(address(weth), 500, tokenInfo.tokenAddress, 250, FEE_SCHEDULE_STANDARD, address(0), "");
+        //can only be transferred by the marketProxy
     }
 
     function testEntityTokensTransfersOnceSold() public {
@@ -628,19 +632,19 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         entity.startTokenSale(500, address(weth), 1000);
 
         weth.deposit{value: 1000}();
-        weth.approve(address(market), 1000);
+        weth.approve(address(marketProxy), 1000);
 
         TokenInfo memory tokenInfo;
         (tokenInfo.tokenAddress, tokenInfo.currentTokenSaleOfferId) = entity.getTokenInfo(address(weth));
 
-        IMarket(address(market)).executeLimitOffer(address(weth), 1000, tokenInfo.tokenAddress, 500, FEE_SCHEDULE_STANDARD, address(0), "");
+        market.executeLimitOffer(address(weth), 1000, tokenInfo.tokenAddress, 500, FEE_SCHEDULE_STANDARD, address(0), "");
         assertEq(IERC20(tokenInfo.tokenAddress).balanceOf(address(this)), 500);
         assertEq(IERC20(tokenInfo.tokenAddress).totalSupply(), 500);
 
-        // can only be transferred by the market
-        vm.expectRevert("only nayms market is allowed to transfer");
+        // can only be transferred by the marketProxy
+        vm.expectRevert("only nayms marketProxy is allowed to transfer");
         IERC20(tokenInfo.tokenAddress).approve(account2, 1);
-        vm.expectRevert("only nayms market is allowed to transfer");
+        vm.expectRevert("only nayms marketProxy is allowed to transfer");
         IERC20(tokenInfo.tokenAddress).transfer(account2, 1);
 
         // can be burnt
@@ -667,7 +671,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
 
         assertEq(IERC20(tokenInfo.tokenAddress).totalSupply(), 500);
         weth.deposit{value: 1000}();
-        weth.approve(address(market), 1000);
+        weth.approve(address(marketProxy), 1000);
 
         vm.prank(account3);
         vm.expectRevert("must be system mgr");
@@ -687,14 +691,14 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
 
         assertEq(tokenInfo.tokenAddress, tokenAddress2);
         // and re-uses existing token if new sale is initiated
-        // IMarket(address(market)).executeLimitOffer(address(weth), 1000, tokenInfo.tokenAddress, 500, FEE_SCHEDULE_STANDARD, address(0), "");
+        // market.executeLimitOffer(address(weth), 1000, tokenInfo.tokenAddress, 500, FEE_SCHEDULE_STANDARD, address(0), "");
         // assertEq(IERC20(tokenInfo.tokenAddress).balanceOf(address(this)), 500);
         // assertEq(IERC20(tokenInfo.tokenAddress).totalSupply(), 500);
 
-        // // can only be transferred by the market
-        // vm.expectRevert("only nayms market is allowed to transfer");
+        // // can only be transferred by the marketProxy
+        // vm.expectRevert("only nayms marketProxy is allowed to transfer");
         // IERC20(tokenInfo.tokenAddress).approve(account2, 1);
-        // vm.expectRevert("only nayms market is allowed to transfer");
+        // vm.expectRevert("only nayms marketProxy is allowed to transfer");
         // IERC20(tokenInfo.tokenAddress).transfer(account2, 1);
 
         // // can be burnt
@@ -743,15 +747,15 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         assertEq(numTokenHolders, 1);
 
         address tokenHolder1 = entity.getTokenHolderAtIndex(address(weth), 1);
-        assertEq(tokenHolder1, address(market));
+        assertEq(tokenHolder1, address(marketProxy));
 
         weth.deposit{value: 500}();
-        weth.approve(address(market), 500);
+        weth.approve(address(marketProxy), 500);
 
         TokenInfo memory tokenInfo;
         (tokenInfo.tokenAddress, tokenInfo.currentTokenSaleOfferId) = entity.getTokenInfo(address(weth));
 
-        IMarket(address(market)).executeLimitOffer(address(weth), 500, tokenInfo.tokenAddress, 250, FEE_SCHEDULE_STANDARD, address(0), "");
+        market.executeLimitOffer(address(weth), 500, tokenInfo.tokenAddress, 250, FEE_SCHEDULE_STANDARD, address(0), "");
         numTokenHolders = entity.getNumTokenHolders(address(weth));
         assertEq(numTokenHolders, 2);
 
@@ -759,7 +763,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         assertEq(tokenHolder2, address(this));
 
         assertEq(IERC20(tokenInfo.tokenAddress).balanceOf(address(this)), 250);
-        assertEq(IERC20(tokenInfo.tokenAddress).balanceOf(address(market)), 250);
+        assertEq(IERC20(tokenInfo.tokenAddress).balanceOf(address(marketProxy)), 250);
         assertEq(weth.balanceOf(address(entityAddress)), 500);
         assertEq(entity.getBalance(address(weth)), 500);
 
@@ -777,11 +781,11 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         acl.assignRole(entity.aclContext(), entityManager, ROLE_ENTITY_MANAGER);
         entity.startTokenSale(500, address(weth), 1000);
         weth.deposit{value: 500}();
-        weth.approve(address(market), 500);
+        weth.approve(address(marketProxy), 500);
         TokenInfo memory tokenInfo;
         (tokenInfo.tokenAddress, tokenInfo.currentTokenSaleOfferId) = entity.getTokenInfo(address(weth));
 
-        IMarket(address(market)).executeLimitOffer(address(weth), 500, tokenInfo.tokenAddress, 250, FEE_SCHEDULE_STANDARD, address(0), "");
+        market.executeLimitOffer(address(weth), 500, tokenInfo.tokenAddress, 250, FEE_SCHEDULE_STANDARD, address(0), "");
 
         entity.cancelTokenSale(address(weth));
 
@@ -801,11 +805,11 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         acl.assignRole(entity.aclContext(), entityManager, ROLE_ENTITY_MANAGER);
         entity.startTokenSale(500, address(weth), 1000);
         weth.deposit{value: 500}();
-        weth.approve(address(market), 500);
+        weth.approve(address(marketProxy), 500);
         TokenInfo memory tokenInfo;
         (tokenInfo.tokenAddress, tokenInfo.currentTokenSaleOfferId) = entity.getTokenInfo(address(weth));
 
-        IMarket(address(market)).executeLimitOffer(address(weth), 500, tokenInfo.tokenAddress, 250, FEE_SCHEDULE_STANDARD, address(0), "");
+        market.executeLimitOffer(address(weth), 500, tokenInfo.tokenAddress, 250, FEE_SCHEDULE_STANDARD, address(0), "");
 
         entity.cancelTokenSale(address(weth));
 
@@ -829,11 +833,11 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         acl.assignRole(entity.aclContext(), entityManager, ROLE_ENTITY_MANAGER);
         entity.startTokenSale(500, address(weth), 1000);
         weth.deposit{value: 500}();
-        weth.approve(address(market), 500);
+        weth.approve(address(marketProxy), 500);
         TokenInfo memory tokenInfo;
         (tokenInfo.tokenAddress, tokenInfo.currentTokenSaleOfferId) = entity.getTokenInfo(address(weth));
 
-        IMarket(address(market)).executeLimitOffer(address(weth), 500, tokenInfo.tokenAddress, 250, FEE_SCHEDULE_STANDARD, address(0), "");
+        market.executeLimitOffer(address(weth), 500, tokenInfo.tokenAddress, 250, FEE_SCHEDULE_STANDARD, address(0), "");
 
         entity.cancelTokenSale(address(weth));
 
@@ -852,11 +856,11 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         acl.assignRole(entity.aclContext(), entityManager, ROLE_ENTITY_MANAGER);
         entity.startTokenSale(500, address(weth), 1000);
         weth.deposit{value: 500}();
-        weth.approve(address(market), 500);
+        weth.approve(address(marketProxy), 500);
         TokenInfo memory tokenInfo;
         (tokenInfo.tokenAddress, tokenInfo.currentTokenSaleOfferId) = entity.getTokenInfo(address(weth));
 
-        IMarket(address(market)).executeLimitOffer(address(weth), 500, tokenInfo.tokenAddress, 250, FEE_SCHEDULE_STANDARD, address(0), "");
+        market.executeLimitOffer(address(weth), 500, tokenInfo.tokenAddress, 250, FEE_SCHEDULE_STANDARD, address(0), "");
 
         entity.cancelTokenSale(address(weth));
 
@@ -881,14 +885,14 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         acl.assignRole(entity.aclContext(), entityManager, ROLE_ENTITY_MANAGER);
         entity.startTokenSale(500, address(weth), 1000);
         weth.deposit{value: 500}();
-        weth.approve(address(market), 500);
+        weth.approve(address(marketProxy), 500);
         TokenInfo memory tokenInfo;
         (tokenInfo.tokenAddress, tokenInfo.currentTokenSaleOfferId) = entity.getTokenInfo(address(weth));
 
-        IMarket(address(market)).executeLimitOffer(address(weth), 500, tokenInfo.tokenAddress, 250, FEE_SCHEDULE_STANDARD, address(0), "");
+        market.executeLimitOffer(address(weth), 500, tokenInfo.tokenAddress, 250, FEE_SCHEDULE_STANDARD, address(0), "");
 
         // assertEq(IERC20(tokenInfo.tokenAddress).balanceOf(account1), 250);
-        assertEq(IERC20(tokenInfo.tokenAddress).balanceOf(address(market)), 250);
+        assertEq(IERC20(tokenInfo.tokenAddress).balanceOf(address(marketProxy)), 250);
         assertEq(IERC20(tokenInfo.tokenAddress).balanceOf(address(this)), 250);
 
         assertEq(entity.getBalance(address(weth)), 500);
@@ -896,7 +900,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         entity.cancelTokenSale(address(weth));
 
         assertEq(IERC20(tokenInfo.tokenAddress).balanceOf(address(this)), 250);
-        assertEq(IERC20(tokenInfo.tokenAddress).balanceOf(address(market)), 0);
+        assertEq(IERC20(tokenInfo.tokenAddress).balanceOf(address(marketProxy)), 0);
         assertEq(entity.getNumTokenHolders(address(weth)), 1);
         assertEq(entity.getTokenHolderAtIndex(address(weth), 1), address(this));
 
@@ -913,11 +917,11 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         acl.assignRole(entity.aclContext(), entityManager, ROLE_ENTITY_MANAGER);
         entity.startTokenSale(500, address(weth), 1000);
         weth.deposit{value: 500}();
-        weth.approve(address(market), 500);
+        weth.approve(address(marketProxy), 500);
         TokenInfo memory tokenInfo;
         (tokenInfo.tokenAddress, tokenInfo.currentTokenSaleOfferId) = entity.getTokenInfo(address(weth));
 
-        IMarket(address(market)).executeLimitOffer(address(weth), 500, tokenInfo.tokenAddress, 250, FEE_SCHEDULE_STANDARD, address(0), "");
+        market.executeLimitOffer(address(weth), 500, tokenInfo.tokenAddress, 250, FEE_SCHEDULE_STANDARD, address(0), "");
 
         entity.cancelTokenSale(address(weth));
 
@@ -945,11 +949,11 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         acl.assignRole(entity.aclContext(), entityManager, ROLE_ENTITY_MANAGER);
         entity.startTokenSale(500, address(weth), 1000);
         weth.deposit{value: 500}();
-        weth.approve(address(market), 500);
+        weth.approve(address(marketProxy), 500);
         TokenInfo memory tokenInfo;
         (tokenInfo.tokenAddress, tokenInfo.currentTokenSaleOfferId) = entity.getTokenInfo(address(weth));
 
-        IMarket(address(market)).executeLimitOffer(address(weth), 500, tokenInfo.tokenAddress, 250, FEE_SCHEDULE_STANDARD, address(0), "");
+        market.executeLimitOffer(address(weth), 500, tokenInfo.tokenAddress, 250, FEE_SCHEDULE_STANDARD, address(0), "");
 
         entity.cancelTokenSale(address(weth));
 
@@ -978,11 +982,11 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         acl.assignRole(entity.aclContext(), entityManager, ROLE_ENTITY_MANAGER);
         entity.startTokenSale(500, address(weth), 1000);
         weth.deposit{value: 500}();
-        weth.approve(address(market), 500);
+        weth.approve(address(marketProxy), 500);
         TokenInfo memory tokenInfo;
         (tokenInfo.tokenAddress, tokenInfo.currentTokenSaleOfferId) = entity.getTokenInfo(address(weth));
 
-        IMarket(address(market)).executeLimitOffer(address(weth), 500, tokenInfo.tokenAddress, 250, FEE_SCHEDULE_STANDARD, address(0), "");
+        market.executeLimitOffer(address(weth), 500, tokenInfo.tokenAddress, 250, FEE_SCHEDULE_STANDARD, address(0), "");
 
         entity.cancelTokenSale(address(weth));
 
@@ -1449,7 +1453,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
 
 // 1. ACL
 // 2. Settings
-// - Market?
+// - marketProxy?
 // 3. EntityDeployer
 // 4. FeeBank
 // Platform Token(s)

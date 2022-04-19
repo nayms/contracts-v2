@@ -51,6 +51,7 @@ import {EntityDelegate} from "../../contracts/EntityDelegate.sol";
 import {Entity} from "../../contracts/Entity.sol";
 
 import {DummyEntityFacet} from "../../contracts/test/DummyEntityFacet.sol";
+import {EntityTreasuryTestFacet} from "../../contracts/test/EntityTreasuryTestFacet.sol";
 
 import {DummyToken} from "../../contracts/DummyToken.sol";
 
@@ -68,7 +69,7 @@ interface IProxy {
 
 /// @notice test entityAddress
 
-contract IntegrationPortfolioTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, IMarketFeeSchedules, IPolicyStates, IPolicyTypes {
+contract IntegrationSPVTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, IMarketFeeSchedules, IPolicyStates, IPolicyTypes {
     using Address for address;
     using Strings for string;
 
@@ -78,7 +79,9 @@ contract IntegrationPortfolioTest is DSTestPlusF, MockAccounts, IACLConstants, I
 
     MarketCoreFacet internal marketCoreFacet;
     MarketDataFacet internal marketDataFacet;
-    Market internal market;
+    Market internal marketProxy;
+
+    IMarket internal market;
 
     EntityDeployer internal entityDeployer;
 
@@ -92,6 +95,8 @@ contract IntegrationPortfolioTest is DSTestPlusF, MockAccounts, IACLConstants, I
     PolicyTrancheTokensFacet internal policyTrancheTokensFacet;
     PolicyApprovalsFacet internal policyApprovalsFacet;
     PolicyDelegate internal policyDelegate;
+
+    IPolicy internal policy;
 
     EntityCoreFacet internal entityCoreFacet;
     EntityFundingFacet internal entityFundingFacet;
@@ -115,13 +120,13 @@ contract IntegrationPortfolioTest is DSTestPlusF, MockAccounts, IACLConstants, I
     DummyToken internal weth;
     DummyToken internal wethTrue;
 
+    EntityTreasuryTestFacet internal entityTreasuryTestFacet;
+
     IEntity internal entity;
     IEntity internal underwriter;
     IEntity internal insuredParty;
     IEntity internal broker;
     IEntity internal claimsAdmin;
-
-    IPolicy internal policy;
 
     address internal account0 = address(this);
 
@@ -212,10 +217,13 @@ contract IntegrationPortfolioTest is DSTestPlusF, MockAccounts, IACLConstants, I
         // facets use the key with suffix _IMPL
         settings.setAddresses(address(settings), SETTING_MARKET_IMPL, marketFacetAddys);
 
-        market = new Market(address(settings));
-        vm.label(address(market), "Market Proxy Diamond");
+        marketProxy = new Market(address(settings));
+        vm.label(address(marketProxy), "Market Proxy Diamond");
+
+        market = IMarket(address(marketProxy));
+
         // market proxy diamond
-        settings.setAddress(address(settings), SETTING_MARKET, address(market));
+        settings.setAddress(address(settings), SETTING_MARKET, address(marketProxy));
 
         entityDeployer = new EntityDeployer(address(settings));
         vm.label(address(entityDeployer), "Entity Deployer");
@@ -301,10 +309,10 @@ contract IntegrationPortfolioTest is DSTestPlusF, MockAccounts, IACLConstants, I
         uint256 initiationDateDiff;
         uint256 startDateDiff;
         uint256 maturationDateDiff;
-        uint256 brokerCommissionBP;
-        uint256 underwriterCommissionBP;
-        uint256 claimsAdminCommissionBP;
-        uint256 naymsCommissionBP;
+        uint256 brokerCommissionBP = 200;
+        uint256 underwriterCommissionBP = 300;
+        uint256 claimsAdminCommissionBP = 100; // 1%
+        uint256 naymsCommissionBP = 300;
 
         initiationDateDiff = 1000;
         startDateDiff = 2000;
@@ -312,7 +320,7 @@ contract IntegrationPortfolioTest is DSTestPlusF, MockAccounts, IACLConstants, I
 
         uint256[] memory types = new uint256[](8);
         // policy type
-        types[0] = POLICY_TYPE_PORTFOLIO;
+        types[0] = POLICY_TYPE_SPV;
         // initiation date
         types[1] = block.timestamp + initiationDateDiff;
         // start date
@@ -359,19 +367,19 @@ contract IntegrationPortfolioTest is DSTestPlusF, MockAccounts, IACLConstants, I
         uint256 pricePerShareAmount = 2;
         uint256[] memory premiumsDiff = new uint256[](14);
         premiumsDiff[0] = 0 + 1000;
-        premiumsDiff[1] = 10;
+        premiumsDiff[1] = 1000;
         premiumsDiff[2] = 500 + 1000;
-        premiumsDiff[3] = 20;
+        premiumsDiff[3] = 2000;
         premiumsDiff[4] = 1000 + 1000;
-        premiumsDiff[5] = 30;
+        premiumsDiff[5] = 3000;
         premiumsDiff[6] = 1500 + 1000;
-        premiumsDiff[7] = 40;
+        premiumsDiff[7] = 4000;
         premiumsDiff[8] = 2000 + 1000;
-        premiumsDiff[9] = 50;
+        premiumsDiff[9] = 5000;
         premiumsDiff[10] = 2500 + 1000;
-        premiumsDiff[11] = 60;
+        premiumsDiff[11] = 6000;
         premiumsDiff[12] = 3000 + 1000;
-        premiumsDiff[13] = 70;
+        premiumsDiff[13] = 7000;
         policy.createTranche(numShares, pricePerShareAmount, premiumsDiff);
 
         numShares = 50;
@@ -382,14 +390,16 @@ contract IntegrationPortfolioTest is DSTestPlusF, MockAccounts, IACLConstants, I
         acl.assignRole(entity.aclContext(), insuredPartyRep, ROLE_ENTITY_REP);
         acl.assignRole(entity.aclContext(), brokerRep, ROLE_ENTITY_REP);
         acl.assignRole(entity.aclContext(), claimsAdminRep, ROLE_ENTITY_REP);
-        vm.prank(underwriterRep);
-        policy.approve(ROLE_PENDING_UNDERWRITER);
-        vm.prank(insuredPartyRep);
-        policy.approve(ROLE_PENDING_INSURED_PARTY);
-        vm.prank(brokerRep);
-        policy.approve(ROLE_PENDING_BROKER);
-        vm.prank(claimsAdminRep);
-        policy.approve(ROLE_PENDING_CLAIMS_ADMIN);
+        // vm.prank(underwriterRep);
+        // policy.approve(ROLE_PENDING_UNDERWRITER);
+        // vm.prank(insuredPartyRep);
+        // policy.approve(ROLE_PENDING_INSURED_PARTY);
+        // vm.prank(brokerRep);
+        // policy.approve(ROLE_PENDING_BROKER);
+        // vm.prank(claimsAdminRep);
+        // policy.approve(ROLE_PENDING_CLAIMS_ADMIN);
+
+        entityTreasuryTestFacet = new EntityTreasuryTestFacet();
 
         vm.label(address(weth), "WETH False");
         vm.label(address(wethTrue), "WETH True");
@@ -405,122 +415,861 @@ contract IntegrationPortfolioTest is DSTestPlusF, MockAccounts, IACLConstants, I
         vm.label(address(0xACC9), "Account 9");
     }
 
-    function testPolicyGetInfo() public {
-        (, , , , , , uint256 numTranches, , uint256 policyType) = policy.getInfo();
-        assertEq(numTranches, 2);
-        assertEq(policyType, POLICY_TYPE_PORTFOLIO);
-
-        (address trancheToken0, , , , , , , , ) = policy.getTrancheInfo(0);
-        assertEq(trancheToken0, address(0));
-        (address trancheToken1, , , , , , , , ) = policy.getTrancheInfo(1);
-        assertEq(trancheToken1, address(0));
+    function testSPVPolicyCreated() public {
+        policy.checkAndUpdateState();
+        (, , , , , , , uint256 policyState, ) = policy.getInfo();
+        assertEq(policyState, POLICY_STATE_CREATED);
     }
 
-    function testPayTranchePremium() public {
-        (, , , , , , uint256 numTranches, uint256 state, uint256 policyType) = policy.getInfo();
-        assertEq(state, POLICY_STATE_APPROVED);
+    function testSPVPolicyCanceled() public {
+        vm.warp(1000);
+        policy.checkAndUpdateState();
+        (, , , , , , , uint256 policyState, ) = policy.getInfo();
+        assertEq(policyState, POLICY_STATE_CANCELLED);
+    }
 
-        // once initialisation date has passed
-        weth.deposit{value: 20}();
-        weth.approve(address(policy), 20);
-        policy.payTranchePremium(0, 10);
-        policy.payTranchePremium(1, 10);
+    function testSPVPolicyApproved() public {
+        vm.prank(underwriterRep);
+        policy.approve(ROLE_PENDING_UNDERWRITER);
+        vm.prank(insuredPartyRep);
+        policy.approve(ROLE_PENDING_INSURED_PARTY);
+        vm.prank(brokerRep);
+        policy.approve(ROLE_PENDING_BROKER);
+        vm.prank(claimsAdminRep);
+        policy.approve(ROLE_PENDING_CLAIMS_ADMIN);
+        weth.deposit{value: 100000}();
+        weth.approve(address(policy), 100000);
+        policy.payTranchePremium(0, 1000);
+        policy.payTranchePremium(2, 1000);
 
         vm.warp(1000); // initiation date
 
         policy.checkAndUpdateState();
-        (, , , , , , , state, ) = policy.getInfo();
-        assertEq(state, POLICY_STATE_INITIATED);
+        (, , , , , , uint256 initialSaleOfferId, , ) = policy.getTrancheInfo(0);
+        assertEq(initialSaleOfferId, 0);
 
-        // tranche tokens are not being sold
+        (, , , , , , , uint256 policyState, ) = policy.getInfo();
+        assertEq(policyState, POLICY_STATE_APPROVED);
+    }
+
+    function testSPVPayTranchePremium() public {
+        vm.prank(underwriterRep);
+        policy.approve(ROLE_PENDING_UNDERWRITER);
+        vm.prank(insuredPartyRep);
+        policy.approve(ROLE_PENDING_INSURED_PARTY);
+        vm.prank(brokerRep);
+        policy.approve(ROLE_PENDING_BROKER);
+        vm.prank(claimsAdminRep);
+        policy.approve(ROLE_PENDING_CLAIMS_ADMIN);
+        weth.deposit{value: 100000}();
+        weth.approve(address(policy), 100000);
+        policy.payTranchePremium(0, 1000);
+        policy.payTranchePremium(1, 1000);
+
+        vm.warp(1000); // initiation date
+
         (, , , , , , uint256 initialSaleOfferId, , ) = policy.getTrancheInfo(0);
         assertEq(initialSaleOfferId, 0);
         (, , , , , , initialSaleOfferId, , ) = policy.getTrancheInfo(1);
         assertEq(initialSaleOfferId, 0);
 
-        // tranches remain in created state
-        (, uint256 trancheState, , , , , , , ) = policy.getTrancheInfo(0);
-        assertEq(trancheState, TRANCHE_STATE_CREATED);
-        (, trancheState, , , , , , , ) = policy.getTrancheInfo(1);
-        assertEq(trancheState, TRANCHE_STATE_CREATED);
+        (address trancheToken0, , , , , , , , ) = policy.getTrancheInfo(0);
+        IERC20 tt0 = IERC20(trancheToken0);
+        (address trancheToken1, , , , , , , , ) = policy.getTrancheInfo(1);
+        IERC20 tt1 = IERC20(trancheToken1);
+        assertEq(tt0.balanceOf(address(market)), 0);
+        assertEq(tt1.balanceOf(address(market)), 0);
+        assertEq(tt0.balanceOf(address(entityAddress)), 100);
+        assertEq(tt1.balanceOf(address(entityAddress)), 50);
+        policy.checkAndUpdateState();
+
+        (, , , , , , , uint256 policyState, ) = policy.getInfo();
+        assertEq(policyState, POLICY_STATE_INITIATED);
+        assertEq(tt0.balanceOf(address(market)), 100);
+        assertEq(tt1.balanceOf(address(market)), 50);
+        assertEq(tt0.balanceOf(address(entityAddress)), 0);
+        assertEq(tt1.balanceOf(address(entityAddress)), 0);
+
+        (, , , , , , initialSaleOfferId, , ) = policy.getTrancheInfo(0);
+        assertEq(initialSaleOfferId, 1);
+        (, , , , , , initialSaleOfferId, , ) = policy.getTrancheInfo(1);
+        assertEq(initialSaleOfferId, 2);
     }
 
-    function testPayTranchePremiumAfterStartDate() public {
-        weth.deposit{value: 20}();
-        weth.approve(address(policy), 20);
-        policy.payTranchePremium(0, 10);
-        policy.payTranchePremium(1, 10);
+    function testSPVPlatformActionFeeSchedule() public {
+        vm.prank(underwriterRep);
+        policy.approve(ROLE_PENDING_UNDERWRITER);
+        vm.prank(insuredPartyRep);
+        policy.approve(ROLE_PENDING_INSURED_PARTY);
+        vm.prank(brokerRep);
+        policy.approve(ROLE_PENDING_BROKER);
+        vm.prank(claimsAdminRep);
+        policy.approve(ROLE_PENDING_CLAIMS_ADMIN);
+        weth.deposit{value: 100000}();
+        weth.approve(address(policy), 100000);
+        policy.payTranchePremium(0, 1000);
+        policy.payTranchePremium(1, 1000);
 
         vm.warp(1000); // initiation date
 
+        vm.prank(underwriterRep);
+        vm.expectRevert("must be in active state");
+        policy.makeClaim(0, 1);
+
+        policy.checkAndUpdateState();
+        (, , , , , , uint256 initialSaleOfferId, , ) = policy.getTrancheInfo(0);
+
+        IMarketDataFacet.OfferState memory firstOffer = market.getOffer(initialSaleOfferId);
+
+        assertEq(firstOffer.feeSchedule, FEE_SCHEDULE_PLATFORM_ACTION);
+
+        (, , , , , , , uint256 policyState, ) = policy.getInfo();
+        assertEq(policyState, POLICY_STATE_INITIATED);
+
+        (, uint256 trancheState, , , , , , , ) = policy.getTrancheInfo(0);
+        assertEq(trancheState, TRANCHE_STATE_SELLING);
+
+        (, , , , , uint256 sharesSold, , , ) = policy.getTrancheInfo(0);
+        assertEq(sharesSold, 0);
+    }
+
+    function testSPVTrancheSelling() public {
+        vm.prank(underwriterRep);
+        policy.approve(ROLE_PENDING_UNDERWRITER);
+        vm.prank(insuredPartyRep);
+        policy.approve(ROLE_PENDING_INSURED_PARTY);
+        vm.prank(brokerRep);
+        policy.approve(ROLE_PENDING_BROKER);
+        vm.prank(claimsAdminRep);
+        policy.approve(ROLE_PENDING_CLAIMS_ADMIN);
+        weth.deposit{value: 100000}();
+        weth.approve(address(policy), 100000);
+        policy.payTranchePremium(0, 1000);
+        policy.payTranchePremium(1, 1000);
+
+        vm.warp(1000); // initiation date
         policy.checkAndUpdateState();
 
-        weth.deposit{value: 540}();
-        weth.approve(address(policy), 540);
-        policy.payTranchePremium(0, 270);
-        policy.payTranchePremium(1, 270);
+        (, , , , , , , uint256 policyState, ) = policy.getInfo();
+        assertEq(policyState, POLICY_STATE_INITIATED);
+
+        (, , , , , uint256 sharesSold, , , ) = policy.getTrancheInfo(0);
+        assertEq(sharesSold, 0);
+
+        (, , , , , sharesSold, , , ) = policy.getTrancheInfo(1);
+        assertEq(sharesSold, 0);
+
+        (, , , , , , uint256 initialSaleOfferId, , ) = policy.getTrancheInfo(0);
+
+        vm.deal(account2, 25);
+        vm.prank(account2);
+        weth.deposit{value: 25}();
+
+        vm.prank(insuredPartyRep);
+        vm.expectRevert("must be in active state");
+        policy.makeClaim(0, 1);
+
+        (address trancheToken0, , , , , , , , ) = policy.getTrancheInfo(0);
+        IERC20 tt0 = IERC20(trancheToken0);
+
+        assertEq(weth.balanceOf(account2), 25);
+        assertEq(weth.balanceOf(address(policy)), 180);
+        assertEq(weth.balanceOf(address(entity)), 1820);
+        assertEq(weth.balanceOf(address(market)), 0);
+        assertEq(tt0.balanceOf(address(account2)), 0);
+        assertEq(tt0.balanceOf(address(entity)), 0);
+        assertEq(tt0.balanceOf(address(market)), 100);
+
+        vm.startPrank(account2);
+        weth.approve(address(market), 10);
+        market.executeLimitOffer(address(weth), 10, address(trancheToken0), 5000, FEE_SCHEDULE_STANDARD, address(0), "");
+
+        assertEq(weth.balanceOf(account2), 15);
+        assertEq(weth.balanceOf(address(policy)), 180);
+        assertEq(weth.balanceOf(address(entity)), 1820);
+        assertEq(weth.balanceOf(address(market)), 10);
+        assertEq(tt0.balanceOf(address(account2)), 0);
+        assertEq(tt0.balanceOf(address(entityAddress)), 0);
+        assertEq(tt0.balanceOf(address(market)), 100);
+
+        // and tranche status is unchanged
+        (, uint256 trancheState, , , , uint256 sharesSold0, uint256 initialSaleOfferId0, , ) = policy.getTrancheInfo(0);
+        assertEq(trancheState, TRANCHE_STATE_SELLING);
+
+        // and tranche balance is unchanged
+        // todo
+        // uint256 calcBal = (1000 * 10_000) / 900; // premium amount
+        // assertEq(balance, calcBal);
+
+        // and the tally of shares sold is unchanged
+        assertEq(sharesSold0, 0);
+
+        // and market offer is still active
+        assertTrue(market.isActive(initialSaleOfferId0));
+    }
+
+    function testSPVTranchePartialFills() public {
+        vm.prank(underwriterRep);
+        policy.approve(ROLE_PENDING_UNDERWRITER);
+        vm.prank(insuredPartyRep);
+        policy.approve(ROLE_PENDING_INSURED_PARTY);
+        vm.prank(brokerRep);
+        policy.approve(ROLE_PENDING_BROKER);
+        vm.prank(claimsAdminRep);
+        policy.approve(ROLE_PENDING_CLAIMS_ADMIN);
+        weth.deposit{value: 100000}();
+        weth.approve(address(policy), 100000);
+        policy.payTranchePremium(0, 1000);
+        policy.payTranchePremium(1, 1000);
+
+        vm.warp(1000); // initiation date
+        policy.checkAndUpdateState();
+
+        (, , , , , , , uint256 policyState, ) = policy.getInfo();
+        assertEq(policyState, POLICY_STATE_INITIATED);
+
+        (, , , , , uint256 sharesSold, , , ) = policy.getTrancheInfo(0);
+        assertEq(sharesSold, 0);
+
+        (, , , , , sharesSold, , , ) = policy.getTrancheInfo(1);
+        assertEq(sharesSold, 0);
+
+        (, , , , , , uint256 initialSaleOfferId, , ) = policy.getTrancheInfo(0);
+
+        vm.deal(account2, 25);
+        vm.prank(account2);
+        weth.deposit{value: 25}();
+
+        (address trancheToken0, , , , , , , , ) = policy.getTrancheInfo(0);
+        IERC20 tt0 = IERC20(trancheToken0);
+
+        assertEq(weth.balanceOf(account2), 25);
+        assertEq(weth.balanceOf(address(policy)), 180);
+        assertEq(weth.balanceOf(address(entity)), 1820);
+        assertEq(weth.balanceOf(address(market)), 0);
+        assertEq(tt0.balanceOf(address(account2)), 0);
+        assertEq(tt0.balanceOf(address(entity)), 0);
+        assertEq(tt0.balanceOf(address(market)), 100);
+
+        vm.startPrank(account2);
+        weth.approve(address(market), 10);
+        market.executeLimitOffer(address(weth), 4, address(trancheToken0), 2, FEE_SCHEDULE_STANDARD, address(0), "");
+        market.executeLimitOffer(address(weth), 6, address(trancheToken0), 3, FEE_SCHEDULE_STANDARD, address(0), "");
+
+        assertEq(weth.balanceOf(account2), 15);
+        assertEq(weth.balanceOf(address(policy)), 180);
+        assertEq(weth.balanceOf(address(entity)), 1820 + 10);
+        assertEq(weth.balanceOf(address(market)), 0);
+        assertEq(tt0.balanceOf(address(account2)), 5);
+        assertEq(tt0.balanceOf(address(entityAddress)), 0);
+        assertEq(tt0.balanceOf(address(market)), 95);
+
+        // and tranche status is unchanged
+        (, uint256 trancheState, , , , uint256 sharesSold0, uint256 initialSaleOfferId0, , ) = policy.getTrancheInfo(0);
+        assertEq(trancheState, TRANCHE_STATE_SELLING);
+
+        // and tranche balance has been updated
+        // todo
+        // uint256 calcBal = (1000 * 10_000) / 900; // premium amount
+        // assertEq(balance, calcBal);
+
+        // and the tally of shares sold has been updated
+        assertEq(sharesSold0, 5);
+
+        // and market offer is still active
+        assertTrue(market.isActive(initialSaleOfferId0));
+    }
+
+    // new token owners cannot trade their tokens whilst tranche is still selling
+    // todo
+
+    function testSPVTrancheFullySellsOut() public {
+        vm.prank(underwriterRep);
+        policy.approve(ROLE_PENDING_UNDERWRITER);
+        vm.prank(insuredPartyRep);
+        policy.approve(ROLE_PENDING_INSURED_PARTY);
+        vm.prank(brokerRep);
+        policy.approve(ROLE_PENDING_BROKER);
+        vm.prank(claimsAdminRep);
+        policy.approve(ROLE_PENDING_CLAIMS_ADMIN);
+        weth.deposit{value: 100000}();
+        weth.approve(address(policy), 100000);
+        policy.payTranchePremium(0, 1000);
+        policy.payTranchePremium(1, 1000);
+
+        vm.warp(1000); // initiation date
+        policy.checkAndUpdateState();
+
+        (, , , , , , , uint256 policyState, ) = policy.getInfo();
+        assertEq(policyState, POLICY_STATE_INITIATED);
+
+        (, , , , , uint256 sharesSold, , , ) = policy.getTrancheInfo(0);
+        assertEq(sharesSold, 0);
+
+        (, , , , , sharesSold, , , ) = policy.getTrancheInfo(1);
+        assertEq(sharesSold, 0);
+
+        (, , , , , , uint256 initialSaleOfferId, , ) = policy.getTrancheInfo(0);
+
+        vm.deal(account2, 25);
+        vm.prank(account2);
+        weth.deposit{value: 25}();
+
+        (address trancheToken0, , , , , , , , ) = policy.getTrancheInfo(0);
+
+        vm.startPrank(account2);
+        vm.deal(account2, 200);
+        weth.deposit{value: 200}();
+        weth.approve(address(market), 200);
+        market.executeLimitOffer(address(weth), 200, address(trancheToken0), 100, FEE_SCHEDULE_STANDARD, address(0), "");
+
+        // then its status is set to active
+        (, uint256 trancheState, , , , uint256 sharesSold0, uint256 initialSaleOfferId0, , ) = policy.getTrancheInfo(0);
+        assertEq(trancheState, TRANCHE_STATE_ACTIVE);
+
+        // and tranche balance has been updated
+        // todo
+        // uint256 calcBal = (1000 * 10_000) / 900; // premium amount
+        // assertEq(balance, calcBal);
+
+        // and the tally of shares sold has been updated
+        assertEq(sharesSold0, 100);
+
+        // and market offer is closed
+        if (market.isActive(initialSaleOfferId0)) fail();
+    }
+
+    function testSPVTrancheTokensSupportERC20() public {
+        vm.prank(underwriterRep);
+        policy.approve(ROLE_PENDING_UNDERWRITER);
+        vm.prank(insuredPartyRep);
+        policy.approve(ROLE_PENDING_INSURED_PARTY);
+        vm.prank(brokerRep);
+        policy.approve(ROLE_PENDING_BROKER);
+        vm.prank(claimsAdminRep);
+        policy.approve(ROLE_PENDING_CLAIMS_ADMIN);
+        weth.deposit{value: 100000}();
+        weth.approve(address(policy), 100000);
+        policy.payTranchePremium(0, 1000);
+        policy.payTranchePremium(1, 1000);
+
+        vm.warp(1000); // initiation date
+        policy.checkAndUpdateState();
+
+        (, , , , , , , uint256 policyState, ) = policy.getInfo();
+        assertEq(policyState, POLICY_STATE_INITIATED);
+
+        (, , , , , uint256 sharesSold, , , ) = policy.getTrancheInfo(0);
+        assertEq(sharesSold, 0);
+
+        (, , , , , sharesSold, , , ) = policy.getTrancheInfo(1);
+        assertEq(sharesSold, 0);
+
+        (, , , , , , uint256 initialSaleOfferId, , ) = policy.getTrancheInfo(0);
+
+        vm.deal(account2, 25);
+        vm.startPrank(account2);
+        weth.deposit{value: 25}();
+
+        (address trancheToken0, , , , , , , , ) = policy.getTrancheInfo(0);
+        IERC20 tt0 = IERC20(trancheToken0);
+
+        vm.deal(account2, 200);
+        weth.deposit{value: 200}();
+        weth.approve(address(market), 200);
+        market.executeLimitOffer(address(weth), 200, address(trancheToken0), 100, FEE_SCHEDULE_STANDARD, address(0), "");
+
+        vm.expectRevert("only nayms market is allowed to transfer");
+        tt0.transfer(account3, 1);
+
+        vm.expectRevert("only nayms market is allowed to transfer");
+        tt0.approve(account3, 1);
+
+        tt0.approve(address(market), 1);
+        vm.stopPrank();
+
+        vm.startPrank(address(market));
+        vm.expectRevert("not enough balance");
+        tt0.transferFrom(account2, account5, 100 + 1);
+
+        // tt0.balanceOf(address(market));
+        // tt0.balanceOf(address(account2));
+        tt0.transferFrom(account2, account5, 100);
+
+        assertEq(tt0.balanceOf(address(account2)), 0);
+        assertEq(tt0.balanceOf(address(account5)), 100);
+    }
+
+    function testSPVTrancheSaleEnded() public {
+        vm.prank(underwriterRep);
+        policy.approve(ROLE_PENDING_UNDERWRITER);
+        vm.prank(insuredPartyRep);
+        policy.approve(ROLE_PENDING_INSURED_PARTY);
+        vm.prank(brokerRep);
+        policy.approve(ROLE_PENDING_BROKER);
+        vm.prank(claimsAdminRep);
+        policy.approve(ROLE_PENDING_CLAIMS_ADMIN);
+        weth.deposit{value: 100000}();
+        weth.approve(address(policy), 100000);
+        policy.payTranchePremium(0, 1000);
+        policy.payTranchePremium(1, 1000);
+
+        vm.warp(1000); // initiation date
+        policy.checkAndUpdateState();
+
+        (, , , , , , , uint256 policyState, ) = policy.getInfo();
+        assertEq(policyState, POLICY_STATE_INITIATED);
+
+        // vm.deal(account2, 1000000);
+        weth.deposit{value: 1000000}();
+        weth.approve(address(policy), 1000000);
+        policy.payTranchePremium(0, 2000);
+        policy.payTranchePremium(1, 2000);
 
         vm.warp(2000); // start date
         policy.checkAndUpdateState();
 
-        // tranches are in active state
-        (, uint256 trancheState, , , , , , , ) = policy.getTrancheInfo(0);
-        assertEq(trancheState, TRANCHE_STATE_ACTIVE);
-        (, trancheState, , , , , , , ) = policy.getTrancheInfo(1);
-        assertEq(trancheState, TRANCHE_STATE_ACTIVE);
+        // todo check events
 
-        // policy is active
-        (, , , , , , , uint256 state, ) = policy.getInfo();
-        assertEq(state, POLICY_STATE_ACTIVE);
+        (, , , , , , uint256 initialSaleOfferId0, , ) = policy.getTrancheInfo(0);
+        (, , , , , , uint256 initialSaleOfferId1, , ) = policy.getTrancheInfo(1);
+        assertEq(initialSaleOfferId0, 1);
+        assertEq(initialSaleOfferId1, 2);
 
-        vm.warp(4000); // maturation date
-        policy.checkAndUpdateState();
+        if (market.isActive(initialSaleOfferId0)) fail();
+        if (market.isActive(initialSaleOfferId1)) fail();
+
+        // even if none of the tranches are active the policy still gets made active
+        (, , , , , , , uint256 policyState0, ) = policy.getInfo();
+        assertEq(policyState0, POLICY_STATE_ACTIVE);
+
+        (, uint256 trancheState0, , , , , , , ) = policy.getTrancheInfo(0);
+        assertEq(trancheState0, TRANCHE_STATE_CANCELLED);
+        (, uint256 trancheState1, , , , , , , ) = policy.getTrancheInfo(1);
+        assertEq(trancheState1, TRANCHE_STATE_CANCELLED);
     }
 
-    function testPayTranchePremiumAfterMaturationDate() public {
-        weth.deposit{value: 20}();
-        weth.approve(address(policy), 20);
-        policy.payTranchePremium(0, 10);
-        policy.payTranchePremium(1, 10);
+    function testSPVTrancheNotActive() public {
+        vm.prank(underwriterRep);
+        policy.approve(ROLE_PENDING_UNDERWRITER);
+        vm.prank(insuredPartyRep);
+        policy.approve(ROLE_PENDING_INSURED_PARTY);
+        vm.prank(brokerRep);
+        policy.approve(ROLE_PENDING_BROKER);
+        vm.prank(claimsAdminRep);
+        policy.approve(ROLE_PENDING_CLAIMS_ADMIN);
+        weth.deposit{value: 100000}();
+        weth.approve(address(policy), 100000);
+        policy.payTranchePremium(0, 1000);
+        policy.payTranchePremium(1, 1000);
+
+        weth.deposit{value: 1000000}();
+        weth.approve(address(policy), 1000000);
+        policy.payTranchePremium(0, 2000);
+        policy.payTranchePremium(1, 2000);
 
         vm.warp(1000); // initiation date
-
         policy.checkAndUpdateState();
-
-        weth.deposit{value: 540}();
-        weth.approve(address(policy), 540);
-        policy.payTranchePremium(0, 270);
-        policy.payTranchePremium(1, 270);
-
-        vm.warp(4000); // maturation date
-        policy.checkAndUpdateState();
-
-        (, , , , , , , uint256 state, ) = policy.getInfo();
-        assertEq(state, POLICY_STATE_CLOSED);
-
-        (, , , , , , , uint256 finalBuybackofferId, ) = policy.getTrancheInfo(0);
-        assertEq(finalBuybackofferId, 0);
-        (, , , , , , , finalBuybackofferId, ) = policy.getTrancheInfo(1);
-        assertEq(finalBuybackofferId, 0);
-    }
-
-    function testPayTranchePremiumAfterMaturationDateWithPendingClaims() public {
-        weth.deposit{value: 20}();
-        weth.approve(address(policy), 20);
-        policy.payTranchePremium(0, 10);
-        policy.payTranchePremium(1, 10);
-
-        vm.warp(1000); // initiation date
-
-        policy.checkAndUpdateState();
-
-        weth.deposit{value: 540}();
-        weth.approve(address(policy), 540);
-        policy.payTranchePremium(0, 270);
-        policy.payTranchePremium(1, 270);
 
         vm.warp(2000); // start date
         policy.checkAndUpdateState();
+
+        // even if none of the tranches are active the policy still gets made active
+        (address trancheToken0, , , , , , , , ) = policy.getTrancheInfo(0);
+
+        vm.deal(account2, 1000000);
+        weth.deposit{value: 1000000}();
+        weth.approve(address(market), 200);
+        market.executeLimitOffer(address(weth), 200, address(trancheToken0), 100, FEE_SCHEDULE_STANDARD, address(0), "");
+
+        (, uint256 trancheState0, , , , , , , ) = policy.getTrancheInfo(0);
+        assertEq(trancheState0, TRANCHE_STATE_CANCELLED);
+        (, uint256 trancheState1, , , , , , , ) = policy.getTrancheInfo(1);
+        assertEq(trancheState1, TRANCHE_STATE_CANCELLED);
+    }
+
+    function testSPVTrancheNotActive2() public {
+        vm.prank(underwriterRep);
+        policy.approve(ROLE_PENDING_UNDERWRITER);
+        vm.prank(insuredPartyRep);
+        policy.approve(ROLE_PENDING_INSURED_PARTY);
+        vm.prank(brokerRep);
+        policy.approve(ROLE_PENDING_BROKER);
+        vm.prank(claimsAdminRep);
+        policy.approve(ROLE_PENDING_CLAIMS_ADMIN);
+        weth.deposit{value: 100000}();
+        weth.approve(address(policy), 100000);
+        policy.payTranchePremium(0, 1000);
+        policy.payTranchePremium(1, 1000);
+
+        weth.deposit{value: 1000000}();
+        weth.approve(address(policy), 1000000);
+        policy.payTranchePremium(0, 2000);
+        policy.payTranchePremium(1, 2000);
+
+        vm.warp(1000); // initiation date
+        policy.checkAndUpdateState();
+
+        (address trancheToken0, , , , , , , , ) = policy.getTrancheInfo(0);
+
+        vm.startPrank(account2);
+        vm.deal(account2, 1000000);
+        weth.deposit{value: 1000000}();
+        weth.approve(address(market), 200);
+        market.executeLimitOffer(address(weth), 200, address(trancheToken0), 100, FEE_SCHEDULE_STANDARD, address(0), "");
+
+        weth.approve(address(policy), 1000000);
+        policy.payTranchePremium(0, 3000);
+
+        vm.warp(2000); // start date
+        policy.checkAndUpdateState();
+
+        // atleast one of the tranches can be active and its premiums can be up-to-date, in which case it stays active
+
+        (, , , , , , , uint256 policyState, ) = policy.getInfo();
+        assertEq(policyState, POLICY_STATE_ACTIVE);
+
+        (, uint256 trancheState0, , , , , , , ) = policy.getTrancheInfo(0);
+        assertEq(trancheState0, TRANCHE_STATE_ACTIVE);
+        (, uint256 trancheState1, , , , , , , ) = policy.getTrancheInfo(1);
+        assertEq(trancheState1, TRANCHE_STATE_CANCELLED);
+    }
+
+    function testSPVTrancheNotActive3() public {
+        vm.prank(underwriterRep);
+        policy.approve(ROLE_PENDING_UNDERWRITER);
+        vm.prank(insuredPartyRep);
+        policy.approve(ROLE_PENDING_INSURED_PARTY);
+        vm.prank(brokerRep);
+        policy.approve(ROLE_PENDING_BROKER);
+        vm.prank(claimsAdminRep);
+        policy.approve(ROLE_PENDING_CLAIMS_ADMIN);
+        weth.deposit{value: 100000}();
+        weth.approve(address(policy), 100000);
+        policy.payTranchePremium(0, 1000);
+        policy.payTranchePremium(1, 1000);
+
+        weth.deposit{value: 1000000}();
+        weth.approve(address(policy), 1000000);
+        policy.payTranchePremium(0, 2000);
+        policy.payTranchePremium(1, 2000);
+
+        vm.warp(1000); // initiation date
+        policy.checkAndUpdateState();
+
+        (address trancheToken0, , , , , , , , ) = policy.getTrancheInfo(0);
+        IERC20 tt0 = IERC20(trancheToken0);
+
+        vm.startPrank(account2);
+        vm.deal(account2, 2000000);
+        weth.deposit{value: 2000000}();
+        weth.approve(address(market), 200);
+        market.executeLimitOffer(address(weth), 200, address(trancheToken0), 100, FEE_SCHEDULE_STANDARD, address(0), "");
+
+        weth.approve(address(policy), 1000000);
+        policy.payTranchePremium(0, 3000);
+
+        vm.warp(2000); // start date
+        policy.checkAndUpdateState();
+
+        market.executeLimitOffer(address(trancheToken0), 1, address(weth), 1, FEE_SCHEDULE_STANDARD, address(0), "");
+
+        assertEq(tt0.balanceOf(address(account2)), 99);
+    }
+
+    // if policy has been active for a while state can be checked again
+    function testSPVCheckPolicyState() public {
+        vm.prank(underwriterRep);
+        policy.approve(ROLE_PENDING_UNDERWRITER);
+        vm.prank(insuredPartyRep);
+        policy.approve(ROLE_PENDING_INSURED_PARTY);
+        vm.prank(brokerRep);
+        policy.approve(ROLE_PENDING_BROKER);
+        vm.prank(claimsAdminRep);
+        policy.approve(ROLE_PENDING_CLAIMS_ADMIN);
+        weth.deposit{value: 100000}();
+        weth.approve(address(policy), 100000);
+        policy.payTranchePremium(0, 1000);
+        policy.payTranchePremium(1, 1000);
+
+        weth.deposit{value: 1000000}();
+        weth.approve(address(policy), 1000000);
+        policy.payTranchePremium(0, 1000);
+        policy.payTranchePremium(1, 1000);
+
+        vm.warp(1000); // initiation date
+        policy.checkAndUpdateState();
+
+        (address trancheToken0, , , , , , , , ) = policy.getTrancheInfo(0);
+        (address trancheToken1, , , , , , , , ) = policy.getTrancheInfo(1);
+
+        vm.startPrank(account2);
+        vm.deal(account2, 2000000);
+        weth.deposit{value: 2000000}();
+        weth.approve(address(market), 2000000);
+        market.executeLimitOffer(address(weth), 200, address(trancheToken0), 100, FEE_SCHEDULE_STANDARD, address(0), "");
+        market.executeLimitOffer(address(weth), 100, address(trancheToken1), 50, FEE_SCHEDULE_STANDARD, address(0), "");
+        vm.stopPrank();
+
+        // todo calculate premium to pay
+        policy.payTranchePremium(0, 7000);
+        policy.payTranchePremium(1, 7000);
+
+        vm.warp(2000); // start date
+        policy.checkAndUpdateState();
+
+        (, , , , , , , uint256 policyState0, ) = policy.getInfo();
+        assertEq(policyState0, POLICY_STATE_ACTIVE);
+
+        (, uint256 trancheState0, , , , , , , ) = policy.getTrancheInfo(0);
+        assertEq(trancheState0, TRANCHE_STATE_ACTIVE);
+        (, uint256 trancheState1, , , , , , , ) = policy.getTrancheInfo(1);
+        assertEq(trancheState1, TRANCHE_STATE_ACTIVE);
+
+        // and it remains active if all premium payments are up to date
+        policy.payTranchePremium(0, 7000 + 1000);
+        policy.payTranchePremium(1, 7000 + 1000);
+
+        vm.warp(2000 + 500); // start date
+        policy.checkAndUpdateState();
+
+        (, , , , , , , policyState0, ) = policy.getInfo();
+        assertEq(policyState0, POLICY_STATE_ACTIVE);
+
+        (, trancheState0, , , , , , , ) = policy.getTrancheInfo(0);
+        assertEq(trancheState0, TRANCHE_STATE_ACTIVE);
+        (, trancheState1, , , , , , , ) = policy.getTrancheInfo(1);
+        assertEq(trancheState1, TRANCHE_STATE_ACTIVE);
+    }
+
+    // and it still stays active if any tranche premium payments have been missed, though that tranche gets cancelled
+    function testSPVCheckPolicyState2() public {
+        vm.prank(underwriterRep);
+        policy.approve(ROLE_PENDING_UNDERWRITER);
+        vm.prank(insuredPartyRep);
+        policy.approve(ROLE_PENDING_INSURED_PARTY);
+        vm.prank(brokerRep);
+        policy.approve(ROLE_PENDING_BROKER);
+        vm.prank(claimsAdminRep);
+        policy.approve(ROLE_PENDING_CLAIMS_ADMIN);
+        weth.deposit{value: 100000}();
+        weth.approve(address(policy), 100000);
+        policy.payTranchePremium(0, 1000);
+        policy.payTranchePremium(1, 1000);
+
+        weth.deposit{value: 1000000}();
+        weth.approve(address(policy), 1000000);
+        policy.payTranchePremium(0, 1000);
+        policy.payTranchePremium(1, 1000);
+
+        vm.warp(1000); // initiation date
+        policy.checkAndUpdateState();
+
+        (address trancheToken0, , , , , , , , ) = policy.getTrancheInfo(0);
+        (address trancheToken1, , , , , , , , ) = policy.getTrancheInfo(1);
+
+        vm.startPrank(account2);
+        vm.deal(account2, 2000000);
+        weth.deposit{value: 2000000}();
+        weth.approve(address(market), 2000000);
+        market.executeLimitOffer(address(weth), 200, address(trancheToken0), 100, FEE_SCHEDULE_STANDARD, address(0), "");
+        market.executeLimitOffer(address(weth), 100, address(trancheToken1), 50, FEE_SCHEDULE_STANDARD, address(0), "");
+        vm.stopPrank();
+
+        // todo calculate premium to pay
+        policy.payTranchePremium(0, 7000);
+        policy.payTranchePremium(1, 7000);
+
+        vm.warp(2000); // start date
+        policy.checkAndUpdateState();
+
+        (, , , , , , , uint256 policyState0, ) = policy.getInfo();
+        assertEq(policyState0, POLICY_STATE_ACTIVE);
+
+        (, uint256 trancheState0, , , , , , , ) = policy.getTrancheInfo(0);
+        assertEq(trancheState0, TRANCHE_STATE_ACTIVE);
+        (, uint256 trancheState1, , , , , , , ) = policy.getTrancheInfo(1);
+        assertEq(trancheState1, TRANCHE_STATE_ACTIVE);
+
+        // and it remains active if all premium payments are up to date
+        policy.payTranchePremium(0, 7000 + 1000);
+        // policy.payTranchePremium(1, 7000 + 1000);
+
+        vm.warp(2000 + 500); // start date
+        policy.checkAndUpdateState();
+
+        (, , , , , , , policyState0, ) = policy.getInfo();
+        assertEq(policyState0, POLICY_STATE_ACTIVE);
+
+        (, trancheState0, , , , , , , ) = policy.getTrancheInfo(0);
+        assertEq(trancheState0, TRANCHE_STATE_ACTIVE);
+        (, trancheState1, , , , , , , ) = policy.getTrancheInfo(1);
+        assertEq(trancheState1, TRANCHE_STATE_CANCELLED);
+    }
+
+    function testSPVMakeClaim() public {
+        vm.prank(underwriterRep);
+        policy.approve(ROLE_PENDING_UNDERWRITER);
+        vm.prank(insuredPartyRep);
+        policy.approve(ROLE_PENDING_INSURED_PARTY);
+        vm.prank(brokerRep);
+        policy.approve(ROLE_PENDING_BROKER);
+        vm.prank(claimsAdminRep);
+        policy.approve(ROLE_PENDING_CLAIMS_ADMIN);
+        weth.deposit{value: 100000}();
+        weth.approve(address(policy), 100000);
+        policy.payTranchePremium(0, 1000);
+        policy.payTranchePremium(1, 1000);
+
+        weth.deposit{value: 1000000}();
+        weth.approve(address(policy), 1000000);
+        policy.payTranchePremium(0, 1000);
+        policy.payTranchePremium(1, 1000);
+
+        vm.warp(1000); // initiation date
+        policy.checkAndUpdateState();
+
+        (address trancheToken0, , , , , , , , ) = policy.getTrancheInfo(0);
+        (address trancheToken1, , , , , , , , ) = policy.getTrancheInfo(1);
+
+        vm.startPrank(account2);
+        vm.deal(account2, 2000000);
+        weth.deposit{value: 2000000}();
+        weth.approve(address(market), 2000000);
+        market.executeLimitOffer(address(weth), 200, address(trancheToken0), 100, FEE_SCHEDULE_STANDARD, address(0), "");
+        market.executeLimitOffer(address(weth), 100, address(trancheToken1), 50, FEE_SCHEDULE_STANDARD, address(0), "");
+        vm.stopPrank();
+
+        // todo calculate premium to pay
+        policy.payTranchePremium(0, 7000);
+        policy.payTranchePremium(1, 7000);
+
+        vm.warp(2000); // start date
+        policy.checkAndUpdateState();
+
+        policy.payTranchePremium(0, 8000);
+        policy.payTranchePremium(1, 8000);
+
+        vm.warp(2000 + 500); // start date
+        policy.checkAndUpdateState();
+
+        vm.startPrank(insuredPartyRep);
+        policy.makeClaim(0, 1);
+        policy.makeClaim(0, 2);
+        policy.makeClaim(1, 4);
+        policy.makeClaim(1, 7);
+        vm.stopPrank();
+
+        // they can then be approved or declined
+        vm.prank(claimsAdminRep);
+        policy.declineClaim(0);
+        vm.prank(insuredPartyRep);
+        policy.makeClaim(0, 1);
+        vm.prank(claimsAdminRep);
+        policy.approveClaim(1);
+    }
+
+    function testSPVPayTranchePremiumAfterStartDate() public {
+        vm.prank(underwriterRep);
+        policy.approve(ROLE_PENDING_UNDERWRITER);
+        vm.prank(insuredPartyRep);
+        policy.approve(ROLE_PENDING_INSURED_PARTY);
+        vm.prank(brokerRep);
+        policy.approve(ROLE_PENDING_BROKER);
+        vm.prank(claimsAdminRep);
+        policy.approve(ROLE_PENDING_CLAIMS_ADMIN);
+        weth.deposit{value: 100000}();
+        weth.approve(address(policy), 100000);
+        policy.payTranchePremium(0, 1000);
+        policy.payTranchePremium(1, 1000);
+
+        weth.deposit{value: 1000000}();
+        weth.approve(address(policy), 1000000);
+        policy.payTranchePremium(0, 1000);
+        policy.payTranchePremium(1, 1000);
+
+        vm.warp(1000); // initiation date
+        policy.checkAndUpdateState();
+
+        (address trancheToken0, , , , , , , , ) = policy.getTrancheInfo(0);
+        (address trancheToken1, , , , , , , , ) = policy.getTrancheInfo(1);
+
+        vm.startPrank(account2);
+        vm.deal(account2, 2000000);
+        weth.deposit{value: 2000000}();
+        weth.approve(address(market), 2000000);
+        market.executeLimitOffer(address(weth), 200, address(trancheToken0), 100, FEE_SCHEDULE_STANDARD, address(0), "");
+        market.executeLimitOffer(address(weth), 100, address(trancheToken1), 50, FEE_SCHEDULE_STANDARD, address(0), "");
+        vm.stopPrank();
+
+        // todo calculate premium to pay
+        policy.payTranchePremium(0, 7000);
+        policy.payTranchePremium(1, 7000);
+
+        vm.warp(2000); // start date
+        policy.checkAndUpdateState();
+
+        policy.payTranchePremium(0, 8000);
+        policy.payTranchePremium(1, 8000);
+
+        vm.warp(4000); // maturation date
+        policy.checkAndUpdateState();
+
+        // todo check events
+
+        (, , , , , , , uint256 policyState0, ) = policy.getInfo();
+        assertEq(policyState0, POLICY_STATE_BUYBACK);
+
+        (, uint256 trancheState0, , , , , , uint256 finalBuybackofferId0, ) = policy.getTrancheInfo(0);
+        assertEq(trancheState0, TRANCHE_STATE_CANCELLED);
+        assertEq(finalBuybackofferId0, 3);
+        (, uint256 trancheState1, , , , , , uint256 finalBuybackofferId1, ) = policy.getTrancheInfo(1);
+        assertEq(trancheState1, TRANCHE_STATE_CANCELLED);
+        assertEq(finalBuybackofferId1, 4);
+    }
+
+    function testSPVPayTranchePremiumAfterMaturationDateWithPendingClaims() public {
+        vm.prank(underwriterRep);
+        policy.approve(ROLE_PENDING_UNDERWRITER);
+        vm.prank(insuredPartyRep);
+        policy.approve(ROLE_PENDING_INSURED_PARTY);
+        vm.prank(brokerRep);
+        policy.approve(ROLE_PENDING_BROKER);
+        vm.prank(claimsAdminRep);
+        policy.approve(ROLE_PENDING_CLAIMS_ADMIN);
+        weth.deposit{value: 100000}();
+        weth.approve(address(policy), 100000);
+        policy.payTranchePremium(0, 1000);
+        policy.payTranchePremium(1, 1000);
+
+        weth.deposit{value: 1000000}();
+        weth.approve(address(policy), 1000000);
+        policy.payTranchePremium(0, 1000);
+        policy.payTranchePremium(1, 1000);
+
+        vm.warp(1000); // initiation date
+        policy.checkAndUpdateState();
+
+        (address trancheToken0, , , , , , , , ) = policy.getTrancheInfo(0);
+        (address trancheToken1, , , , , , , , ) = policy.getTrancheInfo(1);
+
+        vm.startPrank(account2);
+        vm.deal(account2, 2000000);
+        weth.deposit{value: 2000000}();
+        weth.approve(address(market), 2000000);
+        market.executeLimitOffer(address(weth), 200, address(trancheToken0), 100, FEE_SCHEDULE_STANDARD, address(0), "");
+        market.executeLimitOffer(address(weth), 100, address(trancheToken1), 50, FEE_SCHEDULE_STANDARD, address(0), "");
+        vm.stopPrank();
+
+        // todo calculate premium to pay
+        policy.payTranchePremium(0, 7000);
+        policy.payTranchePremium(1, 7000);
+
+        vm.warp(2000); // start date
+        policy.checkAndUpdateState();
+
+        policy.payTranchePremium(0, 8000);
+        policy.payTranchePremium(1, 8000);
 
         vm.startPrank(insuredPartyRep);
         policy.makeClaim(0, 1);
@@ -530,16 +1279,81 @@ contract IntegrationPortfolioTest is DSTestPlusF, MockAccounts, IACLConstants, I
         vm.warp(4000); // maturation date
         policy.checkAndUpdateState();
 
-        (, , , , , , , uint256 state, ) = policy.getInfo();
-        assertEq(state, POLICY_STATE_MATURED);
+        // todo test events
 
-        vm.startPrank(claimsAdminRep);
-        policy.declineClaim(0);
-        policy.declineClaim(1);
+        // it does not do the buyback until the claims get handled
+        (, , , , , , , uint256 policyState0, ) = policy.getInfo();
+        assertEq(policyState0, POLICY_STATE_MATURED);
 
+        (, uint256 trancheState0, , , , , , uint256 finalBuybackofferId0, ) = policy.getTrancheInfo(0);
+        assertEq(trancheState0, TRANCHE_STATE_CANCELLED);
+        assertEq(finalBuybackofferId0, 0);
+        (, uint256 trancheState1, , , , , , uint256 finalBuybackofferId1, ) = policy.getTrancheInfo(1);
+        assertEq(trancheState1, TRANCHE_STATE_CANCELLED);
+        assertEq(finalBuybackofferId1, 0);
+    }
+
+    // but if the policy is not fully collateralized in the treasury
+    function testSPVUnderCollateralized() public {
+        vm.prank(underwriterRep);
+        policy.approve(ROLE_PENDING_UNDERWRITER);
+        vm.prank(insuredPartyRep);
+        policy.approve(ROLE_PENDING_INSURED_PARTY);
+        vm.prank(brokerRep);
+        policy.approve(ROLE_PENDING_BROKER);
+        vm.prank(claimsAdminRep);
+        policy.approve(ROLE_PENDING_CLAIMS_ADMIN);
+        weth.deposit{value: 100000}();
+        weth.approve(address(policy), 100000);
+        policy.payTranchePremium(0, 1000);
+        policy.payTranchePremium(1, 1000);
+
+        weth.deposit{value: 1000000}();
+        weth.approve(address(policy), 1000000);
+        policy.payTranchePremium(0, 1000);
+        policy.payTranchePremium(1, 1000);
+
+        vm.warp(1000); // initiation date
         policy.checkAndUpdateState();
 
-        (, , , , , , , state, ) = policy.getInfo();
-        assertEq(state, POLICY_STATE_CLOSED);
+        (address trancheToken0, , , , , , , , ) = policy.getTrancheInfo(0);
+        (address trancheToken1, , , , , , , , ) = policy.getTrancheInfo(1);
+
+        vm.startPrank(account2);
+        vm.deal(account2, 2000000);
+        weth.deposit{value: 2000000}();
+        weth.approve(address(market), 2000000);
+        market.executeLimitOffer(address(weth), 200, address(trancheToken0), 100, FEE_SCHEDULE_STANDARD, address(0), "");
+        market.executeLimitOffer(address(weth), 100, address(trancheToken1), 50, FEE_SCHEDULE_STANDARD, address(0), "");
+        vm.stopPrank();
+
+        // todo calculate premium to pay
+        policy.payTranchePremium(0, 7000);
+        policy.payTranchePremium(1, 7000);
+
+        vm.warp(2000); // start date
+        policy.checkAndUpdateState();
+
+        policy.payTranchePremium(0, 8000);
+        policy.payTranchePremium(1, 8000);
+
+        entityTreasuryTestFacet.setRealBalance(address(weth), 0);
+
+        // it does not do the buyback until policy becomes collateralized again
+
+        vm.warp(4000); // maturation date
+        policy.checkAndUpdateState();
+
+        (, , , , , , , uint256 policyState0, ) = policy.getInfo();
+        assertEq(policyState0, POLICY_STATE_MATURED);
+
+        (, uint256 trancheState0, , , , , , uint256 finalBuybackofferId0, ) = policy.getTrancheInfo(0);
+        assertEq(trancheState0, TRANCHE_STATE_CANCELLED);
+        assertEq(finalBuybackofferId0, 0);
+        (, uint256 trancheState1, , , , , , uint256 finalBuybackofferId1, ) = policy.getTrancheInfo(1);
+        assertEq(trancheState1, TRANCHE_STATE_CANCELLED);
+        assertEq(finalBuybackofferId1, 0);
     }
 }
+
+// before the policy is approved by the

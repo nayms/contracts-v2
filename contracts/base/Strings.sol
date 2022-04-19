@@ -31,6 +31,22 @@ library Strings {
     /**
      * Sub String
      *
+     * Extracts the beginning part of a string based on the desired length
+     *
+     * @param _base When being used for a data type this is the extended object
+     *              otherwise this is the string that will be used for
+     *              extracting the sub string from
+     * @param _start The start index of the sub string to be extracted from the base
+     * @param _length The length of the sub string to be extracted from the base
+     * @return string The extracted sub string
+     */
+    function substring(string memory _base, int256 _start, int256 _length) internal pure returns (string memory) {
+        return _substring(_base, _length, _start);
+    }
+
+    /**
+     * Sub String
+     *
      * Extracts the part of a string based on the desired length and offset. The
      * offset and length must not exceed the lenth of the base string.
      *

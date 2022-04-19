@@ -4,7 +4,7 @@ import "./utils/DSTestPlusF.sol";
 
 import {IACLConstants} from "../../contracts/base/IACLConstants.sol";
 import {ISettingsKeys} from "../../contracts/base/ISettingsKeys.sol";
-// import {AccessControl} from "../../contracts/base/AccessControl.sol";
+
 import {ACL} from "../../contracts/ACL.sol";
 import {Settings} from "../../contracts/Settings.sol";
 import {ISettings} from "../../contracts/base/ISettings.sol";
@@ -25,7 +25,6 @@ import {EntitySimplePolicyDataFacet} from "../../contracts/EntitySimplePolicyDat
 contract EntityDeployerTest is DSTestPlusF, IACLConstants, ISettingsKeys {
     ACL internal acl;
     Settings internal settings;
-    // AccessControl internal accessControl;
     bytes32 internal systemContext;
 
     EntityDeployer internal entityDeployer;
@@ -45,59 +44,46 @@ contract EntityDeployerTest is DSTestPlusF, IACLConstants, ISettingsKeys {
     function setUp() public {
         acl = new ACL(ROLE_SYSTEM_ADMIN, ROLEGROUP_SYSTEM_ADMINS);
         settings = new Settings(address(acl));
-        // accessControl = new AccessControl(address(settings));
         systemContext = acl.systemContext();
 
         // setup role groups
-        // bytes32[] memory roles = new bytes32[](1);
-        // roles[0] = ROLE_SYSTEM_MANAGER;
-        // acl.setRoleGroup(ROLEGROUP_SYSTEM_MANAGERS, roles);
-
         bytes32[] memory rg1 = new bytes32[](1);
         rg1[0] = ROLE_APPROVED_USER;
         acl.setRoleGroup(ROLEGROUP_APPROVED_USERS, rg1);
-
         bytes32[] memory rg2 = new bytes32[](2);
         rg2[0] = ROLE_UNDERWRITER;
         rg2[1] = ROLE_CAPITAL_PROVIDER;
         acl.setRoleGroup(ROLEGROUP_CAPITAL_PROVIDERS, rg2);
-
         bytes32[] memory rg3 = new bytes32[](1);
         rg3[0] = ROLE_UNDERWRITER;
         acl.setRoleGroup(ROLEGROUP_UNDERWRITERS, rg3);
-
         bytes32[] memory rg4 = new bytes32[](1);
         rg4[0] = ROLE_BROKER;
         acl.setRoleGroup(ROLEGROUP_BROKERS, rg4);
-
         bytes32[] memory rg5 = new bytes32[](1);
         rg5[0] = ROLE_INSURED_PARTY;
         acl.setRoleGroup(ROLEGROUP_INSURED_PARTYS, rg5);
-
         bytes32[] memory rg6 = new bytes32[](1);
-        rg6[0] = ROLE_INSURED_PARTY;
-        acl.setRoleGroup(ROLEGROUP_INSURED_PARTYS, rg6);
+        rg6[0] = ROLE_CLAIMS_ADMIN;
+        acl.setRoleGroup(ROLEGROUP_CLAIMS_ADMINS, rg6);
         bytes32[] memory rg7 = new bytes32[](1);
-        rg7[0] = ROLE_CLAIMS_ADMIN;
-        acl.setRoleGroup(ROLEGROUP_CLAIMS_ADMINS, rg7);
-
-        bytes32[] memory rg8 = new bytes32[](1);
+        rg7[0] = ROLE_ENTITY_ADMIN;
+        acl.setRoleGroup(ROLEGROUP_ENTITY_ADMINS, rg7);
+        bytes32[] memory rg8 = new bytes32[](2);
         rg8[0] = ROLE_ENTITY_ADMIN;
-        acl.setRoleGroup(ROLEGROUP_ENTITY_ADMINS, rg8);
-        bytes32[] memory rg9 = new bytes32[](2);
+        rg8[1] = ROLE_ENTITY_MANAGER;
+        acl.setRoleGroup(ROLEGROUP_ENTITY_MANAGERS, rg8);
+        bytes32[] memory rg9 = new bytes32[](3);
         rg9[0] = ROLE_ENTITY_ADMIN;
         rg9[1] = ROLE_ENTITY_MANAGER;
-        acl.setRoleGroup(ROLEGROUP_ENTITY_MANAGERS, rg9);
-
-        bytes32[] memory rg10 = new bytes32[](3);
-        rg10[0] = ROLE_ENTITY_ADMIN;
-        rg10[1] = ROLE_ENTITY_MANAGER;
-        rg10[2] = ROLE_ENTITY_REP;
-        acl.setRoleGroup(ROLEGROUP_ENTITY_REPS, rg10);
-
+        rg9[2] = ROLE_ENTITY_REP;
+        acl.setRoleGroup(ROLEGROUP_ENTITY_REPS, rg9);
+        bytes32[] memory rg10 = new bytes32[](1);
+        rg10[0] = ROLE_POLICY_OWNER;
+        acl.setRoleGroup(ROLEGROUP_POLICY_OWNERS, rg10);
         bytes32[] memory rg11 = new bytes32[](1);
-        rg11[0] = ROLE_POLICY_OWNER;
-        acl.setRoleGroup(ROLEGROUP_POLICY_OWNERS, rg11);
+        rg11[0] = ROLE_SYSTEM_ADMIN;
+        acl.setRoleGroup(ROLEGROUP_SYSTEM_ADMINS, rg11);
         bytes32[] memory rg12 = new bytes32[](1);
         rg12[0] = ROLE_SYSTEM_MANAGER;
         acl.setRoleGroup(ROLEGROUP_SYSTEM_MANAGERS, rg12);
@@ -105,6 +91,7 @@ contract EntityDeployerTest is DSTestPlusF, IACLConstants, ISettingsKeys {
         rg13[0] = ROLE_ENTITY_REP;
         acl.setRoleGroup(ROLEGROUP_TRADERS, rg13);
 
+        // setup assigners
         acl.addAssigner(ROLE_APPROVED_USER, ROLEGROUP_SYSTEM_MANAGERS);
         acl.addAssigner(ROLE_UNDERWRITER, ROLEGROUP_POLICY_OWNERS);
         acl.addAssigner(ROLE_CAPITAL_PROVIDER, ROLEGROUP_POLICY_OWNERS);
@@ -112,7 +99,7 @@ contract EntityDeployerTest is DSTestPlusF, IACLConstants, ISettingsKeys {
         acl.addAssigner(ROLE_INSURED_PARTY, ROLEGROUP_POLICY_OWNERS);
         acl.addAssigner(ROLE_ENTITY_ADMIN, ROLEGROUP_SYSTEM_ADMINS);
         acl.addAssigner(ROLE_ENTITY_MANAGER, ROLEGROUP_ENTITY_ADMINS);
-        acl.addAssigner(ROLE_ENTITY_REP, ROLEGROUP_ENTITY_ADMINS);
+        acl.addAssigner(ROLE_ENTITY_REP, ROLEGROUP_ENTITY_MANAGERS);
         acl.addAssigner(ROLE_ENTITY_REP, ROLEGROUP_SYSTEM_MANAGERS);
         acl.addAssigner(ROLE_SYSTEM_MANAGER, ROLEGROUP_SYSTEM_ADMINS);
 
@@ -199,10 +186,10 @@ contract EntityDeployerTest is DSTestPlusF, IACLConstants, ISettingsKeys {
         bytes32 aclContext = entityDeployer.aclContext();
         console.logBytes32(aclContext);
 
-        acl.assignRole(acl.systemContext(), address(0xBEEF), ROLE_SYSTEM_MANAGER);
+        acl.assignRole(systemContext, address(0xBEEF), ROLE_SYSTEM_MANAGER);
 
         vm.prank(address(0xBEEF));
-        entityDeployer.deploy(address(0xBEEF), "");
+        entityDeployer.deploy(address(0xBEEF), systemContext);
 
         assertEq(entityDeployer.getNumChildren(), 1);
 
@@ -219,7 +206,6 @@ contract EntityDeployerTest is DSTestPlusF, IACLConstants, ISettingsKeys {
         assertTrue(entityDeployer.hasChild(newEntity2));
         assertEq(IEntity(newEntity2).getParent(), address(entityDeployer));
 
-        // vm.prank(address(newEntity));
         assertEq(IEntity(newEntity).aclContext(), systemContext);
     }
 }

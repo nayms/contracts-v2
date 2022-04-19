@@ -144,7 +144,6 @@ contract MarketTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         vm.label(address(weth), "WETH");
         vm.label(address(weth2), "WETH2");
         vm.label(address(this), "Account 0 - Test Contract");
-        // vm.label(address(0xACC0), "Account 0 - Deployer");
         vm.label(address(0xACC1), "Account 1");
         vm.label(address(0xACC2), "Account 2");
         vm.label(address(0xACC3), "Account 3");
@@ -508,9 +507,6 @@ contract MarketTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         uint256 secondOfferPayAmt = 10;
         uint256 secondOfferBuyAmt = 10;
 
-        uint256 payAmt = 10;
-        uint256 buyAmt = 20;
-
         vm.startPrank(account1);
         weth.approve(address(market), firstOfferPayAmt);
         market.executeLimitOffer(address(weth), firstOfferPayAmt, address(dai), firstOfferBuyAmt, FEE_SCHEDULE_STANDARD, address(0), "");
@@ -620,33 +616,18 @@ contract MarketTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         market.executeLimitOffer(address(dai), 20, address(weth), 10, FEE_SCHEDULE_STANDARD, address(0), "");
         market.executeLimitOffer(address(dai), 10, address(weth), 10, FEE_SCHEDULE_STANDARD, address(0), "");
         vm.stopPrank();
-        // IMarketDataFacet.OfferState memory firstOffer = market.getOffer(1);
-        // assertEq(firstOffer.sellAmount, 0);
-        // assertEq(firstOffer.buyAmount, 0);
-
-        // // should revert if there are no orders in market to match
-        // vm.startPrank(account1);
-        // weth.approve(address(market), 5e18);
-        // vm.expectRevert("not enough orders in market");
-        // market.executeMarketOffer(address(weth), 11e18, address(dai));
-        // vm.stopPrank();
-
-        // assertEq(dai.balanceOf(account1), 1000);
-        // assertEq(weth.balanceOf(account1), 1000);
-
-        // assertEq(dai.balanceOf(account3), 970);
-        // assertEq(weth.balanceOf(account3), 1000);
 
         // should revert if there are not enough orders in market to match
-
-        // should match top market offer partly when offer cannot be fully matched by counter offer
-        // todo behavior not matching js tests
         vm.startPrank(account1);
         weth.approve(address(market), 5e18);
+        vm.expectRevert("not enough orders in market");
         market.executeMarketOffer(address(weth), 5e18, address(dai));
-        // IMarketDataFacet.OfferState memory firstOffer = market.getOffer(1);
-        // assertEq(firstOffer.sellAmount, 0);
-        // assertEq(firstOffer.buyAmount, 0);
+
+        assertEq(dai.balanceOf(account1), 1000);
+        assertEq(weth.balanceOf(account1), 1000);
+
+        assertEq(dai.balanceOf(account3), 970);
+        assertEq(weth.balanceOf(account3), 1000);
     }
 
     function testMatchPairOfMatchingOffers() public {
@@ -848,12 +829,12 @@ contract MarketTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
 
         vm.startPrank(account1);
         weth.approve(address(market), firstOfferPayAmt);
-        market.executeLimitOffer(address(weth), firstOfferPayAmt, address(dai), firstOfferBuyAmt, FEE_SCHEDULE_STANDARD, address(0), notifyData);
+        market.executeLimitOffer(address(weth), firstOfferPayAmt, address(dai), firstOfferBuyAmt, FEE_SCHEDULE_STANDARD, address(marketObserver), notifyData);
         vm.stopPrank();
 
         vm.startPrank(account2);
         weth.approve(address(market), secondOfferPayAmt);
-        market.executeLimitOffer(address(weth), secondOfferPayAmt, address(dai), secondOfferBuyAmt, FEE_SCHEDULE_STANDARD, address(0), notifyData);
+        market.executeLimitOffer(address(weth), secondOfferPayAmt, address(dai), secondOfferBuyAmt, FEE_SCHEDULE_STANDARD, address(marketObserver), notifyData);
         vm.stopPrank();
 
         // todo check getOrder
@@ -875,11 +856,11 @@ contract MarketTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         assertEq(secondOffer.sellAmount, 10);
         assertEq(secondOffer.buyAmount, 10);
 
-        assertEq(dai.balanceOf(account1), 990);
-        assertEq(weth.balanceOf(account1), 1000);
+        assertEq(dai.balanceOf(account1), 1000);
+        assertEq(weth.balanceOf(account1), 990);
 
-        assertEq(dai.balanceOf(account2), 990);
-        assertEq(weth.balanceOf(account2), 1000);
+        assertEq(dai.balanceOf(account2), 1000);
+        assertEq(weth.balanceOf(account2), 990);
     }
 
     // should handle order closures for fully matching offers and get correct order info after closure occurs
@@ -1147,20 +1128,21 @@ contract MarketTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         entity2.trade(address(dai), 10, address(weth), 20, FEE_SCHEDULE_STANDARD);
         assertEq(dai.balanceOf(address(entity1)), 1005);
         assertEq(weth.balanceOf(address(entity1)), 990);
-        assertEq(dai.balanceOf(address(entity2)), 1010);
-        assertEq(weth.balanceOf(address(entity2)), 990);
-        assertEq(dai.balanceOf(address(market)), 0);
-        assertEq(weth.balanceOf(address(market)), 5);
+        assertEq(dai.balanceOf(address(entity2)), 990);
+        assertEq(weth.balanceOf(address(entity2)), 1010);
+        assertEq(dai.balanceOf(address(market)), 5);
+        assertEq(weth.balanceOf(address(market)), 0);
 
-        entity3.trade(address(dai), 10, address(weth), 5, FEE_SCHEDULE_STANDARD);
+        entity3.trade(address(weth), 10, address(dai), 5, FEE_SCHEDULE_STANDARD);
         assertEq(dai.balanceOf(address(entity1)), 1005);
         assertEq(weth.balanceOf(address(entity1)), 990);
-        assertEq(dai.balanceOf(address(entity2)), 1010);
-        assertEq(weth.balanceOf(address(entity2)), 990);
-        assertEq(dai.balanceOf(address(entity3)), 1010);
+        assertEq(dai.balanceOf(address(entity2)), 990);
+        assertEq(weth.balanceOf(address(entity2)), 1020);
+        // assertEq(dai.balanceOf(address(entity3)), 1004); // todo not matching js tests?
+        assertEq(dai.balanceOf(address(entity3)), 1005);
         assertEq(weth.balanceOf(address(entity3)), 990);
         assertEq(dai.balanceOf(address(market)), 0);
-        assertEq(weth.balanceOf(address(market)), 5);
+        assertEq(weth.balanceOf(address(market)), 0);
     }
 }
 

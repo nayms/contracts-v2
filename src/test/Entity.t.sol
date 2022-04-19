@@ -274,7 +274,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
 
         vm.label(address(weth), "WETH False");
         vm.label(address(wethTrue), "WETH True");
-        vm.label(address(0xACC0), "Account 0 - Deployer");
+        vm.label(address(this), "Account 0 - Test Contract");
         vm.label(address(0xACC1), "Account 1");
         vm.label(address(0xACC2), "Account 2");
         vm.label(address(0xACC3), "Account 3");
@@ -384,7 +384,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         assertEq(weth.balanceOf(address(entityAddress)), 10);
         assertEq(entity.getBalance(address(weth)), 10);
 
-        vm.expectRevert("must be entityAddress admin");
+        vm.expectRevert("must be entity admin");
         vm.prank(address(0xBEEF));
         entity.withdraw(address(weth), 10);
 
@@ -400,14 +400,14 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         assertEq(weth.balanceOf(address(entityAddress)), 110);
         assertEq(entity.getBalance(address(weth)), 10);
 
-        vm.expectRevert("exceeds entityAddress balance");
+        vm.expectRevert("exceeds entity balance");
         entity.withdraw(address(weth), 11);
 
         entity.withdraw(address(weth), 10);
 
         assertEq(entity.getBalance(address(weth)), 0);
 
-        vm.expectRevert("exceeds entityAddress balance");
+        vm.expectRevert("exceeds entity balance");
         entity.withdraw(address(weth), 11);
     }
 
@@ -442,7 +442,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         assertEq(weth.balanceOf(address(entityAddress)), 110);
 
         vm.startPrank(address(0xD00D));
-        vm.expectRevert("exceeds entityAddress balance");
+        vm.expectRevert("exceeds entity balance");
         entity.trade(address(weth), 11, address(wethTrue), 1);
 
         entity.trade(address(weth), 10, address(wethTrue), 1);
@@ -495,7 +495,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         vm.stopPrank();
 
         vm.startPrank(address(0xD00D));
-        vm.expectRevert("exceeds entityAddress balance");
+        vm.expectRevert("exceeds entity balance");
         entity.sellAtBestPrice(address(weth), 11, address(wethTrue));
 
         entity.sellAtBestPrice(address(weth), 10, address(wethTrue));
@@ -519,7 +519,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         vm.prank(account3);
         entity.startTokenSale(500, address(weth), 1000);
 
-        // deploys an entityAddress token representing the underlying deposited token
+        // deploys an entity token representing the underlying deposited token
         entity.startTokenSale(500, address(weth), 1000);
 
         (tokenInfo.tokenAddress, tokenInfo.currentTokenSaleOfferId) = entity.getTokenInfo(address(weth));
@@ -577,7 +577,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         assertEq(weth.balanceOf(entityAddress), 1000);
         assertEq(entity.getBalance(address(weth)), 1000);
 
-        assertEq(IERC20(tokenInfo.tokenAddress).balanceOf(address(this)), 250);
+        assertEq(IERC20(tokenInfo.tokenAddress).balanceOf(address(this)), 500);
         assertEq(IERC20(tokenInfo.tokenAddress).totalSupply(), 500);
 
         (tokenInfo.tokenAddress, tokenInfo.currentTokenSaleOfferId) = entity.getTokenInfo(address(weth));
@@ -604,13 +604,13 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         vm.prank(address(marketProxy));
         IERC20(tokenInfo.tokenAddress).transfer(account1, 1);
 
-        vm.expectRevert("only nayms marketProxy is allowed to transfer");
+        vm.expectRevert("only nayms market is allowed to transfer");
         IERC20(tokenInfo.tokenAddress).transfer(account0, 1);
 
-        // only marketProxy can be approved for transfers
+        // only market can be approved for transfers
         IERC20(tokenInfo.tokenAddress).approve(address(marketProxy), 1);
 
-        vm.expectRevert("only nayms marketProxy is allowed to transfer");
+        vm.expectRevert("only nayms market is allowed to transfer");
         IERC20(tokenInfo.tokenAddress).approve(account1, 1);
 
         // transfers must be non-zero
@@ -642,9 +642,9 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         assertEq(IERC20(tokenInfo.tokenAddress).totalSupply(), 500);
 
         // can only be transferred by the marketProxy
-        vm.expectRevert("only nayms marketProxy is allowed to transfer");
+        vm.expectRevert("only nayms market is allowed to transfer");
         IERC20(tokenInfo.tokenAddress).approve(account2, 1);
-        vm.expectRevert("only nayms marketProxy is allowed to transfer");
+        vm.expectRevert("only nayms market is allowed to transfer");
         IERC20(tokenInfo.tokenAddress).transfer(account2, 1);
 
         // can be burnt
@@ -767,7 +767,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         assertEq(weth.balanceOf(address(entityAddress)), 500);
         assertEq(entity.getBalance(address(weth)), 500);
 
-        // ensures entityAddress is not a holder after token sale is complete
+        // ensures entity is not a holder after token sale is complete
         entity.cancelTokenSale(address(weth));
         numTokenHolders = entity.getNumTokenHolders(address(weth));
         assertEq(numTokenHolders, 1);
@@ -932,8 +932,8 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         assertEq(IERC20(tokenInfo.tokenAddress).totalSupply(), 250);
         assertEq(entity.getNumTokenHolders(address(weth)), 2);
 
-        // must not exceed entityAddress balance
-        vm.expectRevert("exceeds entityAddress balance");
+        // must not exceed entity balance
+        vm.expectRevert("exceeds entity balance");
         entity.payDividend(address(weth), 501);
 
         // get allocated proportionately to holders

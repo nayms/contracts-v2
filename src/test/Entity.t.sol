@@ -543,7 +543,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         assertEq(IERC20(tokenInfo.tokenAddress).balanceOf(address(marketProxy)), 500);
         assertEq(IERC20(tokenInfo.tokenAddress).allowance(address(marketProxy), entityAddress), 0);
         assertEq(IERC20(tokenInfo.tokenAddress).name(), string.concat("NAYMS-", address(weth).toString(), "-", entityAddress.toString(), "-ENTITY"));
-        assertEq(IERC20(tokenInfo.tokenAddress).symbol(), string.concat("N-", address(weth).toString().substring(3), "-", entityAddress.toString().substring(3), "-E"));
+        assertEq(IERC20(tokenInfo.tokenAddress).symbol(), string.concat("N-", address(weth).toString().substring(2, 3), "-", entityAddress.toString().substring(2, 3), "-E"));
 
         // only one sale can be in progress at a time
         vm.expectRevert("token sale in progress");

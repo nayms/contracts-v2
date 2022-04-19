@@ -20,7 +20,7 @@ test       :; forge test
 tv         :; forge test -vvv
 	
 # gas snapshot
-gas        :; forge snapshot
+gas        :; forge snapshot --check
 
 # hardhat test local
 th         :; yarn hardhat test

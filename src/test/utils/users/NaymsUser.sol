@@ -1,20 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.9;
-import {NaymsMock} from "../mocks/NaymsMock.sol";
+import { NaymsMock } from "../mocks/NaymsMock.sol";
 
-import {IACL} from "../../../../contracts/base/IACL.sol";
+import { IACL } from "../../../../contracts/base/IACL.sol";
 
 contract NaymsUser {
     NaymsMock public nayms;
-    
+
     constructor(NaymsMock _nayms) {
         nayms = _nayms;
     }
-    
+
     function isAdmin(address _addr) external view returns (bool) {
         return IACL(address(nayms)).isAdmin(_addr);
     }
-    
 
     function addAdmin(address _addr) external {
         IACL(address(nayms)).addAdmin(_addr);
@@ -60,10 +59,7 @@ contract NaymsUser {
         return IACL(address(nayms)).hasRoleInGroup(_context, _addr, _roleGroup);
     }
 
-    function setRoleGroup(
-        bytes32 _roleGroup,
-        bytes32[] calldata _roles
-    ) external {
+    function setRoleGroup(bytes32 _roleGroup, bytes32[] calldata _roles) external {
         return IACL(address(nayms)).setRoleGroup(_roleGroup, _roles);
     }
 

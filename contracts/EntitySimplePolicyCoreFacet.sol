@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.9;
-import {EntityFacetBase, IERC20} from "./EntityFacetBase.sol";
+import { EntityFacetBase, IERC20 } from "./EntityFacetBase.sol";
 import "./base/IEntitySimplePolicyCoreFacet.sol";
 import "./base/IDiamondFacet.sol";
-import {SimplePolicy, Controller, AccessControl, ISimplePolicy} from "./SimplePolicy.sol";
+import { SimplePolicy, Controller, AccessControl, ISimplePolicy } from "./SimplePolicy.sol";
 
 contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCoreFacet, IDiamondFacet {
     constructor(address _settings) Controller(_settings) {}

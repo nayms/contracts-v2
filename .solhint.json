@@ -4,7 +4,10 @@
   "rules": {
     "compiler-version": ["error", "^0.8.0"],
     "use-forbidden-name": "off",
-    "indentation": ["warn", 2],
-    "quotes": "off" 
+    "func-visibility": ["warn", { "ignoreConstructors": true }],
+    "not-rely-on-time": "off",
+    "no-inline-assembly": "off",
+    "avoid-low-level-calls": "off",
+    "quotes": "off"
   }
 }

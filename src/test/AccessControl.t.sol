@@ -2,10 +2,10 @@
 pragma solidity >=0.8.9;
 import "./utils/DSTestPlusF.sol";
 
-import {IACLConstants} from "../../contracts/base/IACLConstants.sol";
-import {AccessControl} from "../../contracts/base/AccessControl.sol";
-import {ACL} from "../../contracts/ACL.sol";
-import {Settings} from "../../contracts/Settings.sol";
+import { IACLConstants } from "../../contracts/base/IACLConstants.sol";
+import { AccessControl } from "../../contracts/base/AccessControl.sol";
+import { ACL } from "../../contracts/ACL.sol";
+import { Settings } from "../../contracts/Settings.sol";
 
 contract AccessControlTest is DSTestPlusF, IACLConstants {
     ACL internal acl;

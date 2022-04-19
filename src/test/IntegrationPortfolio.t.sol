@@ -4,63 +4,63 @@ pragma solidity >=0.8.9;
 import "./utils/DSTestPlusF.sol";
 import "./utils/users/MockAccounts.sol";
 
-import {IACLConstants} from "../../contracts/base/IACLConstants.sol";
-import {ISettingsKeys} from "../../contracts/base/ISettingsKeys.sol";
-import {ACL} from "../../contracts/ACL.sol";
-import {Settings} from "../../contracts/Settings.sol";
-import {AccessControl} from "../../contracts/base/AccessControl.sol";
-import {ISettings} from "../../contracts/base/ISettings.sol";
+import { IACLConstants } from "../../contracts/base/IACLConstants.sol";
+import { ISettingsKeys } from "../../contracts/base/ISettingsKeys.sol";
+import { ACL } from "../../contracts/ACL.sol";
+import { Settings } from "../../contracts/Settings.sol";
+import { AccessControl } from "../../contracts/base/AccessControl.sol";
+import { ISettings } from "../../contracts/base/ISettings.sol";
 
-import {IMarketFeeSchedules} from "../../contracts/base/IMarketFeeSchedules.sol";
-import {IMarketDataFacet} from "../../contracts/base/IMarketDataFacet.sol";
-import {IMarket} from "../../contracts/base/IMarket.sol";
-import {Market} from "../../contracts/Market.sol";
-import {MarketCoreFacet} from "../../contracts/MarketCoreFacet.sol";
-import {MarketDataFacet} from "../../contracts/MarketDataFacet.sol";
+import { IMarketFeeSchedules } from "../../contracts/base/IMarketFeeSchedules.sol";
+import { IMarketDataFacet } from "../../contracts/base/IMarketDataFacet.sol";
+import { IMarket } from "../../contracts/base/IMarket.sol";
+import { Market } from "../../contracts/Market.sol";
+import { MarketCoreFacet } from "../../contracts/MarketCoreFacet.sol";
+import { MarketDataFacet } from "../../contracts/MarketDataFacet.sol";
 
-import {EntityDeployer} from "../../contracts/EntityDeployer.sol";
+import { EntityDeployer } from "../../contracts/EntityDeployer.sol";
 
-import {FeeBankCoreFacet} from "../../contracts/FeeBankCoreFacet.sol";
+import { FeeBankCoreFacet } from "../../contracts/FeeBankCoreFacet.sol";
 
-import {FeeBank} from "../../contracts/FeeBank.sol";
+import { FeeBank } from "../../contracts/FeeBank.sol";
 
-import {IPolicyStates} from "../../contracts/base/IPolicyStates.sol";
-import {IPolicyTypes} from "../../contracts/base/IPolicyTypes.sol";
-import {IPolicy} from "../../contracts/base/IPolicy.sol";
-import {ISimplePolicy2} from "../../contracts/base/ISimplePolicy2.sol";
-import {PolicyCoreFacet} from "../../contracts/PolicyCoreFacet.sol";
-import {PolicyClaimsFacet} from "../../contracts/PolicyClaimsFacet.sol";
-import {PolicyCommissionsFacet} from "../../contracts/PolicyCommissionsFacet.sol";
-import {PolicyPremiumsFacet} from "../../contracts/PolicyPremiumsFacet.sol";
-import {PolicyTrancheTokensFacet} from "../../contracts/PolicyTrancheTokensFacet.sol";
-import {PolicyApprovalsFacet} from "../../contracts/PolicyApprovalsFacet.sol";
+import { IPolicyStates } from "../../contracts/base/IPolicyStates.sol";
+import { IPolicyTypes } from "../../contracts/base/IPolicyTypes.sol";
+import { IPolicy } from "../../contracts/base/IPolicy.sol";
+import { ISimplePolicy2 } from "../../contracts/base/ISimplePolicy2.sol";
+import { PolicyCoreFacet } from "../../contracts/PolicyCoreFacet.sol";
+import { PolicyClaimsFacet } from "../../contracts/PolicyClaimsFacet.sol";
+import { PolicyCommissionsFacet } from "../../contracts/PolicyCommissionsFacet.sol";
+import { PolicyPremiumsFacet } from "../../contracts/PolicyPremiumsFacet.sol";
+import { PolicyTrancheTokensFacet } from "../../contracts/PolicyTrancheTokensFacet.sol";
+import { PolicyApprovalsFacet } from "../../contracts/PolicyApprovalsFacet.sol";
 
-import {PolicyDelegate} from "../../contracts/PolicyDelegate.sol";
+import { PolicyDelegate } from "../../contracts/PolicyDelegate.sol";
 
-import {EntityCoreFacet} from "../../contracts/EntityCoreFacet.sol";
-import {EntityFundingFacet} from "../../contracts/EntityFundingFacet.sol";
-import {EntityTokensFacet} from "../../contracts/EntityTokensFacet.sol";
-import {EntityDividendsFacet} from "../../contracts/EntityDividendsFacet.sol";
-import {EntityTreasuryFacet} from "../../contracts/EntityTreasuryFacet.sol";
-import {EntityTreasuryBridgeFacet} from "../../contracts/EntityTreasuryBridgeFacet.sol";
-import {EntitySimplePolicyCoreFacet} from "../../contracts/EntitySimplePolicyCoreFacet.sol";
-import {EntitySimplePolicyDataFacet} from "../../contracts/EntitySimplePolicyDataFacet.sol";
+import { EntityCoreFacet } from "../../contracts/EntityCoreFacet.sol";
+import { EntityFundingFacet } from "../../contracts/EntityFundingFacet.sol";
+import { EntityTokensFacet } from "../../contracts/EntityTokensFacet.sol";
+import { EntityDividendsFacet } from "../../contracts/EntityDividendsFacet.sol";
+import { EntityTreasuryFacet } from "../../contracts/EntityTreasuryFacet.sol";
+import { EntityTreasuryBridgeFacet } from "../../contracts/EntityTreasuryBridgeFacet.sol";
+import { EntitySimplePolicyCoreFacet } from "../../contracts/EntitySimplePolicyCoreFacet.sol";
+import { EntitySimplePolicyDataFacet } from "../../contracts/EntitySimplePolicyDataFacet.sol";
 
-import {IEntity} from "../../contracts/base/IEntity.sol";
-import {EntityDelegate} from "../../contracts/EntityDelegate.sol";
-import {Entity} from "../../contracts/Entity.sol";
+import { IEntity } from "../../contracts/base/IEntity.sol";
+import { EntityDelegate } from "../../contracts/EntityDelegate.sol";
+import { Entity } from "../../contracts/Entity.sol";
 
-import {DummyEntityFacet} from "../../contracts/test/DummyEntityFacet.sol";
+import { DummyEntityFacet } from "../../contracts/test/DummyEntityFacet.sol";
 
-import {DummyToken} from "../../contracts/DummyToken.sol";
+import { DummyToken } from "../../contracts/DummyToken.sol";
 
-import {CommonUpgradeFacet} from "../../contracts/CommonUpgradeFacet.sol";
+import { CommonUpgradeFacet } from "../../contracts/CommonUpgradeFacet.sol";
 
-import {FreezeUpgradesFacet} from "../../contracts/test/FreezeUpgradesFacet.sol";
+import { FreezeUpgradesFacet } from "../../contracts/test/FreezeUpgradesFacet.sol";
 
-import {IDiamondProxy} from "../../contracts/base/IDiamondProxy.sol";
-import {Strings} from "../../contracts/base/Strings.sol";
-import {Address} from "../../contracts/base/Address.sol";
+import { IDiamondProxy } from "../../contracts/base/IDiamondProxy.sol";
+import { Strings } from "../../contracts/base/Strings.sol";
+import { Address } from "../../contracts/base/Address.sol";
 
 interface IProxy {
     function getDelegateAddress() external view returns (address);
@@ -421,7 +421,7 @@ contract IntegrationPortfolioTest is DSTestPlusF, MockAccounts, IACLConstants, I
         assertEq(state, POLICY_STATE_APPROVED);
 
         // once initialisation date has passed
-        weth.deposit{value: 20}();
+        weth.deposit{ value: 20 }();
         weth.approve(address(policy), 20);
         policy.payTranchePremium(0, 10);
         policy.payTranchePremium(1, 10);
@@ -446,7 +446,7 @@ contract IntegrationPortfolioTest is DSTestPlusF, MockAccounts, IACLConstants, I
     }
 
     function testPayTranchePremiumAfterStartDate() public {
-        weth.deposit{value: 20}();
+        weth.deposit{ value: 20 }();
         weth.approve(address(policy), 20);
         policy.payTranchePremium(0, 10);
         policy.payTranchePremium(1, 10);
@@ -455,7 +455,7 @@ contract IntegrationPortfolioTest is DSTestPlusF, MockAccounts, IACLConstants, I
 
         policy.checkAndUpdateState();
 
-        weth.deposit{value: 540}();
+        weth.deposit{ value: 540 }();
         weth.approve(address(policy), 540);
         policy.payTranchePremium(0, 270);
         policy.payTranchePremium(1, 270);
@@ -478,7 +478,7 @@ contract IntegrationPortfolioTest is DSTestPlusF, MockAccounts, IACLConstants, I
     }
 
     function testPayTranchePremiumAfterMaturationDate() public {
-        weth.deposit{value: 20}();
+        weth.deposit{ value: 20 }();
         weth.approve(address(policy), 20);
         policy.payTranchePremium(0, 10);
         policy.payTranchePremium(1, 10);
@@ -487,7 +487,7 @@ contract IntegrationPortfolioTest is DSTestPlusF, MockAccounts, IACLConstants, I
 
         policy.checkAndUpdateState();
 
-        weth.deposit{value: 540}();
+        weth.deposit{ value: 540 }();
         weth.approve(address(policy), 540);
         policy.payTranchePremium(0, 270);
         policy.payTranchePremium(1, 270);
@@ -505,7 +505,7 @@ contract IntegrationPortfolioTest is DSTestPlusF, MockAccounts, IACLConstants, I
     }
 
     function testPayTranchePremiumAfterMaturationDateWithPendingClaims() public {
-        weth.deposit{value: 20}();
+        weth.deposit{ value: 20 }();
         weth.approve(address(policy), 20);
         policy.payTranchePremium(0, 10);
         policy.payTranchePremium(1, 10);
@@ -514,7 +514,7 @@ contract IntegrationPortfolioTest is DSTestPlusF, MockAccounts, IACLConstants, I
 
         policy.checkAndUpdateState();
 
-        weth.deposit{value: 540}();
+        weth.deposit{ value: 540 }();
         weth.approve(address(policy), 540);
         policy.payTranchePremium(0, 270);
         policy.payTranchePremium(1, 270);

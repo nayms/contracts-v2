@@ -4,63 +4,63 @@ pragma solidity >=0.8.9;
 import "./utils/DSTestPlusF.sol";
 import "./utils/users/MockAccounts.sol";
 
-import {IACLConstants} from "../../contracts/base/IACLConstants.sol";
-import {ISettingsKeys} from "../../contracts/base/ISettingsKeys.sol";
-import {ACL} from "../../contracts/ACL.sol";
-import {Settings} from "../../contracts/Settings.sol";
-import {AccessControl} from "../../contracts/base/AccessControl.sol";
-import {ISettings} from "../../contracts/base/ISettings.sol";
+import { IACLConstants } from "../../contracts/base/IACLConstants.sol";
+import { ISettingsKeys } from "../../contracts/base/ISettingsKeys.sol";
+import { ACL } from "../../contracts/ACL.sol";
+import { Settings } from "../../contracts/Settings.sol";
+import { AccessControl } from "../../contracts/base/AccessControl.sol";
+import { ISettings } from "../../contracts/base/ISettings.sol";
 
-import {IMarketFeeSchedules} from "../../contracts/base/IMarketFeeSchedules.sol";
-import {IMarketDataFacet} from "../../contracts/base/IMarketDataFacet.sol";
-import {IMarket} from "../../contracts/base/IMarket.sol";
-import {Market} from "../../contracts/Market.sol";
-import {MarketCoreFacet} from "../../contracts/MarketCoreFacet.sol";
-import {MarketDataFacet} from "../../contracts/MarketDataFacet.sol";
+import { IMarketFeeSchedules } from "../../contracts/base/IMarketFeeSchedules.sol";
+import { IMarketDataFacet } from "../../contracts/base/IMarketDataFacet.sol";
+import { IMarket } from "../../contracts/base/IMarket.sol";
+import { Market } from "../../contracts/Market.sol";
+import { MarketCoreFacet } from "../../contracts/MarketCoreFacet.sol";
+import { MarketDataFacet } from "../../contracts/MarketDataFacet.sol";
 
-import {EntityDeployer} from "../../contracts/EntityDeployer.sol";
+import { EntityDeployer } from "../../contracts/EntityDeployer.sol";
 
-import {FeeBankCoreFacet} from "../../contracts/FeeBankCoreFacet.sol";
+import { FeeBankCoreFacet } from "../../contracts/FeeBankCoreFacet.sol";
 
-import {FeeBank} from "../../contracts/FeeBank.sol";
+import { FeeBank } from "../../contracts/FeeBank.sol";
 
-import {IPolicyStates} from "../../contracts/base/IPolicyStates.sol";
-import {IPolicyTypes} from "../../contracts/base/IPolicyTypes.sol";
-import {IPolicy} from "../../contracts/base/IPolicy.sol";
-import {ISimplePolicy2} from "../../contracts/base/ISimplePolicy2.sol";
-import {PolicyCoreFacet} from "../../contracts/PolicyCoreFacet.sol";
-import {PolicyClaimsFacet} from "../../contracts/PolicyClaimsFacet.sol";
-import {PolicyCommissionsFacet} from "../../contracts/PolicyCommissionsFacet.sol";
-import {PolicyPremiumsFacet} from "../../contracts/PolicyPremiumsFacet.sol";
-import {PolicyTrancheTokensFacet} from "../../contracts/PolicyTrancheTokensFacet.sol";
-import {PolicyApprovalsFacet} from "../../contracts/PolicyApprovalsFacet.sol";
+import { IPolicyStates } from "../../contracts/base/IPolicyStates.sol";
+import { IPolicyTypes } from "../../contracts/base/IPolicyTypes.sol";
+import { IPolicy } from "../../contracts/base/IPolicy.sol";
+import { ISimplePolicy2 } from "../../contracts/base/ISimplePolicy2.sol";
+import { PolicyCoreFacet } from "../../contracts/PolicyCoreFacet.sol";
+import { PolicyClaimsFacet } from "../../contracts/PolicyClaimsFacet.sol";
+import { PolicyCommissionsFacet } from "../../contracts/PolicyCommissionsFacet.sol";
+import { PolicyPremiumsFacet } from "../../contracts/PolicyPremiumsFacet.sol";
+import { PolicyTrancheTokensFacet } from "../../contracts/PolicyTrancheTokensFacet.sol";
+import { PolicyApprovalsFacet } from "../../contracts/PolicyApprovalsFacet.sol";
 
-import {PolicyDelegate} from "../../contracts/PolicyDelegate.sol";
+import { PolicyDelegate } from "../../contracts/PolicyDelegate.sol";
 
-import {EntityCoreFacet} from "../../contracts/EntityCoreFacet.sol";
-import {EntityFundingFacet} from "../../contracts/EntityFundingFacet.sol";
-import {EntityTokensFacet} from "../../contracts/EntityTokensFacet.sol";
-import {EntityDividendsFacet} from "../../contracts/EntityDividendsFacet.sol";
-import {EntityTreasuryFacet} from "../../contracts/EntityTreasuryFacet.sol";
-import {EntityTreasuryBridgeFacet} from "../../contracts/EntityTreasuryBridgeFacet.sol";
-import {EntitySimplePolicyCoreFacet} from "../../contracts/EntitySimplePolicyCoreFacet.sol";
-import {EntitySimplePolicyDataFacet} from "../../contracts/EntitySimplePolicyDataFacet.sol";
+import { EntityCoreFacet } from "../../contracts/EntityCoreFacet.sol";
+import { EntityFundingFacet } from "../../contracts/EntityFundingFacet.sol";
+import { EntityTokensFacet } from "../../contracts/EntityTokensFacet.sol";
+import { EntityDividendsFacet } from "../../contracts/EntityDividendsFacet.sol";
+import { EntityTreasuryFacet } from "../../contracts/EntityTreasuryFacet.sol";
+import { EntityTreasuryBridgeFacet } from "../../contracts/EntityTreasuryBridgeFacet.sol";
+import { EntitySimplePolicyCoreFacet } from "../../contracts/EntitySimplePolicyCoreFacet.sol";
+import { EntitySimplePolicyDataFacet } from "../../contracts/EntitySimplePolicyDataFacet.sol";
 
-import {IEntity} from "../../contracts/base/IEntity.sol";
-import {EntityDelegate} from "../../contracts/EntityDelegate.sol";
-import {Entity} from "../../contracts/Entity.sol";
+import { IEntity } from "../../contracts/base/IEntity.sol";
+import { EntityDelegate } from "../../contracts/EntityDelegate.sol";
+import { Entity } from "../../contracts/Entity.sol";
 
-import {DummyEntityFacet} from "../../contracts/test/DummyEntityFacet.sol";
+import { DummyEntityFacet } from "../../contracts/test/DummyEntityFacet.sol";
 
-import {DummyToken} from "../../contracts/DummyToken.sol";
+import { DummyToken } from "../../contracts/DummyToken.sol";
 
-import {CommonUpgradeFacet} from "../../contracts/CommonUpgradeFacet.sol";
+import { CommonUpgradeFacet } from "../../contracts/CommonUpgradeFacet.sol";
 
-import {FreezeUpgradesFacet} from "../../contracts/test/FreezeUpgradesFacet.sol";
+import { FreezeUpgradesFacet } from "../../contracts/test/FreezeUpgradesFacet.sol";
 
-import {IDiamondProxy} from "../../contracts/base/IDiamondProxy.sol";
-import {Strings} from "../../contracts/base/Strings.sol";
-import {Address} from "../../contracts/base/Address.sol";
+import { IDiamondProxy } from "../../contracts/base/IDiamondProxy.sol";
+import { Strings } from "../../contracts/base/Strings.sol";
+import { Address } from "../../contracts/base/Address.sol";
 
 interface IProxy {
     function getDelegateAddress() external view returns (address);
@@ -372,7 +372,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
     }
 
     function testEntityDeposit() public {
-        weth.deposit{value: 10}();
+        weth.deposit{ value: 10 }();
         weth.approve(address(entityAddress), 10);
         vm.expectRevert("DummyToken: transfer amount exceeds allowance");
         entity.deposit(address(weth), 11);
@@ -391,7 +391,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         entity.withdraw(address(weth), 10);
         assertEq(weth.balanceOf(address(this)), 10);
 
-        weth.deposit{value: 200}();
+        weth.deposit{ value: 200 }();
 
         weth.transfer(address(entityAddress), 100);
 
@@ -412,7 +412,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
     }
 
     function testEntityTrade() public {
-        weth.deposit{value: 10}();
+        weth.deposit{ value: 10 }();
         weth.approve(address(entityAddress), 10);
         entity.deposit(address(weth), 10);
 
@@ -426,7 +426,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
 
         vm.deal(address(0xFEED), 1 ether);
         vm.startPrank(address(0xFEED));
-        wethTrue.deposit{value: 1}();
+        wethTrue.deposit{ value: 1 }();
 
         wethTrue.approve(address(marketProxy), 1);
         uint256 offerId = market.getLastOfferId();
@@ -435,7 +435,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
 
         assertEq(weth.balanceOf(address(0xFEED)), 1);
 
-        weth.deposit{value: 200}();
+        weth.deposit{ value: 200 }();
 
         weth.transfer(address(entityAddress), 101);
         vm.stopPrank();
@@ -449,7 +449,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
     }
 
     function testEntitySellAtBestPrice() public {
-        weth.deposit{value: 10}();
+        weth.deposit{ value: 10 }();
         weth.approve(address(entityAddress), 10);
         entity.deposit(address(weth), 10);
 
@@ -460,14 +460,14 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
 
         vm.deal(address(0x7AAA), 1 ether);
         vm.startPrank(address(0x7AAA));
-        wethTrue.deposit{value: 100}();
+        wethTrue.deposit{ value: 100 }();
         wethTrue.approve(address(marketProxy), 100);
         market.executeLimitOffer(address(wethTrue), 100, address(weth), 3, FEE_SCHEDULE_STANDARD, address(0), "");
         vm.stopPrank();
 
         vm.deal(address(0x8BBB), 1 ether);
         vm.startPrank(address(0x8BBB));
-        wethTrue.deposit{value: 50}();
+        wethTrue.deposit{ value: 50 }();
         wethTrue.approve(address(marketProxy), 50);
         market.executeLimitOffer(address(wethTrue), 50, address(weth), 5, FEE_SCHEDULE_STANDARD, address(0), "");
         vm.stopPrank();
@@ -483,13 +483,13 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
 
         assertEq(weth.balanceOf(address(entityAddress)), 5);
 
-        weth.deposit{value: 200}();
+        weth.deposit{ value: 200 }();
         weth.transfer(address(entityAddress), 100);
 
         assertEq(weth.balanceOf(address(entityAddress)), 105);
 
         vm.startPrank(address(0x8BBB));
-        wethTrue.deposit{value: 50}();
+        wethTrue.deposit{ value: 50 }();
         wethTrue.approve(address(marketProxy), 50);
         market.executeLimitOffer(address(wethTrue), 50, address(weth), 10, FEE_SCHEDULE_STANDARD, address(0), "");
         vm.stopPrank();
@@ -549,7 +549,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         vm.expectRevert("token sale in progress");
         entity.startTokenSale(500, address(weth), 1000);
 
-        weth.deposit{value: 500}();
+        weth.deposit{ value: 500 }();
         weth.approve(address(marketProxy), 500);
         market.executeLimitOffer(address(weth), 500, tokenInfo.tokenAddress, 250, FEE_SCHEDULE_STANDARD, address(0), "");
 
@@ -567,7 +567,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         assertEq(IERC20(tokenInfo.tokenAddress).totalSupply(), 500);
 
         // fully sell tokens
-        weth.deposit{value: 500}();
+        weth.deposit{ value: 500 }();
         weth.approve(address(marketProxy), 500);
 
         market.executeLimitOffer(address(weth), 500, tokenInfo.tokenAddress, 250, FEE_SCHEDULE_STANDARD, address(0), "");
@@ -590,7 +590,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
 
         entity.startTokenSale(500, address(weth), 1000);
 
-        weth.deposit{value: 500}();
+        weth.deposit{ value: 500 }();
         weth.approve(address(marketProxy), 500);
 
         TokenInfo memory tokenInfo;
@@ -631,7 +631,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
 
         entity.startTokenSale(500, address(weth), 1000);
 
-        weth.deposit{value: 1000}();
+        weth.deposit{ value: 1000 }();
         weth.approve(address(marketProxy), 1000);
 
         TokenInfo memory tokenInfo;
@@ -670,7 +670,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         (tokenInfo.tokenAddress, tokenInfo.currentTokenSaleOfferId) = entity.getTokenInfo(address(weth));
 
         assertEq(IERC20(tokenInfo.tokenAddress).totalSupply(), 500);
-        weth.deposit{value: 1000}();
+        weth.deposit{ value: 1000 }();
         weth.approve(address(marketProxy), 1000);
 
         vm.prank(account3);
@@ -722,7 +722,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         (tokenInfo.tokenAddress, tokenInfo.currentTokenSaleOfferId) = entity.getTokenInfo(address(weth));
 
         assertEq(IERC20(tokenInfo.tokenAddress).totalSupply(), 500);
-        weth.deposit{value: 1000}();
+        weth.deposit{ value: 1000 }();
         weth.approve(address(entityAddress), 1000);
 
         entity.deposit(address(weth), 1000);
@@ -749,7 +749,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         address tokenHolder1 = entity.getTokenHolderAtIndex(address(weth), 1);
         assertEq(tokenHolder1, address(marketProxy));
 
-        weth.deposit{value: 500}();
+        weth.deposit{ value: 500 }();
         weth.approve(address(marketProxy), 500);
 
         TokenInfo memory tokenInfo;
@@ -780,7 +780,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         acl.assignRole(entity.aclContext(), systemManager, ROLE_SYSTEM_MANAGER);
         acl.assignRole(entity.aclContext(), entityManager, ROLE_ENTITY_MANAGER);
         entity.startTokenSale(500, address(weth), 1000);
-        weth.deposit{value: 500}();
+        weth.deposit{ value: 500 }();
         weth.approve(address(marketProxy), 500);
         TokenInfo memory tokenInfo;
         (tokenInfo.tokenAddress, tokenInfo.currentTokenSaleOfferId) = entity.getTokenInfo(address(weth));
@@ -804,7 +804,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         acl.assignRole(entity.aclContext(), systemManager, ROLE_SYSTEM_MANAGER);
         acl.assignRole(entity.aclContext(), entityManager, ROLE_ENTITY_MANAGER);
         entity.startTokenSale(500, address(weth), 1000);
-        weth.deposit{value: 500}();
+        weth.deposit{ value: 500 }();
         weth.approve(address(marketProxy), 500);
         TokenInfo memory tokenInfo;
         (tokenInfo.tokenAddress, tokenInfo.currentTokenSaleOfferId) = entity.getTokenInfo(address(weth));
@@ -832,7 +832,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         acl.assignRole(entity.aclContext(), systemManager, ROLE_SYSTEM_MANAGER);
         acl.assignRole(entity.aclContext(), entityManager, ROLE_ENTITY_MANAGER);
         entity.startTokenSale(500, address(weth), 1000);
-        weth.deposit{value: 500}();
+        weth.deposit{ value: 500 }();
         weth.approve(address(marketProxy), 500);
         TokenInfo memory tokenInfo;
         (tokenInfo.tokenAddress, tokenInfo.currentTokenSaleOfferId) = entity.getTokenInfo(address(weth));
@@ -855,7 +855,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         acl.assignRole(entity.aclContext(), systemManager, ROLE_SYSTEM_MANAGER);
         acl.assignRole(entity.aclContext(), entityManager, ROLE_ENTITY_MANAGER);
         entity.startTokenSale(500, address(weth), 1000);
-        weth.deposit{value: 500}();
+        weth.deposit{ value: 500 }();
         weth.approve(address(marketProxy), 500);
         TokenInfo memory tokenInfo;
         (tokenInfo.tokenAddress, tokenInfo.currentTokenSaleOfferId) = entity.getTokenInfo(address(weth));
@@ -884,7 +884,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         acl.assignRole(entity.aclContext(), systemManager, ROLE_SYSTEM_MANAGER);
         acl.assignRole(entity.aclContext(), entityManager, ROLE_ENTITY_MANAGER);
         entity.startTokenSale(500, address(weth), 1000);
-        weth.deposit{value: 500}();
+        weth.deposit{ value: 500 }();
         weth.approve(address(marketProxy), 500);
         TokenInfo memory tokenInfo;
         (tokenInfo.tokenAddress, tokenInfo.currentTokenSaleOfferId) = entity.getTokenInfo(address(weth));
@@ -916,7 +916,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         acl.assignRole(entity.aclContext(), systemManager, ROLE_SYSTEM_MANAGER);
         acl.assignRole(entity.aclContext(), entityManager, ROLE_ENTITY_MANAGER);
         entity.startTokenSale(500, address(weth), 1000);
-        weth.deposit{value: 500}();
+        weth.deposit{ value: 500 }();
         weth.approve(address(marketProxy), 500);
         TokenInfo memory tokenInfo;
         (tokenInfo.tokenAddress, tokenInfo.currentTokenSaleOfferId) = entity.getTokenInfo(address(weth));
@@ -948,7 +948,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         acl.assignRole(entity.aclContext(), systemManager, ROLE_SYSTEM_MANAGER);
         acl.assignRole(entity.aclContext(), entityManager, ROLE_ENTITY_MANAGER);
         entity.startTokenSale(500, address(weth), 1000);
-        weth.deposit{value: 500}();
+        weth.deposit{ value: 500 }();
         weth.approve(address(marketProxy), 500);
         TokenInfo memory tokenInfo;
         (tokenInfo.tokenAddress, tokenInfo.currentTokenSaleOfferId) = entity.getTokenInfo(address(weth));
@@ -981,7 +981,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         acl.assignRole(entity.aclContext(), systemManager, ROLE_SYSTEM_MANAGER);
         acl.assignRole(entity.aclContext(), entityManager, ROLE_ENTITY_MANAGER);
         entity.startTokenSale(500, address(weth), 1000);
-        weth.deposit{value: 500}();
+        weth.deposit{ value: 500 }();
         weth.approve(address(marketProxy), 500);
         TokenInfo memory tokenInfo;
         (tokenInfo.tokenAddress, tokenInfo.currentTokenSaleOfferId) = entity.getTokenInfo(address(weth));
@@ -1243,7 +1243,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders, approvalSignatures);
 
         // caller is an underwriter or broker
-        weth.deposit{value: 500}();
+        weth.deposit{ value: 500 }();
         weth.approve(entityAddress, 500);
 
         entity.deposit(address(weth), 500);
@@ -1280,7 +1280,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
 
         entity.updateEnabledCurrency(underlying, collateralRatio, maxCapital);
 
-        weth.deposit{value: 500}();
+        weth.deposit{ value: 500 }();
         weth.approve(entityAddress, 500);
         entity.deposit(address(weth), 500);
 
@@ -1353,7 +1353,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
 
         entity.updateEnabledCurrency(underlying, collateralRatio, maxCapital);
 
-        weth.deposit{value: 500}();
+        weth.deposit{ value: 500 }();
         weth.approve(entityAddress, 500);
         entity.deposit(address(weth), 500);
 
@@ -1414,7 +1414,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
 
         entity.updateEnabledCurrency(underlying, collateralRatio, maxCapital);
 
-        weth.deposit{value: 500}();
+        weth.deposit{ value: 500 }();
         weth.approve(entityAddress, 500);
         entity.deposit(address(weth), 500);
 

@@ -11,7 +11,7 @@ import "./base/IMarketObserverDataTypes.sol";
 import "./base/Strings.sol";
 import "./EntityFacetBase.sol";
 import "./EntityToken.sol";
-import {Address} from "./base/Address.sol";
+import { Address } from "./base/Address.sol";
 
 contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEntityTokensFacet, IMarketObserver, IMarketObserverDataTypes, IDiamondFacet {
     using Strings for string;

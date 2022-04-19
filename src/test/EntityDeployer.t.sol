@@ -2,25 +2,25 @@
 pragma solidity >=0.8.9;
 import "./utils/DSTestPlusF.sol";
 
-import {IACLConstants} from "../../contracts/base/IACLConstants.sol";
-import {ISettingsKeys} from "../../contracts/base/ISettingsKeys.sol";
+import { IACLConstants } from "../../contracts/base/IACLConstants.sol";
+import { ISettingsKeys } from "../../contracts/base/ISettingsKeys.sol";
 
-import {ACL} from "../../contracts/ACL.sol";
-import {Settings} from "../../contracts/Settings.sol";
-import {ISettings} from "../../contracts/base/ISettings.sol";
+import { ACL } from "../../contracts/ACL.sol";
+import { Settings } from "../../contracts/Settings.sol";
+import { ISettings } from "../../contracts/base/ISettings.sol";
 
-import {IEntityDeployer} from "../../contracts/base/IEntityDeployer.sol";
-import {IEntity} from "../../contracts/base/IEntity.sol";
-import {EntityDeployer} from "../../contracts/EntityDeployer.sol";
-import {EntityDelegate} from "../../contracts/EntityDelegate.sol";
-import {EntityCoreFacet} from "../../contracts/EntityCoreFacet.sol";
-import {EntityFundingFacet} from "../../contracts/EntityFundingFacet.sol";
-import {EntityTokensFacet} from "../../contracts/EntityTokensFacet.sol";
-import {EntityDividendsFacet} from "../../contracts/EntityDividendsFacet.sol";
-import {EntityTreasuryFacet} from "../../contracts/EntityTreasuryFacet.sol";
-import {EntityTreasuryBridgeFacet} from "../../contracts/EntityTreasuryBridgeFacet.sol";
-import {EntitySimplePolicyCoreFacet} from "../../contracts/EntitySimplePolicyCoreFacet.sol";
-import {EntitySimplePolicyDataFacet} from "../../contracts/EntitySimplePolicyDataFacet.sol";
+import { IEntityDeployer } from "../../contracts/base/IEntityDeployer.sol";
+import { IEntity } from "../../contracts/base/IEntity.sol";
+import { EntityDeployer } from "../../contracts/EntityDeployer.sol";
+import { EntityDelegate } from "../../contracts/EntityDelegate.sol";
+import { EntityCoreFacet } from "../../contracts/EntityCoreFacet.sol";
+import { EntityFundingFacet } from "../../contracts/EntityFundingFacet.sol";
+import { EntityTokensFacet } from "../../contracts/EntityTokensFacet.sol";
+import { EntityDividendsFacet } from "../../contracts/EntityDividendsFacet.sol";
+import { EntityTreasuryFacet } from "../../contracts/EntityTreasuryFacet.sol";
+import { EntityTreasuryBridgeFacet } from "../../contracts/EntityTreasuryBridgeFacet.sol";
+import { EntitySimplePolicyCoreFacet } from "../../contracts/EntitySimplePolicyCoreFacet.sol";
+import { EntitySimplePolicyDataFacet } from "../../contracts/EntitySimplePolicyDataFacet.sol";
 
 contract EntityDeployerTest is DSTestPlusF, IACLConstants, ISettingsKeys {
     ACL internal acl;
@@ -144,7 +144,7 @@ contract EntityDeployerTest is DSTestPlusF, IACLConstants, ISettingsKeys {
     }
 
     function testEntityDeployerCannotReceiveEth() public {
-        (bool sent, bytes memory data) = address(entityDeployer).call{value: 1}("");
+        (bool sent, bytes memory data) = address(entityDeployer).call{ value: 1 }("");
         if (!sent) emit log_named_bytes32("Failed to send Ether", bytes32(data));
         // require(sent, "Failed to send Ether");
     }

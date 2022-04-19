@@ -2,20 +2,20 @@
 pragma solidity >=0.8.9;
 import "./utils/DSTestPlusF.sol";
 
-import {IACLConstants} from "../../contracts/base/IACLConstants.sol";
-import {ISettingsKeys} from "../../contracts/base/ISettingsKeys.sol";
-import {AccessControl} from "../../contracts/base/AccessControl.sol";
-import {ACL} from "../../contracts/ACL.sol";
-import {Settings} from "../../contracts/Settings.sol";
+import { IACLConstants } from "../../contracts/base/IACLConstants.sol";
+import { ISettingsKeys } from "../../contracts/base/ISettingsKeys.sol";
+import { AccessControl } from "../../contracts/base/AccessControl.sol";
+import { ACL } from "../../contracts/ACL.sol";
+import { Settings } from "../../contracts/Settings.sol";
 
-import {ISettings} from "../../contracts/base/ISettings.sol";
+import { ISettings } from "../../contracts/base/ISettings.sol";
 
-import {FeeBank} from "../../contracts/FeeBank.sol";
-import {FeeBankCoreFacet} from "../../contracts/FeeBankCoreFacet.sol";
-import {IFeeBank} from "../../contracts/base/IFeeBank.sol";
-import {IFeeBankCoreFacet} from "../../contracts/base/IFeeBankCoreFacet.sol";
+import { FeeBank } from "../../contracts/FeeBank.sol";
+import { FeeBankCoreFacet } from "../../contracts/FeeBankCoreFacet.sol";
+import { IFeeBank } from "../../contracts/base/IFeeBank.sol";
+import { IFeeBankCoreFacet } from "../../contracts/base/IFeeBankCoreFacet.sol";
 
-import {DummyToken} from "../../contracts/DummyToken.sol";
+import { DummyToken } from "../../contracts/DummyToken.sol";
 
 contract FeeBankTest is DSTestPlusF, IACLConstants, ISettingsKeys {
     ACL internal acl;
@@ -57,7 +57,7 @@ contract FeeBankTest is DSTestPlusF, IACLConstants, ISettingsKeys {
         assertEq(IFeeBankCoreFacet(address(feeBank)).getBalance(address(token1)), 0);
         assertEq(IFeeBankCoreFacet(address(feeBank)).getBalance(address(token2)), 0);
 
-        token1.deposit{value: 100}();
+        token1.deposit{ value: 100 }();
         token1.transfer(address(feeBank), 23);
 
         assertEq(IFeeBankCoreFacet(address(feeBank)).getBalance(address(token1)), 23);

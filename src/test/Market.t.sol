@@ -3,30 +3,30 @@ pragma solidity >=0.8.9;
 import "./utils/DSTestPlusF.sol";
 import "./utils/users/MockAccounts.sol";
 
-import {IACLConstants} from "../../contracts/base/IACLConstants.sol";
-import {ISettingsKeys} from "../../contracts/base/ISettingsKeys.sol";
-import {AccessControl} from "../../contracts/base/AccessControl.sol";
-import {ACL} from "../../contracts/ACL.sol";
-import {Settings} from "../../contracts/Settings.sol";
-import {ISettings} from "../../contracts/base/ISettings.sol";
+import { IACLConstants } from "../../contracts/base/IACLConstants.sol";
+import { ISettingsKeys } from "../../contracts/base/ISettingsKeys.sol";
+import { AccessControl } from "../../contracts/base/AccessControl.sol";
+import { ACL } from "../../contracts/ACL.sol";
+import { Settings } from "../../contracts/Settings.sol";
+import { ISettings } from "../../contracts/base/ISettings.sol";
 
-import {IMarket} from "../../contracts/base/IMarket.sol";
-import {IMarketFeeSchedules} from "../../contracts/base/IMarketFeeSchedules.sol";
-import {IMarketDataFacet} from "../../contracts/base/IMarketDataFacet.sol";
-import {IMarketOfferStates} from "../../contracts/base/IMarketOfferStates.sol";
-import {Market} from "../../contracts/Market.sol";
-import {MarketCoreFacet} from "../../contracts/MarketCoreFacet.sol";
-import {MarketDataFacet} from "../../contracts/MarketDataFacet.sol";
+import { IMarket } from "../../contracts/base/IMarket.sol";
+import { IMarketFeeSchedules } from "../../contracts/base/IMarketFeeSchedules.sol";
+import { IMarketDataFacet } from "../../contracts/base/IMarketDataFacet.sol";
+import { IMarketOfferStates } from "../../contracts/base/IMarketOfferStates.sol";
+import { Market } from "../../contracts/Market.sol";
+import { MarketCoreFacet } from "../../contracts/MarketCoreFacet.sol";
+import { MarketDataFacet } from "../../contracts/MarketDataFacet.sol";
 
-import {FeeBank} from "../../contracts/FeeBank.sol";
-import {FeeBankCoreFacet} from "../../contracts/FeeBankCoreFacet.sol";
+import { FeeBank } from "../../contracts/FeeBank.sol";
+import { FeeBankCoreFacet } from "../../contracts/FeeBankCoreFacet.sol";
 
-import {DummyToken} from "../../contracts/DummyToken.sol";
+import { DummyToken } from "../../contracts/DummyToken.sol";
 
-import {EntityDeployer} from "../../contracts/EntityDeployer.sol";
+import { EntityDeployer } from "../../contracts/EntityDeployer.sol";
 
-import {DummyMarketCaller} from "../../contracts/test/DummyMarketCaller.sol";
-import {DummyMarketObserver} from "../../contracts/test/DummyMarketObserver.sol";
+import { DummyMarketCaller } from "../../contracts/test/DummyMarketCaller.sol";
+import { DummyMarketObserver } from "../../contracts/test/DummyMarketObserver.sol";
 
 contract MarketTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, IMarketOfferStates, IMarketFeeSchedules {
     ACL internal acl;
@@ -95,37 +95,37 @@ contract MarketTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         vm.deal(account4, 1 ether);
 
         mintAmount = 1000;
-        dai.deposit{value: mintAmount}();
-        dai2.deposit{value: mintAmount}();
-        weth.deposit{value: mintAmount}();
-        weth2.deposit{value: mintAmount}();
+        dai.deposit{ value: mintAmount }();
+        dai2.deposit{ value: mintAmount }();
+        weth.deposit{ value: mintAmount }();
+        weth2.deposit{ value: mintAmount }();
 
         vm.startPrank(account1);
-        dai.deposit{value: mintAmount}();
-        dai2.deposit{value: mintAmount}();
-        weth.deposit{value: mintAmount}();
-        weth2.deposit{value: mintAmount}();
+        dai.deposit{ value: mintAmount }();
+        dai2.deposit{ value: mintAmount }();
+        weth.deposit{ value: mintAmount }();
+        weth2.deposit{ value: mintAmount }();
         vm.stopPrank();
 
         vm.startPrank(account2);
-        dai.deposit{value: mintAmount}();
-        dai2.deposit{value: mintAmount}();
-        weth.deposit{value: mintAmount}();
-        weth2.deposit{value: mintAmount}();
+        dai.deposit{ value: mintAmount }();
+        dai2.deposit{ value: mintAmount }();
+        weth.deposit{ value: mintAmount }();
+        weth2.deposit{ value: mintAmount }();
         vm.stopPrank();
 
         vm.startPrank(account3);
-        dai.deposit{value: mintAmount}();
-        dai2.deposit{value: mintAmount}();
-        weth.deposit{value: mintAmount}();
-        weth2.deposit{value: mintAmount}();
+        dai.deposit{ value: mintAmount }();
+        dai2.deposit{ value: mintAmount }();
+        weth.deposit{ value: mintAmount }();
+        weth2.deposit{ value: mintAmount }();
         vm.stopPrank();
 
         vm.startPrank(account4);
-        dai.deposit{value: mintAmount}();
-        dai2.deposit{value: mintAmount}();
-        weth.deposit{value: mintAmount}();
-        weth2.deposit{value: mintAmount}();
+        dai.deposit{ value: mintAmount }();
+        dai2.deposit{ value: mintAmount }();
+        weth.deposit{ value: mintAmount }();
+        weth2.deposit{ value: mintAmount }();
         vm.stopPrank();
 
         market = IMarket(address(marketProxy));

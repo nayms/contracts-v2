@@ -4,65 +4,65 @@ pragma solidity >=0.8.9;
 import "./utils/DSTestPlusF.sol";
 import "./utils/users/MockAccounts.sol";
 
-import {IACLConstants} from "../../contracts/base/IACLConstants.sol";
-import {ISettingsKeys} from "../../contracts/base/ISettingsKeys.sol";
-import {ACL} from "../../contracts/ACL.sol";
-import {Settings} from "../../contracts/Settings.sol";
-import {AccessControl} from "../../contracts/base/AccessControl.sol";
-import {ISettings} from "../../contracts/base/ISettings.sol";
+import { IACLConstants } from "../../contracts/base/IACLConstants.sol";
+import { ISettingsKeys } from "../../contracts/base/ISettingsKeys.sol";
+import { ACL } from "../../contracts/ACL.sol";
+import { Settings } from "../../contracts/Settings.sol";
+import { AccessControl } from "../../contracts/base/AccessControl.sol";
+import { ISettings } from "../../contracts/base/ISettings.sol";
 
-import {IMarketFeeSchedules} from "../../contracts/base/IMarketFeeSchedules.sol";
-import {IMarketDataFacet} from "../../contracts/base/IMarketDataFacet.sol";
-import {IMarket} from "../../contracts/base/IMarket.sol";
-import {Market} from "../../contracts/Market.sol";
-import {MarketCoreFacet} from "../../contracts/MarketCoreFacet.sol";
-import {MarketDataFacet} from "../../contracts/MarketDataFacet.sol";
+import { IMarketFeeSchedules } from "../../contracts/base/IMarketFeeSchedules.sol";
+import { IMarketDataFacet } from "../../contracts/base/IMarketDataFacet.sol";
+import { IMarket } from "../../contracts/base/IMarket.sol";
+import { Market } from "../../contracts/Market.sol";
+import { MarketCoreFacet } from "../../contracts/MarketCoreFacet.sol";
+import { MarketDataFacet } from "../../contracts/MarketDataFacet.sol";
 
-import {EntityDeployer} from "../../contracts/EntityDeployer.sol";
+import { EntityDeployer } from "../../contracts/EntityDeployer.sol";
 
-import {FeeBankCoreFacet} from "../../contracts/FeeBankCoreFacet.sol";
+import { FeeBankCoreFacet } from "../../contracts/FeeBankCoreFacet.sol";
 
-import {FeeBank} from "../../contracts/FeeBank.sol";
+import { FeeBank } from "../../contracts/FeeBank.sol";
 
-import {IPolicyStates} from "../../contracts/base/IPolicyStates.sol";
-import {IPolicyTypes} from "../../contracts/base/IPolicyTypes.sol";
-import {IPolicy} from "../../contracts/base/IPolicy.sol";
-import {ISimplePolicy2} from "../../contracts/base/ISimplePolicy2.sol";
-import {PolicyCoreFacet} from "../../contracts/PolicyCoreFacet.sol";
-import {PolicyClaimsFacet} from "../../contracts/PolicyClaimsFacet.sol";
-import {PolicyCommissionsFacet} from "../../contracts/PolicyCommissionsFacet.sol";
-import {PolicyPremiumsFacet} from "../../contracts/PolicyPremiumsFacet.sol";
-import {PolicyTrancheTokensFacet} from "../../contracts/PolicyTrancheTokensFacet.sol";
-import {PolicyApprovalsFacet} from "../../contracts/PolicyApprovalsFacet.sol";
+import { IPolicyStates } from "../../contracts/base/IPolicyStates.sol";
+import { IPolicyTypes } from "../../contracts/base/IPolicyTypes.sol";
+import { IPolicy } from "../../contracts/base/IPolicy.sol";
+import { ISimplePolicy2 } from "../../contracts/base/ISimplePolicy2.sol";
+import { PolicyCoreFacet } from "../../contracts/PolicyCoreFacet.sol";
+import { PolicyClaimsFacet } from "../../contracts/PolicyClaimsFacet.sol";
+import { PolicyCommissionsFacet } from "../../contracts/PolicyCommissionsFacet.sol";
+import { PolicyPremiumsFacet } from "../../contracts/PolicyPremiumsFacet.sol";
+import { PolicyTrancheTokensFacet } from "../../contracts/PolicyTrancheTokensFacet.sol";
+import { PolicyApprovalsFacet } from "../../contracts/PolicyApprovalsFacet.sol";
 
-import {PolicyDelegate} from "../../contracts/PolicyDelegate.sol";
+import { PolicyDelegate } from "../../contracts/PolicyDelegate.sol";
 
-import {EntityCoreFacet} from "../../contracts/EntityCoreFacet.sol";
-import {EntityFundingFacet} from "../../contracts/EntityFundingFacet.sol";
-import {EntityTokensFacet} from "../../contracts/EntityTokensFacet.sol";
-import {EntityDividendsFacet} from "../../contracts/EntityDividendsFacet.sol";
-import {EntityTreasuryFacet} from "../../contracts/EntityTreasuryFacet.sol";
-import {EntityTreasuryBridgeFacet} from "../../contracts/EntityTreasuryBridgeFacet.sol";
-import {EntitySimplePolicyCoreFacet} from "../../contracts/EntitySimplePolicyCoreFacet.sol";
-import {EntitySimplePolicyDataFacet} from "../../contracts/EntitySimplePolicyDataFacet.sol";
+import { EntityCoreFacet } from "../../contracts/EntityCoreFacet.sol";
+import { EntityFundingFacet } from "../../contracts/EntityFundingFacet.sol";
+import { EntityTokensFacet } from "../../contracts/EntityTokensFacet.sol";
+import { EntityDividendsFacet } from "../../contracts/EntityDividendsFacet.sol";
+import { EntityTreasuryFacet } from "../../contracts/EntityTreasuryFacet.sol";
+import { EntityTreasuryBridgeFacet } from "../../contracts/EntityTreasuryBridgeFacet.sol";
+import { EntitySimplePolicyCoreFacet } from "../../contracts/EntitySimplePolicyCoreFacet.sol";
+import { EntitySimplePolicyDataFacet } from "../../contracts/EntitySimplePolicyDataFacet.sol";
 
-import {IEntity} from "../../contracts/base/IEntity.sol";
-import {EntityDelegate} from "../../contracts/EntityDelegate.sol";
-import {Entity} from "../../contracts/Entity.sol";
+import { IEntity } from "../../contracts/base/IEntity.sol";
+import { EntityDelegate } from "../../contracts/EntityDelegate.sol";
+import { Entity } from "../../contracts/Entity.sol";
 
-import {DummyEntityFacet} from "../../contracts/test/DummyEntityFacet.sol";
-import {EntityTreasuryTestFacet} from "../../contracts/test/EntityTreasuryTestFacet.sol";
-import {IEntityTreasuryTestFacet} from "../../contracts/test/EntityTreasuryTestFacet.sol";
+import { DummyEntityFacet } from "../../contracts/test/DummyEntityFacet.sol";
+import { EntityTreasuryTestFacet } from "../../contracts/test/EntityTreasuryTestFacet.sol";
+import { IEntityTreasuryTestFacet } from "../../contracts/test/EntityTreasuryTestFacet.sol";
 
-import {DummyToken} from "../../contracts/DummyToken.sol";
+import { DummyToken } from "../../contracts/DummyToken.sol";
 
-import {CommonUpgradeFacet} from "../../contracts/CommonUpgradeFacet.sol";
+import { CommonUpgradeFacet } from "../../contracts/CommonUpgradeFacet.sol";
 
-import {FreezeUpgradesFacet} from "../../contracts/test/FreezeUpgradesFacet.sol";
+import { FreezeUpgradesFacet } from "../../contracts/test/FreezeUpgradesFacet.sol";
 
-import {IDiamondProxy} from "../../contracts/base/IDiamondProxy.sol";
-import {Strings} from "../../contracts/base/Strings.sol";
-import {Address} from "../../contracts/base/Address.sol";
+import { IDiamondProxy } from "../../contracts/base/IDiamondProxy.sol";
+import { Strings } from "../../contracts/base/Strings.sol";
+import { Address } from "../../contracts/base/Address.sol";
 
 interface IProxy {
     function getDelegateAddress() external view returns (address);
@@ -439,7 +439,7 @@ contract IntegrationSPVTest is DSTestPlusF, MockAccounts, IACLConstants, ISettin
         policy.approve(ROLE_PENDING_BROKER);
         vm.prank(claimsAdminRep);
         policy.approve(ROLE_PENDING_CLAIMS_ADMIN);
-        weth.deposit{value: 100000}();
+        weth.deposit{ value: 100000 }();
         weth.approve(address(policy), 100000);
         policy.payTranchePremium(0, 1000);
         policy.payTranchePremium(2, 1000);
@@ -463,7 +463,7 @@ contract IntegrationSPVTest is DSTestPlusF, MockAccounts, IACLConstants, ISettin
         policy.approve(ROLE_PENDING_BROKER);
         vm.prank(claimsAdminRep);
         policy.approve(ROLE_PENDING_CLAIMS_ADMIN);
-        weth.deposit{value: 100000}();
+        weth.deposit{ value: 100000 }();
         weth.approve(address(policy), 100000);
         policy.payTranchePremium(0, 1000);
         policy.payTranchePremium(1, 1000);
@@ -507,7 +507,7 @@ contract IntegrationSPVTest is DSTestPlusF, MockAccounts, IACLConstants, ISettin
         policy.approve(ROLE_PENDING_BROKER);
         vm.prank(claimsAdminRep);
         policy.approve(ROLE_PENDING_CLAIMS_ADMIN);
-        weth.deposit{value: 100000}();
+        weth.deposit{ value: 100000 }();
         weth.approve(address(policy), 100000);
         policy.payTranchePremium(0, 1000);
         policy.payTranchePremium(1, 1000);
@@ -544,7 +544,7 @@ contract IntegrationSPVTest is DSTestPlusF, MockAccounts, IACLConstants, ISettin
         policy.approve(ROLE_PENDING_BROKER);
         vm.prank(claimsAdminRep);
         policy.approve(ROLE_PENDING_CLAIMS_ADMIN);
-        weth.deposit{value: 100000}();
+        weth.deposit{ value: 100000 }();
         weth.approve(address(policy), 100000);
         policy.payTranchePremium(0, 1000);
         policy.payTranchePremium(1, 1000);
@@ -565,7 +565,7 @@ contract IntegrationSPVTest is DSTestPlusF, MockAccounts, IACLConstants, ISettin
 
         vm.deal(account2, 25);
         vm.prank(account2);
-        weth.deposit{value: 25}();
+        weth.deposit{ value: 25 }();
 
         vm.prank(insuredPartyRep);
         vm.expectRevert("must be in active state");
@@ -619,7 +619,7 @@ contract IntegrationSPVTest is DSTestPlusF, MockAccounts, IACLConstants, ISettin
         policy.approve(ROLE_PENDING_BROKER);
         vm.prank(claimsAdminRep);
         policy.approve(ROLE_PENDING_CLAIMS_ADMIN);
-        weth.deposit{value: 100000}();
+        weth.deposit{ value: 100000 }();
         weth.approve(address(policy), 100000);
         policy.payTranchePremium(0, 1000);
         policy.payTranchePremium(1, 1000);
@@ -640,7 +640,7 @@ contract IntegrationSPVTest is DSTestPlusF, MockAccounts, IACLConstants, ISettin
 
         vm.deal(account2, 25);
         vm.prank(account2);
-        weth.deposit{value: 25}();
+        weth.deposit{ value: 25 }();
 
         (address trancheToken0, , , , , , , , ) = policy.getTrancheInfo(0);
         IERC20 tt0 = IERC20(trancheToken0);
@@ -694,7 +694,7 @@ contract IntegrationSPVTest is DSTestPlusF, MockAccounts, IACLConstants, ISettin
         policy.approve(ROLE_PENDING_BROKER);
         vm.prank(claimsAdminRep);
         policy.approve(ROLE_PENDING_CLAIMS_ADMIN);
-        weth.deposit{value: 100000}();
+        weth.deposit{ value: 100000 }();
         weth.approve(address(policy), 100000);
         policy.payTranchePremium(0, 1000);
         policy.payTranchePremium(1, 1000);
@@ -715,13 +715,13 @@ contract IntegrationSPVTest is DSTestPlusF, MockAccounts, IACLConstants, ISettin
 
         vm.deal(account2, 25);
         vm.prank(account2);
-        weth.deposit{value: 25}();
+        weth.deposit{ value: 25 }();
 
         (address trancheToken0, , , , , , , , ) = policy.getTrancheInfo(0);
 
         vm.startPrank(account2);
         vm.deal(account2, 200);
-        weth.deposit{value: 200}();
+        weth.deposit{ value: 200 }();
         weth.approve(address(market), 200);
         market.executeLimitOffer(address(weth), 200, address(trancheToken0), 100, FEE_SCHEDULE_STANDARD, address(0), "");
 
@@ -750,7 +750,7 @@ contract IntegrationSPVTest is DSTestPlusF, MockAccounts, IACLConstants, ISettin
         policy.approve(ROLE_PENDING_BROKER);
         vm.prank(claimsAdminRep);
         policy.approve(ROLE_PENDING_CLAIMS_ADMIN);
-        weth.deposit{value: 100000}();
+        weth.deposit{ value: 100000 }();
         weth.approve(address(policy), 100000);
         policy.payTranchePremium(0, 1000);
         policy.payTranchePremium(1, 1000);
@@ -771,13 +771,13 @@ contract IntegrationSPVTest is DSTestPlusF, MockAccounts, IACLConstants, ISettin
 
         vm.deal(account2, 25);
         vm.startPrank(account2);
-        weth.deposit{value: 25}();
+        weth.deposit{ value: 25 }();
 
         (address trancheToken0, , , , , , , , ) = policy.getTrancheInfo(0);
         IERC20 tt0 = IERC20(trancheToken0);
 
         vm.deal(account2, 200);
-        weth.deposit{value: 200}();
+        weth.deposit{ value: 200 }();
         weth.approve(address(market), 200);
         market.executeLimitOffer(address(weth), 200, address(trancheToken0), 100, FEE_SCHEDULE_STANDARD, address(0), "");
 
@@ -811,7 +811,7 @@ contract IntegrationSPVTest is DSTestPlusF, MockAccounts, IACLConstants, ISettin
         policy.approve(ROLE_PENDING_BROKER);
         vm.prank(claimsAdminRep);
         policy.approve(ROLE_PENDING_CLAIMS_ADMIN);
-        weth.deposit{value: 100000}();
+        weth.deposit{ value: 100000 }();
         weth.approve(address(policy), 100000);
         policy.payTranchePremium(0, 1000);
         policy.payTranchePremium(1, 1000);
@@ -823,7 +823,7 @@ contract IntegrationSPVTest is DSTestPlusF, MockAccounts, IACLConstants, ISettin
         assertEq(policyState, POLICY_STATE_INITIATED);
 
         // vm.deal(account2, 1000000);
-        weth.deposit{value: 1000000}();
+        weth.deposit{ value: 1000000 }();
         weth.approve(address(policy), 1000000);
         policy.payTranchePremium(0, 2000);
         policy.payTranchePremium(1, 2000);
@@ -860,12 +860,12 @@ contract IntegrationSPVTest is DSTestPlusF, MockAccounts, IACLConstants, ISettin
         policy.approve(ROLE_PENDING_BROKER);
         vm.prank(claimsAdminRep);
         policy.approve(ROLE_PENDING_CLAIMS_ADMIN);
-        weth.deposit{value: 100000}();
+        weth.deposit{ value: 100000 }();
         weth.approve(address(policy), 100000);
         policy.payTranchePremium(0, 1000);
         policy.payTranchePremium(1, 1000);
 
-        weth.deposit{value: 1000000}();
+        weth.deposit{ value: 1000000 }();
         weth.approve(address(policy), 1000000);
         policy.payTranchePremium(0, 2000);
         policy.payTranchePremium(1, 2000);
@@ -880,7 +880,7 @@ contract IntegrationSPVTest is DSTestPlusF, MockAccounts, IACLConstants, ISettin
         (address trancheToken0, , , , , , , , ) = policy.getTrancheInfo(0);
 
         vm.deal(account2, 1000000);
-        weth.deposit{value: 1000000}();
+        weth.deposit{ value: 1000000 }();
         weth.approve(address(market), 200);
         market.executeLimitOffer(address(weth), 200, address(trancheToken0), 100, FEE_SCHEDULE_STANDARD, address(0), "");
 
@@ -899,12 +899,12 @@ contract IntegrationSPVTest is DSTestPlusF, MockAccounts, IACLConstants, ISettin
         policy.approve(ROLE_PENDING_BROKER);
         vm.prank(claimsAdminRep);
         policy.approve(ROLE_PENDING_CLAIMS_ADMIN);
-        weth.deposit{value: 100000}();
+        weth.deposit{ value: 100000 }();
         weth.approve(address(policy), 100000);
         policy.payTranchePremium(0, 1000);
         policy.payTranchePremium(1, 1000);
 
-        weth.deposit{value: 1000000}();
+        weth.deposit{ value: 1000000 }();
         weth.approve(address(policy), 1000000);
         policy.payTranchePremium(0, 2000);
         policy.payTranchePremium(1, 2000);
@@ -916,7 +916,7 @@ contract IntegrationSPVTest is DSTestPlusF, MockAccounts, IACLConstants, ISettin
 
         vm.startPrank(account2);
         vm.deal(account2, 1000000);
-        weth.deposit{value: 1000000}();
+        weth.deposit{ value: 1000000 }();
         weth.approve(address(market), 200);
         market.executeLimitOffer(address(weth), 200, address(trancheToken0), 100, FEE_SCHEDULE_STANDARD, address(0), "");
 
@@ -946,12 +946,12 @@ contract IntegrationSPVTest is DSTestPlusF, MockAccounts, IACLConstants, ISettin
         policy.approve(ROLE_PENDING_BROKER);
         vm.prank(claimsAdminRep);
         policy.approve(ROLE_PENDING_CLAIMS_ADMIN);
-        weth.deposit{value: 100000}();
+        weth.deposit{ value: 100000 }();
         weth.approve(address(policy), 100000);
         policy.payTranchePremium(0, 1000);
         policy.payTranchePremium(1, 1000);
 
-        weth.deposit{value: 1000000}();
+        weth.deposit{ value: 1000000 }();
         weth.approve(address(policy), 1000000);
         policy.payTranchePremium(0, 2000);
         policy.payTranchePremium(1, 2000);
@@ -964,7 +964,7 @@ contract IntegrationSPVTest is DSTestPlusF, MockAccounts, IACLConstants, ISettin
 
         vm.startPrank(account2);
         vm.deal(account2, 2000000);
-        weth.deposit{value: 2000000}();
+        weth.deposit{ value: 2000000 }();
         weth.approve(address(market), 200);
         market.executeLimitOffer(address(weth), 200, address(trancheToken0), 100, FEE_SCHEDULE_STANDARD, address(0), "");
 
@@ -989,12 +989,12 @@ contract IntegrationSPVTest is DSTestPlusF, MockAccounts, IACLConstants, ISettin
         policy.approve(ROLE_PENDING_BROKER);
         vm.prank(claimsAdminRep);
         policy.approve(ROLE_PENDING_CLAIMS_ADMIN);
-        weth.deposit{value: 100000}();
+        weth.deposit{ value: 100000 }();
         weth.approve(address(policy), 100000);
         policy.payTranchePremium(0, 1000);
         policy.payTranchePremium(1, 1000);
 
-        weth.deposit{value: 1000000}();
+        weth.deposit{ value: 1000000 }();
         weth.approve(address(policy), 1000000);
         policy.payTranchePremium(0, 1000);
         policy.payTranchePremium(1, 1000);
@@ -1007,7 +1007,7 @@ contract IntegrationSPVTest is DSTestPlusF, MockAccounts, IACLConstants, ISettin
 
         vm.startPrank(account2);
         vm.deal(account2, 2000000);
-        weth.deposit{value: 2000000}();
+        weth.deposit{ value: 2000000 }();
         weth.approve(address(market), 2000000);
         market.executeLimitOffer(address(weth), 200, address(trancheToken0), 100, FEE_SCHEDULE_STANDARD, address(0), "");
         market.executeLimitOffer(address(weth), 100, address(trancheToken1), 50, FEE_SCHEDULE_STANDARD, address(0), "");
@@ -1054,12 +1054,12 @@ contract IntegrationSPVTest is DSTestPlusF, MockAccounts, IACLConstants, ISettin
         policy.approve(ROLE_PENDING_BROKER);
         vm.prank(claimsAdminRep);
         policy.approve(ROLE_PENDING_CLAIMS_ADMIN);
-        weth.deposit{value: 100000}();
+        weth.deposit{ value: 100000 }();
         weth.approve(address(policy), 100000);
         policy.payTranchePremium(0, 1000);
         policy.payTranchePremium(1, 1000);
 
-        weth.deposit{value: 1000000}();
+        weth.deposit{ value: 1000000 }();
         weth.approve(address(policy), 1000000);
         policy.payTranchePremium(0, 1000);
         policy.payTranchePremium(1, 1000);
@@ -1072,7 +1072,7 @@ contract IntegrationSPVTest is DSTestPlusF, MockAccounts, IACLConstants, ISettin
 
         vm.startPrank(account2);
         vm.deal(account2, 2000000);
-        weth.deposit{value: 2000000}();
+        weth.deposit{ value: 2000000 }();
         weth.approve(address(market), 2000000);
         market.executeLimitOffer(address(weth), 200, address(trancheToken0), 100, FEE_SCHEDULE_STANDARD, address(0), "");
         market.executeLimitOffer(address(weth), 100, address(trancheToken1), 50, FEE_SCHEDULE_STANDARD, address(0), "");
@@ -1118,12 +1118,12 @@ contract IntegrationSPVTest is DSTestPlusF, MockAccounts, IACLConstants, ISettin
         policy.approve(ROLE_PENDING_BROKER);
         vm.prank(claimsAdminRep);
         policy.approve(ROLE_PENDING_CLAIMS_ADMIN);
-        weth.deposit{value: 100000}();
+        weth.deposit{ value: 100000 }();
         weth.approve(address(policy), 100000);
         policy.payTranchePremium(0, 1000);
         policy.payTranchePremium(1, 1000);
 
-        weth.deposit{value: 1000000}();
+        weth.deposit{ value: 1000000 }();
         weth.approve(address(policy), 1000000);
         policy.payTranchePremium(0, 1000);
         policy.payTranchePremium(1, 1000);
@@ -1136,7 +1136,7 @@ contract IntegrationSPVTest is DSTestPlusF, MockAccounts, IACLConstants, ISettin
 
         vm.startPrank(account2);
         vm.deal(account2, 2000000);
-        weth.deposit{value: 2000000}();
+        weth.deposit{ value: 2000000 }();
         weth.approve(address(market), 2000000);
         market.executeLimitOffer(address(weth), 200, address(trancheToken0), 100, FEE_SCHEDULE_STANDARD, address(0), "");
         market.executeLimitOffer(address(weth), 100, address(trancheToken1), 50, FEE_SCHEDULE_STANDARD, address(0), "");
@@ -1180,12 +1180,12 @@ contract IntegrationSPVTest is DSTestPlusF, MockAccounts, IACLConstants, ISettin
         policy.approve(ROLE_PENDING_BROKER);
         vm.prank(claimsAdminRep);
         policy.approve(ROLE_PENDING_CLAIMS_ADMIN);
-        weth.deposit{value: 100000}();
+        weth.deposit{ value: 100000 }();
         weth.approve(address(policy), 100000);
         policy.payTranchePremium(0, 1000);
         policy.payTranchePremium(1, 1000);
 
-        weth.deposit{value: 1000000}();
+        weth.deposit{ value: 1000000 }();
         weth.approve(address(policy), 1000000);
         policy.payTranchePremium(0, 1000);
         policy.payTranchePremium(1, 1000);
@@ -1198,7 +1198,7 @@ contract IntegrationSPVTest is DSTestPlusF, MockAccounts, IACLConstants, ISettin
 
         vm.startPrank(account2);
         vm.deal(account2, 2000000);
-        weth.deposit{value: 2000000}();
+        weth.deposit{ value: 2000000 }();
         weth.approve(address(market), 2000000);
         market.executeLimitOffer(address(weth), 200, address(trancheToken0), 100, FEE_SCHEDULE_STANDARD, address(0), "");
         market.executeLimitOffer(address(weth), 100, address(trancheToken1), 50, FEE_SCHEDULE_STANDARD, address(0), "");
@@ -1239,12 +1239,12 @@ contract IntegrationSPVTest is DSTestPlusF, MockAccounts, IACLConstants, ISettin
         policy.approve(ROLE_PENDING_BROKER);
         vm.prank(claimsAdminRep);
         policy.approve(ROLE_PENDING_CLAIMS_ADMIN);
-        weth.deposit{value: 100000}();
+        weth.deposit{ value: 100000 }();
         weth.approve(address(policy), 100000);
         policy.payTranchePremium(0, 1000);
         policy.payTranchePremium(1, 1000);
 
-        weth.deposit{value: 1000000}();
+        weth.deposit{ value: 1000000 }();
         weth.approve(address(policy), 1000000);
         policy.payTranchePremium(0, 1000);
         policy.payTranchePremium(1, 1000);
@@ -1257,7 +1257,7 @@ contract IntegrationSPVTest is DSTestPlusF, MockAccounts, IACLConstants, ISettin
 
         vm.startPrank(account2);
         vm.deal(account2, 2000000);
-        weth.deposit{value: 2000000}();
+        weth.deposit{ value: 2000000 }();
         weth.approve(address(market), 2000000);
         market.executeLimitOffer(address(weth), 200, address(trancheToken0), 100, FEE_SCHEDULE_STANDARD, address(0), "");
         market.executeLimitOffer(address(weth), 100, address(trancheToken1), 50, FEE_SCHEDULE_STANDARD, address(0), "");
@@ -1305,12 +1305,12 @@ contract IntegrationSPVTest is DSTestPlusF, MockAccounts, IACLConstants, ISettin
         policy.approve(ROLE_PENDING_BROKER);
         vm.prank(claimsAdminRep);
         policy.approve(ROLE_PENDING_CLAIMS_ADMIN);
-        weth.deposit{value: 100000}();
+        weth.deposit{ value: 100000 }();
         weth.approve(address(policy), 100000);
         policy.payTranchePremium(0, 1000);
         policy.payTranchePremium(1, 1000);
 
-        weth.deposit{value: 1000000}();
+        weth.deposit{ value: 1000000 }();
         weth.approve(address(policy), 1000000);
         policy.payTranchePremium(0, 1000);
         policy.payTranchePremium(1, 1000);
@@ -1323,7 +1323,7 @@ contract IntegrationSPVTest is DSTestPlusF, MockAccounts, IACLConstants, ISettin
 
         vm.startPrank(account2);
         vm.deal(account2, 2000000);
-        weth.deposit{value: 2000000}();
+        weth.deposit{ value: 2000000 }();
         weth.approve(address(market), 2000000);
         market.executeLimitOffer(address(weth), 200, address(trancheToken0), 100, FEE_SCHEDULE_STANDARD, address(0), "");
         market.executeLimitOffer(address(weth), 100, address(trancheToken1), 50, FEE_SCHEDULE_STANDARD, address(0), "");
@@ -1373,12 +1373,12 @@ contract IntegrationSPVTest is DSTestPlusF, MockAccounts, IACLConstants, ISettin
         policy.approve(ROLE_PENDING_BROKER);
         vm.prank(claimsAdminRep);
         policy.approve(ROLE_PENDING_CLAIMS_ADMIN);
-        weth.deposit{value: 100000}();
+        weth.deposit{ value: 100000 }();
         weth.approve(address(policy), 100000);
         policy.payTranchePremium(0, 1000);
         policy.payTranchePremium(1, 1000);
 
-        weth.deposit{value: 1000000}();
+        weth.deposit{ value: 1000000 }();
         weth.approve(address(policy), 1000000);
         policy.payTranchePremium(0, 1000);
         policy.payTranchePremium(1, 1000);
@@ -1391,7 +1391,7 @@ contract IntegrationSPVTest is DSTestPlusF, MockAccounts, IACLConstants, ISettin
 
         vm.startPrank(account2);
         vm.deal(account2, 2000000);
-        weth.deposit{value: 2000000}();
+        weth.deposit{ value: 2000000 }();
         weth.approve(address(market), 2000000);
         market.executeLimitOffer(address(weth), 200, address(trancheToken0), 100, FEE_SCHEDULE_STANDARD, address(0), "");
         market.executeLimitOffer(address(weth), 100, address(trancheToken1), 50, FEE_SCHEDULE_STANDARD, address(0), "");
@@ -1455,12 +1455,12 @@ contract IntegrationSPVTest is DSTestPlusF, MockAccounts, IACLConstants, ISettin
         policy.approve(ROLE_PENDING_BROKER);
         vm.prank(claimsAdminRep);
         policy.approve(ROLE_PENDING_CLAIMS_ADMIN);
-        weth.deposit{value: 100000}();
+        weth.deposit{ value: 100000 }();
         weth.approve(address(policy), 100000);
         policy.payTranchePremium(0, 1000);
         policy.payTranchePremium(1, 1000);
 
-        weth.deposit{value: 1000000}();
+        weth.deposit{ value: 1000000 }();
         weth.approve(address(policy), 1000000);
         policy.payTranchePremium(0, 1000);
         policy.payTranchePremium(1, 1000);
@@ -1473,7 +1473,7 @@ contract IntegrationSPVTest is DSTestPlusF, MockAccounts, IACLConstants, ISettin
 
         vm.startPrank(account2);
         vm.deal(account2, 2000000);
-        weth.deposit{value: 2000000}();
+        weth.deposit{ value: 2000000 }();
         weth.approve(address(market), 2000000);
         market.executeLimitOffer(address(weth), 200, address(trancheToken0), 100, FEE_SCHEDULE_STANDARD, address(0), "");
         market.executeLimitOffer(address(weth), 100, address(trancheToken1), 50, FEE_SCHEDULE_STANDARD, address(0), "");
@@ -1532,12 +1532,12 @@ contract IntegrationSPVTest is DSTestPlusF, MockAccounts, IACLConstants, ISettin
         policy.approve(ROLE_PENDING_BROKER);
         vm.prank(claimsAdminRep);
         policy.approve(ROLE_PENDING_CLAIMS_ADMIN);
-        weth.deposit{value: 100000}();
+        weth.deposit{ value: 100000 }();
         weth.approve(address(policy), 100000);
         policy.payTranchePremium(0, 1000);
         policy.payTranchePremium(1, 1000);
 
-        weth.deposit{value: 1000000}();
+        weth.deposit{ value: 1000000 }();
         weth.approve(address(policy), 1000000);
         policy.payTranchePremium(0, 1000);
         policy.payTranchePremium(1, 1000);
@@ -1550,7 +1550,7 @@ contract IntegrationSPVTest is DSTestPlusF, MockAccounts, IACLConstants, ISettin
 
         vm.startPrank(account2);
         vm.deal(account2, 2000000);
-        weth.deposit{value: 2000000}();
+        weth.deposit{ value: 2000000 }();
         weth.approve(address(market), 2000000);
         market.executeLimitOffer(address(weth), 200, address(trancheToken0), 100, FEE_SCHEDULE_STANDARD, address(0), "");
         market.executeLimitOffer(address(weth), 100, address(trancheToken1), 50, FEE_SCHEDULE_STANDARD, address(0), "");

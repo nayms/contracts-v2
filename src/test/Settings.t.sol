@@ -4,11 +4,11 @@ pragma solidity >=0.8.9;
 import "./utils/DSTestPlusF.sol";
 import "./utils/users/MockAccounts.sol";
 
-import {IACLConstants} from "../../contracts/base/IACLConstants.sol";
-import {ACL} from "../../contracts/ACL.sol";
-import {Settings} from "../../contracts/Settings.sol";
-import {ISettings} from "../../contracts/base/ISettings.sol";
-import {ISettingsKeys} from "../../contracts/base/ISettingsKeys.sol";
+import { IACLConstants } from "../../contracts/base/IACLConstants.sol";
+import { ACL } from "../../contracts/ACL.sol";
+import { Settings } from "../../contracts/Settings.sol";
+import { ISettings } from "../../contracts/base/ISettings.sol";
+import { ISettingsKeys } from "../../contracts/base/ISettingsKeys.sol";
 
 contract SettingsTest is DSTestPlusF, IACLConstants, ISettingsKeys {
     ACL internal acl;

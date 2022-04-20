@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.9;
-
+pragma solidity >=0.8.9;
 import "./base/EternalStorage.sol";
 import "./base/Controller.sol";
 import "./base/IMarket.sol";

@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.9;
-
+pragma solidity >=0.8.9;
 import "./base/Controller.sol";
 import "./base/EternalStorage.sol";
 import "./base/IEntityTokensFacet.sol";
@@ -12,7 +11,7 @@ import "./base/IMarketObserverDataTypes.sol";
 import "./base/Strings.sol";
 import "./EntityFacetBase.sol";
 import "./EntityToken.sol";
-import {Address} from "./base/Address.sol";
+import { Address } from "./base/Address.sol";
 
 contract EntityTokensFacet is EternalStorage, Controller, EntityFacetBase, IEntityTokensFacet, IMarketObserver, IMarketObserverDataTypes, IDiamondFacet {
     using Strings for string;

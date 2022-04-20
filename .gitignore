@@ -23,5 +23,6 @@ contracts.generated.js
 releaseConfig.json
 .jshintrc
 .idea/
+forge-artifacts
 mnemonic.txt
 .env

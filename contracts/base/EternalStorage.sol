@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.9;
+pragma solidity >=0.8.9;
 
 /**
  * @dev Base contract for any upgradeable contract that wishes to store data.

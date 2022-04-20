@@ -1,0 +1,45 @@
+## defaults for _all_ profiles
+[default]
+src = 'src'
+out = 'forge-artifacts'
+libs = ['lib']
+libraries = []
+remappings = [
+    'forge-std/=lib/forge-std/src/',
+    'ds-test/=lib/ds-test/src/',
+    '@openzeppelin/=lib/openzeppelin-conctracts/contracts',
+]
+cache = true
+force = false
+evm_version = 'london'
+gas_reports = ['*']
+## Sets the concrete solc version to use, this overrides the `auto_detect_solc` value
+solc_version = '0.8.13'
+auto_detect_solc = false
+offline = true
+optimizer = true
+optimizer_runs = 200
+via_ir = false
+verbosity = 0
+ignored_error_codes = []
+fuzz_runs = 256
+ffi = false
+sender = '0x000000000000000000000000000000000000acc0'
+tx_origin = '0x000000000000000000000000000000000000acc0'
+initial_balance = '0xffffffffffffffffffffffff'
+block_number = 0
+chain_id = 1
+# NOTE due to a toml-rs limitation, gas_limit value needs to be a string if the desired gas limit exceeds `i64::MAX` (9223372036854775807)
+gas_limit = 9223372036854775807
+gas_price = 0
+block_base_fee_per_gas = 0
+block_coinbase = '0x0000000000000000000000000000000000000000'
+block_timestamp = 0
+block_difficulty = 0
+# If this option is enabled, Solc is instructed to generate output (bytecode) only for the required contracts
+# this can reduce compile time for `forge test` a bit but is considered experimental at this point.
+sparse_mode = true
+
+# See more config options https://github.com/foundry-rs/foundry/tree/master/config
+# 0x0000000000000000000000000000000000000529
+# 0x00a329c0648769a73afac7f9381e08fb43dbea72

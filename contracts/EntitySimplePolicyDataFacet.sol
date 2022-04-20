@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.9;
-
-import {EntityFacetBase, IERC20} from "./EntityFacetBase.sol";
+pragma solidity >=0.8.9;
+import { EntityFacetBase, IERC20 } from "./EntityFacetBase.sol";
 import "./base/Controller.sol";
 import "./base/IDiamondFacet.sol";
 import "./base/IEntitySimplePolicyDataFacet.sol";

@@ -1,26 +1,22 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.9;
 
+import { SimplePolicy, ISimplePolicy } from "../SimplePolicy.sol";
+
 /**
  * @dev Entity core logic.
  */
 interface IEntitySimplePolicyCoreFacet {
+    
     /**
      * @dev Create a new policy.
-     *
-     * `_stakeholders` and '_approvalSignatures'
-     *    * Index 0: Broker entity address.
-     *    * Index 1: Underwriter entity address.
-     *    * Index 2: Claims admin entity address.
-     *    * Index 3: Insured party entity address.
-     *    * Index 4: Treasury address.
      *
      * @param _id Unique id that represents the policy - this is what stakeholder will sign to approve the policy.
      * @param _startDate Start Date.
      * @param _maturationDate Maturation Date.
      * @param _unit Unit.
      * @param _limit Limit.
-     * @param _approvalSignatures Bulk-approval signatures in order: broker, underwriter, claims admin, insured party
+     * @param _stakeholders data about roles, stakeholder addresses and approval signatures and commissions.
      */
     function createSimplePolicy(
         bytes32 _id,
@@ -28,8 +24,7 @@ interface IEntitySimplePolicyCoreFacet {
         uint256 _maturationDate,
         address _unit,
         uint256 _limit,
-        address[] calldata _stakeholders,
-        bytes[] calldata _approvalSignatures
+        SimplePolicy.Stakeholders calldata _stakeholders
     ) external;
 
     /**

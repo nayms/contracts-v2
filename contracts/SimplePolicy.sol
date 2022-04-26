@@ -7,6 +7,14 @@ import "./base/ISimplePolicy.sol";
 import "./base/ISimplePolicyStates.sol";
 
 contract SimplePolicy is Controller, Proxy, ISimplePolicy, ISimplePolicyStates {
+
+    struct Stakeholders {
+        bytes32[] roles;
+        address[] stakeholdersAddresses;
+        bytes[] approvalSignatures;
+        uint256[] commissions;
+    }
+
     /**
      * @dev SimplePolicy constructor.
      *
@@ -26,8 +34,7 @@ contract SimplePolicy is Controller, Proxy, ISimplePolicy, ISimplePolicyStates {
         uint256 _maturationDate,
         address _unit,
         uint256 _limit,
-        address[] memory _stakeholders,
-        bytes[] memory _approvalSignatures
+        Stakeholders memory _stakeholders
     ) Controller(_settings) Proxy() {
         require(_limit > 0, "limit not > 0");
 
@@ -38,18 +45,30 @@ contract SimplePolicy is Controller, Proxy, ISimplePolicy, ISimplePolicyStates {
         dataAddress["unit"] = _unit;
         dataUint256["limit"] = _limit;
         dataUint256["state"] = POLICY_STATE_CREATED;
-        dataAddress["treasury"] = _stakeholders[4];
+        
+        // dataAddress["treasury"] = _stakeholders[4];
+
+        // stakeholders lookup
+        address broker;
+        address underwriter; 
 
         // set roles
         acl().assignRole(aclContext(), _caller, ROLE_POLICY_OWNER);
-        acl().assignRole(aclContext(), _stakeholders[0], ROLE_BROKER);
-        acl().assignRole(aclContext(), _stakeholders[1], ROLE_UNDERWRITER);
-        acl().assignRole(aclContext(), _stakeholders[2], ROLE_CLAIMS_ADMIN);
-        acl().assignRole(aclContext(), _stakeholders[3], ROLE_INSURED_PARTY);
+        for (uint256 i = 0; i < _stakeholders.roles.length; i += 1) {
+            bytes32 role = _stakeholders.roles[i];
+            acl().assignRole(aclContext(), _stakeholders.stakeholdersAddresses[i], role);
+
+            // store reverse lookup for assertion below
+            if(role == ROLE_BROKER) {
+                broker = _stakeholders.stakeholdersAddresses[i];
+            } else if(role == ROLE_UNDERWRITER) {
+                underwriter = _stakeholders.stakeholdersAddresses[i];
+            }
+        }
 
         bool underwriterRep_;
         bool brokerRep_;
-        (underwriterRep_, brokerRep_) = _isBrokerOrUnderwriterRep(_caller, _stakeholders[0], _stakeholders[1]);
+        (underwriterRep_, brokerRep_) = _isBrokerOrUnderwriterRep(_caller, broker, underwriter);
 
         require(underwriterRep_ || brokerRep_, "must be broker or underwriter");
 

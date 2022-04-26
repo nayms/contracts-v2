@@ -40,8 +40,7 @@ contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCore
         uint256 _maturationDate,
         address _unit,
         uint256 _limit,
-        address[] calldata _stakeholders,
-        bytes[] calldata _approvalSignatures
+        SimplePolicy.Stakeholders calldata _stakeholders
     ) external override {
         _validateSimplePolicyCreation(_unit, _limit);
         dataUint256[__a(_unit, "totalLimit")] += _limit;
@@ -55,8 +54,7 @@ contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCore
             _maturationDate,
             _unit,
             _limit,
-            _stakeholders,
-            _approvalSignatures
+            _stakeholders
         );
 
         dataAddress[__i(dataUint256["numSimplePolicies"], "addressByNumber")] = address(simplePolicy);

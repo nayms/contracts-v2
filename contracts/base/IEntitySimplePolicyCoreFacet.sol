@@ -4,7 +4,7 @@ pragma solidity >=0.8.9;
 import { SimplePolicy, ISimplePolicy } from "../SimplePolicy.sol";
 
 /**
- * @dev Entity core logic.
+ * @dev Core logic for Simple Policies.
  */
 interface IEntitySimplePolicyCoreFacet {
     
@@ -28,28 +28,10 @@ interface IEntitySimplePolicyCoreFacet {
     ) external;
 
     /**
-     * @dev Pay the next expected premium for a tranche using the assets owned by this entity.
-     *
-     * @param _id Policy which owns the tranche.
-     * @param _amount Amount of premium to pay.
-     */
-    function paySimplePremium(
-        bytes32 _id,
-        address _entityAddress,
-        uint256 _amount
-    ) external;
-
-    /**
      * @dev Update Allow Simple Policy.
      *
      * @param _allow Allow.
      */
     function updateAllowSimplePolicy(bool _allow) external;
 
-    /**
-     * @dev Heartbeat: Ensure the policy and tranche states are up-to-date.
-     *
-     * @param _id Unique id that represents the policy - this is what stakeholder will sign to approve the policy.
-     */
-    function checkAndUpdateState(bytes32 _id) external;
 }

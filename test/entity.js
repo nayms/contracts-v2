@@ -1024,8 +1024,7 @@ describe('Entity', () => {
     let maturationDate = startDate + 1000
     let unit
     let limit = 100
-    let stakeholders = []
-    let signatures = []
+    let stakeholders
 
     beforeEach(async () => {
       entityManager = accounts[2]
@@ -1037,7 +1036,12 @@ describe('Entity', () => {
       await acl.assignRole(systemContext, systemManager, ROLES.SYSTEM_MANAGER)
       await entity.updateAllowPolicy(true, { from: systemManager })
       
-      stakeholders = [ entity.address, entity.address, ADDRESS_ZERO, entity.address, entity.address ]
+      stakeholders = {
+        roles: [ ROLES.BROKER, ROLES.UNDERWRITER, ROLES.INSURED_PARTY ],
+        stakeholdersAddresses: [ entity.address, entity.address, entity.address ],
+        approvalSignatures: [],
+        commissions: []
+      }
       
       unit = etherToken.address
 
@@ -1046,13 +1050,13 @@ describe('Entity', () => {
     describe('can be created if', () => {
 
       it('creation is enabled on entity', async () => {
-        await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, signatures).should.be.rejectedWith('creation disabled')
+        await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders).should.be.rejectedWith('creation disabled')
       })
 
       it('limit is greater than 0', async () => {
         await entity.updateAllowSimplePolicy(true, { from: systemManager })
         await entity.updateEnabledCurrency(unit, 500, 100, { from: systemManager })
-        await entity.createSimplePolicy(id, startDate, maturationDate, unit, 0, stakeholders, signatures).should.be.rejectedWith('limit not > 0')
+        await entity.createSimplePolicy(id, startDate, maturationDate, unit, 0, stakeholders).should.be.rejectedWith('limit not > 0')
       })
 
       it('collateral ratio is valid', async () => {
@@ -1063,19 +1067,19 @@ describe('Entity', () => {
       it('limit is below max capital', async () => {
         await entity.updateAllowSimplePolicy(true, { from: systemManager })
         await entity.updateEnabledCurrency(unit, 500, 100, { from: systemManager })
-        await entity.createSimplePolicy(id, startDate, maturationDate, unit, 150, stakeholders, signatures).should.be.rejectedWith('max capital exceeded')
+        await entity.createSimplePolicy(id, startDate, maturationDate, unit, 150, stakeholders).should.be.rejectedWith('max capital exceeded')
       })
 
       it('currency is enabled', async () => {
         await entity.updateAllowSimplePolicy(true, { from: systemManager })
         await entity.allowSimplePolicy().should.eventually.eq(true)
-        await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, signatures).should.be.rejectedWith('currency disabled')
+        await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders).should.be.rejectedWith('currency disabled')
       })
 
       it('collateral ratio is met', async () => {
         await entity.updateEnabledCurrency(unit, 500, 100, { from: systemManager })
         await entity.updateAllowSimplePolicy(true, { from: systemManager })
-        await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, signatures).should.be.rejectedWith('collateral ratio not met')
+        await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders).should.be.rejectedWith('collateral ratio not met')
       })
 
       it('caller is an underwriter or broker', async () => {
@@ -1087,7 +1091,7 @@ describe('Entity', () => {
 
         await entity.updateEnabledCurrency(unit, 500, 1000, { from: systemManager })
         await entity.updateAllowSimplePolicy(true, { from: systemManager })
-        await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, signatures).should.be.rejectedWith('must be broker or underwriter')
+        await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders).should.be.rejectedWith('must be broker or underwriter')
       })
     })
 
@@ -1109,7 +1113,7 @@ describe('Entity', () => {
       
       it('they exist and have their properties set', async () => {
 
-        const result = await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, signatures, { from: entityRep }).should.be.fulfilled
+        const result = await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, { from: entityRep }).should.be.fulfilled
         const eventArgs = extractEventArgs(result, events.NewSimplePolicy)
         
         const policy = await ISimplePolicy.at(eventArgs.simplePolicy)
@@ -1129,7 +1133,7 @@ describe('Entity', () => {
 
       it('number of policies is increased', async () => {
         const numberOfSimplePolicies = await entity.getNumSimplePolicies()
-        await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, signatures, { from: entityRep }).should.be.fulfilled
+        await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, { from: entityRep }).should.be.fulfilled
         
         const newNumSimplePolicies = await entity.getNumSimplePolicies()
         
@@ -1137,7 +1141,7 @@ describe('Entity', () => {
       })
 
       it('lookup is available', async () => {
-        const result = await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, signatures, { from: entityRep }).should.be.fulfilled
+        const result = await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, { from: entityRep }).should.be.fulfilled
         const eventArgs = extractEventArgs(result, events.NewSimplePolicy)
         const policy = await ISimplePolicy.at(eventArgs.simplePolicy)
 
@@ -1157,7 +1161,7 @@ describe('Entity', () => {
         })
 
         it('and total amount of claims paid is below the limit ', async () => {
-          await entity.createSimplePolicy(id, startDate, startDate, unit, limit, stakeholders, signatures, { from: entityRep }).should.be.fulfilled
+          await entity.createSimplePolicy(id, startDate, startDate, unit, limit, stakeholders, { from: entityRep }).should.be.fulfilled
           await entity.paySimpleClaim(id, 101, { from: systemManager }).should.be.rejectedWith('exceeds policy limit')
         })
   
@@ -1165,7 +1169,7 @@ describe('Entity', () => {
           const claimAmount = 30
           const balanceBefore = await entity.getBalance(unit)
 
-          await entity.createSimplePolicy(id, startDate, startDate, unit, limit, stakeholders, signatures, { from: entityRep }).should.be.fulfilled
+          await entity.createSimplePolicy(id, startDate, startDate, unit, limit, stakeholders, { from: entityRep }).should.be.fulfilled
           await entity.paySimpleClaim(id, claimAmount, { from: systemManager }).should.be.fulfilled
 
           await entity.getBalance(unit).should.eventually.eq(balanceBefore - claimAmount)
@@ -1183,7 +1187,7 @@ describe('Entity', () => {
         })
 
         it('if amount is greater than 0', async () => {
-          await entity.createSimplePolicy(id, startDate, startDate, unit, limit, stakeholders, signatures, { from: entityRep }).should.be.fulfilled
+          await entity.createSimplePolicy(id, startDate, startDate, unit, limit, stakeholders, { from: entityRep }).should.be.fulfilled
           await entity.paySimplePremium(id, entity.address, 0, { from: entityRep }).should.be.rejectedWith('invalid premium amount')
         })
   
@@ -1191,7 +1195,7 @@ describe('Entity', () => {
           const premiumAmount = 10
           const balanceBefore = await entity.getBalance(unit)
 
-          await entity.createSimplePolicy(id, startDate, startDate, unit, limit, stakeholders, signatures, { from: entityRep }).should.be.fulfilled
+          await entity.createSimplePolicy(id, startDate, startDate, unit, limit, stakeholders, { from: entityRep }).should.be.fulfilled
           await entity.paySimplePremium(id, entity.address, premiumAmount, { from: entityRep }).should.be.fulfilled
           
           await entity.getBalance(unit).should.eventually.eq(+balanceBefore + premiumAmount)
@@ -1206,7 +1210,7 @@ describe('Entity', () => {
       describe('heart beat function', () => {
         
         it('activates the policy after start date ', async () => {
-          const result = await entity.createSimplePolicy(id, startDate - 1, maturationDate, unit, limit, stakeholders, signatures, { from: entityRep }).should.be.fulfilled
+          const result = await entity.createSimplePolicy(id, startDate - 1, maturationDate, unit, limit, stakeholders, { from: entityRep }).should.be.fulfilled
           const eventArgs = extractEventArgs(result, events.NewSimplePolicy)
   
           const policyStates = await ISimplePolicyStates.at(eventArgs.simplePolicy)
@@ -1222,7 +1226,7 @@ describe('Entity', () => {
 
         it('updates state and total limit accordingly after maturation date', async () => {
 
-          const result = await entity.createSimplePolicy(id, startDate - 10, startDate - 5, unit, limit, stakeholders, signatures, { from: entityRep }).should.be.fulfilled
+          const result = await entity.createSimplePolicy(id, startDate - 10, startDate - 5, unit, limit, stakeholders, { from: entityRep }).should.be.fulfilled
           const eventArgs = extractEventArgs(result, events.NewSimplePolicy)
           
           const policyStates = await ISimplePolicyStates.at(eventArgs.simplePolicy)

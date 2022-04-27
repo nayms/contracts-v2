@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.9;
+
+import "./base/ECDSA.sol";
 import "./base/AccessControl.sol";
 import "./base/Controller.sol";
 import "./base/Proxy.sol";
@@ -7,6 +9,7 @@ import "./base/ISimplePolicy.sol";
 import "./base/ISimplePolicyStates.sol";
 
 contract SimplePolicy is Controller, Proxy, ISimplePolicy, ISimplePolicyStates {
+    using ECDSA for bytes32;
 
     struct Stakeholders {
         bytes32[] roles;
@@ -17,13 +20,6 @@ contract SimplePolicy is Controller, Proxy, ISimplePolicy, ISimplePolicyStates {
 
     /**
      * @dev SimplePolicy constructor.
-     *
-     * `_stakeholders` and '_approvalSignatures'
-     *    * Index 0: Broker entity address.
-     *    * Index 1: Underwriter entity address.
-     *    * Index 2: Claims admin entity address.
-     *    * Index 3: Insured party entity address.
-     *    * Index 4: Treasury address.
      */
     constructor(
         bytes32 _id,
@@ -46,9 +42,9 @@ contract SimplePolicy is Controller, Proxy, ISimplePolicy, ISimplePolicyStates {
         dataUint256["limit"] = _limit;
         dataUint256["state"] = POLICY_STATE_CREATED;
         
+        // TODO AM: implement corresponding mapping
         // dataAddress["treasury"] = _stakeholders[4];
 
-        // stakeholders lookup
         address broker;
         address underwriter; 
 
@@ -66,21 +62,18 @@ contract SimplePolicy is Controller, Proxy, ISimplePolicy, ISimplePolicyStates {
             }
         }
 
-        bool underwriterRep_;
-        bool brokerRep_;
-        (underwriterRep_, brokerRep_) = _isBrokerOrUnderwriterRep(_caller, broker, underwriter);
+        bool underwriterRep;
+        bool brokerRep;
+        (underwriterRep, brokerRep) = _isBrokerOrUnderwriterRep(_caller, broker, underwriter);
 
-        require(underwriterRep_ || brokerRep_, "must be broker or underwriter");
+        require(underwriterRep || brokerRep, "must be broker or underwriter");
 
-        dataBool["underwriterApproved"] = underwriterRep_;
-        dataBool["brokerApproved"] = brokerRep_;
-
-        // TODO: Only bulk approve
-        // if (_approvalSignatures.length = 4) {
-        //   pol.bulkApprove(_approvalSignatures);
-        // }
+        dataBool["underwriterApproved"] = underwriterRep;
+        dataBool["brokerApproved"] = brokerRep;
 
         emit NewSimplePolicy(_id, address(this));
+
+        _bulkApprove(_stakeholders.roles, _stakeholders.approvalSignatures);
     }
 
     function _isBrokerOrUnderwriterRep(
@@ -148,5 +141,34 @@ contract SimplePolicy is Controller, Proxy, ISimplePolicy, ISimplePolicyStates {
             // emit event
             emit SimplePolicyStateUpdated(id, POLICY_STATE_ACTIVE, msg.sender);
         }
+    }
+
+    function _bulkApprove(bytes32[] memory _roles, bytes[] memory _signatures) private {
+        bytes32 h = dataBytes32["id"];
+
+        require(_signatures.length == _roles.length, "wrong number of signatures");
+
+        for (uint256 i = 0; i < _roles.length; i += 1) {
+            _approve(_roles[i], h.toEthSignedMessageHash().recover(_signatures[i]));
+        }
+
+        dataUint256["state"] = POLICY_STATE_APPROVED;
+    }
+
+    function _approve(bytes32 _role, address _approver) private assertBelongsToEntityWithRole(_approver, _role) {
+
+        if (_role == ROLE_UNDERWRITER) {
+            dataBool["underwriterApproved"] = true;
+        } else if (_role == ROLE_BROKER) {
+            dataBool["brokerApproved"] = true;
+        } else if (_role == ROLE_INSURED_PARTY) {
+            dataBool["insuredPartyApproved"] = true;
+        } else if (_role == ROLE_CLAIMS_ADMIN) {
+            dataBool["claimsAdminApproved"] = true;
+        }
+
+        address entity = _getEntityWithRole(_role);
+        acl().assignRole(aclContext(), entity, _role);
+
     }
 }

@@ -19,7 +19,7 @@ contract EntitySimplePolicyDataFacet is EntityFacetBase, IDiamondFacet, IEntityS
                 IEntitySimplePolicyDataFacet.getEnabledCurrency.selector,
                 IEntitySimplePolicyDataFacet.getEnabledCurrencies.selector,
                 IEntitySimplePolicyDataFacet.updateEnabledCurrency.selector,
-                IEntitySimplePolicyDataFacet.paySimpleClaim.selector
+                IEntitySimplePolicyDataFacet.checkAndUpdateState.selector
             );
     }
 
@@ -110,31 +110,17 @@ contract EntitySimplePolicyDataFacet is EntityFacetBase, IDiamondFacet, IEntityS
         dataUint256[__a(_unit, "collateralRatio")] = _collateralRatio;
     }
 
-    /**
-     * @dev Performed by a nayms system manager and pays the insured party in the event of a claim.
-     *
-     * Semantically this method belongs to the EntitySimplePolicyCoreFacet along with
-     * rest of the state mutating methods, but due to the contract size limitation
-     * it had to be moved here.
-     */
-    function paySimpleClaim(bytes32 _id, uint256 _amount) external payable override assertIsSystemManager(msg.sender) {
-        require(_amount > 0, "invalid claim amount");
-
+    function checkAndUpdateState(bytes32 _id) external override {
         ISimplePolicy policy = ISimplePolicy(dataAddress[__b(_id, "addressById")]);
 
-        address unit;
-        uint256 limit;
-        (, , , , unit, limit, ) = policy.getSimplePolicyInfo();
+        bool reduceTotalLimit = policy.checkAndUpdateState();
 
-        uint256 claimsPaid = dataUint256[__a(unit, "claimsPaid")];
+        if (reduceTotalLimit) {
+            address unit;
+            uint256 limit;
+            (, , , , unit, limit, ) = policy.getSimplePolicyInfo();
 
-        require(limit >= _amount + claimsPaid, "exceeds policy limit");
-
-        dataUint256[__a(unit, "claimsPaid")] += _amount;
-        dataUint256[__a(unit, "balance")] -= _amount;
-
-        // payout the insured party!
-        address insured = acl().getUsersForRole(policy.aclContext(), ROLE_INSURED_PARTY)[0];
-        IERC20(unit).transfer(insured, _amount);
+            dataUint256[__a(unit, "totalLimit")] -= limit;
+        }
     }
 }

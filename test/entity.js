@@ -9,6 +9,8 @@ import {
   createTranche,
 } from './utils'
 
+import { getAccountWallet } from '../deploy/utils'
+
 import { events } from '../'
 import { ROLES, SETTINGS } from '../utils/constants'
 import { ensureAclIsDeployed } from '../deploy/modules/acl'
@@ -1030,16 +1032,30 @@ describe('Entity', () => {
       entityManager = accounts[2]
       entityRep = accounts[3]
       systemManager = accounts[1]
+      insuredPartyRep = accounts[4]
+      underwriterRep = accounts[5]
+      brokerRep = accounts[6]
       
       await acl.assignRole(entityContext, entityManager, ROLES.ENTITY_MANAGER)
       await acl.assignRole(entityContext, entityRep, ROLES.ENTITY_REP)
+      await acl.assignRole(entityContext, entityRep, ROLES.ENTITY_REP)
+      await acl.assignRole(entityContext, entityRep, ROLES.UNDERWRITER)
       await acl.assignRole(systemContext, systemManager, ROLES.SYSTEM_MANAGER)
       await entity.updateAllowPolicy(true, { from: systemManager })
+
+      broker = await createEntity({ entityDeployer, adminAddress: brokerRep })
+      underwriter = await createEntity({ entityDeployer, adminAddress: underwriterRep, entityContext, acl })
+      insuredParty = await createEntity({ entityDeployer, adminAddress: insuredPartyRep })
       
+      const bytes = hre.ethers.utils.arrayify(id)
+      const brokerSig = await getAccountWallet(brokerRep).signMessage(bytes)
+      const underwriterSig = await getAccountWallet(underwriterRep).signMessage(bytes)
+      const insuredPartySig = await getAccountWallet(insuredPartyRep).signMessage(bytes)
+
       stakeholders = {
         roles: [ ROLES.BROKER, ROLES.UNDERWRITER, ROLES.INSURED_PARTY ],
-        stakeholdersAddresses: [ entity.address, entity.address, entity.address ],
-        approvalSignatures: [],
+        stakeholdersAddresses: [ broker, underwriter, insuredParty ],
+        approvalSignatures: [ brokerSig, underwriterSig, insuredPartySig ],
         commissions: []
       }
       

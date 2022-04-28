@@ -1020,6 +1020,13 @@ describe('Entity', () => {
     let systemManager
     let entityManager
     let entityRep
+    let insuredPartyRep
+    let underwriterRep
+    let brokerRep
+
+    let underwriter
+    let insuredParty
+    let broker
     
     let id = web3.eth.abi.encodeEventSignature('SimplePolicyTestID')
     let startDate = parseInt(Date.now() / 1000)
@@ -1039,7 +1046,6 @@ describe('Entity', () => {
       await acl.assignRole(entityContext, entityManager, ROLES.ENTITY_MANAGER)
       await acl.assignRole(entityContext, entityRep, ROLES.ENTITY_REP)
       await acl.assignRole(entityContext, entityRep, ROLES.ENTITY_REP)
-      await acl.assignRole(entityContext, entityRep, ROLES.UNDERWRITER)
       await acl.assignRole(systemContext, systemManager, ROLES.SYSTEM_MANAGER)
       await entity.updateAllowPolicy(true, { from: systemManager })
 
@@ -1056,7 +1062,7 @@ describe('Entity', () => {
         roles: [ ROLES.BROKER, ROLES.UNDERWRITER, ROLES.INSURED_PARTY ],
         stakeholdersAddresses: [ broker, underwriter, insuredParty ],
         approvalSignatures: [ brokerSig, underwriterSig, insuredPartySig ],
-        commissions: []
+        commissions: [ 10, 20, 30 ]
       }
       
       unit = etherToken.address
@@ -1123,19 +1129,20 @@ describe('Entity', () => {
         await entity.updateEnabledCurrency(unit, 500, 1000, { from: systemManager })
         await entity.updateAllowSimplePolicy(true, { from: systemManager })
 
-        await acl.assignRole(systemContext, entity.address, ROLES.UNDERWRITER)
+        await acl.assignRole(systemContext, underwriter, ROLES.UNDERWRITER)
 
       })
       
       it('they exist and have their properties set', async () => {
 
         const result = await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, { from: entityRep }).should.be.fulfilled
+          
         const eventArgs = extractEventArgs(result, events.NewSimplePolicy)
         
         const policy = await ISimplePolicy.at(eventArgs.simplePolicy)
         
         const policyStates = await ISimplePolicyStates.at(eventArgs.simplePolicy)
-        const POLICY_STATE_CREATED = await policyStates.POLICY_STATE_CREATED()
+        const POLICY_STATE_APPROVED = await policyStates.POLICY_STATE_APPROVED()
 
         await policy.getSimplePolicyInfo().should.eventually.matchObj({
           id_: id,
@@ -1143,7 +1150,7 @@ describe('Entity', () => {
           maturationDate_: maturationDate,
           unit_: unit,
           limit_: limit,
-          state_: POLICY_STATE_CREATED
+          state_: POLICY_STATE_APPROVED
         })
       })
 

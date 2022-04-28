@@ -48,17 +48,23 @@ contract SimplePolicy is Controller, Proxy, ISimplePolicy, ISimplePolicyStates {
         address broker;
         address underwriter; 
 
-        // set roles
+        // set roles and commissions
         acl().assignRole(aclContext(), _caller, ROLE_POLICY_OWNER);
         for (uint256 i = 0; i < _stakeholders.roles.length; i += 1) {
             bytes32 role = _stakeholders.roles[i];
+
             acl().assignRole(aclContext(), _stakeholders.stakeholdersAddresses[i], role);
 
-            // store reverse lookup for assertion below
             if(role == ROLE_BROKER) {
                 broker = _stakeholders.stakeholdersAddresses[i];
+                dataUint256["brokerCommissionBP"] = _stakeholders.commissions[i];
             } else if(role == ROLE_UNDERWRITER) {
                 underwriter = _stakeholders.stakeholdersAddresses[i];
+                dataUint256["underwriterCommissionBP"] = _stakeholders.commissions[i];
+            } else if (role == ROLE_INSURED_PARTY) {
+                dataUint256["insuredPartyCommissionBP"] = _stakeholders.commissions[i];
+            } else if (role == ROLE_CLAIMS_ADMIN) {
+                dataUint256["claimsAdminCommissionBP"] = _stakeholders.commissions[i];
             }
         }
 
@@ -71,9 +77,9 @@ contract SimplePolicy is Controller, Proxy, ISimplePolicy, ISimplePolicyStates {
         dataBool["underwriterApproved"] = underwriterRep;
         dataBool["brokerApproved"] = brokerRep;
 
-        emit NewSimplePolicy(_id, address(this));
-
         _bulkApprove(_stakeholders.roles, _stakeholders.approvalSignatures);
+
+        emit NewSimplePolicy(_id, address(this));
     }
 
     function _isBrokerOrUnderwriterRep(

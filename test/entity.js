@@ -1023,10 +1023,12 @@ describe('Entity', () => {
     let insuredPartyRep
     let underwriterRep
     let brokerRep
+    let claimsAdminRep
 
     let underwriter
     let insuredParty
     let broker
+    let claimsAdmin
     
     let id = web3.eth.abi.encodeEventSignature('SimplePolicyTestID')
     let startDate = parseInt(Date.now() / 1000)
@@ -1042,9 +1044,9 @@ describe('Entity', () => {
       insuredPartyRep = accounts[4]
       underwriterRep = accounts[5]
       brokerRep = accounts[6]
-      
+      claimsAdminRep = accounts[7]
+
       await acl.assignRole(entityContext, entityManager, ROLES.ENTITY_MANAGER)
-      await acl.assignRole(entityContext, entityRep, ROLES.ENTITY_REP)
       await acl.assignRole(entityContext, entityRep, ROLES.ENTITY_REP)
       await acl.assignRole(systemContext, systemManager, ROLES.SYSTEM_MANAGER)
       await entity.updateAllowPolicy(true, { from: systemManager })
@@ -1052,17 +1054,19 @@ describe('Entity', () => {
       broker = await createEntity({ entityDeployer, adminAddress: brokerRep })
       underwriter = await createEntity({ entityDeployer, adminAddress: underwriterRep, entityContext, acl })
       insuredParty = await createEntity({ entityDeployer, adminAddress: insuredPartyRep })
+      claimsAdmin = await createEntity({ entityDeployer, adminAddress: claimsAdminRep })
       
       const bytes = hre.ethers.utils.arrayify(id)
       const brokerSig = await getAccountWallet(brokerRep).signMessage(bytes)
       const underwriterSig = await getAccountWallet(underwriterRep).signMessage(bytes)
       const insuredPartySig = await getAccountWallet(insuredPartyRep).signMessage(bytes)
+      const claimsAdminSig = await getAccountWallet(claimsAdminRep).signMessage(bytes)
 
       stakeholders = {
-        roles: [ ROLES.BROKER, ROLES.UNDERWRITER, ROLES.INSURED_PARTY ],
-        stakeholdersAddresses: [ broker, underwriter, insuredParty ],
-        approvalSignatures: [ brokerSig, underwriterSig, insuredPartySig ],
-        commissions: [ 10, 20, 30 ]
+        roles: [ ROLES.BROKER, ROLES.UNDERWRITER, ROLES.INSURED_PARTY, ROLES.CLAIMS_ADMIN ],
+        stakeholdersAddresses: [ broker, underwriter, insuredParty, claimsAdmin ],
+        approvalSignatures: [ brokerSig, underwriterSig, insuredPartySig, claimsAdminSig ],
+        commissions: [ 10, 20, 30, 40 ]
       }
       
       unit = etherToken.address

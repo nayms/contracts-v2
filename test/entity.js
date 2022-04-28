@@ -1115,6 +1115,22 @@ describe('Entity', () => {
         await entity.updateAllowSimplePolicy(true, { from: systemManager })
         await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders).should.be.rejectedWith('must be broker or underwriter')
       })
+
+      it('number of roles and signatures match', async () => {
+        stakeholders.approvalSignatures.pop()
+        
+        const balance = 500
+        await etherToken.deposit({ value: balance })
+        await etherToken.approve(entityProxy.address, balance)
+        await entity.deposit(etherToken.address, balance).should.be.fulfilled
+
+        await entity.updateEnabledCurrency(unit, 500, 1000, { from: systemManager })
+        await entity.updateAllowSimplePolicy(true, { from: systemManager })
+
+        await acl.assignRole(systemContext, underwriter, ROLES.UNDERWRITER)
+
+        await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, { from: entityRep }).should.be.rejectedWith('wrong number of signatures')
+      })
     })
 
     describe('after creation', () => {

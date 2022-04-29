@@ -1293,14 +1293,16 @@ describe('Entity', () => {
 
       it('currency can be disabled', async () => {
         await entity.updateEnabledCurrency(unit, 500, 100, { from: systemManager })
-        
+        await entity.updateEnabledCurrency(etherToken2.address, 500, 100, { from: systemManager })
+
         const currencies = await entity.getEnabledCurrencies()
-        expect(currencies).to.have.members([ unit ])
+        expect(currencies).to.have.members([ unit, etherToken2.address ])
 
         await entity.updateEnabledCurrency(unit, 0, 0, { from: systemManager })
         
         const currencies2 = await entity.getEnabledCurrencies()
         expect(currencies2).to.not.have.members([ unit ])
+        expect(currencies2).to.have.members([ etherToken2.address ])
       })
 
     })

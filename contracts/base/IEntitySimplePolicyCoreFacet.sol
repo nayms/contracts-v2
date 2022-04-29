@@ -7,7 +7,6 @@ import { SimplePolicy, ISimplePolicy } from "../SimplePolicy.sol";
  * @dev Core logic for Simple Policies.
  */
 interface IEntitySimplePolicyCoreFacet {
-    
     /**
      * @dev Create a new policy.
      *
@@ -33,5 +32,4 @@ interface IEntitySimplePolicyCoreFacet {
      * @param _allow Allow.
      */
     function updateAllowSimplePolicy(bool _allow) external;
-
 }

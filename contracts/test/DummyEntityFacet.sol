@@ -7,18 +7,14 @@ import "../base/IEntitySimplePolicyCoreFacet.sol";
 import "../base/IEntitySimplePolicyDataFacet.sol";
 import "../base/IEntitySimplePolicyPayFacet.sol";
 
-contract DummyEntityFacet is IDiamondFacet, 
-        IEntityCoreFacet, 
-        IEntityFundingFacet, 
-        IEntitySimplePolicyCoreFacet, 
-        IEntitySimplePolicyDataFacet,
-        IEntitySimplePolicyPayFacet {
-
+contract DummyEntityFacet is IDiamondFacet, IEntityCoreFacet, IEntityFundingFacet, IEntitySimplePolicyCoreFacet, IEntitySimplePolicyDataFacet, IEntitySimplePolicyPayFacet {
     function getSelectors() public pure override returns (bytes memory) {
         return abi.encodePacked(IEntityFundingFacet.getBalance.selector);
     }
 
-    function getBalance(address /*_unit*/) public view override returns (uint256) {
+    function getBalance(
+        address /*_unit*/
+    ) public view override returns (uint256) {
         return 123;
     }
 

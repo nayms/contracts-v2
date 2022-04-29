@@ -5,7 +5,6 @@ pragma solidity >=0.8.9;
  * @dev Entity Simple Policy payment operations.
  */
 interface IEntitySimplePolicyPayFacet {
-
     /**
      * @dev Get simple policy info.
      *
@@ -24,6 +23,7 @@ interface IEntitySimplePolicyPayFacet {
         bytes32 _id,
         address _entityAddress,
         uint256 _amount
-    ) external;  
+    ) external;
 
+    function paySimpleCommission() external;
 }

@@ -41,12 +41,12 @@ contract SimplePolicy is Controller, Proxy, ISimplePolicy, ISimplePolicyStates {
         dataAddress["unit"] = _unit;
         dataUint256["limit"] = _limit;
         dataUint256["state"] = POLICY_STATE_CREATED;
-        
+
         // TODO AM: implement corresponding mapping
         // dataAddress["treasury"] = _stakeholders[4];
 
         address broker;
-        address underwriter; 
+        address underwriter;
 
         // set roles and commissions
         acl().assignRole(aclContext(), _caller, ROLE_POLICY_OWNER);
@@ -55,10 +55,10 @@ contract SimplePolicy is Controller, Proxy, ISimplePolicy, ISimplePolicyStates {
 
             acl().assignRole(aclContext(), _stakeholders.stakeholdersAddresses[i], role);
 
-            if(role == ROLE_BROKER) {
+            if (role == ROLE_BROKER) {
                 broker = _stakeholders.stakeholdersAddresses[i];
                 dataUint256["brokerCommissionBP"] = _stakeholders.commissions[i];
-            } else if(role == ROLE_UNDERWRITER) {
+            } else if (role == ROLE_UNDERWRITER) {
                 underwriter = _stakeholders.stakeholdersAddresses[i];
                 dataUint256["underwriterCommissionBP"] = _stakeholders.commissions[i];
             } else if (role == ROLE_INSURED_PARTY) {
@@ -162,7 +162,6 @@ contract SimplePolicy is Controller, Proxy, ISimplePolicy, ISimplePolicyStates {
     }
 
     function _approve(bytes32 _role, address _approver) private assertBelongsToEntityWithRole(_approver, _role) {
-
         if (_role == ROLE_UNDERWRITER) {
             dataBool["underwriterApproved"] = true;
         } else if (_role == ROLE_BROKER) {
@@ -175,6 +174,5 @@ contract SimplePolicy is Controller, Proxy, ISimplePolicy, ISimplePolicyStates {
 
         address entity = _getEntityWithRole(_role);
         acl().assignRole(aclContext(), entity, _role);
-
     }
 }

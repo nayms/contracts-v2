@@ -9,7 +9,6 @@ import "./base/AccessControl.sol";
  * @dev Policy facet base class
  */
 abstract contract PolicyFacetBase is EternalStorage, IPolicyStates, AccessControl {
-
     function _setPolicyState(uint256 _newState) internal {
         if (dataUint256["state"] != _newState) {
             dataUint256["state"] = _newState;

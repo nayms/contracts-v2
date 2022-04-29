@@ -7,17 +7,11 @@ import "./base/IDiamondFacet.sol";
 import "./base/IEntitySimplePolicyPayFacet.sol";
 import "./base/ISimplePolicy.sol";
 
-
 contract EntitySimplePolicyPayFacet is EntityFacetBase, IDiamondFacet, IEntitySimplePolicyPayFacet {
-
-      constructor(address _settings) Controller(_settings) {}
+    constructor(address _settings) Controller(_settings) {}
 
     function getSelectors() public pure override returns (bytes memory) {
-        return
-            abi.encodePacked(
-                IEntitySimplePolicyPayFacet.paySimpleClaim.selector,
-                IEntitySimplePolicyPayFacet.paySimplePremium.selector
-            );
+        return abi.encodePacked(IEntitySimplePolicyPayFacet.paySimpleClaim.selector, IEntitySimplePolicyPayFacet.paySimplePremium.selector);
     }
 
     /**
@@ -70,4 +64,6 @@ contract EntitySimplePolicyPayFacet is EntityFacetBase, IDiamondFacet, IEntitySi
         token.approve(address(this), _amount);
         token.transferFrom(_entityAddress, address(policy), _amount);
     }
+
+    function paySimpleCommission() external override {}
 }

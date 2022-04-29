@@ -9,7 +9,6 @@ import "./ISimplePolicyStates.sol";
  * @dev Super-interface for simple policies
  */
 abstract contract ISimplePolicy is IAccessControl {
-
     /**
      * @dev Get simple policy info.
      *

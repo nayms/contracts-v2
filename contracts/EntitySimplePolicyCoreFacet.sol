@@ -9,11 +9,7 @@ contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCore
     constructor(address _settings) Controller(_settings) {}
 
     function getSelectors() public pure override returns (bytes memory) {
-        return
-            abi.encodePacked(
-                IEntitySimplePolicyCoreFacet.createSimplePolicy.selector,
-                IEntitySimplePolicyCoreFacet.updateAllowSimplePolicy.selector
-            );
+        return abi.encodePacked(IEntitySimplePolicyCoreFacet.createSimplePolicy.selector, IEntitySimplePolicyCoreFacet.updateAllowSimplePolicy.selector);
     }
 
     // IEntitySimplePolicyCoreFacet
@@ -63,5 +59,4 @@ contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCore
     function updateAllowSimplePolicy(bool _allow) external override assertIsSystemManager(msg.sender) {
         dataBool["allowSimplePolicy"] = _allow;
     }
-
 }

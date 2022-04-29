@@ -15,7 +15,6 @@ import "./IEntitySimplePolicyCoreFacet.sol";
 import "./IEntitySimplePolicyDataFacet.sol";
 import "./IEntitySimplePolicyPayFacet.sol";
 
-
 /**
  * @dev Super-interface for entities
  */

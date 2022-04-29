@@ -1305,6 +1305,23 @@ describe('Entity', () => {
         expect(currencies2).to.have.members([ etherToken2.address ])
       })
 
+      it('currency can be updated', async () => {
+        await entity.updateEnabledCurrency(unit, 500, 100, { from: systemManager })
+
+        const currencies = await entity.getEnabledCurrencies()
+        expect(currencies).to.have.members([ unit ])
+
+        await entity.updateEnabledCurrency(unit, 600, 200, { from: systemManager })
+        
+        const {
+          collateralRatio_: collateralRatio,
+          maxCapital_: maxCapital
+        } = await entity.getEnabledCurrency(unit)
+
+        collateralRatio.should.eq(600)
+        maxCapital.should.eq(200)
+      })
+
     })
   })
 })

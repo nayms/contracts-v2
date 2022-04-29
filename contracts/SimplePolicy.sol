@@ -8,15 +8,16 @@ import "./base/Proxy.sol";
 import "./base/ISimplePolicy.sol";
 import "./base/ISimplePolicyStates.sol";
 
+struct Stakeholders {
+    bytes32[] roles;
+    address[] stakeholdersAddresses;
+    bytes[] approvalSignatures;
+    uint256[] commissions;  // always has one element more than roles, for nayms treasury
+}
+
 contract SimplePolicy is Controller, Proxy, ISimplePolicy, ISimplePolicyStates {
     using ECDSA for bytes32;
 
-    struct Stakeholders {
-        bytes32[] roles;
-        address[] stakeholdersAddresses;
-        bytes[] approvalSignatures;
-        uint256[] commissions;
-    }
 
     /**
      * @dev SimplePolicy constructor.
@@ -42,15 +43,14 @@ contract SimplePolicy is Controller, Proxy, ISimplePolicy, ISimplePolicyStates {
         dataUint256["limit"] = _limit;
         dataUint256["state"] = POLICY_STATE_CREATED;
 
-        // TODO AM: implement corresponding mapping
-        // dataAddress["treasury"] = _stakeholders[4];
-
         address broker;
         address underwriter;
 
         // set roles and commissions
         acl().assignRole(aclContext(), _caller, ROLE_POLICY_OWNER);
-        for (uint256 i = 0; i < _stakeholders.roles.length; i += 1) {
+        
+        uint256 rolesCount = _stakeholders.roles.length;
+        for (uint256 i = 0; i < rolesCount; i += 1) {
             bytes32 role = _stakeholders.roles[i];
 
             acl().assignRole(aclContext(), _stakeholders.stakeholdersAddresses[i], role);
@@ -61,12 +61,15 @@ contract SimplePolicy is Controller, Proxy, ISimplePolicy, ISimplePolicyStates {
             } else if (role == ROLE_UNDERWRITER) {
                 underwriter = _stakeholders.stakeholdersAddresses[i];
                 dataUint256["underwriterCommissionBP"] = _stakeholders.commissions[i];
-            } else if (role == ROLE_INSURED_PARTY) {
-                dataUint256["insuredPartyCommissionBP"] = _stakeholders.commissions[i];
             } else if (role == ROLE_CLAIMS_ADMIN) {
                 dataUint256["claimsAdminCommissionBP"] = _stakeholders.commissions[i];
             }
         }
+        
+        // this is always last item in array, there is one element more than roles 
+        // for storing nayms treasury address and it's commission
+        dataAddress["treasury"] = _stakeholders.stakeholdersAddresses[rolesCount];
+        dataUint256["naymsCommissionBP"] = _stakeholders.commissions[rolesCount];
 
         bool underwriterRep;
         bool brokerRep;
@@ -115,7 +118,8 @@ contract SimplePolicy is Controller, Proxy, ISimplePolicy, ISimplePolicyStates {
             uint256 maturationDate_,
             address unit_,
             uint256 limit_,
-            uint256 state_
+            uint256 state_,
+            address treasury_
         )
     {
         id_ = dataBytes32["id"];
@@ -125,6 +129,7 @@ contract SimplePolicy is Controller, Proxy, ISimplePolicy, ISimplePolicyStates {
         unit_ = dataAddress["unit"];
         limit_ = dataUint256["limit"];
         state_ = dataUint256["state"];
+        treasury_ = dataAddress["treasury"];
     }
 
     function checkAndUpdateState() external virtual override returns (bool reduceTotalLimit_) {

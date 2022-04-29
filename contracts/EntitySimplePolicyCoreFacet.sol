@@ -3,7 +3,7 @@ pragma solidity >=0.8.9;
 import { EntityFacetBase, IERC20 } from "./EntityFacetBase.sol";
 import "./base/IEntitySimplePolicyCoreFacet.sol";
 import "./base/IDiamondFacet.sol";
-import { SimplePolicy, Controller, AccessControl, ISimplePolicy } from "./SimplePolicy.sol";
+import { SimplePolicy, Controller, AccessControl, ISimplePolicy, Stakeholders } from "./SimplePolicy.sol";
 
 contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCoreFacet, IDiamondFacet {
     constructor(address _settings) Controller(_settings) {}
@@ -34,7 +34,7 @@ contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCore
         uint256 _maturationDate,
         address _unit,
         uint256 _limit,
-        SimplePolicy.Stakeholders calldata _stakeholders
+        Stakeholders calldata _stakeholders
     ) external override {
         _validateSimplePolicyCreation(_unit, _limit);
         dataUint256[__a(_unit, "totalLimit")] += _limit;

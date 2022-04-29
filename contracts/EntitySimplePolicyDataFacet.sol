@@ -33,13 +33,13 @@ contract EntitySimplePolicyDataFacet is EntityFacetBase, IDiamondFacet, IEntityS
 
     function getSimplePolicyId(uint256 _simplePolicyNumber) external view override returns (bytes32 id_) {
         ISimplePolicy policy = ISimplePolicy(dataAddress[__i(_simplePolicyNumber, "addressByNumber")]);
-        (id_, , , , , , ) = policy.getSimplePolicyInfo();
+        (id_, , , , , , , ) = policy.getSimplePolicyInfo();
     }
 
     function getPremiumsAndClaimsPaid(bytes32 _id) external view override returns (uint256 premiumsPaid_, uint256 claimsPaid_) {
         ISimplePolicy policy = ISimplePolicy(dataAddress[__b(_id, "addressById")]);
         address unit;
-        (, , , , unit, , ) = policy.getSimplePolicyInfo();
+        (, , , , unit, , , ) = policy.getSimplePolicyInfo();
 
         premiumsPaid_ = dataUint256[__a(unit, "premiumsPaid")];
         claimsPaid_ = dataUint256[__a(unit, "claimsPaid")];
@@ -118,9 +118,26 @@ contract EntitySimplePolicyDataFacet is EntityFacetBase, IDiamondFacet, IEntityS
         if (reduceTotalLimit) {
             address unit;
             uint256 limit;
-            (, , , , unit, limit, ) = policy.getSimplePolicyInfo();
+            (, , , , unit, limit, , ) = policy.getSimplePolicyInfo();
 
             dataUint256[__a(unit, "totalLimit")] -= limit;
         }
+    }
+
+    function getCommissionBalances()
+        external
+        view
+        override
+        returns (
+            uint256 brokerCommissionBalance_,
+            uint256 claimsAdminCommissionBalance_,
+            uint256 naymsCommissionBalance_,
+            uint256 underwriterCommissionBalance_
+        )
+    {
+        brokerCommissionBalance_ = dataUint256["brokerCommissionBalance"];
+        claimsAdminCommissionBalance_ = dataUint256["claimsAdminCommissionBalance"];
+        naymsCommissionBalance_ = dataUint256["naymsCommissionBalance"];
+        underwriterCommissionBalance_ = dataUint256["underwriterCommissionBalance"];
     }
 }

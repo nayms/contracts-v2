@@ -1204,7 +1204,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         bytes[] memory approvalSignatures = new bytes[](0);
 
         vm.expectRevert("creation disabled");
-        entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders, approvalSignatures);
+        entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders);
 
         entity.updateAllowSimplePolicy(true);
         assertTrue(entity.allowSimplePolicy());
@@ -1214,18 +1214,18 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
 
         // currency is enabled
         vm.expectRevert("currency disabled");
-        entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders, approvalSignatures);
+        entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders);
 
         entity.updateEnabledCurrency(underlying, collateralRatio, maxCapital);
 
         // limit is greater than 0
         vm.expectRevert("limit not > 0");
-        entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders, approvalSignatures);
+        entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders);
 
         // limit is below max capital
         limit = 150;
         vm.expectRevert("max capital exceeded");
-        entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders, approvalSignatures);
+        entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders);
 
         // collateral ratio is valid
         collateralRatio = 1500;
@@ -1240,7 +1240,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
 
         limit = 100;
         vm.expectRevert("collateral ratio not met");
-        entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders, approvalSignatures);
+        entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders);
 
         // caller is an underwriter or broker
         weth.deposit{ value: 500 }();
@@ -1249,7 +1249,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         entity.deposit(address(weth), 500);
         entity.updateEnabledCurrency(underlying, 500, 1000);
         vm.expectRevert("must be broker or underwriter");
-        entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders, approvalSignatures);
+        entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders);
     }
 
     function testEntityCreateSimplePolicyAfterCreation() public {
@@ -1285,7 +1285,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         entity.deposit(address(weth), 500);
 
         acl.assignRole(systemContext, entityAddress, ROLE_UNDERWRITER);
-        entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders, approvalSignatures);
+        entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders);
 
         address policyAddress = 0x84EC5D405CC8B587c624836b53a28eb29F83d162;
         ISimplePolicy2 simplePolicy = ISimplePolicy2(policyAddress);
@@ -1358,7 +1358,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         entity.deposit(address(weth), 500);
 
         acl.assignRole(systemContext, entityAddress, ROLE_UNDERWRITER);
-        entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders, approvalSignatures);
+        entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders);
 
         address policyAddress = 0x84EC5D405CC8B587c624836b53a28eb29F83d162;
         ISimplePolicy2 simplePolicy = ISimplePolicy2(policyAddress);
@@ -1419,7 +1419,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         entity.deposit(address(weth), 500);
 
         acl.assignRole(systemContext, entityAddress, ROLE_UNDERWRITER);
-        entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders, approvalSignatures);
+        entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders);
 
         address policyAddress = 0x84EC5D405CC8B587c624836b53a28eb29F83d162;
         ISimplePolicy2 simplePolicy = ISimplePolicy2(policyAddress);

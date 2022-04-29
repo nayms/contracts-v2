@@ -17,7 +17,7 @@ contract EntitySimplePolicyPayFacet is EntityFacetBase, IDiamondFacet, IEntitySi
     /**
      * @dev Performed by a nayms system manager and pays the insured party in the event of a claim.
      *
-     * Semantically this method belongs to the EntitySimplePolicyCoreFacet along with
+     * Semantically, this method belongs to the EntitySimplePolicyCoreFacet along with
      * rest of the state mutating methods, but due to the contract size limitation
      * it had to be moved here.
      */
@@ -28,7 +28,7 @@ contract EntitySimplePolicyPayFacet is EntityFacetBase, IDiamondFacet, IEntitySi
 
         address unit;
         uint256 limit;
-        (, , , , unit, limit, ) = policy.getSimplePolicyInfo();
+        (, , , , unit, limit, , ) = policy.getSimplePolicyInfo();
 
         uint256 claimsPaid = dataUint256[__a(unit, "claimsPaid")];
 
@@ -55,15 +55,66 @@ contract EntitySimplePolicyPayFacet is EntityFacetBase, IDiamondFacet, IEntitySi
         ISimplePolicy policy = ISimplePolicy(dataAddress[__b(_id, "addressById")]);
 
         address unit;
-        (, , , , unit, , ) = policy.getSimplePolicyInfo();
+        address treasury;
+        (, , , , unit, , , treasury) = policy.getSimplePolicyInfo();
 
-        dataUint256[__a(unit, "premiumsPaid")] += _amount;
-        dataUint256[__a(unit, "balance")] += _amount;
+        uint256 netPremiumAmount = _takeCommissions(_amount);
+
+        dataUint256[__a(unit, "premiumsPaid")] += netPremiumAmount;
+        dataUint256[__a(unit, "balance")] += netPremiumAmount;
 
         IERC20 token = IERC20(unit);
         token.approve(address(this), _amount);
-        token.transferFrom(_entityAddress, address(policy), _amount);
+        token.transferFrom(_entityAddress, treasury, _amount);
     }
 
-    function paySimpleCommission() external override {}
+    function _takeCommissions(uint256 _amount) private returns (uint256 netPremiumAmount_) {
+        uint256 brokerCommission = (dataUint256["brokerCommissionBP"] * _amount) / 1000;
+        uint256 underwriterCommission = (dataUint256["underwriterCommissionBP"] * _amount) / 1000;
+        uint256 claimsAdminCommission = (dataUint256["claimsAdminCommissionBP"] * _amount) / 1000;
+        uint256 naymsCommission = (dataUint256["naymsCommissionBP"] * _amount) / 1000;
+        
+        console.log("  --  amount: ", _amount);
+        console.log("  --  brokerCommission", dataUint256["brokerCommissionBP"], brokerCommission);
+        console.log("  --  underwriterCommission", dataUint256["underwriterCommissionBP"], underwriterCommission);
+        console.log("  --  claimsAdminCommission", dataUint256["claimsAdminCommissionBP"], claimsAdminCommission);
+        console.log("  --  naymsCommission", dataUint256["naymsCommissionBP"], naymsCommission);
+
+        dataUint256["brokerCommissionBalance"] += brokerCommission;
+        dataUint256["claimsAdminCommissionBalance"] += claimsAdminCommission;
+        dataUint256["underwriterCommissionBalance"] += underwriterCommission;
+        dataUint256["naymsCommissionBalance"] += naymsCommission;
+
+        netPremiumAmount_ = _amount - brokerCommission - underwriterCommission - claimsAdminCommission - naymsCommission;
+    }
+
+    function paySimpleCommission() external override {
+        address claimsAdmin = _getEntityWithRole(ROLE_CLAIMS_ADMIN);
+        address broker = _getEntityWithRole(ROLE_BROKER);
+        address underwriter = _getEntityWithRole(ROLE_UNDERWRITER);
+        address feeBank = settings().getRootAddress(SETTING_FEEBANK);
+
+        IERC20 tkn = IERC20(dataAddress["unit"]);
+
+        if (dataUint256["brokerCommissionBalance"] > 0) {
+            tkn.transferFrom(dataAddress["treasury"], broker, dataUint256["brokerCommissionBalance"]);
+            dataUint256["brokerCommissionBalance"] = 0;
+        }
+
+        if (dataUint256["underwriterCommissionBalance"] > 0) {
+            tkn.transferFrom(dataAddress["treasury"], underwriter, dataUint256["underwriterCommissionBalance"]);
+            dataUint256["underwriterCommissionBalance"] = 0;
+        }
+
+        if (dataUint256["claimsAdminCommissionBalance"] > 0) {
+            tkn.transferFrom(dataAddress["treasury"], claimsAdmin, dataUint256["claimsAdminCommissionBalance"]);
+            dataUint256["claimsAdminCommissionBalance"] = 0;
+        }
+
+        if (dataUint256["naymsCommissionBalance"] > 0) {
+            tkn.transferFrom(dataAddress["treasury"], feeBank, dataUint256["naymsCommissionBalance"]);
+            dataUint256["naymsCommissionBalance"] = 0;
+        }
+    }
+
 }

@@ -78,7 +78,7 @@ contract DummyEntityFacet is IDiamondFacet, IEntityCoreFacet, IEntityFundingFace
         uint256 _maturationDate,
         address _unit,
         uint256 _limit,
-        SimplePolicy.Stakeholders calldata _stakeholders
+        Stakeholders calldata _stakeholders
     ) external override {}
 
     function paySimplePremium(
@@ -86,6 +86,8 @@ contract DummyEntityFacet is IDiamondFacet, IEntityCoreFacet, IEntityFundingFace
         address _entityAddress,
         uint256 _amount
     ) external override {}
+
+    function paySimpleCommission() external override {}
 
     function updateAllowSimplePolicy(bool _allow) external override {}
 
@@ -100,4 +102,11 @@ contract DummyEntityFacet is IDiamondFacet, IEntityCoreFacet, IEntityFundingFace
     function checkAndUpdateState(bytes32 _id) external override {}
 
     function getPremiumsAndClaimsPaid(bytes32 _id) external view override returns (uint256 premiumsPaid_, uint256 claimsPaid_) {}
+
+    function getCommissionBalances() external view returns (
+        uint256 brokerCommissionBalance_,
+        uint256 claimsAdminCommissionBalance_,
+        uint256 naymsCommissionBalance_,
+        uint256 underwriterCommissionBalance_
+    ) {}
 }

@@ -49,6 +49,7 @@ describe('Entity', () => {
   let etherToken
   let etherToken2
   let market
+  let feeBank
   let entityProxy
   let entity
   let entityCoreAddress
@@ -68,8 +69,10 @@ describe('Entity', () => {
     acl = await ensureAclIsDeployed({ artifacts })
     settings = await ensureSettingsIsDeployed({ artifacts, acl })
     market = await ensureMarketIsDeployed({ artifacts, settings })
+    feeBank = await ensureFeeBankIsDeployed({ artifacts, settings })
+
     entityDeployer = await ensureEntityDeployerIsDeployed({ artifacts, settings })
-    await ensureFeeBankIsDeployed({ artifacts, settings })
+
     await ensurePolicyImplementationsAreDeployed({ artifacts, settings })
     await ensureEntityImplementationsAreDeployed({ artifacts, settings })
     
@@ -1055,7 +1058,7 @@ describe('Entity', () => {
       underwriter = await createEntity({ entityDeployer, adminAddress: underwriterRep, entityContext, acl })
       insuredParty = await createEntity({ entityDeployer, adminAddress: insuredPartyRep })
       claimsAdmin = await createEntity({ entityDeployer, adminAddress: claimsAdminRep })
-      
+
       const bytes = hre.ethers.utils.arrayify(id)
       const brokerSig = await getAccountWallet(brokerRep).signMessage(bytes)
       const underwriterSig = await getAccountWallet(underwriterRep).signMessage(bytes)
@@ -1064,9 +1067,9 @@ describe('Entity', () => {
 
       stakeholders = {
         roles: [ ROLES.BROKER, ROLES.UNDERWRITER, ROLES.INSURED_PARTY, ROLES.CLAIMS_ADMIN ],
-        stakeholdersAddresses: [ broker, underwriter, insuredParty, claimsAdmin ],
+        stakeholdersAddresses: [ broker, underwriter, insuredParty, claimsAdmin, feeBank.address ],
         approvalSignatures: [ brokerSig, underwriterSig, insuredPartySig, claimsAdminSig ],
-        commissions: [ 10, 20, 30, 40 ]
+        commissions: [ 10, 10, 10, 10, 10 ]
       }
       
       unit = etherToken.address
@@ -1118,6 +1121,7 @@ describe('Entity', () => {
         await entity.updateEnabledCurrency(unit, 500, 1000, { from: systemManager })
         await entity.updateAllowSimplePolicy(true, { from: systemManager })
         await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders).should.be.rejectedWith('must be broker or underwriter')
+          
       })
 
       it('number of roles and signatures match', async () => {

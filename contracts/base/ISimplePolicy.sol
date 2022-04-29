@@ -8,7 +8,8 @@ import "./ISimplePolicyStates.sol";
 /**
  * @dev Super-interface for simple policies
  */
-abstract contract ISimplePolicy is IAccessControl {
+interface ISimplePolicy is IAccessControl {
+
     /**
      * @dev Get simple policy info.
      *
@@ -16,7 +17,6 @@ abstract contract ISimplePolicy is IAccessControl {
     function getSimplePolicyInfo()
         external
         view
-        virtual
         returns (
             bytes32 id_,
             uint256 number_,
@@ -24,7 +24,8 @@ abstract contract ISimplePolicy is IAccessControl {
             uint256 maturationDate_,
             address unit_,
             uint256 limit_,
-            uint256 state_
+            uint256 state_,
+            address treasury_
         );
 
     /**

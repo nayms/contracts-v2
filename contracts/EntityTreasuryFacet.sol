@@ -16,6 +16,11 @@ contract EntityTreasuryFacet is EternalStorage, Controller, EntityTreasuryFacetB
      */
     constructor(address _settings) Controller(_settings) {}
 
+    modifier assertIsMyPolicy(address _addr) {
+        require(hasChild(_addr), "not my policy");
+        _;
+    }
+
     // IDiamondFacet
 
     function getSelectors() public pure override returns (bytes memory) {

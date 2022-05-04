@@ -81,4 +81,17 @@ contract EntityFundingFacet is EternalStorage, Controller, EntityFacetBase, IEnt
         // do it!
         _sellAtBestPriceOnMarket(_sellUnit, _sellAmount, _buyUnit);
     }
+
+    function _sellAtBestPriceOnMarket(
+        address _sellUnit,
+        uint256 _sellAmount,
+        address _buyUnit
+    ) internal {
+        IMarket mkt = _getMarket();
+        // approve mkt to use my tokens
+        IERC20 tok = IERC20(_sellUnit);
+        tok.approve(address(mkt), _sellAmount);
+        // make the offer
+        mkt.executeMarketOffer(_sellUnit, _sellAmount, _buyUnit);
+    }    
 }

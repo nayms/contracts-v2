@@ -21,11 +21,6 @@ abstract contract EntityFacetBase is EternalStorage, Controller, IMarketFeeSched
         _;
     }
 
-    modifier assertIsMyPolicy(address _addr) {
-        require(hasChild(_addr), "not my policy");
-        _;
-    }
-
     function _assertHasEnoughBalance(address _unit, uint256 _amount) internal view {
         require(dataUint256[__a(_unit, "balance")] >= _amount, "exceeds entity balance");
     }
@@ -50,19 +45,6 @@ abstract contract EntityFacetBase is EternalStorage, Controller, IMarketFeeSched
         tok.approve(address(mkt), _sellAmount);
         // make the offer
         return mkt.executeLimitOffer(_sellUnit, _sellAmount, _buyUnit, _buyAmount, _feeSchedule, _notify, _notifyData);
-    }
-
-    function _sellAtBestPriceOnMarket(
-        address _sellUnit,
-        uint256 _sellAmount,
-        address _buyUnit
-    ) internal {
-        IMarket mkt = _getMarket();
-        // approve mkt to use my tokens
-        IERC20 tok = IERC20(_sellUnit);
-        tok.approve(address(mkt), _sellAmount);
-        // make the offer
-        mkt.executeMarketOffer(_sellUnit, _sellAmount, _buyUnit);
     }
 
     function _getMarket() internal view returns (IMarket) {

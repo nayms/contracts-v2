@@ -99,6 +99,7 @@ async function main() {
 
   await ensureEntityImplementationsAreDeployed(ctx)
   await ensurePolicyImplementationsAreDeployed(ctx)
+  await ensureSimplePolicyImplementationsAreDeployed(ctx)
 
   if (releaseConfig.extractDeployedAddresses) {
     await updateDeployedAddressesJson(ctx)

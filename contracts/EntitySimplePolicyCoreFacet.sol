@@ -6,7 +6,6 @@ import "./base/IEntitySimplePolicyCoreFacet.sol";
 import "./base/IDiamondFacet.sol";
 import { SimplePolicy, Stakeholders } from "./SimplePolicy.sol";
 import "./base/ISimplePolicy.sol";
-import "hardhat/console.sol";
 
 contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCoreFacet, IDiamondFacet {
     constructor(address _settings) Controller(_settings) {}
@@ -63,10 +62,7 @@ contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCore
         _addChild(policyAddress);
 
         ISimplePolicy policyFacet = ISimplePolicy(policyAddress);
-        
-        console.log("  --  trying to approve:", policyAddress);
-        policyFacet.approve(_stakeholders.roles, _stakeholders.approvalSignatures);
-        console.log("  --  policy approved:", policyAddress);
+        policyFacet.approveSimplePolicy(_stakeholders.roles, _stakeholders.approvalSignatures);
 
         emit SimplePolicyApproved(_id, address(policy));
 

@@ -24,6 +24,4 @@ interface IEntitySimplePolicyPayFacet {
         address _entityAddress,
         uint256 _amount
     ) external;
-
-    function paySimpleCommission() external;
 }

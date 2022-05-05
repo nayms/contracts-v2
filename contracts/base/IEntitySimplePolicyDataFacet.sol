@@ -62,17 +62,4 @@ interface IEntitySimplePolicyDataFacet {
      * @param _id Unique id that represents the policy - this is what stakeholder will sign to approve the policy.
      */
     function checkAndUpdateState(bytes32 _id) external;
-
-    /**
-     * @dev Get the commission balances for the simple policy.
-     */
-    function getCommissionBalances()
-        external
-        view
-        returns (
-            uint256 brokerCommissionBalance_,
-            uint256 claimsAdminCommissionBalance_,
-            uint256 naymsCommissionBalance_,
-            uint256 underwriterCommissionBalance_
-        );
 }

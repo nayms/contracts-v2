@@ -123,21 +123,4 @@ contract EntitySimplePolicyDataFacet is EntityFacetBase, IDiamondFacet, IEntityS
             dataUint256[__a(unit, "totalLimit")] -= limit;
         }
     }
-
-    function getCommissionBalances()
-        external
-        view
-        override
-        returns (
-            uint256 brokerCommissionBalance_,
-            uint256 claimsAdminCommissionBalance_,
-            uint256 naymsCommissionBalance_,
-            uint256 underwriterCommissionBalance_
-        )
-    {
-        brokerCommissionBalance_ = dataUint256["brokerCommissionBalance"];
-        claimsAdminCommissionBalance_ = dataUint256["claimsAdminCommissionBalance"];
-        naymsCommissionBalance_ = dataUint256["naymsCommissionBalance"];
-        underwriterCommissionBalance_ = dataUint256["underwriterCommissionBalance"];
-    }
 }

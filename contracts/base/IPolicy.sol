@@ -13,7 +13,7 @@ import "./IPolicyApprovalsFacet.sol";
 import "./IPolicyStates.sol";
 
 /**
- * @dev Super-interface for entities
+ * @dev Super-interface for policies.
  */
 abstract contract IPolicy is
     IDiamondUpgradeFacet,

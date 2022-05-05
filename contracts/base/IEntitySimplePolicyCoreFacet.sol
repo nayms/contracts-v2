@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.9;
 
-import { SimplePolicy, ISimplePolicy, Stakeholders } from "../SimplePolicy.sol";
+import { SimplePolicy, Stakeholders } from "../SimplePolicy.sol";
+import "./ISimplePolicy.sol";
 
 /**
  * @dev Core logic for Simple Policies.

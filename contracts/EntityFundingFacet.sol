@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.9;
-import "./base/Controller.sol";
-import "./base/EternalStorage.sol";
 import "./base/IEntityFundingFacet.sol";
 import "./base/IDiamondFacet.sol";
 import "./base/IERC20.sol";
 import "./base/IMarket.sol";
 import "./EntityFacetBase.sol";
 
-contract EntityFundingFacet is EternalStorage, Controller, EntityFacetBase, IEntityFundingFacet, IDiamondFacet {
+contract EntityFundingFacet is EntityFacetBase, IEntityFundingFacet, IDiamondFacet {
     modifier assertCanTradeTrancheTokens() {
         require(inRoleGroup(msg.sender, ROLEGROUP_TRADERS), "must be trader");
         _;
@@ -93,5 +91,5 @@ contract EntityFundingFacet is EternalStorage, Controller, EntityFacetBase, IEnt
         tok.approve(address(mkt), _sellAmount);
         // make the offer
         mkt.executeMarketOffer(_sellUnit, _sellAmount, _buyUnit);
-    }    
+    }
 }

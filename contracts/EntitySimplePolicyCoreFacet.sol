@@ -3,7 +3,8 @@ pragma solidity >=0.8.9;
 import { EntityFacetBase, IERC20 } from "./EntityFacetBase.sol";
 import "./base/IEntitySimplePolicyCoreFacet.sol";
 import "./base/IDiamondFacet.sol";
-import { SimplePolicy, Controller, AccessControl, ISimplePolicy, Stakeholders } from "./SimplePolicy.sol";
+import { SimplePolicy, Controller, Stakeholders } from "./SimplePolicy.sol";
+import "./base/ISimplePolicy.sol";
 
 contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCoreFacet, IDiamondFacet {
     constructor(address _settings) Controller(_settings) {}
@@ -11,8 +12,6 @@ contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCore
     function getSelectors() public pure override returns (bytes memory) {
         return abi.encodePacked(IEntitySimplePolicyCoreFacet.createSimplePolicy.selector, IEntitySimplePolicyCoreFacet.updateAllowSimplePolicy.selector);
     }
-
-    // IEntitySimplePolicyCoreFacet
 
     function _validateSimplePolicyCreation(address _unit, uint256 _limit) internal view {
         require(dataBool["allowSimplePolicy"], "creation disabled");
@@ -39,20 +38,31 @@ contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCore
         _validateSimplePolicyCreation(_unit, _limit);
         dataUint256[__a(_unit, "totalLimit")] += _limit;
 
-        SimplePolicy simplePolicy = new SimplePolicy(
-            _id,
-            dataUint256["numSimplePolicies"],
-            address(settings()),
-            msg.sender,
-            _startDate,
-            _maturationDate,
-            _unit,
-            _limit,
+        // create policy
+        SimplePolicy policy = new SimplePolicy(
+            _id, 
+            dataUint256["numSimplePolicies"], 
+            address(settings()), 
+            msg.sender, 
+            _startDate, 
+            _maturationDate, 
+            _unit, 
+            _limit, 
             _stakeholders
         );
+        
+        // TODO emit create event
+        // emit ISimplePolicy.NewSimplePolicy(_id, address(policy));
 
-        dataAddress[__i(dataUint256["numSimplePolicies"], "addressByNumber")] = address(simplePolicy);
-        dataAddress[__b(_id, "addressById")] = address(simplePolicy);
+        // Approve the policy
+        ISimplePolicy policyFacet = ISimplePolicy(address(policy));
+        policyFacet.approve(_stakeholders.roles, _stakeholders.approvalSignatures);
+
+        // TODO emit approve event
+        // emit ISimplePolicy.SimplePolicyApproved(_id, address(policy));
+
+        dataAddress[__i(dataUint256["numSimplePolicies"], "addressByNumber")] = address(policy);
+        dataAddress[__b(_id, "addressById")] = address(policy);
         dataUint256["numSimplePolicies"] = dataUint256["numSimplePolicies"] + 1;
     }
 

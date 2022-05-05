@@ -1,27 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.9;
 
-import "./base/ECDSA.sol";
-import "./base/AccessControl.sol";
-import "./base/Controller.sol";
-import "./base/Proxy.sol";
-import "./base/ISimplePolicy.sol";
+import "./SimplePolicyFacetBase.sol";
 import "./base/ISimplePolicyStates.sol";
+import "./base/Child.sol";
 
 struct Stakeholders {
     bytes32[] roles;
     address[] stakeholdersAddresses;
     bytes[] approvalSignatures;
-    uint256[] commissions;  // always has one element more than roles, for nayms treasury
+    uint256[] commissions; // always has one element more than roles, for nayms treasury
 }
 
-contract SimplePolicy is Controller, Proxy, ISimplePolicy, ISimplePolicyStates {
-    using ECDSA for bytes32;
-
-
-    /**
-     * @dev SimplePolicy constructor.
-     */
+contract SimplePolicy is SimplePolicyFacetBase, ISimplePolicyStates, Child {
     constructor(
         bytes32 _id,
         uint256 _number,
@@ -35,6 +26,7 @@ contract SimplePolicy is Controller, Proxy, ISimplePolicy, ISimplePolicyStates {
     ) Controller(_settings) Proxy() {
         require(_limit > 0, "limit not > 0");
 
+        // set policy attributes
         dataBytes32["id"] = _id;
         dataUint256["number"] = _number;
         dataUint256["startDate"] = _startDate;
@@ -46,9 +38,9 @@ contract SimplePolicy is Controller, Proxy, ISimplePolicy, ISimplePolicyStates {
         address broker;
         address underwriter;
 
-        // set roles and commissions
+        // set the roles and commissions
         acl().assignRole(aclContext(), _caller, ROLE_POLICY_OWNER);
-        
+
         uint256 rolesCount = _stakeholders.roles.length;
         for (uint256 i = 0; i < rolesCount; i += 1) {
             bytes32 role = _stakeholders.roles[i];
@@ -65,8 +57,8 @@ contract SimplePolicy is Controller, Proxy, ISimplePolicy, ISimplePolicyStates {
                 dataUint256["claimsAdminCommissionBP"] = _stakeholders.commissions[i];
             }
         }
-        
-        // this is always last item in array, there is one element more than roles 
+
+        // these are always the last item in array, there is one element more than roles count
         // for storing nayms treasury address and it's commission
         dataAddress["treasury"] = _stakeholders.stakeholdersAddresses[rolesCount];
         dataUint256["naymsCommissionBP"] = _stakeholders.commissions[rolesCount];
@@ -79,10 +71,6 @@ contract SimplePolicy is Controller, Proxy, ISimplePolicy, ISimplePolicyStates {
 
         dataBool["underwriterApproved"] = underwriterRep;
         dataBool["brokerApproved"] = brokerRep;
-
-        _bulkApprove(_stakeholders.roles, _stakeholders.approvalSignatures);
-
-        emit NewSimplePolicy(_id, address(this));
     }
 
     function _isBrokerOrUnderwriterRep(
@@ -105,79 +93,5 @@ contract SimplePolicy is Controller, Proxy, ISimplePolicy, ISimplePolicyStates {
 
         // caller is broker entity rep?
         brokerRep_ = isBroker && acl().hasRoleInGroup(ctxBroker, _caller, ROLEGROUP_ENTITY_REPS);
-    }
-
-    function getSimplePolicyInfo()
-        external
-        view
-        override
-        returns (
-            bytes32 id_,
-            uint256 number_,
-            uint256 startDate_,
-            uint256 maturationDate_,
-            address unit_,
-            uint256 limit_,
-            uint256 state_,
-            address treasury_
-        )
-    {
-        id_ = dataBytes32["id"];
-        number_ = dataUint256["number"];
-        startDate_ = dataUint256["startDate"];
-        maturationDate_ = dataUint256["maturationDate"];
-        unit_ = dataAddress["unit"];
-        limit_ = dataUint256["limit"];
-        state_ = dataUint256["state"];
-        treasury_ = dataAddress["treasury"];
-    }
-
-    function checkAndUpdateState() external virtual override returns (bool reduceTotalLimit_) {
-        bytes32 id = dataBytes32["id"];
-        uint256 state = dataUint256["state"];
-        reduceTotalLimit_ = false;
-
-        if (block.timestamp >= dataUint256["maturationDate"] && state < POLICY_STATE_MATURED) {
-            // move state to matured
-            dataUint256["state"] = POLICY_STATE_MATURED;
-
-            reduceTotalLimit_ = true;
-
-            // emit event
-            emit SimplePolicyStateUpdated(id, POLICY_STATE_MATURED, msg.sender);
-        } else if (block.timestamp >= dataUint256["startDate"] && state < POLICY_STATE_ACTIVE) {
-            // move state to active
-            dataUint256["state"] = POLICY_STATE_ACTIVE;
-
-            // emit event
-            emit SimplePolicyStateUpdated(id, POLICY_STATE_ACTIVE, msg.sender);
-        }
-    }
-
-    function _bulkApprove(bytes32[] memory _roles, bytes[] memory _signatures) private {
-        bytes32 h = dataBytes32["id"];
-
-        require(_signatures.length == _roles.length, "wrong number of signatures");
-
-        for (uint256 i = 0; i < _roles.length; i += 1) {
-            _approve(_roles[i], h.toEthSignedMessageHash().recover(_signatures[i]));
-        }
-
-        dataUint256["state"] = POLICY_STATE_APPROVED;
-    }
-
-    function _approve(bytes32 _role, address _approver) private assertBelongsToEntityWithRole(_approver, _role) {
-        if (_role == ROLE_UNDERWRITER) {
-            dataBool["underwriterApproved"] = true;
-        } else if (_role == ROLE_BROKER) {
-            dataBool["brokerApproved"] = true;
-        } else if (_role == ROLE_INSURED_PARTY) {
-            dataBool["insuredPartyApproved"] = true;
-        } else if (_role == ROLE_CLAIMS_ADMIN) {
-            dataBool["claimsAdminApproved"] = true;
-        }
-
-        address entity = _getEntityWithRole(_role);
-        acl().assignRole(aclContext(), entity, _role);
     }
 }

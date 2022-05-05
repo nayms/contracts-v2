@@ -15,11 +15,11 @@ struct Stakeholders {
 }
 
 contract SimplePolicy is 
-    Controller, 
-    Proxy, 
-    SimplePolicyFacetBase, 
-    Child, 
-    ISimplePolicyStates 
+    Controller,
+    Proxy,
+    SimplePolicyFacetBase,
+    Child,
+    ISimplePolicyStates
 {
     
     constructor(

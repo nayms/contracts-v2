@@ -40,4 +40,11 @@ interface IEntitySimplePolicyCoreFacet {
      * @param simplePolicy The policy address.
      */
     event NewSimplePolicy(bytes32 indexed id, address indexed simplePolicy);
+
+    /**
+     * @dev Emitted when a policy is signed.
+     * @param id The policy id.
+     * @param simplePolicy The policy address.
+     */
+    event SimplePolicyApproved(bytes32 indexed id, address indexed simplePolicy);
 }

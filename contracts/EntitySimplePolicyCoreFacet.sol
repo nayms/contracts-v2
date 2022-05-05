@@ -68,8 +68,7 @@ contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCore
         policyFacet.approve(_stakeholders.roles, _stakeholders.approvalSignatures);
         console.log("  --  policy approved:", policyAddress);
 
-        // TODO emit approve event
-        // emit SimplePolicyApproved(_id, address(policy));
+        emit SimplePolicyApproved(_id, address(policy));
 
         dataAddress[__i(dataUint256["numSimplePolicies"], "addressByNumber")] = address(policy);
         dataAddress[__b(_id, "addressById")] = address(policy);

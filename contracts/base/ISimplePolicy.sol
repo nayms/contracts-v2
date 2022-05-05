@@ -24,13 +24,6 @@ abstract contract ISimplePolicy is
 {
 
     /**
-     * @dev Emitted when a policy is signed.
-     * @param id The policy id.
-     * @param simplePolicy The policy address.
-     */
-    event SimplePolicyApproved(bytes32 indexed id, address indexed simplePolicy);
-
-    /**
      * @dev Get simple policy info.
      */
     function getSimplePolicyInfo()

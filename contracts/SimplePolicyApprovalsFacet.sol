@@ -18,10 +18,10 @@ contract SimplePolicyApprovalsFacet is EternalStorage, Controller, IDiamondFacet
     }
 
     function getSelectors() public pure override returns (bytes memory) {
-        return abi.encodePacked(ISimplePolicyApprovalsFacet.approve.selector);
+        return abi.encodePacked(ISimplePolicyApprovalsFacet.approveSimplePolicy.selector);
     }
 
-    function approve(bytes32[] memory _roles, bytes[] memory _signatures) external override {
+    function approveSimplePolicy(bytes32[] memory _roles, bytes[] memory _signatures) external override {
         bytes32 h = dataBytes32["id"];
 
         require(_signatures.length == _roles.length, "wrong number of signatures");

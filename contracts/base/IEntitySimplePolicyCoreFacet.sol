@@ -33,4 +33,11 @@ interface IEntitySimplePolicyCoreFacet {
      * @param _allow Allow.
      */
     function updateAllowSimplePolicy(bool _allow) external;
+
+    /**
+     * @dev Emitted when a new policy has been created.
+     * @param id The policy id.
+     * @param simplePolicy The policy address.
+     */
+    event NewSimplePolicy(bytes32 indexed id, address indexed simplePolicy);
 }

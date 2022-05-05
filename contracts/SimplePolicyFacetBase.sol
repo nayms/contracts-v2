@@ -2,13 +2,12 @@
 pragma solidity >=0.8.9;
 
 import "./base/EternalStorage.sol";
-import "./base/Controller.sol";
-import "./base/Proxy.sol";
+import "./base/AccessControl.sol";
 
 /**
- * @dev Policy facet base class
+ * @dev Simple Policy facet base class
  */
-abstract contract SimplePolicyFacetBase is Controller, Proxy {
+abstract contract SimplePolicyFacetBase is EternalStorage, AccessControl {
     function getSimplePolicyInfo()
         external
         view

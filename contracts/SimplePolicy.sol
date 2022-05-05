@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.9;
 
+import "./base/Controller.sol";
+import "./base/Proxy.sol";
+import "./base/Child.sol";
 import "./SimplePolicyFacetBase.sol";
 import "./base/ISimplePolicyStates.sol";
-import "./base/Child.sol";
 
 struct Stakeholders {
     bytes32[] roles;
@@ -12,7 +14,14 @@ struct Stakeholders {
     uint256[] commissions; // always has one element more than roles, for nayms treasury
 }
 
-contract SimplePolicy is SimplePolicyFacetBase, ISimplePolicyStates, Child {
+contract SimplePolicy is 
+    Controller, 
+    Proxy, 
+    SimplePolicyFacetBase, 
+    Child, 
+    ISimplePolicyStates 
+{
+    
     constructor(
         bytes32 _id,
         uint256 _number,
@@ -25,6 +34,9 @@ contract SimplePolicy is SimplePolicyFacetBase, ISimplePolicyStates, Child {
         Stakeholders memory _stakeholders
     ) Controller(_settings) Proxy() {
         require(_limit > 0, "limit not > 0");
+
+        _setParent(msg.sender);
+        _setDelegateAddress(settings().getRootAddress(SETTING_POLICY_DELEGATE));
 
         // set policy attributes
         dataBytes32["id"] = _id;

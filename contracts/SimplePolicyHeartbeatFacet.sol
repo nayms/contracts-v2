@@ -1,11 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.9;
 
+import "./base/EternalStorage.sol";
+import "./base/ECDSA.sol";
+import "./base/Controller.sol";
+import "./base/IDiamondFacet.sol";
 import "./SimplePolicyFacetBase.sol";
 import "./base/ISimplePolicyHeartbeatFacet.sol";
 import "./base/ISimplePolicyStates.sol";
 
-contract SimplePolicyHeartbeatFacet is SimplePolicyFacetBase, ISimplePolicyHeartbeatFacet, ISimplePolicyStates, IDiamondFacet {
+contract SimplePolicyHeartbeatFacet is EternalStorage, Controller, IDiamondFacet, ISimplePolicyHeartbeatFacet, ISimplePolicyStates, SimplePolicyFacetBase {
     constructor(address _settings) Controller(_settings) {
         // nothing to do here
     }

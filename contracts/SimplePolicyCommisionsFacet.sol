@@ -1,11 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.9;
 
+import "./base/EternalStorage.sol";
+import "./base/ECDSA.sol";
+import "./base/Controller.sol";
+import "./base/IDiamondFacet.sol";
 import "./SimplePolicyFacetBase.sol";
 import "./base/ISimplePolicyCommissionsFacet.sol";
 import { IERC20 } from "./EntityFacetBase.sol";
 
-contract SimplePolicyCommissionsFacet is SimplePolicyFacetBase, ISimplePolicyCommissionsFacet, IDiamondFacet {
+contract SimplePolicyCommissionsFacet is EternalStorage, Controller, IDiamondFacet, ISimplePolicyCommissionsFacet, SimplePolicyFacetBase {
     constructor(address _settings) Controller(_settings) {
         // nothing to do here
     }

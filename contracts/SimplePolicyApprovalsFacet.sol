@@ -6,11 +6,15 @@ import "./base/ISimplePolicyApprovalsFacet.sol";
 import "./base/ISimplePolicyStates.sol";
 import "./base/ECDSA.sol";
 
-contract SimplePolicyApprovalsFacet is SimplePolicyFacetBase, ISimplePolicyApprovalsFacet, ISimplePolicyStates {
+contract SimplePolicyApprovalsFacet is SimplePolicyFacetBase, ISimplePolicyApprovalsFacet, ISimplePolicyStates, IDiamondFacet {
     using ECDSA for bytes32;
 
     constructor(address _settings) Controller(_settings) {
         // nothing to do here
+    }
+
+    function getSelectors() public pure override returns (bytes memory) {
+        return abi.encodePacked(ISimplePolicyApprovalsFacet.approve.selector);
     }
 
     function approve(bytes32[] memory _roles, bytes[] memory _signatures) external override {

@@ -5,9 +5,17 @@ import "./SimplePolicyFacetBase.sol";
 import "./base/ISimplePolicyCommissionsFacet.sol";
 import { IERC20 } from "./EntityFacetBase.sol";
 
-contract SimplePolicyCommissionsFacet is SimplePolicyFacetBase, ISimplePolicyCommissionsFacet {
+contract SimplePolicyCommissionsFacet is SimplePolicyFacetBase, ISimplePolicyCommissionsFacet, IDiamondFacet {
     constructor(address _settings) Controller(_settings) {
         // nothing to do here
+    }
+
+    function getSelectors() public pure override returns (bytes memory) {
+        return abi.encodePacked(
+          ISimplePolicyCommissionsFacet.getCommissionBalances.selector,
+          ISimplePolicyCommissionsFacet.takeCommissions.selector,
+          ISimplePolicyCommissionsFacet.payCommissions.selector
+          );
     }
 
     function getCommissionBalances()

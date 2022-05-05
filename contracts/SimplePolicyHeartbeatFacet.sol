@@ -5,9 +5,13 @@ import "./SimplePolicyFacetBase.sol";
 import "./base/ISimplePolicyHeartbeatFacet.sol";
 import "./base/ISimplePolicyStates.sol";
 
-contract SimplePolicyHeartbeatFacet is SimplePolicyFacetBase, ISimplePolicyHeartbeatFacet, ISimplePolicyStates {
+contract SimplePolicyHeartbeatFacet is SimplePolicyFacetBase, ISimplePolicyHeartbeatFacet, ISimplePolicyStates, IDiamondFacet {
     constructor(address _settings) Controller(_settings) {
         // nothing to do here
+    }
+
+    function getSelectors() public pure override returns (bytes memory) {
+        return abi.encodePacked(ISimplePolicyHeartbeatFacet.checkAndUpdateState.selector);
     }
 
     function checkAndUpdateState() external override returns (bool reduceTotalLimit_) {

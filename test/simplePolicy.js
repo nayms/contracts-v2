@@ -30,15 +30,16 @@ const DummyToken = artifacts.require('DummyToken')
 const IDiamondUpgradeFacet = artifacts.require('base/IDiamondUpgradeFacet')
 const IDiamondProxy = artifacts.require('base/IDiamondProxy')
 const AccessControl = artifacts.require('base/AccessControl')
-const DummyEntityFacet = artifacts.require("test/DummyEntityFacet")
+const DummySimplePolicyFacet = artifacts.require("test/DummySimplePolicyFacet")
 const FreezeUpgradesFacet = artifacts.require("test/FreezeUpgradesFacet")
 const IMarketFeeSchedules = artifacts.require("base/IMarketFeeSchedules")
 const Entity = artifacts.require("Entity")
-const IPolicy = artifacts.require("IPolicy")
+const SimplePolicy = artifacts.require("SimplePolicy")
 const ISimplePolicy = artifacts.require("ISimplePolicy")
 const ISimplePolicyStates = artifacts.require("base/ISimplePolicyStates")
+const ISimplePolicyCommissionsFacet = artifacts.require("base/ISimplePolicyCommissionsFacet")
 
-describe('Entity', () => {
+describe('Simple Policy:', () => {
   const evmSnapshot = new EvmSnapshot()
 
   let accounts
@@ -107,8 +108,7 @@ describe('Entity', () => {
     await evmSnapshot.restore()
   })
 
-
-  describe('simple policy', () => {
+  describe('creation:', () => {
     
     let systemManager
     let entityManager
@@ -166,7 +166,7 @@ describe('Entity', () => {
 
     })
 
-    describe('can be created if', () => {
+    describe('can be done if', () => {
 
       it('creation is enabled on entity', async () => {
         await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders).should.be.rejectedWith('creation disabled')
@@ -231,7 +231,7 @@ describe('Entity', () => {
       })
     })
 
-    describe('after creation', () => {
+    describe('after that', () => {
 
       beforeEach(async () => {
 
@@ -441,53 +441,67 @@ describe('Entity', () => {
         maxCapital.should.eq(200 * 1000000000)
       })
 
-      // describe('it can be upgraded', async () => {
-      //   let dummySimplePolicyFacet
-      //   let freezeUpgradesFacet
-      //   let simpePolicyDelegate
+      describe('contract can be upgraded', async () => {
+                
+        let policyProxy
+        let policy
+        let policyContext
+        let policyOwnerAddress
+        
+        let dummySimplePolicyFacet
+        let freezeUpgradesFacet
+        let simplePolicyDelegate
     
-      //   beforeEach(async () => {
-      //     // await setupPolicy(POLICY_ATTRS_1)
-    
-      //     // deploy new implementation
-      //     dummyPolicyFacet = await DummyPolicyFacet.new()
-      //     freezeUpgradesFacet = await FreezeUpgradesFacet.new()
-    
-      //     const proxy = await Proxy.at(policy.address)
-      //     const delegateAddress = await proxy.getDelegateAddress()
-      //     policyDelegate = await IDiamondUpgradeFacet.at(delegateAddress)
-      //   })
-    
-      //   it('and returns version info', async () => {
-      //     const versionInfo = await policy.getVersionInfo()
-      //     expect(versionInfo.num_).to.exist
-      //     expect(versionInfo.date_).to.exist
-      //     expect(versionInfo.hash_).to.exist
-      //   })
-    
-      //   it('but not just by anyone', async () => {
-      //     await policyDelegate.upgrade([dummyPolicyFacet.address], { from: accounts[1] }).should.be.rejectedWith('must be admin')
-      //   })
-    
-      //   it('but not to the existing implementation', async () => {
-      //     await policyDelegate.upgrade([policyCoreAddress]).should.be.rejectedWith('Adding functions failed')
-      //   })
-    
-      //   it('and points to the new implementation', async () => {
-      //     await policyDelegate.upgrade([dummyPolicyFacet.address]).should.be.fulfilled
-      //   })
-    
-      //   it('and can be frozen', async () => {
-      //     await policyDelegate.upgrade([freezeUpgradesFacet.address]).should.be.fulfilled
-      //     await policyDelegate.upgrade([dummyPolicyFacet.address]).should.be.rejectedWith('frozen')
-      //   })
-    
-      //   it('and the internal upgrade function cannot be called directly', async () => {
-      //     const diamondProxy = await IDiamondProxy.at(policy.address)
-      //     await diamondProxy.registerFacets([]).should.be.rejectedWith('external caller not allowed')
-      //   })
-      // })
+        beforeEach(async () => {
 
+          const result = await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, { from: entityRep }).should.be.fulfilled
+          const eventArgs = extractEventArgs(result, events.NewSimplePolicy)
+          
+          policy = await ISimplePolicy.at(eventArgs.simplePolicy)
+          policyProxy = await SimplePolicy.at(eventArgs.simplePolicy)
+
+          policyContext = await policyProxy.aclContext()
+          policyOwnerAddress = entityManager
+    
+          // deploy new implementation
+          dummySimplePolicyFacet = await DummySimplePolicyFacet.new()
+
+          freezeUpgradesFacet = await FreezeUpgradesFacet.new()
+    
+          const proxy = await Proxy.at(eventArgs.simplePolicy)
+          const delegateAddress = await proxy.getDelegateAddress()
+          simplePolicyDelegate = await IDiamondUpgradeFacet.at(delegateAddress)
+        })
+    
+        it('and returns version info', async () => {
+          const versionInfo = await policy.getVersionInfo()
+          expect(versionInfo.num_).to.exist
+          expect(versionInfo.date_).to.exist
+          expect(versionInfo.hash_).to.exist
+        })
+    
+        it('but not just by anyone', async () => {
+          await simplePolicyDelegate.upgrade([dummySimplePolicyFacet.address], { from: accounts[1] }).should.be.rejectedWith('must be admin')
+        })
+    
+        // it('but not to the existing implementation', async () => {
+        //   await simplePolicyDelegate.upgrade([policyCoreAddress]).should.be.rejectedWith('Adding functions failed')
+        // })
+    
+        it('and points to the new implementation', async () => {
+          await simplePolicyDelegate.upgrade([dummySimplePolicyFacet.address]).should.be.fulfilled
+        })
+    
+        it('and can be frozen', async () => {
+          await simplePolicyDelegate.upgrade([freezeUpgradesFacet.address]).should.be.fulfilled
+          await simplePolicyDelegate.upgrade([dummySimplePolicyFacet.address]).should.be.rejectedWith('frozen')
+        })
+    
+        it('and the internal upgrade function cannot be called directly', async () => {
+          const diamondProxy = await IDiamondProxy.at(policy.address)
+          await diamondProxy.registerFacets([]).should.be.rejectedWith('external caller not allowed')
+        })
+      })
     })
   })
 })

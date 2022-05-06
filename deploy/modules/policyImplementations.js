@@ -33,7 +33,7 @@ export const ensureSimplePolicyImplementationsAreDeployed = async (ctx = {}) => 
     facetContractNames: [
       'SimplePolicyApprovalsFacet',
       'SimplePolicyCommissionsFacet',
-      'SimplePolicyHeartbeatFacet',
+      'SimplePolicyHeartbeatFacet'
     ].concat(extraFacets),
     facetListSettingsKey: SETTINGS.POLICY_IMPL,
     proxySettingsKey: SETTINGS.POLICY_DELEGATE,

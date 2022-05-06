@@ -45,15 +45,9 @@ contract SimplePolicyCommissionsFacet is EternalStorage, Controller, IDiamondFac
         uint256 claimsAdminCommission = (dataUint256["claimsAdminCommissionBP"] * _amount) / 1000;
         uint256 naymsCommission = (dataUint256["naymsCommissionBP"] * _amount) / 1000;
 
-        // console.log("  --  amount: ", _amount);
-        // console.log("  --  brokerCommission", dataUint256["brokerCommissionBP"], brokerCommission);
-        // console.log("  --  underwriterCommission", dataUint256["underwriterCommissionBP"], underwriterCommission);
-        // console.log("  --  claimsAdminCommission", dataUint256["claimsAdminCommissionBP"], claimsAdminCommission);
-        // console.log("  --  naymsCommission", dataUint256["naymsCommissionBP"], naymsCommission);
-
         dataUint256["brokerCommissionBalance"] += brokerCommission;
-        dataUint256["claimsAdminCommissionBalance"] += claimsAdminCommission;
         dataUint256["underwriterCommissionBalance"] += underwriterCommission;
+        dataUint256["claimsAdminCommissionBalance"] += claimsAdminCommission;
         dataUint256["naymsCommissionBalance"] += naymsCommission;
 
         netPremiumAmount_ = _amount - brokerCommission - underwriterCommission - claimsAdminCommission - naymsCommission;

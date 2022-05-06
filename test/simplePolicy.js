@@ -125,7 +125,7 @@ describe('Entity', () => {
     
     let id = web3.eth.abi.encodeEventSignature('SimplePolicyTestID')
     let startDate = parseInt(Date.now() / 1000)
-    let maturationDate = startDate + 1000
+    let maturationDate = startDate + 10000
     let unit
     let limit = 100 * 1000000000
     let stakeholders

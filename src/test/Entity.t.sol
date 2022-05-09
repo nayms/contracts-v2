@@ -62,6 +62,8 @@ import { IDiamondProxy } from "../../contracts/base/IDiamondProxy.sol";
 import { Strings } from "../../contracts/base/Strings.sol";
 import { Address } from "../../contracts/base/Address.sol";
 
+import { Stakeholders } from "../../contracts/SimplePolicy.sol";
+
 interface IProxy {
     function getDelegateAddress() external view returns (address);
 }
@@ -1182,6 +1184,41 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         // policy.createTranche();
     }
 
+    function initStakeholders() private returns (Stakeholders memory stakeHolders) {
+        address broker = address(0xACC1);
+        address underwriter = address(0xACC2);
+        address claimsAdmin = address(0xACC3);
+        address insuredParty = address(0xACC4);
+
+        address[] memory stakeholdersAddresses = new address[](4);
+        stakeholdersAddresses[0] = broker;
+        stakeholdersAddresses[1] = underwriter;
+        stakeholdersAddresses[2] = claimsAdmin;
+        stakeholdersAddresses[3] = insuredParty;
+
+        bytes32[] memory roles = new bytes32[](4);
+        roles[0] = ROLE_BROKER;
+        roles[1] = ROLE_UNDERWRITER;
+        roles[2] = ROLE_CLAIMS_ADMIN;
+        roles[3] = ROLE_INSURED_PARTY;  
+
+        uint256[] memory commissions = new uint256[](4);
+        commissions[0] = 10;
+        commissions[1] = 10;
+        commissions[2] = 10;
+        commissions[3] = 10;
+        commissions[4] = 10; // Nayms commission
+
+        bytes[] memory signatures = new bytes[](4);
+        // TODO provide signatures for each of the roles
+
+        stakeHolders.stakeholdersAddresses = stakeholdersAddresses;
+        stakeHolders.roles = roles;  
+        stakeHolders.commissions = commissions;
+        stakeHolders.approvalSignatures = signatures;
+
+    }
+
     function testEntityCreateSimplePolicyReverts() public {
         acl.assignRole(entity.aclContext(), systemManager, ROLE_SYSTEM_MANAGER);
         acl.assignRole(entity.aclContext(), entityManager, ROLE_ENTITY_MANAGER);
@@ -1194,15 +1231,8 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         address underlying = address(weth);
         uint256 limit;
 
-        address[] memory stakeHolders = new address[](5);
-        stakeHolders[0] = entityAddress;
-        stakeHolders[1] = entityAddress;
-        stakeHolders[2] = address(0);
-        stakeHolders[3] = entityAddress;
-        stakeHolders[4] = entityAddress;
-
-        bytes[] memory approvalSignatures = new bytes[](0);
-
+        Stakeholders memory stakeHolders = initStakeholders();
+        
         vm.expectRevert("creation disabled");
         entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders);
 
@@ -1264,14 +1294,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         uint256 limit = 100;
         bytes32 simplePolicyId = "0x1";
 
-        address[] memory stakeHolders = new address[](5);
-        stakeHolders[0] = entityAddress;
-        stakeHolders[1] = entityAddress;
-        stakeHolders[2] = address(0);
-        stakeHolders[3] = entityAddress;
-        stakeHolders[4] = entityAddress;
-
-        bytes[] memory approvalSignatures = new bytes[](0);
+        Stakeholders memory stakeHolders = initStakeholders();
 
         entity.updateAllowSimplePolicy(true);
 
@@ -1337,14 +1360,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         uint256 limit = 100;
         bytes32 simplePolicyId = "0x1";
 
-        address[] memory stakeHolders = new address[](5);
-        stakeHolders[0] = entityAddress;
-        stakeHolders[1] = entityAddress;
-        stakeHolders[2] = address(0);
-        stakeHolders[3] = entityAddress;
-        stakeHolders[4] = entityAddress;
-
-        bytes[] memory approvalSignatures = new bytes[](0);
+        Stakeholders memory stakeHolders = initStakeholders();
 
         entity.updateAllowSimplePolicy(true);
 
@@ -1398,14 +1414,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         uint256 limit = 100;
         bytes32 simplePolicyId = "0x1";
 
-        address[] memory stakeHolders = new address[](5);
-        stakeHolders[0] = entityAddress;
-        stakeHolders[1] = entityAddress;
-        stakeHolders[2] = address(0);
-        stakeHolders[3] = entityAddress;
-        stakeHolders[4] = entityAddress;
-
-        bytes[] memory approvalSignatures = new bytes[](0);
+        Stakeholders memory stakeHolders = initStakeholders();
 
         entity.updateAllowSimplePolicy(true);
 

@@ -371,14 +371,20 @@ describe('Simple Policy:', () => {
         it('and commissions can be payed out to stakeholders', async () => {
           const premiumAmount = 10 * 1000000000
 
-          const brokerCommission = premiumAmount * stakeholders.commissions[0] / 1000;
-          const underwriterCommission = premiumAmount * stakeholders.commissions[1] / 1000;
-          const claimsAdminCommission = premiumAmount * stakeholders.commissions[3] / 1000;
-          const naymsCommission = premiumAmount * stakeholders.commissions[4] / 1000;
-
           const result = await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, { from: entityRep }).should.be.fulfilled
           const eventArgs = extractEventArgs(result, events.NewSimplePolicy)
           const policy = await ISimplePolicy.at(eventArgs.simplePolicy)
+
+          const { brokerCommissionBP_: brokerCommissionRate,
+            claimsAdminCommissionBP_: claimsAdminCommissionRate,
+            naymsCommissionBP_: naymsCommissionRate,
+            underwriterCommissionBP_: underwriterCommissionRate 
+          } = await policy.getCommissionRates()
+
+          const brokerCommission = premiumAmount * brokerCommissionRate / 1000;
+          const underwriterCommission = premiumAmount * underwriterCommissionRate / 1000;
+          const claimsAdminCommission = premiumAmount * claimsAdminCommissionRate / 1000;
+          const naymsCommission = premiumAmount * naymsCommissionRate / 1000;
 
           await entity.paySimplePremium(id, entity.address, premiumAmount, { from: entityRep }).should.be.fulfilled    
 

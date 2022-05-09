@@ -58,6 +58,7 @@ describe('Simple Policy:', () => {
   let systemContext
 
   let entityAdmin
+  let policyCoreAddress
 
   let DOES_NOT_HAVE_ROLE
   let HAS_ROLE_CONTEXT
@@ -74,8 +75,9 @@ describe('Simple Policy:', () => {
 
     entityDeployer = await ensureEntityDeployerIsDeployed({ artifacts, settings })
 
-    await ensureSimplePolicyImplementationsAreDeployed({ artifacts, settings })
     await ensureEntityImplementationsAreDeployed({ artifacts, settings })
+
+    ;({ facets: [ policyCoreAddress ]} = await ensureSimplePolicyImplementationsAreDeployed({ artifacts, settings }))
     
     DOES_NOT_HAVE_ROLE = (await acl.DOES_NOT_HAVE_ROLE()).toNumber()
     HAS_ROLE_CONTEXT = (await acl.HAS_ROLE_CONTEXT()).toNumber()
@@ -525,9 +527,9 @@ describe('Simple Policy:', () => {
           await simplePolicyDelegate.upgrade([dummySimplePolicyFacet.address], { from: accounts[1] }).should.be.rejectedWith('must be admin')
         })
     
-        // it('but not to the existing implementation', async () => {
-        //   await simplePolicyDelegate.upgrade([policyCoreAddress]).should.be.rejectedWith('Adding functions failed')
-        // })
+        it('but not to the existing implementation', async () => {
+          await simplePolicyDelegate.upgrade([policyCoreAddress]).should.be.rejectedWith('Adding functions failed')
+        })
     
         it('and points to the new implementation', async () => {
           await simplePolicyDelegate.upgrade([dummySimplePolicyFacet.address]).should.be.fulfilled

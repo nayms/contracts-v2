@@ -37,11 +37,13 @@ contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCore
         uint256 _maturationDate,
         address _unit,
         uint256 _limit,
-        Stakeholders calldata _stakeholders
+        Stakeholders memory _stakeholders
     ) external override {
         _validateSimplePolicyCreation(_unit, _limit);
         dataUint256[__a(_unit, "totalLimit")] += _limit;
 
+        _stakeholders.stakeholdersAddresses[_stakeholders.roles.length] = address(this);
+        
         // create policy
         SimplePolicy policy = new SimplePolicy(
             _id, 

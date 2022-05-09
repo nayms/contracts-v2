@@ -8,7 +8,7 @@ interface IEntitySimplePolicyPayFacet {
     /**
      * @dev Get simple policy info.
      *
-     * @param _id Unique id that represents the policy - this is what stakeholder will sign to approve the policy.
+     * @param _id Unique id that identifies the policy - this is what stakeholder will sign to approve the policy.
      * @param _amount Amount to pay.
      */
     function paySimpleClaim(bytes32 _id, uint256 _amount) external payable;
@@ -16,7 +16,7 @@ interface IEntitySimplePolicyPayFacet {
     /**
      * @dev Pay the next expected premium for a tranche using the assets owned by this entity.
      *
-     * @param _id Policy which owns the tranche.
+     * @param _id Unique id that identifies the policy - this is what stakeholder will sign to approve the policy.
      * @param _amount Amount of premium to pay.
      */
     function paySimplePremium(
@@ -24,4 +24,11 @@ interface IEntitySimplePolicyPayFacet {
         address _entityAddress,
         uint256 _amount
     ) external;
+
+    /**
+     * @dev Pay out commissions to the stakeholders.
+     *
+     * @param _id Unique id that identifies the policy - this is what stakeholder will sign to approve the policy.
+     */
+    function payOutCommissions(bytes32 _id) external;
 }

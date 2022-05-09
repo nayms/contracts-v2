@@ -26,9 +26,27 @@ contract DummySimplePolicyFacet is IDiamondFacet, ISimplePolicyApprovalsFacet, I
             uint256 naymsCommissionBalance_,
             uint256 underwriterCommissionBalance_
         ) {}
-  function takeCommissions(uint256 _amount) external returns (uint256 netPremiumAmount_) {
-    netPremiumAmount_ = 1;
-  }
+  function takeCommissions(uint256 _amount) external returns (uint256 netPremiumAmount_) {}
 
-  function payCommissions() external payable {}
+  function commissionsPayedOut() external {}
+
+  function getStakeholders() external view override
+        returns (
+            address broker_,
+            address underwriter_,
+            address claimsAdmin_,
+            address feeBank_
+        ) {}
+
+  function getCommissionRates()
+        external
+        view
+        override
+        returns (
+            uint256 brokerCommissionBP_,
+            uint256 claimsAdminCommissionBP_,
+            uint256 naymsCommissionBP_,
+            uint256 underwriterCommissionBP_
+        ) {}
+
 }

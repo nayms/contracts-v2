@@ -10,7 +10,7 @@ import "./ISimplePolicyCommissionsFacet.sol";
 import "./ISimplePolicyHeartbeatFacet.sol";
 
 /**
- * @dev Super-interface for simple policies
+ * @dev Super-interface for Simple Policies
  */
 abstract contract ISimplePolicy is
     IDiamondUpgradeFacet,

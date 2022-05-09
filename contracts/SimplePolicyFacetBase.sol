@@ -5,7 +5,7 @@ import "./base/EternalStorage.sol";
 import "./base/AccessControl.sol";
 
 /**
- * @dev Simple Policy facet base class
+ * @dev SimplePolicy facet base class
  */
 abstract contract SimplePolicyFacetBase is EternalStorage, AccessControl {
     function getSimplePolicyInfo()

@@ -344,7 +344,7 @@ describe('Simple Policy:', () => {
           })
         })
 
-        it('commissions are applied', async () => {
+        it('with commissions taken', async () => {
           const premiumAmount = 10 * 1000000000
 
           const result = await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, { from: entityRep }).should.be.fulfilled
@@ -366,6 +366,43 @@ describe('Simple Policy:', () => {
             underwriterCommissionBalance_: +(premiumAmount / 1000 * stakeholders.commissions[2]),
             naymsCommissionBalance_: +(premiumAmount / 1000 * stakeholders.commissions[4])
           })
+        })
+
+        it('and commissions can be payed out to stakeholders', async () => {
+          const premiumAmount = 10 * 1000000000
+
+          const brokerCommission = premiumAmount * stakeholders.commissions[0] / 1000;
+          const underwriterCommission = premiumAmount * stakeholders.commissions[1] / 1000;
+          const claimsAdminCommission = premiumAmount * stakeholders.commissions[3] / 1000;
+          const naymsCommission = premiumAmount * stakeholders.commissions[4] / 1000;
+
+          const result = await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, { from: entityRep }).should.be.fulfilled
+          const eventArgs = extractEventArgs(result, events.NewSimplePolicy)
+          const policy = await ISimplePolicy.at(eventArgs.simplePolicy)
+
+          await entity.paySimplePremium(id, entity.address, premiumAmount, { from: entityRep }).should.be.fulfilled    
+
+          await policy.getCommissionBalances().should.eventually.matchObj({
+            brokerCommissionBalance_: brokerCommission,
+            claimsAdminCommissionBalance_: claimsAdminCommission,
+            naymsCommissionBalance_: naymsCommission,
+            underwriterCommissionBalance_: underwriterCommission
+          })
+
+          await entity.payOutCommissions(id).should.be.fulfilled
+
+          await policy.getCommissionBalances().should.eventually.matchObj({
+            brokerCommissionBalance_: 0,
+            claimsAdminCommissionBalance_: 0,
+            naymsCommissionBalance_: 0,
+            underwriterCommissionBalance_: 0
+          })
+
+          await etherToken.balanceOf(stakeholders.stakeholdersAddresses[0]).should.eventually.eq(brokerCommission)
+          await etherToken.balanceOf(stakeholders.stakeholdersAddresses[1]).should.eventually.eq(underwriterCommission)
+          await etherToken.balanceOf(stakeholders.stakeholdersAddresses[3]).should.eventually.eq(claimsAdminCommission)
+          await etherToken.balanceOf(stakeholders.stakeholdersAddresses[4]).should.eventually.eq(naymsCommission)
+
         })
       })
 
@@ -465,7 +502,6 @@ describe('Simple Policy:', () => {
     
           // deploy new implementation
           dummySimplePolicyFacet = await DummySimplePolicyFacet.new()
-
           freezeUpgradesFacet = await FreezeUpgradesFacet.new()
     
           const proxy = await Proxy.at(eventArgs.simplePolicy)

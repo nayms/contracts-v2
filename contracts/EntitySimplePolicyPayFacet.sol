@@ -11,16 +11,13 @@ contract EntitySimplePolicyPayFacet is EntityFacetBase, IDiamondFacet, IEntitySi
     constructor(address _settings) Controller(_settings) {}
 
     function getSelectors() public pure override returns (bytes memory) {
-        return abi.encodePacked(IEntitySimplePolicyPayFacet.paySimpleClaim.selector, IEntitySimplePolicyPayFacet.paySimplePremium.selector);
+        return abi.encodePacked(
+            IEntitySimplePolicyPayFacet.paySimpleClaim.selector, 
+            IEntitySimplePolicyPayFacet.paySimplePremium.selector,
+            IEntitySimplePolicyPayFacet.payOutCommissions.selector
+        );
     }
 
-    /**
-     * @dev Performed by a nayms system manager and pays the insured party in the event of a claim.
-     *
-     * Semantically, this method belongs to the EntitySimplePolicyCoreFacet along with
-     * rest of the state mutating methods, but due to the contract size limitation
-     * it had to be moved here.
-     */
     function paySimpleClaim(bytes32 _id, uint256 _amount) external payable override assertIsSystemManager(msg.sender) {
         require(_amount > 0, "invalid claim amount");
 
@@ -66,5 +63,49 @@ contract EntitySimplePolicyPayFacet is EntityFacetBase, IDiamondFacet, IEntitySi
         IERC20 token = IERC20(unit);
         token.approve(address(this), _amount);
         token.transferFrom(_entityAddress, treasury, _amount);
+    }
+
+    function payOutCommissions(bytes32 _id) external override {
+        ISimplePolicy policy = ISimplePolicy(dataAddress[__b(_id, "addressById")]);
+        
+        uint256 brokerCommissionBalance;
+        uint256 claimsAdminCommissionBalance;
+        uint256 naymsCommissionBalance;
+        uint256 underwriterCommissionBalance;
+        (brokerCommissionBalance, claimsAdminCommissionBalance, naymsCommissionBalance, underwriterCommissionBalance) = policy.getCommissionBalances();
+        
+        address unit;
+        address treasury;
+        (, , , , unit, , , treasury) = policy.getSimplePolicyInfo();
+
+        address underwriter_;
+        address broker_;
+        address claimsAdmin_;
+        address feeBank_;
+        (underwriter_, broker_, claimsAdmin_, feeBank_) = policy.getStakeholders();
+
+        IERC20 tkn = IERC20(unit);
+
+        if (brokerCommissionBalance > 0) {
+            tkn.approve(address(this), brokerCommissionBalance);
+            tkn.transferFrom(treasury, broker_, brokerCommissionBalance);
+        }
+
+        if (underwriterCommissionBalance > 0) {
+            tkn.approve(address(this), underwriterCommissionBalance);
+            tkn.transferFrom(treasury, underwriter_, underwriterCommissionBalance);
+        }
+
+        if (claimsAdminCommissionBalance > 0) {
+            tkn.approve(address(this), claimsAdminCommissionBalance);
+            tkn.transferFrom(treasury, claimsAdmin_, claimsAdminCommissionBalance);
+        }
+
+        if (naymsCommissionBalance > 0) {
+            tkn.approve(address(this), naymsCommissionBalance);
+            tkn.transferFrom(treasury, feeBank_, naymsCommissionBalance);
+        }            
+
+        policy.commissionsPayedOut();
     }
 }

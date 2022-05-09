@@ -2,7 +2,6 @@
 pragma solidity >=0.8.9;
 
 import "./base/EternalStorage.sol";
-import "./base/ECDSA.sol";
 import "./base/Controller.sol";
 import "./base/IDiamondFacet.sol";
 import "./SimplePolicyFacetBase.sol";
@@ -16,11 +15,29 @@ contract SimplePolicyCommissionsFacet is EternalStorage, Controller, IDiamondFac
 
     function getSelectors() public pure override returns (bytes memory) {
         return abi.encodePacked(
+          ISimplePolicyCommissionsFacet.getCommissionRates.selector,
           ISimplePolicyCommissionsFacet.getCommissionBalances.selector,
           ISimplePolicyCommissionsFacet.takeCommissions.selector,
-          ISimplePolicyCommissionsFacet.payCommissions.selector
+          ISimplePolicyCommissionsFacet.commissionsPayedOut.selector,
+          ISimplePolicyCommissionsFacet.getStakeholders.selector
           );
     }
+
+    function getCommissionRates()
+        external
+        view
+        override
+        returns (
+            uint256 brokerCommissionBP_,
+            uint256 claimsAdminCommissionBP_,
+            uint256 naymsCommissionBP_,
+            uint256 underwriterCommissionBP_
+        ) {
+            brokerCommissionBP_ = dataUint256["brokerCommissionBP"];
+            claimsAdminCommissionBP_ = dataUint256["claimsAdminCommissionBP"];
+            naymsCommissionBP_ = dataUint256["naymsCommissionBP"];
+            underwriterCommissionBP_ = dataUint256["underwriterCommissionBP"];
+        }
 
     function getCommissionBalances()
         external
@@ -53,32 +70,34 @@ contract SimplePolicyCommissionsFacet is EternalStorage, Controller, IDiamondFac
         netPremiumAmount_ = _amount - brokerCommission - underwriterCommission - claimsAdminCommission - naymsCommission;
     }
 
-    function payCommissions() external payable override {
-        address claimsAdmin = _getEntityWithRole(ROLE_CLAIMS_ADMIN);
-        address broker = _getEntityWithRole(ROLE_BROKER);
-        address underwriter = _getEntityWithRole(ROLE_UNDERWRITER);
-        address feeBank = settings().getRootAddress(SETTING_FEEBANK);
-
-        IERC20 tkn = IERC20(dataAddress["unit"]);
-
+    function commissionsPayedOut() external override {
         if (dataUint256["brokerCommissionBalance"] > 0) {
-            tkn.transferFrom(dataAddress["treasury"], broker, dataUint256["brokerCommissionBalance"]);
             dataUint256["brokerCommissionBalance"] = 0;
         }
 
         if (dataUint256["underwriterCommissionBalance"] > 0) {
-            tkn.transferFrom(dataAddress["treasury"], underwriter, dataUint256["underwriterCommissionBalance"]);
             dataUint256["underwriterCommissionBalance"] = 0;
         }
 
         if (dataUint256["claimsAdminCommissionBalance"] > 0) {
-            tkn.transferFrom(dataAddress["treasury"], claimsAdmin, dataUint256["claimsAdminCommissionBalance"]);
             dataUint256["claimsAdminCommissionBalance"] = 0;
         }
 
         if (dataUint256["naymsCommissionBalance"] > 0) {
-            tkn.transferFrom(dataAddress["treasury"], feeBank, dataUint256["naymsCommissionBalance"]);
             dataUint256["naymsCommissionBalance"] = 0;
         }
+    }
+
+    function getStakeholders() external view override
+        returns (
+            address broker_,
+            address underwriter_,
+            address claimsAdmin_,
+            address feeBank_
+        ) {
+        broker_ = _getEntityWithRole(ROLE_BROKER);
+        underwriter_ = _getEntityWithRole(ROLE_UNDERWRITER);
+        claimsAdmin_ = _getEntityWithRole(ROLE_CLAIMS_ADMIN);
+        feeBank_ = settings().getRootAddress(SETTING_FEEBANK);
     }
 }

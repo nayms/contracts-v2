@@ -111,4 +111,6 @@ contract DummyEntityFacet is IDiamondFacet, IEntityCoreFacet, IEntityFundingFace
             uint256 underwriterCommissionBalance_
         )
     {}
+
+    function payOutCommissions(bytes32 _id) external {}
 }

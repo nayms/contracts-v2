@@ -19,7 +19,7 @@ import { ensureMarketIsDeployed } from '../deploy/modules/market'
 import { ensureFeeBankIsDeployed } from '../deploy/modules/feeBank'
 import { ensureEntityDeployerIsDeployed } from '../deploy/modules/entityDeployer'
 import { ensureEntityImplementationsAreDeployed } from '../deploy/modules/entityImplementations'
-import { ensurePolicyImplementationsAreDeployed, ensureSimplePolicyImplementationsAreDeployed } from '../deploy/modules/policyImplementations'
+import { ensureSimplePolicyImplementationsAreDeployed } from '../deploy/modules/policyImplementations'
 import { getAccounts } from '../deploy/utils'
 import { expect } from 'chai'
 
@@ -74,7 +74,6 @@ describe('Simple Policy:', () => {
 
     entityDeployer = await ensureEntityDeployerIsDeployed({ artifacts, settings })
 
-    await ensurePolicyImplementationsAreDeployed({ artifacts, settings })
     await ensureSimplePolicyImplementationsAreDeployed({ artifacts, settings })
     await ensureEntityImplementationsAreDeployed({ artifacts, settings })
     

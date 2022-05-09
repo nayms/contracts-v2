@@ -57,7 +57,7 @@ interface IEntitySimplePolicyDataFacet {
     ) external;
 
     /**
-     * @dev Heartbeat: Ensure the policy and tranche states are up-to-date.
+     * @dev Heartbeat: Ensure the policy state is up-to-date.
      *
      * @param _id Unique id that represents the policy - this is what stakeholder will sign to approve the policy.
      */

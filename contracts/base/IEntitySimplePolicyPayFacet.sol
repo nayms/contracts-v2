@@ -17,6 +17,7 @@ interface IEntitySimplePolicyPayFacet {
      * @dev Pay the next expected premium for a tranche using the assets owned by this entity.
      *
      * @param _id Unique id that identifies the policy - this is what stakeholder will sign to approve the policy.
+     * @param _entityAddress Address of the entity representative paying the premium.
      * @param _amount Amount of premium to pay.
      */
     function paySimplePremium(

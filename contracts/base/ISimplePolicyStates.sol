@@ -16,7 +16,7 @@ abstract contract ISimplePolicyStates {
     uint256 public constant POLICY_STATE_APPROVED = 1;
 
     /**
-     * @dev State: The policy has completed and it is now active.
+     * @dev State: The policy initial sale has completed and it is now active.
      */
     uint256 public constant POLICY_STATE_ACTIVE = 2;
 

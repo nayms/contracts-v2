@@ -68,11 +68,14 @@ contract EntitySimplePolicyPayFacet is EntityFacetBase, IDiamondFacet, IEntitySi
     function payOutCommissions(bytes32 _id) external override {
         ISimplePolicy policy = ISimplePolicy(dataAddress[__b(_id, "addressById")]);
         
+        
         uint256 brokerCommissionBalance;
         uint256 claimsAdminCommissionBalance;
         uint256 naymsCommissionBalance;
         uint256 underwriterCommissionBalance;
         (brokerCommissionBalance, claimsAdminCommissionBalance, naymsCommissionBalance, underwriterCommissionBalance) = policy.getCommissionBalances();
+        
+        policy.commissionsPayedOut();
         
         address unit;
         address treasury;
@@ -106,6 +109,5 @@ contract EntitySimplePolicyPayFacet is EntityFacetBase, IDiamondFacet, IEntitySi
             tkn.transferFrom(treasury, feeBank_, naymsCommissionBalance);
         }            
 
-        policy.commissionsPayedOut();
     }
 }

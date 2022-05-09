@@ -71,21 +71,28 @@ contract SimplePolicyCommissionsFacet is EternalStorage, Controller, IDiamondFac
     }
 
     function commissionsPayedOut() external override {
+        bool nonZeroBalance = false;
+
         if (dataUint256["brokerCommissionBalance"] > 0) {
             dataUint256["brokerCommissionBalance"] = 0;
+            nonZeroBalance = true;
         }
 
         if (dataUint256["underwriterCommissionBalance"] > 0) {
             dataUint256["underwriterCommissionBalance"] = 0;
+            nonZeroBalance = true;
         }
 
         if (dataUint256["claimsAdminCommissionBalance"] > 0) {
             dataUint256["claimsAdminCommissionBalance"] = 0;
+            nonZeroBalance = true;
         }
 
         if (dataUint256["naymsCommissionBalance"] > 0) {
             dataUint256["naymsCommissionBalance"] = 0;
+            nonZeroBalance = true;
         }
+        require(nonZeroBalance, 'no commissions to pay out');
     }
 
     function getStakeholders() external view override

@@ -369,7 +369,12 @@ describe('Simple Policy:', () => {
           })
         })
 
-        it('and commissions can be payed out to stakeholders', async () => {
+        it('if commissions balances are greater than zero', async() => {
+          await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, { from: entityRep }).should.be.fulfilled
+          await entity.payOutCommissions(id).should.be.rejectedWith('no commissions to pay out')
+        })
+
+        it('they can be payed out to stakeholders', async () => {
           const premiumAmount = 10 * 1000000000
 
           const result = await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, { from: entityRep }).should.be.fulfilled

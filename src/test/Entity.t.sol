@@ -124,6 +124,9 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
     address internal constant entityManager = account2;
     address internal constant entityRep = account3;
 
+    bytes32 internal constant simplePolicyId = "0x1";
+    Stakeholders internal stakeHolders;
+
     event EntityDeposit(address indexed caller, address indexed unit, uint256 indexed amount);
     event NewPolicy(address indexed policy, address indexed entity, address indexed deployer);
 
@@ -286,6 +289,41 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         vm.label(address(0xACC7), "Account 7");
         vm.label(address(0xACC8), "Account 8");
         vm.label(address(0xACC9), "Account 9");
+
+        address[] memory stakeholdersAddresses = new address[](4);
+        stakeholdersAddresses[0] = address(0xACC1); // broker
+        stakeholdersAddresses[1] = address(0xACC2); // underwriter
+        stakeholdersAddresses[2] = address(0xACC3); // claims admin
+        stakeholdersAddresses[3] = address(0xACC4); // insured party
+
+        bytes32[] memory roles = new bytes32[](4);
+        roles[0] = ROLE_BROKER;
+        roles[1] = ROLE_UNDERWRITER;
+        roles[2] = ROLE_CLAIMS_ADMIN;
+        roles[3] = ROLE_INSURED_PARTY;
+
+        uint256[] memory commissions = new uint256[](5);
+        commissions[0] = 10;
+        commissions[1] = 10;
+        commissions[2] = 10;
+        commissions[3] = 10;
+        commissions[4] = 10; // Nayms commission
+
+        bytes[] memory signatures = new bytes[](4);
+        (, , bytes32 sig1) = vm.sign(0xACC1, simplePolicyId);
+        (, , bytes32 sig2) = vm.sign(0xACC2, simplePolicyId);
+        (, , bytes32 sig3) = vm.sign(0xACC3, simplePolicyId);
+        (, , bytes32 sig4) = vm.sign(0xACC4, simplePolicyId);
+        signatures[0] = abi.encodePacked(sig1);
+        signatures[1] = abi.encodePacked(sig2);
+        signatures[2] = abi.encodePacked(sig3);
+        signatures[3] = abi.encodePacked(sig4);
+
+        stakeHolders.stakeholdersAddresses = stakeholdersAddresses;
+        stakeHolders.roles = roles;  
+        stakeHolders.commissions = commissions;
+        stakeHolders.approvalSignatures = signatures;
+
     }
 
     struct VersionInfo {
@@ -1184,41 +1222,6 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         // policy.createTranche();
     }
 
-    function initStakeholders() private returns (Stakeholders memory stakeHolders) {
-        address broker = address(0xACC1);
-        address underwriter = address(0xACC2);
-        address claimsAdmin = address(0xACC3);
-        address insuredParty = address(0xACC4);
-
-        address[] memory stakeholdersAddresses = new address[](4);
-        stakeholdersAddresses[0] = broker;
-        stakeholdersAddresses[1] = underwriter;
-        stakeholdersAddresses[2] = claimsAdmin;
-        stakeholdersAddresses[3] = insuredParty;
-
-        bytes32[] memory roles = new bytes32[](4);
-        roles[0] = ROLE_BROKER;
-        roles[1] = ROLE_UNDERWRITER;
-        roles[2] = ROLE_CLAIMS_ADMIN;
-        roles[3] = ROLE_INSURED_PARTY;  
-
-        uint256[] memory commissions = new uint256[](4);
-        commissions[0] = 10;
-        commissions[1] = 10;
-        commissions[2] = 10;
-        commissions[3] = 10;
-        commissions[4] = 10; // Nayms commission
-
-        bytes[] memory signatures = new bytes[](4);
-        // TODO provide signatures for each of the roles
-
-        stakeHolders.stakeholdersAddresses = stakeholdersAddresses;
-        stakeHolders.roles = roles;  
-        stakeHolders.commissions = commissions;
-        stakeHolders.approvalSignatures = signatures;
-
-    }
-
     function testEntityCreateSimplePolicyReverts() public {
         acl.assignRole(entity.aclContext(), systemManager, ROLE_SYSTEM_MANAGER);
         acl.assignRole(entity.aclContext(), entityManager, ROLE_ENTITY_MANAGER);
@@ -1231,8 +1234,6 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         address underlying = address(weth);
         uint256 limit;
 
-        Stakeholders memory stakeHolders = initStakeholders();
-        
         vm.expectRevert("creation disabled");
         entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders);
 
@@ -1293,8 +1294,6 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         address underlying = address(weth);
         uint256 limit = 100;
         bytes32 simplePolicyId = "0x1";
-
-        Stakeholders memory stakeHolders = initStakeholders();
 
         entity.updateAllowSimplePolicy(true);
 
@@ -1360,8 +1359,6 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         uint256 limit = 100;
         bytes32 simplePolicyId = "0x1";
 
-        Stakeholders memory stakeHolders = initStakeholders();
-
         entity.updateAllowSimplePolicy(true);
 
         uint256 collateralRatio = 500;
@@ -1413,8 +1410,6 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         address underlying = address(weth);
         uint256 limit = 100;
         bytes32 simplePolicyId = "0x1";
-
-        Stakeholders memory stakeHolders = initStakeholders();
 
         entity.updateAllowSimplePolicy(true);
 

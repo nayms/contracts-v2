@@ -24,7 +24,8 @@ interface ISimplePolicy2 {
             uint256 maturationDate_,
             address unit_,
             uint256 limit_,
-            uint256 state_
+            uint256 state_,
+            address treasury_
         );
 
     /**

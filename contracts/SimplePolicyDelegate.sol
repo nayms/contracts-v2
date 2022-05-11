@@ -5,6 +5,6 @@ import "./base/DiamondProxy.sol";
 
 contract SimplePolicyDelegate is Controller, DiamondProxy {
     constructor(address _settings) Controller(_settings) DiamondProxy() {
-        _registerFacets(settings().getRootAddresses(SETTING_POLICY_IMPL));
+        _registerFacets(settings().getRootAddresses(SETTING_SIMPLE_POLICY_IMPL));
     }
 }

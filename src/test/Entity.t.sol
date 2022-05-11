@@ -66,6 +66,7 @@ import { FreezeUpgradesFacet } from "../../contracts/test/FreezeUpgradesFacet.so
 import { IDiamondProxy } from "../../contracts/base/IDiamondProxy.sol";
 import { Strings } from "../../contracts/base/Strings.sol";
 import { Address } from "../../contracts/base/Address.sol";
+import { ECDSA } from "../../contracts/base/ECDSA.sol";
 
 import { Stakeholders } from "../../contracts/SimplePolicy.sol";
 
@@ -356,19 +357,55 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         commissions[3] = 10;
         commissions[4] = 10; // Nayms commission
 
-        bytes[] memory signatures = new bytes[](4);
-        (, , bytes32 sig1) = vm.sign(0xACC6, simplePolicyId);
-        (, , bytes32 sig2) = vm.sign(0xACC5, simplePolicyId);
-        (, , bytes32 sig3) = vm.sign(0xACC7, simplePolicyId);
-        (, , bytes32 sig4) = vm.sign(0xACC4, simplePolicyId);
-        signatures[0] = abi.encodePacked(sig1);
-        signatures[1] = abi.encodePacked(sig2);
-        signatures[2] = abi.encodePacked(sig3);
-        signatures[3] = abi.encodePacked(sig4);
-
         stakeHolders.stakeholdersAddresses = stakeholdersAddresses;
         stakeHolders.roles = roles;
         stakeHolders.commissions = commissions;
+
+        address signer1 = vm.addr(0xAAA1);
+        address signer2 = vm.addr(0xAAA2);
+        address signer3 = vm.addr(0xAAA3);
+        address signer4 = vm.addr(0xAAA4);
+
+        vm.label(signer1, "Signer 1");
+        vm.label(signer2, "Signer 2");
+        vm.label(signer3, "Signer 3");
+        vm.label(signer4, "Signer 4");
+        acl.assignRole(broker.aclContext(), signer1, ROLE_ENTITY_REP);
+        acl.assignRole(underwriter.aclContext(), signer2, ROLE_ENTITY_REP);
+        acl.assignRole(claimsAdmin.aclContext(), signer3, ROLE_ENTITY_REP);
+        acl.assignRole(insuredParty.aclContext(), signer4, ROLE_ENTITY_REP);
+
+        bytes[] memory signatures = new bytes[](4);
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(0xAAA1, ECDSA.toEthSignedMessageHash(simplePolicyId));
+        // address signer = ecrecover(simplePolicyId, v1, r1, s1);
+        address signer = ecrecover(simplePolicyId, v, r, s);
+        assertEq(signer1, signer);
+        bytes memory fullSig1 = abi.encodePacked(r, s, v);
+
+        (v, r, s) = vm.sign(0xAAA2, ECDSA.toEthSignedMessageHash(simplePolicyId));
+        bytes memory fullSig2 = abi.encodePacked(r, s, v);
+        (v, r, s) = vm.sign(0xAAA3, ECDSA.toEthSignedMessageHash(simplePolicyId));
+        bytes memory fullSig3 = abi.encodePacked(r, s, v);
+        (v, r, s) = vm.sign(0xAAA4, ECDSA.toEthSignedMessageHash(simplePolicyId));
+        bytes memory fullSig4 = abi.encodePacked(r, s, v);
+        signer = ECDSA.recover(simplePolicyId, fullSig1);
+        assertEq(signer1, signer);
+        console2.logBytes(fullSig1);
+        console2.log(fullSig1.length);
+        // (, , bytes32 sig1) = vm.sign(0xACC6, simplePolicyId);
+        // (, , bytes32 sig2) = vm.sign(0xACC5, simplePolicyId);
+        // (, , bytes32 sig3) = vm.sign(0xACC7, simplePolicyId);
+        // (, , bytes32 sig4) = vm.sign(0xACC4, simplePolicyId);
+        signatures[0] = fullSig1;
+        signatures[1] = fullSig2;
+        signatures[2] = fullSig3;
+        signatures[3] = fullSig4;
+        // signatures[0] = abi.encodePacked(sig1);
+        // signatures[1] = abi.encodePacked(sig2);
+        // signatures[2] = abi.encodePacked(sig3);
+        // signatures[3] = abi.encodePacked(sig4);
+
         stakeHolders.approvalSignatures = signatures;
 
         vm.label(address(weth), "WETH False");

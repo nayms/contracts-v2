@@ -9,6 +9,7 @@ import "./base/IDiamondFacet.sol";
 import "./SimplePolicyFacetBase.sol";
 import "./base/ISimplePolicyApprovalsFacet.sol";
 import "./base/ISimplePolicyStates.sol";
+import "forge-std/Test.sol";
 
 contract SimplePolicyApprovalsFacet is EternalStorage, Controller, IDiamondFacet, ISimplePolicyApprovalsFacet, ISimplePolicyStates, SimplePolicyFacetBase {
     using ECDSA for bytes32;
@@ -23,17 +24,21 @@ contract SimplePolicyApprovalsFacet is EternalStorage, Controller, IDiamondFacet
 
     function approveSimplePolicy(bytes32[] memory _roles, bytes[] memory _signatures) external override {
         bytes32 h = dataBytes32["id"];
+        console2.logBytes32(h);
 
         require(_signatures.length == _roles.length, "wrong number of signatures");
 
         for (uint256 i = 0; i < _roles.length; i += 1) {
+            console2.log(i);
+            console2.logBytes(_signatures[i]);
+            console2.log(h.toEthSignedMessageHash().recover(_signatures[i]));
             _approve(_roles[i], h.toEthSignedMessageHash().recover(_signatures[i]));
         }
 
         dataUint256["state"] = POLICY_STATE_APPROVED;
     }
 
-    function _approve(bytes32 _role, address _approver) private assertBelongsToEntityWithRole(_approver, _role) {
+    function _approve(bytes32 _role, address _approver) internal assertBelongsToEntityWithRole(_approver, _role) {
         if (_role == ROLE_UNDERWRITER) {
             dataBool["underwriterApproved"] = true;
         } else if (_role == ROLE_BROKER) {

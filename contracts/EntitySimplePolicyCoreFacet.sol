@@ -53,7 +53,7 @@ contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCore
         _addChild(policyAddress);
 
         console2.log("  --  staring approval: ", policyAddress);
-        ISimplePolicy2 policyFacet = ISimplePolicy2(policyAddress);
+        ISimplePolicy policyFacet = ISimplePolicy(policyAddress);
         policyFacet.approveSimplePolicy(_stakeholders.roles, _stakeholders.approvalSignatures);
         console2.log("  --  APPROVED!");
 

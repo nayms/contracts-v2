@@ -1,41 +1,43 @@
-import { deployUpgradeableContract } from './lib'
-import { SETTINGS } from '../../utils/constants'
+import { deployUpgradeableContract } from "./lib";
+import { SETTINGS } from "../../utils/constants";
 
 export const ensurePolicyImplementationsAreDeployed = async (ctx = {}) => {
-  const { extraFacets = [] } = ctx
+  const { extraFacets = [] } = ctx;
 
   return await deployUpgradeableContract({
     ctx,
-    friendlyName: 'Policy delegate',
-    proxyContractName: 'PolicyDelegate',
-    proxyInterfaceName: 'IPolicy',
+    friendlyName: "Policy delegate",
+    proxyContractName: "PolicyDelegate",
+    proxyInterfaceName: "IPolicy",
     facetContractNames: [
-      'PolicyCoreFacet',
-      'PolicyClaimsFacet',
-      'PolicyCommissionsFacet',
-      'PolicyPremiumsFacet',
-      'PolicyTrancheTokensFacet',
-      'PolicyApprovalsFacet',
+      "PolicyCoreFacet",
+      "PolicyClaimsFacet",
+      "PolicyCommissionsFacet",
+      "PolicyPremiumsFacet",
+      "PolicyTrancheTokensFacet",
+      "PolicyApprovalsFacet",
     ].concat(extraFacets),
     facetListSettingsKey: SETTINGS.POLICY_IMPL,
     proxySettingsKey: SETTINGS.POLICY_DELEGATE,
-  })
-}
+  });
+};
 
-export const ensureSimplePolicyImplementationsAreDeployed = async (ctx = {}) => {
-  const { extraFacets = [] } = ctx
+export const ensureSimplePolicyImplementationsAreDeployed = async (
+  ctx = {}
+) => {
+  const { extraFacets = [] } = ctx;
 
   return await deployUpgradeableContract({
     ctx,
-    friendlyName: 'SimplePolicy delegate',
-    proxyContractName: 'SimplePolicyDelegate',
-    proxyInterfaceName: 'ISimplePolicy',
+    friendlyName: "SimplePolicy delegate",
+    proxyContractName: "SimplePolicyDelegate",
+    proxyInterfaceName: "ISimplePolicy",
     facetContractNames: [
-      'SimplePolicyApprovalsFacet',
-      'SimplePolicyCommissionsFacet',
-      'SimplePolicyHeartbeatFacet'
+      "SimplePolicyApprovalsFacet",
+      "SimplePolicyCommissionsFacet",
+      "SimplePolicyHeartbeatFacet",
     ].concat(extraFacets),
-    facetListSettingsKey: SETTINGS.POLICY_IMPL,
-    proxySettingsKey: SETTINGS.POLICY_DELEGATE,
-  })
-}
+    facetListSettingsKey: SETTINGS.SIMPLE_POLICY_IMPL,
+    proxySettingsKey: SETTINGS.SIMPLE_POLICY_DELEGATE,
+  });
+};

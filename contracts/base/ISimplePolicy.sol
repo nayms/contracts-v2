@@ -22,7 +22,6 @@ abstract contract ISimplePolicy is
     ISimplePolicyCommissionsFacet,
     ISimplePolicyHeartbeatFacet
 {
-
     /**
      * @dev Get simple policy info.
      */
@@ -76,4 +75,6 @@ abstract contract ISimplePolicy is
         );
 
     function payCommissions() external payable virtual;
+
+    function approveSimplePolicy(bytes32[] memory _roles, bytes[] memory _signatures) external virtual;
 }

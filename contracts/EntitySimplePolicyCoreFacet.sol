@@ -6,16 +6,14 @@ import "./base/IEntitySimplePolicyCoreFacet.sol";
 import "./base/IDiamondFacet.sol";
 import { SimplePolicy, Stakeholders } from "./SimplePolicy.sol";
 import "./base/ISimplePolicy.sol";
+import "./base/ISimplePolicy2.sol";
 import "forge-std/Test.sol";
 
 contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCoreFacet, IDiamondFacet {
     constructor(address _settings) Controller(_settings) {}
 
     function getSelectors() public pure override returns (bytes memory) {
-        return abi.encodePacked(
-            IEntitySimplePolicyCoreFacet.createSimplePolicy.selector, 
-            IEntitySimplePolicyCoreFacet.updateAllowSimplePolicy.selector
-        );
+        return abi.encodePacked(IEntitySimplePolicyCoreFacet.createSimplePolicy.selector, IEntitySimplePolicyCoreFacet.updateAllowSimplePolicy.selector);
     }
 
     function _validateSimplePolicyCreation(address _unit, uint256 _limit) internal view {
@@ -44,28 +42,18 @@ contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCore
         dataUint256[__a(_unit, "totalLimit")] += _limit;
 
         _stakeholders.stakeholdersAddresses[_stakeholders.roles.length] = address(this);
-        
+
         // create policy
-        SimplePolicy policy = new SimplePolicy(
-            _id, 
-            dataUint256["numSimplePolicies"], 
-            address(settings()), 
-            msg.sender, 
-            _startDate, 
-            _maturationDate, 
-            _unit, 
-            _limit, 
-            _stakeholders
-        );
+        SimplePolicy policy = new SimplePolicy(_id, dataUint256["numSimplePolicies"], address(settings()), msg.sender, _startDate, _maturationDate, _unit, _limit, _stakeholders);
 
         address policyAddress = address(policy);
-        
+
         emit NewSimplePolicy(_id, policyAddress);
 
         _addChild(policyAddress);
-        
+
         console2.log("  --  staring approval: ", policyAddress);
-        ISimplePolicy policyFacet = ISimplePolicy(policyAddress);
+        ISimplePolicy2 policyFacet = ISimplePolicy2(policyAddress);
         policyFacet.approveSimplePolicy(_stakeholders.roles, _stakeholders.approvalSignatures);
         console2.log("  --  APPROVED!");
 

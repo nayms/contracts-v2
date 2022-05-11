@@ -15,14 +15,7 @@ struct Stakeholders {
     uint256[] commissions; // always has one element more than roles, for nayms treasury
 }
 
-contract SimplePolicy is 
-    Controller,
-    Proxy,
-    SimplePolicyFacetBase,
-    Child,
-    ISimplePolicyStates
-{
-    
+contract SimplePolicy is Controller, Proxy, SimplePolicyFacetBase, Child, ISimplePolicyStates {
     constructor(
         bytes32 _id,
         uint256 _number,
@@ -37,7 +30,7 @@ contract SimplePolicy is
         require(_limit > 0, "limit not > 0");
 
         _setParent(msg.sender);
-        _setDelegateAddress(settings().getRootAddress(SETTING_POLICY_DELEGATE));
+        _setDelegateAddress(settings().getRootAddress(SETTING_SIMPLE_POLICY_DELEGATE));
 
         // set policy attributes
         dataBytes32["id"] = _id;
@@ -75,7 +68,7 @@ contract SimplePolicy is
         // for storing nayms treasury address and it's commission
         dataAddress["treasury"] = _stakeholders.stakeholdersAddresses[rolesCount];
         dataUint256["naymsCommissionBP"] = _stakeholders.commissions[rolesCount];
-        
+
         bool underwriterRep;
         bool brokerRep;
         (underwriterRep, brokerRep) = _isBrokerOrUnderwriterRep(_caller, broker, underwriter);
@@ -92,7 +85,6 @@ contract SimplePolicy is
         address _broker,
         address _underwriter
     ) internal view returns (bool underwriterRep_, bool brokerRep_) {
-
         bytes32 ctxSystem = acl().getContextAtIndex(0);
         bytes32 ctxBroker = AccessControl(_broker).aclContext();
         bytes32 ctxUnderwriter = AccessControl(_underwriter).aclContext();

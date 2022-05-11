@@ -74,7 +74,7 @@ contract SimplePolicy is
         // for storing nayms treasury address and it's commission
         dataAddress["treasury"] = _stakeholders.stakeholdersAddresses[rolesCount];
         dataUint256["naymsCommissionBP"] = _stakeholders.commissions[rolesCount];
-
+        
         bool underwriterRep;
         bool brokerRep;
         (underwriterRep, brokerRep) = _isBrokerOrUnderwriterRep(_caller, broker, underwriter);
@@ -101,7 +101,7 @@ contract SimplePolicy is
         underwriterRep_ = isUnderwriter && acl().hasRoleInGroup(ctxUnderwriter, _caller, ROLEGROUP_ENTITY_REPS);
 
         // entity has broker role in system context?
-        bool isBroker = acl().hasRoleInGroup(ctxSystem, _broker, ROLE_BROKER);
+        bool isBroker = acl().hasRoleInGroup(ctxSystem, _broker, ROLEGROUP_BROKERS);
 
         // caller is broker entity rep?
         brokerRep_ = isBroker && acl().hasRoleInGroup(ctxBroker, _caller, ROLEGROUP_ENTITY_REPS);

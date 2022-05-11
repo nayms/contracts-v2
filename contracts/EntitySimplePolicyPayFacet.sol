@@ -68,7 +68,6 @@ contract EntitySimplePolicyPayFacet is EntityFacetBase, IDiamondFacet, IEntitySi
     function payOutCommissions(bytes32 _id) external override {
         ISimplePolicy policy = ISimplePolicy(dataAddress[__b(_id, "addressById")]);
         
-        
         uint256 brokerCommissionBalance;
         uint256 claimsAdminCommissionBalance;
         uint256 naymsCommissionBalance;

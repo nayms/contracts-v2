@@ -273,7 +273,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         simplePolicyFacetAddys[0] = address(simplePolicyApprovalsFacet);
         simplePolicyFacetAddys[1] = address(simplePolicyCommissionsFacet);
         simplePolicyFacetAddys[2] = address(simplePolicyHeartbeatFacet);
-        settings.setAddresses(address(settings), SETTING_SIMPLE_POLICY_IMPL, policyFacetAddys);
+        settings.setAddresses(address(settings), SETTING_SIMPLE_POLICY_IMPL, simplePolicyFacetAddys);
 
         simplePolicyDelegate = new SimplePolicyDelegate(address(settings));
         settings.setAddress(address(settings), SETTING_SIMPLE_POLICY_DELEGATE, address(simplePolicyDelegate));
@@ -1303,11 +1303,16 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         address underlying = address(weth);
         uint256 limit;
 
+        console2.log(" -- check creation disabled");
+
         vm.expectRevert("creation disabled");
         entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders);
 
+        console2.log(" -- check update simple policy");
         entity.updateAllowSimplePolicy(true);
         assertTrue(entity.allowSimplePolicy());
+
+        console2.log(" -- passed update allow simple policy");
 
         uint256 collateralRatio = 500;
         uint256 maxCapital = 100;
@@ -1353,6 +1358,13 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
     }
 
     function testEntityCreateSimplePolicyAfterCreation() public {
+
+        console2.log("  --  brokerEntityAddress", brokerEntityAddress);
+        console2.log("  --  underwriterEntityAddress", underwriterEntityAddress);
+        console2.log("  --  claimsAdminEntityAddress", claimsAdminEntityAddress);
+        console2.log("  --  insuredPartyEntityAddress", insuredPartyEntityAddress);
+
+
         acl.assignRole(entity.aclContext(), systemManager, ROLE_SYSTEM_MANAGER);
         acl.assignRole(entity.aclContext(), entityManager, ROLE_ENTITY_MANAGER);
         acl.assignRole(entity.aclContext(), entityRep, ROLE_ENTITY_REP);
@@ -1373,15 +1385,23 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         weth.deposit{ value: 500 }();
         weth.approve(entityAddress, 500);
         entity.deposit(address(weth), 500);
-
         acl.assignRole(systemContext, entityAddress, ROLE_UNDERWRITER);
+        
+        vm.prank(address(0xACC6));  // be an entity rep
+    
         entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders);
+    
+        vm.stopPrank();
+        console2.log(" -- CREATED SIMPLE policy");
 
-        address policyAddress = 0x84EC5D405CC8B587c624836b53a28eb29F83d162;
+        address policyAddress = entity.getChild(1);
         ISimplePolicy2 simplePolicy = ISimplePolicy2(policyAddress);
+
+        console2.log(" -- fetched SIMPLE policy handle");
 
         // they exist and have their properties set
         (bytes32 simplePolicyIdChk, uint256 policyNumber, , , , , ,) = simplePolicy.getSimplePolicyInfo();
+        console2.log(" -- got SIMPLE policy info");
 
         // number of policies is increased
         assertEq(entity.getNumSimplePolicies(), 1);

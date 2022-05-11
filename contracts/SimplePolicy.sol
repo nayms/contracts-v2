@@ -6,6 +6,7 @@ import "./base/Proxy.sol";
 import "./base/Child.sol";
 import "./SimplePolicyFacetBase.sol";
 import "./base/ISimplePolicyStates.sol";
+import "forge-std/Test.sol";
 
 struct Stakeholders {
     bytes32[] roles;
@@ -78,11 +79,12 @@ contract SimplePolicy is
         bool underwriterRep;
         bool brokerRep;
         (underwriterRep, brokerRep) = _isBrokerOrUnderwriterRep(_caller, broker, underwriter);
-
-        require(underwriterRep || brokerRep, "must be broker or underwriter");
+        require(underwriterRep || brokerRep, "must be broker or underwriter123");
+        console2.log("  --  broker/underwriter confirmed");
 
         dataBool["underwriterApproved"] = underwriterRep;
         dataBool["brokerApproved"] = brokerRep;
+        console2.log("  --  going out of constructor");
     }
 
     function _isBrokerOrUnderwriterRep(
@@ -90,6 +92,7 @@ contract SimplePolicy is
         address _broker,
         address _underwriter
     ) internal view returns (bool underwriterRep_, bool brokerRep_) {
+
         bytes32 ctxSystem = acl().getContextAtIndex(0);
         bytes32 ctxBroker = AccessControl(_broker).aclContext();
         bytes32 ctxUnderwriter = AccessControl(_underwriter).aclContext();

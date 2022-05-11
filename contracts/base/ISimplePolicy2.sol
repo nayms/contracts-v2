@@ -47,4 +47,5 @@ interface ISimplePolicy2 {
     //  * @param _id Unique id that represents the policy - this is what stakeholder will sign to approve the policy.
     //  */
     // function verifySimplePolicy (bytes32 _id ) external;
+    function approveSimplePolicy(bytes32[] memory _roles, bytes[] memory _signatures) external;
 }

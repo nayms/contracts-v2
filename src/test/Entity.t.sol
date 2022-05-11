@@ -50,6 +50,7 @@ import { EntityTreasuryFacet } from "../../contracts/EntityTreasuryFacet.sol";
 import { EntityTreasuryBridgeFacet } from "../../contracts/EntityTreasuryBridgeFacet.sol";
 import { EntitySimplePolicyCoreFacet } from "../../contracts/EntitySimplePolicyCoreFacet.sol";
 import { EntitySimplePolicyDataFacet } from "../../contracts/EntitySimplePolicyDataFacet.sol";
+import { EntitySimplePolicyPayFacet } from "../../contracts/EntitySimplePolicyPayFacet.sol";
 
 import { IEntity } from "../../contracts/base/IEntity.sol";
 import { EntityDelegate } from "../../contracts/EntityDelegate.sol";
@@ -116,6 +117,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
     EntityTreasuryBridgeFacet public entityTreasuryBridgeFacet;
     EntitySimplePolicyCoreFacet public entitySimplePolicyCoreFacet;
     EntitySimplePolicyDataFacet public entitySimplePolicyDataFacet;
+    EntitySimplePolicyPayFacet public entitySimplePolicyPayFacet;
     EntityDelegate public entityDelegate;
 
     CommonUpgradeFacet public commonUpgradeFacet;
@@ -287,8 +289,9 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         entityTreasuryBridgeFacet = new EntityTreasuryBridgeFacet(address(settings));
         entitySimplePolicyCoreFacet = new EntitySimplePolicyCoreFacet(address(settings));
         entitySimplePolicyDataFacet = new EntitySimplePolicyDataFacet(address(settings));
+        entitySimplePolicyPayFacet = new EntitySimplePolicyPayFacet(address(settings));
 
-        address[] memory entityFacetAddys = new address[](9);
+        address[] memory entityFacetAddys = new address[](10);
         entityFacetAddys[0] = address(entityCoreFacet);
         entityFacetAddys[1] = address(entityFundingFacet);
         entityFacetAddys[2] = address(entityTokensFacet);
@@ -297,7 +300,8 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         entityFacetAddys[5] = address(entityTreasuryBridgeFacet);
         entityFacetAddys[6] = address(entitySimplePolicyCoreFacet);
         entityFacetAddys[7] = address(entitySimplePolicyDataFacet);
-        entityFacetAddys[8] = address(commonUpgradeFacet);
+        entityFacetAddys[8] = address(entitySimplePolicyPayFacet);
+        entityFacetAddys[9] = address(commonUpgradeFacet);
         settings.setAddresses(address(settings), SETTING_ENTITY_IMPL, entityFacetAddys);
 
         entityDelegate = new EntityDelegate(address(settings));
@@ -378,11 +382,9 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         bytes[] memory signatures = new bytes[](4);
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(0xAAA1, ECDSA.toEthSignedMessageHash(simplePolicyId));
-        // address signer = ecrecover(simplePolicyId, v1, r1, s1);
         address signer = ecrecover(simplePolicyId, v, r, s);
         assertEq(signer1, signer);
         bytes memory fullSig1 = abi.encodePacked(r, s, v);
-
         (v, r, s) = vm.sign(0xAAA2, ECDSA.toEthSignedMessageHash(simplePolicyId));
         bytes memory fullSig2 = abi.encodePacked(r, s, v);
         (v, r, s) = vm.sign(0xAAA3, ECDSA.toEthSignedMessageHash(simplePolicyId));
@@ -390,9 +392,6 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         (v, r, s) = vm.sign(0xAAA4, ECDSA.toEthSignedMessageHash(simplePolicyId));
         bytes memory fullSig4 = abi.encodePacked(r, s, v);
         signer = ECDSA.recover(simplePolicyId, fullSig1);
-        assertEq(signer1, signer);
-        console2.logBytes(fullSig1);
-        console2.log(fullSig1.length);
         // (, , bytes32 sig1) = vm.sign(0xACC6, simplePolicyId);
         // (, , bytes32 sig2) = vm.sign(0xACC5, simplePolicyId);
         // (, , bytes32 sig3) = vm.sign(0xACC7, simplePolicyId);

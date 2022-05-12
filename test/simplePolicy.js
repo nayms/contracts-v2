@@ -363,8 +363,8 @@ describe('Simple Policy:', () => {
 
           await policy.getCommissionBalances().should.eventually.matchObj({
             brokerCommissionBalance_: +(premiumAmount / 1000 * stakeholders.commissions[0]),
-            claimsAdminCommissionBalance_: +(premiumAmount / 1000 * stakeholders.commissions[1]),
-            underwriterCommissionBalance_: +(premiumAmount / 1000 * stakeholders.commissions[2]),
+            underwriterCommissionBalance_: +(premiumAmount / 1000 * stakeholders.commissions[1]),
+            claimsAdminCommissionBalance_: +(premiumAmount / 1000 * stakeholders.commissions[2]),
             naymsCommissionBalance_: +(premiumAmount / 1000 * stakeholders.commissions[4])
           })
         })
@@ -416,6 +416,11 @@ describe('Simple Policy:', () => {
           await etherToken.balanceOf(stakeholders.stakeholdersAddresses[4]).should.eventually.eq(naymsCommission)
 
         })
+
+        it('skip transfers when no commission to payout', async () => {
+          entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, { from: entityRep }).should.be.fulfilled
+          await entity.payOutCommissions(id).should.be.rejectedWith('no commissions to pay out')
+        })
       })
 
       describe('heart beat function', () => {
@@ -433,6 +438,13 @@ describe('Simple Policy:', () => {
           await policy.getSimplePolicyInfo().should.eventually.matchObj({
             state_: POLICY_STATE_ACTIVE
           })
+
+          // verify nothing changed
+          entity.checkAndUpdateState(id)
+          await policy.getSimplePolicyInfo().should.eventually.matchObj({
+            state_: POLICY_STATE_ACTIVE
+          })
+
         })
 
         it('updates state and total limit accordingly after maturation date', async () => {

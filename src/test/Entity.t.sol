@@ -1453,7 +1453,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         assertEq(claimsPaid, claimAmount);
     }
 
-    function testEntityPaySimplePremium() public {
+    function testEntityPaySimplePremiumAndCommissionsPayout() public {
         acl.assignRole(entity.aclContext(), systemManager, ROLE_SYSTEM_MANAGER);
         acl.assignRole(entity.aclContext(), entityManager, ROLE_ENTITY_MANAGER);
         acl.assignRole(entity.aclContext(), entityRep, ROLE_ENTITY_REP);
@@ -1462,23 +1462,23 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         uint256 startDate;
         uint256 maturationDate;
         address underlying = address(weth);
-        uint256 limit = 100;
+        uint256 limit = 100 * 1000000000;
 
         entity.updateAllowSimplePolicy(true);
 
         uint256 collateralRatio = 500;
-        uint256 maxCapital = 100;
+        uint256 maxCapital = 100 * 1000000000;
 
         entity.updateEnabledCurrency(underlying, collateralRatio, maxCapital);
 
-        weth.deposit{ value: 500 }();
-        weth.approve(entityAddress, 500);
-        entity.deposit(address(weth), 500);
+        weth.deposit{ value: 500 * 1000000000 }();
+        weth.approve(entityAddress, 500 * 1000000000);
+        entity.deposit(address(weth), 500 * 1000000000);
 
         acl.assignRole(systemContext, entityAddress, ROLE_UNDERWRITER);
         entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders);
 
-        address policyAddress = 0x84EC5D405CC8B587c624836b53a28eb29F83d162;
+        address policyAddress = entity.getChild(1);
         ISimplePolicy2 simplePolicy = ISimplePolicy2(policyAddress);
 
         // they exist and have their properties set
@@ -1493,15 +1493,69 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         vm.expectRevert("invalid premium amount");
         entity.paySimplePremium(simplePolicyId, entityAddress, 0);
 
+        // commissions balances are zero before the premium is paid
+        {
+            (
+                uint256 brokerCommissionBalance_,
+                uint256 claimsAdminCommissionBalance_,
+                uint256 naymsCommissionBalance_,
+                uint256 underwriterCommissionBalance_
+            ) = simplePolicy.getCommissionBalances();
+            assertEq(brokerCommissionBalance_, 0);
+            assertEq(claimsAdminCommissionBalance_, 0);
+            assertEq(naymsCommissionBalance_, 0);
+            assertEq(underwriterCommissionBalance_, 0);
+        }
+
         // premiums can be payed out - and the payout goes to the entity
-        uint256 premiumAmount = 10;
+        uint256 premiumAmount = 10 * 1000000000;
         uint256 previousBalance = entity.getBalance(underlying);
         entity.paySimplePremium(simplePolicyId, entityAddress, premiumAmount);
 
-        assertEq(entity.getBalance(underlying), previousBalance + premiumAmount);
+        // verify commissions are taken for each of the stakeholders
+        uint256 commissionsTotal;
+        {
+            (
+                uint256 brokerCommissionBalance_,
+                uint256 claimsAdminCommissionBalance_,
+                uint256 naymsCommissionBalance_,
+                uint256 underwriterCommissionBalance_
+            ) = simplePolicy.getCommissionBalances();
+            
+            commissionsTotal = brokerCommissionBalance_ + claimsAdminCommissionBalance_ + naymsCommissionBalance_ + underwriterCommissionBalance_;
+
+            assertEq(brokerCommissionBalance_, premiumAmount / 1000 * stakeHolders.commissions[0]);
+            assertEq(underwriterCommissionBalance_, premiumAmount / 1000 * stakeHolders.commissions[1]);
+            assertEq(claimsAdminCommissionBalance_, premiumAmount / 1000 * stakeHolders.commissions[2]);
+            assertEq(naymsCommissionBalance_, premiumAmount / 1000 * stakeHolders.commissions[4]);
+        }
+
+        assertEq(entity.getBalance(underlying), previousBalance + premiumAmount - commissionsTotal);
 
         (uint256 premiumsPaid, ) = entity.getPremiumsAndClaimsPaid(simplePolicyId);
-        assertEq(premiumsPaid, premiumAmount);
+        assertEq(premiumsPaid, premiumAmount - commissionsTotal);
+
+        entity.payOutCommissions(simplePolicyId);
+
+        // after being payed out, the commission balances are zero
+        {
+            (
+                uint256 brokerCommissionBalance_,
+                uint256 claimsAdminCommissionBalance_,
+                uint256 naymsCommissionBalance_,
+                uint256 underwriterCommissionBalance_
+            ) = simplePolicy.getCommissionBalances();
+            assertEq(brokerCommissionBalance_, 0);
+            assertEq(claimsAdminCommissionBalance_, 0);
+            assertEq(naymsCommissionBalance_, 0);
+            assertEq(underwriterCommissionBalance_, 0);
+        }
+
+        assertEq(weth.balanceOf(brokerEntityAddress), premiumAmount / 1000 * stakeHolders.commissions[0]);
+        assertEq(weth.balanceOf(underwriterEntityAddress), premiumAmount / 1000 * stakeHolders.commissions[1]);
+        assertEq(weth.balanceOf(claimsAdminEntityAddress), premiumAmount / 1000 * stakeHolders.commissions[2]);
+        assertEq(weth.balanceOf(stakeholders.stakeholdersAddresses[4]), premiumAmount / 1000 * stakeHolders.commissions[4]);
+
     }
 
     function testEntityHeartBeatFunction() public {
@@ -1529,7 +1583,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         acl.assignRole(systemContext, entityAddress, ROLE_UNDERWRITER);
         entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders);
 
-        address policyAddress = 0x84EC5D405CC8B587c624836b53a28eb29F83d162;
+        address policyAddress = entity.getChild(1);
         ISimplePolicy2 simplePolicy = ISimplePolicy2(policyAddress);
 
         // activates the policy after start date

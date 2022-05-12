@@ -48,4 +48,14 @@ interface ISimplePolicy2 {
     //  */
     // function verifySimplePolicy (bytes32 _id ) external;
     function approveSimplePolicy(bytes32[] memory _roles, bytes[] memory _signatures) external;
+
+    function getCommissionBalances()
+        external
+        view
+        returns (
+            uint256 brokerCommissionBalance_,
+            uint256 claimsAdminCommissionBalance_,
+            uint256 naymsCommissionBalance_,
+            uint256 underwriterCommissionBalance_
+        );    
 }

@@ -74,8 +74,6 @@ contract EntitySimplePolicyPayFacet is EntityFacetBase, IDiamondFacet, IEntitySi
         uint256 underwriterCommissionBalance;
         (brokerCommissionBalance, claimsAdminCommissionBalance, naymsCommissionBalance, underwriterCommissionBalance) = policy.getCommissionBalances();
         
-        policy.commissionsPayedOut();
-        
         address unit;
         address treasury;
         (, , , , unit, , , treasury) = policy.getSimplePolicyInfo();
@@ -107,6 +105,9 @@ contract EntitySimplePolicyPayFacet is EntityFacetBase, IDiamondFacet, IEntitySi
             tkn.approve(address(this), naymsCommissionBalance);
             tkn.transferFrom(treasury, feeBank_, naymsCommissionBalance);
         }            
+        
+        // reset commission balances after paying them out
+        policy.commissionsPayedOut();
 
     }
 }

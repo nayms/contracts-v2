@@ -1554,7 +1554,6 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         assertEq(weth.balanceOf(brokerEntityAddress), premiumAmount / 1000 * stakeHolders.commissions[0]);
         assertEq(weth.balanceOf(underwriterEntityAddress), premiumAmount / 1000 * stakeHolders.commissions[1]);
         assertEq(weth.balanceOf(claimsAdminEntityAddress), premiumAmount / 1000 * stakeHolders.commissions[2]);
-        assertEq(weth.balanceOf(stakeholders.stakeholdersAddresses[4]), premiumAmount / 1000 * stakeHolders.commissions[4]);
 
     }
 

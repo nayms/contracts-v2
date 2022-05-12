@@ -342,10 +342,10 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         acl.assignRole(insuredParty.aclContext(), insuredPartyRep, ROLE_ENTITY_REP);
 
         address[] memory stakeholdersAddresses = new address[](5);
-        stakeholdersAddresses[0] = address(broker); // broker           0xACC6
-        stakeholdersAddresses[1] = address(underwriter); // underwriter      0xACC5
-        stakeholdersAddresses[2] = address(claimsAdmin); // claims admin     0xACC7
-        stakeholdersAddresses[3] = address(insuredParty); // insured party    0xACC4
+        stakeholdersAddresses[0] = address(broker);         // broker           0xACC6
+        stakeholdersAddresses[1] = address(underwriter);    // underwriter      0xACC5
+        stakeholdersAddresses[2] = address(claimsAdmin);    // claims admin     0xACC7
+        stakeholdersAddresses[3] = address(insuredParty);   // insured party    0xACC4
         // stakeholdersAddresses[4] = entityAddress;        // nayms fee bank
 
         bytes32[] memory roles = new bytes32[](4);
@@ -379,31 +379,30 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         acl.assignRole(claimsAdmin.aclContext(), signer3, ROLE_ENTITY_REP);
         acl.assignRole(insuredParty.aclContext(), signer4, ROLE_ENTITY_REP);
 
-        bytes[] memory signatures = new bytes[](4);
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(0xAAA1, ECDSA.toEthSignedMessageHash(simplePolicyId));
         address signer = ecrecover(simplePolicyId, v, r, s);
         assertEq(signer1, signer);
+        console2.log("Signer: ", signer);
+        console2.log("Signer 1: ", signer1);
+
         bytes memory fullSig1 = abi.encodePacked(r, s, v);
         (v, r, s) = vm.sign(0xAAA2, ECDSA.toEthSignedMessageHash(simplePolicyId));
+        
         bytes memory fullSig2 = abi.encodePacked(r, s, v);
         (v, r, s) = vm.sign(0xAAA3, ECDSA.toEthSignedMessageHash(simplePolicyId));
+        
         bytes memory fullSig3 = abi.encodePacked(r, s, v);
         (v, r, s) = vm.sign(0xAAA4, ECDSA.toEthSignedMessageHash(simplePolicyId));
+        
         bytes memory fullSig4 = abi.encodePacked(r, s, v);
         signer = ECDSA.recover(simplePolicyId, fullSig1);
-        // (, , bytes32 sig1) = vm.sign(0xACC6, simplePolicyId);
-        // (, , bytes32 sig2) = vm.sign(0xACC5, simplePolicyId);
-        // (, , bytes32 sig3) = vm.sign(0xACC7, simplePolicyId);
-        // (, , bytes32 sig4) = vm.sign(0xACC4, simplePolicyId);
+
+        bytes[] memory signatures = new bytes[](4);
         signatures[0] = fullSig1;
         signatures[1] = fullSig2;
         signatures[2] = fullSig3;
         signatures[3] = fullSig4;
-        // signatures[0] = abi.encodePacked(sig1);
-        // signatures[1] = abi.encodePacked(sig2);
-        // signatures[2] = abi.encodePacked(sig3);
-        // signatures[3] = abi.encodePacked(sig4);
 
         stakeHolders.approvalSignatures = signatures;
 
@@ -1338,16 +1337,11 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         address underlying = address(weth);
         uint256 limit;
 
-        console2.log(" -- check creation disabled");
-
         vm.expectRevert("creation disabled");
         entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders);
 
-        console2.log(" -- check update simple policy");
         entity.updateAllowSimplePolicy(true);
         assertTrue(entity.allowSimplePolicy());
-
-        console2.log(" -- passed update allow simple policy");
 
         uint256 collateralRatio = 500;
         uint256 maxCapital = 100;
@@ -1360,7 +1354,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
 
         // limit is greater than 0
         vm.expectRevert("limit not > 0");
-        entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders);
+        entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, 0, stakeHolders);
 
         // limit is below max capital
         limit = 150;
@@ -1388,20 +1382,17 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
 
         entity.deposit(address(weth), 500);
         entity.updateEnabledCurrency(underlying, 500, 1000);
+        vm.prank(address(0xACC9));
         vm.expectRevert("must be broker or underwriter");
         entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders);
+        vm.stopPrank();
     }
 
     function testEntityCreateSimplePolicyAfterCreation() public {
-        console2.log("  --  brokerEntityAddress", brokerEntityAddress);
-        console2.log("  --  underwriterEntityAddress", underwriterEntityAddress);
-        console2.log("  --  claimsAdminEntityAddress", claimsAdminEntityAddress);
-        console2.log("  --  insuredPartyEntityAddress", insuredPartyEntityAddress);
 
         acl.assignRole(entity.aclContext(), systemManager, ROLE_SYSTEM_MANAGER);
         acl.assignRole(entity.aclContext(), entityManager, ROLE_ENTITY_MANAGER);
         acl.assignRole(entity.aclContext(), entityRep, ROLE_ENTITY_REP);
-        // entity.updateAllowPolicy(true);
 
         uint256 startDate;
         uint256 maturationDate;
@@ -1420,21 +1411,15 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         entity.deposit(address(weth), 500);
         acl.assignRole(systemContext, entityAddress, ROLE_UNDERWRITER);
 
-        vm.prank(address(0xACC6)); // be an entity rep
-
+        vm.prank(address(0xACC6)); // be a broker
         entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders);
-
         vm.stopPrank();
-        console2.log(" -- CREATED SIMPLE policy");
 
         address policyAddress = entity.getChild(1);
         ISimplePolicy2 simplePolicy = ISimplePolicy2(policyAddress);
 
-        console2.log(" -- fetched SIMPLE policy handle");
-
         // they exist and have their properties set
         (bytes32 simplePolicyIdChk, uint256 policyNumber, , , , , , ) = simplePolicy.getSimplePolicyInfo();
-        console2.log(" -- got SIMPLE policy info");
 
         // number of policies is increased
         assertEq(entity.getNumSimplePolicies(), 1);

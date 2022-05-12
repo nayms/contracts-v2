@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.9;
+
 import { EntityFacetBase, IERC20 } from "./EntityFacetBase.sol";
 import "./base/Controller.sol";
 import "./base/IEntitySimplePolicyCoreFacet.sol";
 import "./base/IDiamondFacet.sol";
 import { SimplePolicy, Stakeholders } from "./SimplePolicy.sol";
 import "./base/ISimplePolicy.sol";
-import "./base/ISimplePolicy2.sol";
-
-// import "forge-std/Test.sol";
 
 contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCoreFacet, IDiamondFacet {
     constructor(address _settings) Controller(_settings) {}
@@ -53,18 +51,14 @@ contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCore
 
         _addChild(policyAddress);
 
-        // console2.log("  --  staring approval: ", policyAddress);
         ISimplePolicy policyFacet = ISimplePolicy(policyAddress);
         policyFacet.approveSimplePolicy(_stakeholders.roles, _stakeholders.approvalSignatures);
-        // console2.log("  --  APPROVED!");
 
         emit SimplePolicyApproved(_id, address(policy));
-        // console2.log("  --  emit approval event");
 
         dataAddress[__i(dataUint256["numSimplePolicies"], "addressByNumber")] = address(policy);
         dataAddress[__b(_id, "addressById")] = address(policy);
         dataUint256["numSimplePolicies"] = dataUint256["numSimplePolicies"] + 1;
-        // console2.log("  --  DONE DONE DONE");
     }
 
     function updateAllowSimplePolicy(bool _allow) external override assertIsSystemManager(msg.sender) {

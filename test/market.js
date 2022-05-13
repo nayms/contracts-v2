@@ -1387,6 +1387,10 @@ describe('Market', () => {
       marketObserver = await DummyMarketObserver.new({ from: accounts[0] })
     })
 
+    it('should bail out if there is no data', async() => {
+      marketObserver.handleTrade(1, 0, 0, null, null, ADDRESS_ZERO, BYTES_ZERO).should.be.fulfilled
+    })
+
     it('should deploy market observer correctly', async () => {
       (marketObserver.address).should.not.equal(ADDRESS_ZERO)
       const orderInfo = await marketObserver.getOrder(3)

@@ -9,6 +9,8 @@ import {
   createTranche,
 } from './utils'
 
+import { getAccountWallet } from '../deploy/utils'
+
 import { events } from '../'
 import { ROLES, SETTINGS } from '../utils/constants'
 import { ensureAclIsDeployed } from '../deploy/modules/acl'
@@ -47,6 +49,7 @@ describe('Entity', () => {
   let etherToken
   let etherToken2
   let market
+  let feeBank
   let entityProxy
   let entity
   let entityCoreAddress
@@ -66,8 +69,10 @@ describe('Entity', () => {
     acl = await ensureAclIsDeployed({ artifacts })
     settings = await ensureSettingsIsDeployed({ artifacts, acl })
     market = await ensureMarketIsDeployed({ artifacts, settings })
+    feeBank = await ensureFeeBankIsDeployed({ artifacts, settings })
+
     entityDeployer = await ensureEntityDeployerIsDeployed({ artifacts, settings })
-    await ensureFeeBankIsDeployed({ artifacts, settings })
+
     await ensurePolicyImplementationsAreDeployed({ artifacts, settings })
     await ensureEntityImplementationsAreDeployed({ artifacts, settings })
     
@@ -361,7 +366,6 @@ describe('Entity', () => {
       })
     })
   })
-
 
   describe('entity tokens', () => {
     let entityManager
@@ -1010,252 +1014,6 @@ describe('Entity', () => {
         await etherToken.transfer(entity.address, premiumAmount)
         await entity.payTranchePremium(policy.address, 0, premiumAmount, { from: entityRep }).should.be.rejectedWith('exceeds entity balance')
       })
-    })
-  })
-
-  describe('simple policy', () => {
-    
-    let systemManager
-    let entityManager
-    let entityRep
-    
-    let id = web3.eth.abi.encodeEventSignature('SimplePolicyTestID')
-    let startDate = parseInt(Date.now() / 1000)
-    let maturationDate = startDate + 1000
-    let unit
-    let limit = 100
-    let stakeholders = []
-    let signatures = []
-
-    beforeEach(async () => {
-      entityManager = accounts[2]
-      entityRep = accounts[3]
-      systemManager = accounts[1]
-      
-      await acl.assignRole(entityContext, entityManager, ROLES.ENTITY_MANAGER)
-      await acl.assignRole(entityContext, entityRep, ROLES.ENTITY_REP)
-      await acl.assignRole(systemContext, systemManager, ROLES.SYSTEM_MANAGER)
-      await entity.updateAllowPolicy(true, { from: systemManager })
-      
-      stakeholders = [ entity.address, entity.address, ADDRESS_ZERO, entity.address, entity.address ]
-      
-      unit = etherToken.address
-
-    })
-
-    describe('can be created if', () => {
-
-      it('creation is enabled on entity', async () => {
-        await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, signatures).should.be.rejectedWith('creation disabled')
-      })
-
-      it('limit is greater than 0', async () => {
-        await entity.updateAllowSimplePolicy(true, { from: systemManager })
-        await entity.updateEnabledCurrency(unit, 500, 100, { from: systemManager })
-        await entity.createSimplePolicy(id, startDate, maturationDate, unit, 0, stakeholders, signatures).should.be.rejectedWith('limit not > 0')
-      })
-
-      it('collateral ratio is valid', async () => {
-        await entity.updateAllowSimplePolicy(true, { from: systemManager })
-        await entity.updateEnabledCurrency(unit, 1500, 100, { from: systemManager }).should.be.rejectedWith('collateral ratio is 0-1000')
-      })
-
-      it('limit is below max capital', async () => {
-        await entity.updateAllowSimplePolicy(true, { from: systemManager })
-        await entity.updateEnabledCurrency(unit, 500, 100, { from: systemManager })
-        await entity.createSimplePolicy(id, startDate, maturationDate, unit, 150, stakeholders, signatures).should.be.rejectedWith('max capital exceeded')
-      })
-
-      it('currency is enabled', async () => {
-        await entity.updateAllowSimplePolicy(true, { from: systemManager })
-        await entity.allowSimplePolicy().should.eventually.eq(true)
-        await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, signatures).should.be.rejectedWith('currency disabled')
-      })
-
-      it('collateral ratio is met', async () => {
-        await entity.updateEnabledCurrency(unit, 500, 100, { from: systemManager })
-        await entity.updateAllowSimplePolicy(true, { from: systemManager })
-        await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, signatures).should.be.rejectedWith('collateral ratio not met')
-      })
-
-      it('caller is an underwriter or broker', async () => {
-        const balance = 500
-
-        await etherToken.deposit({ value: balance })
-        await etherToken.approve(entityProxy.address, balance)
-        await entity.deposit(etherToken.address, balance).should.be.fulfilled
-
-        await entity.updateEnabledCurrency(unit, 500, 1000, { from: systemManager })
-        await entity.updateAllowSimplePolicy(true, { from: systemManager })
-        await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, signatures).should.be.rejectedWith('must be broker or underwriter')
-      })
-    })
-
-    describe('after creation', () => {
-
-      beforeEach(async () => {
-
-        const balance = 500
-        await etherToken.deposit({ value: balance })
-        await etherToken.approve(entityProxy.address, balance)
-        await entity.deposit(etherToken.address, balance).should.be.fulfilled
-
-        await entity.updateEnabledCurrency(unit, 500, 1000, { from: systemManager })
-        await entity.updateAllowSimplePolicy(true, { from: systemManager })
-
-        await acl.assignRole(systemContext, entity.address, ROLES.UNDERWRITER)
-
-      })
-      
-      it('they exist and have their properties set', async () => {
-
-        const result = await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, signatures, { from: entityRep }).should.be.fulfilled
-        const eventArgs = extractEventArgs(result, events.NewSimplePolicy)
-        
-        const policy = await ISimplePolicy.at(eventArgs.simplePolicy)
-        
-        const policyStates = await ISimplePolicyStates.at(eventArgs.simplePolicy)
-        const POLICY_STATE_CREATED = await policyStates.POLICY_STATE_CREATED()
-
-        await policy.getSimplePolicyInfo().should.eventually.matchObj({
-          id_: id,
-          startDate_: startDate,
-          maturationDate_: maturationDate,
-          unit_: unit,
-          limit_: limit,
-          state_: POLICY_STATE_CREATED
-        })
-      })
-
-      it('number of policies is increased', async () => {
-        const numberOfSimplePolicies = await entity.getNumSimplePolicies()
-        await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, signatures, { from: entityRep }).should.be.fulfilled
-        
-        const newNumSimplePolicies = await entity.getNumSimplePolicies()
-        
-        newNumSimplePolicies.should.eq(parseInt(numberOfSimplePolicies, 10) + 1)
-      })
-
-      it('lookup is available', async () => {
-        const result = await entity.createSimplePolicy(id, startDate, maturationDate, unit, limit, stakeholders, signatures, { from: entityRep }).should.be.fulfilled
-        const eventArgs = extractEventArgs(result, events.NewSimplePolicy)
-        const policy = await ISimplePolicy.at(eventArgs.simplePolicy)
-
-        const { number_ } = await policy.getSimplePolicyInfo()
-
-        await entity.getSimplePolicyId(number_).should.eventually.eq(id)
-      })
-      
-      describe('claims can be payed out', () => {
-
-        it('only by the system manager', async () => {
-          await entity.paySimpleClaim(id, 1000, { from: entityRep }).should.be.rejectedWith('must be system mgr')
-        })
-        
-        it('and amount is greater than 0', async () => {
-          await entity.paySimpleClaim(id, 0, { from: systemManager }).should.be.rejectedWith('invalid claim amount')
-        })
-
-        it('and total amount of claims paid is below the limit ', async () => {
-          await entity.createSimplePolicy(id, startDate, startDate, unit, limit, stakeholders, signatures, { from: entityRep }).should.be.fulfilled
-          await entity.paySimpleClaim(id, 101, { from: systemManager }).should.be.rejectedWith('exceeds policy limit')
-        })
-  
-        it('then the payout goes to the insured party', async () => {
-          const claimAmount = 30
-          const balanceBefore = await entity.getBalance(unit)
-
-          await entity.createSimplePolicy(id, startDate, startDate, unit, limit, stakeholders, signatures, { from: entityRep }).should.be.fulfilled
-          await entity.paySimpleClaim(id, claimAmount, { from: systemManager }).should.be.fulfilled
-
-          await entity.getBalance(unit).should.eventually.eq(balanceBefore - claimAmount)
-
-          await entity.getPremiumsAndClaimsPaid(id).should.eventually.matchObj({
-            claimsPaid_: claimAmount
-          })
-        })
-      })
-  
-      describe('premiums can be payed out', async () => {
-
-        it('if done by entity represetative', async () => {
-          await entity.paySimplePremium(id, entity.address, 0, { from: systemManager }).should.be.rejectedWith('not an entity rep')
-        })
-
-        it('if amount is greater than 0', async () => {
-          await entity.createSimplePolicy(id, startDate, startDate, unit, limit, stakeholders, signatures, { from: entityRep }).should.be.fulfilled
-          await entity.paySimplePremium(id, entity.address, 0, { from: entityRep }).should.be.rejectedWith('invalid premium amount')
-        })
-  
-        it('and the payout goes to the entity', async () => {
-          const premiumAmount = 10
-          const balanceBefore = await entity.getBalance(unit)
-
-          await entity.createSimplePolicy(id, startDate, startDate, unit, limit, stakeholders, signatures, { from: entityRep }).should.be.fulfilled
-          await entity.paySimplePremium(id, entity.address, premiumAmount, { from: entityRep }).should.be.fulfilled
-          
-          await entity.getBalance(unit).should.eventually.eq(+balanceBefore + premiumAmount)
-
-          await entity.getPremiumsAndClaimsPaid(id).should.eventually.matchObj({
-            premiumsPaid_: premiumAmount
-          })
-
-        })
-      })
-
-      describe('heart beat function', () => {
-        
-        it('activates the policy after start date ', async () => {
-          const result = await entity.createSimplePolicy(id, startDate - 1, maturationDate, unit, limit, stakeholders, signatures, { from: entityRep }).should.be.fulfilled
-          const eventArgs = extractEventArgs(result, events.NewSimplePolicy)
-  
-          const policyStates = await ISimplePolicyStates.at(eventArgs.simplePolicy)
-          const POLICY_STATE_ACTIVE = await policyStates.POLICY_STATE_ACTIVE()
-
-          entity.checkAndUpdateState(id)
-          
-          const policy = await ISimplePolicy.at(eventArgs.simplePolicy)
-          await policy.getSimplePolicyInfo().should.eventually.matchObj({
-            state_: POLICY_STATE_ACTIVE
-          })
-        })
-
-        it('updates state and total limit accordingly after maturation date', async () => {
-
-          const result = await entity.createSimplePolicy(id, startDate - 10, startDate - 5, unit, limit, stakeholders, signatures, { from: entityRep }).should.be.fulfilled
-          const eventArgs = extractEventArgs(result, events.NewSimplePolicy)
-          
-          const policyStates = await ISimplePolicyStates.at(eventArgs.simplePolicy)
-          const POLICY_STATE_MATURED = await policyStates.POLICY_STATE_MATURED()
-          
-          const { totalLimit_: totalLimitBefore } = await entity.getEnabledCurrency(unit)
-
-          entity.checkAndUpdateState(id)
-          
-          const policy = await ISimplePolicy.at(eventArgs.simplePolicy)
-          await policy.getSimplePolicyInfo().should.eventually.matchObj({
-            state_: POLICY_STATE_MATURED
-          })
-          
-          const { totalLimit_: totalLimitAfter } = await entity.getEnabledCurrency(unit)
-
-          totalLimitAfter.should.eq(totalLimitBefore - limit)
-
-        })
-      })
-
-      it('currency can be disabled', async () => {
-        await entity.updateEnabledCurrency(unit, 500, 100, { from: systemManager })
-        
-        const currencies = await entity.getEnabledCurrencies()
-        expect(currencies).to.have.members([ unit ])
-
-        await entity.updateEnabledCurrency(unit, 0, 0, { from: systemManager })
-        
-        const currencies2 = await entity.getEnabledCurrencies()
-        expect(currencies2).to.not.have.members([ unit ])
-      })
-
     })
   })
 })

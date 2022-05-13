@@ -1,14 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.9;
 import "forge-std/Test.sol";
-import "forge-std/Vm.sol";
-import "ds-test/test.sol";
 
 import { IERC20 } from "../../../contracts/base/IERC20.sol";
-
-// interface IERC20 {
-//     function balanceOf(address) external view returns (uint256);
-// }
 
 contract DSTestPlusF is Test {
     using stdStorage for StdStorage;

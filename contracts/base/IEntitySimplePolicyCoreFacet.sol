@@ -1,26 +1,22 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.9;
 
+import { SimplePolicy, Stakeholders } from "../SimplePolicy.sol";
+import "./ISimplePolicy.sol";
+
 /**
- * @dev Entity core logic.
+ * @dev Core logic for Simple Policies.
  */
 interface IEntitySimplePolicyCoreFacet {
     /**
      * @dev Create a new policy.
-     *
-     * `_stakeholders` and '_approvalSignatures'
-     *    * Index 0: Broker entity address.
-     *    * Index 1: Underwriter entity address.
-     *    * Index 2: Claims admin entity address.
-     *    * Index 3: Insured party entity address.
-     *    * Index 4: Treasury address.
      *
      * @param _id Unique id that represents the policy - this is what stakeholder will sign to approve the policy.
      * @param _startDate Start Date.
      * @param _maturationDate Maturation Date.
      * @param _unit Unit.
      * @param _limit Limit.
-     * @param _approvalSignatures Bulk-approval signatures in order: broker, underwriter, claims admin, insured party
+     * @param _stakeholders data about roles, stakeholder addresses and approval signatures and commissions.
      */
     function createSimplePolicy(
         bytes32 _id,
@@ -28,20 +24,7 @@ interface IEntitySimplePolicyCoreFacet {
         uint256 _maturationDate,
         address _unit,
         uint256 _limit,
-        address[] calldata _stakeholders,
-        bytes[] calldata _approvalSignatures
-    ) external;
-
-    /**
-     * @dev Pay the next expected premium for a tranche using the assets owned by this entity.
-     *
-     * @param _id Policy which owns the tranche.
-     * @param _amount Amount of premium to pay.
-     */
-    function paySimplePremium(
-        bytes32 _id,
-        address _entityAddress,
-        uint256 _amount
+        Stakeholders calldata _stakeholders
     ) external;
 
     /**
@@ -52,9 +35,16 @@ interface IEntitySimplePolicyCoreFacet {
     function updateAllowSimplePolicy(bool _allow) external;
 
     /**
-     * @dev Heartbeat: Ensure the policy and tranche states are up-to-date.
-     *
-     * @param _id Unique id that represents the policy - this is what stakeholder will sign to approve the policy.
+     * @dev Emitted when a new policy has been created.
+     * @param id The policy id.
+     * @param simplePolicy The policy address.
      */
-    function checkAndUpdateState(bytes32 _id) external;
+    event NewSimplePolicy(bytes32 indexed id, address indexed simplePolicy);
+
+    /**
+     * @dev Emitted when a policy is signed.
+     * @param id The policy id.
+     * @param simplePolicy The policy address.
+     */
+    event SimplePolicyApproved(bytes32 indexed id, address indexed simplePolicy);
 }

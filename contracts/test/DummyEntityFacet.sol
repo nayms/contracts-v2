@@ -5,8 +5,9 @@ import "../base/IEntityCoreFacet.sol";
 import "../base/IEntityFundingFacet.sol";
 import "../base/IEntitySimplePolicyCoreFacet.sol";
 import "../base/IEntitySimplePolicyDataFacet.sol";
+import "../base/IEntitySimplePolicyPayFacet.sol";
 
-contract DummyEntityFacet is IDiamondFacet, IEntityCoreFacet, IEntityFundingFacet, IEntitySimplePolicyCoreFacet, IEntitySimplePolicyDataFacet {
+contract DummyEntityFacet is IDiamondFacet, IEntityCoreFacet, IEntityFundingFacet, IEntitySimplePolicyCoreFacet, IEntitySimplePolicyDataFacet, IEntitySimplePolicyPayFacet {
     function getSelectors() public pure override returns (bytes memory) {
         return abi.encodePacked(IEntityFundingFacet.getBalance.selector);
     }
@@ -77,8 +78,7 @@ contract DummyEntityFacet is IDiamondFacet, IEntityCoreFacet, IEntityFundingFace
         uint256 _maturationDate,
         address _unit,
         uint256 _limit,
-        address[] calldata _stakeholders,
-        bytes[] calldata _approvalSignatures
+        Stakeholders calldata _stakeholders
     ) external override {}
 
     function paySimplePremium(
@@ -100,4 +100,17 @@ contract DummyEntityFacet is IDiamondFacet, IEntityCoreFacet, IEntityFundingFace
     function checkAndUpdateState(bytes32 _id) external override {}
 
     function getPremiumsAndClaimsPaid(bytes32 _id) external view override returns (uint256 premiumsPaid_, uint256 claimsPaid_) {}
+
+    function getCommissionBalances()
+        external
+        view
+        returns (
+            uint256 brokerCommissionBalance_,
+            uint256 claimsAdminCommissionBalance_,
+            uint256 naymsCommissionBalance_,
+            uint256 underwriterCommissionBalance_
+        )
+    {}
+
+    function payOutCommissions(bytes32 _id) external {}
 }

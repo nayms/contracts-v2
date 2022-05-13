@@ -2,7 +2,7 @@
 pragma solidity >=0.8.9;
 
 /**
- * @dev Entity core logic.
+ * @dev Entity Simple Policy read operations.
  */
 interface IEntitySimplePolicyDataFacet {
     /**
@@ -57,10 +57,9 @@ interface IEntitySimplePolicyDataFacet {
     ) external;
 
     /**
-     * @dev Get simple policy info.
+     * @dev Heartbeat: Ensure the policy state is up-to-date.
      *
      * @param _id Unique id that represents the policy - this is what stakeholder will sign to approve the policy.
-     * @param _amount Amount to pay.
      */
-    function paySimpleClaim(bytes32 _id, uint256 _amount) external payable;
+    function checkAndUpdateState(bytes32 _id) external;
 }

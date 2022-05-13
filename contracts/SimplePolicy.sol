@@ -1,22 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.9;
-import "./base/AccessControl.sol";
+
 import "./base/Controller.sol";
 import "./base/Proxy.sol";
-import "./base/ISimplePolicy.sol";
+import "./base/Child.sol";
+import "./SimplePolicyFacetBase.sol";
 import "./base/ISimplePolicyStates.sol";
 
-contract SimplePolicy is Controller, Proxy, ISimplePolicy, ISimplePolicyStates {
-    /**
-     * @dev SimplePolicy constructor.
-     *
-     * `_stakeholders` and '_approvalSignatures'
-     *    * Index 0: Broker entity address.
-     *    * Index 1: Underwriter entity address.
-     *    * Index 2: Claims admin entity address.
-     *    * Index 3: Insured party entity address.
-     *    * Index 4: Treasury address.
-     */
+struct Stakeholders {
+    bytes32[] roles;
+    address[] stakeholdersAddresses;
+    bytes[] approvalSignatures;
+    uint256[] commissions; // always has one element more than roles, for nayms treasury
+}
+
+contract SimplePolicy is Controller, Proxy, SimplePolicyFacetBase, Child, ISimplePolicyStates {
     constructor(
         bytes32 _id,
         uint256 _number,
@@ -26,11 +24,14 @@ contract SimplePolicy is Controller, Proxy, ISimplePolicy, ISimplePolicyStates {
         uint256 _maturationDate,
         address _unit,
         uint256 _limit,
-        address[] memory _stakeholders,
-        bytes[] memory _approvalSignatures
+        Stakeholders memory _stakeholders
     ) Controller(_settings) Proxy() {
         require(_limit > 0, "limit not > 0");
 
+        _setParent(msg.sender);
+        _setDelegateAddress(settings().getRootAddress(SETTING_SIMPLE_POLICY_DELEGATE));
+
+        // set policy attributes
         dataBytes32["id"] = _id;
         dataUint256["number"] = _number;
         dataUint256["startDate"] = _startDate;
@@ -38,30 +39,42 @@ contract SimplePolicy is Controller, Proxy, ISimplePolicy, ISimplePolicyStates {
         dataAddress["unit"] = _unit;
         dataUint256["limit"] = _limit;
         dataUint256["state"] = POLICY_STATE_CREATED;
-        dataAddress["treasury"] = _stakeholders[4];
 
-        // set roles
+        address broker;
+        address underwriter;
+
+        // set the roles and commissions
         acl().assignRole(aclContext(), _caller, ROLE_POLICY_OWNER);
-        acl().assignRole(aclContext(), _stakeholders[0], ROLE_BROKER);
-        acl().assignRole(aclContext(), _stakeholders[1], ROLE_UNDERWRITER);
-        acl().assignRole(aclContext(), _stakeholders[2], ROLE_CLAIMS_ADMIN);
-        acl().assignRole(aclContext(), _stakeholders[3], ROLE_INSURED_PARTY);
 
-        bool underwriterRep_;
-        bool brokerRep_;
-        (underwriterRep_, brokerRep_) = _isBrokerOrUnderwriterRep(_caller, _stakeholders[0], _stakeholders[1]);
+        uint256 rolesCount = _stakeholders.roles.length;
+        for (uint256 i = 0; i < rolesCount; i += 1) {
+            bytes32 role = _stakeholders.roles[i];
 
-        require(underwriterRep_ || brokerRep_, "must be broker or underwriter");
+            acl().assignRole(aclContext(), _stakeholders.stakeholdersAddresses[i], role);
 
-        dataBool["underwriterApproved"] = underwriterRep_;
-        dataBool["brokerApproved"] = brokerRep_;
+            if (role == ROLE_BROKER) {
+                broker = _stakeholders.stakeholdersAddresses[i];
+                dataUint256["brokerCommissionBP"] = _stakeholders.commissions[i];
+            } else if (role == ROLE_UNDERWRITER) {
+                underwriter = _stakeholders.stakeholdersAddresses[i];
+                dataUint256["underwriterCommissionBP"] = _stakeholders.commissions[i];
+            } else if (role == ROLE_CLAIMS_ADMIN) {
+                dataUint256["claimsAdminCommissionBP"] = _stakeholders.commissions[i];
+            }
+        }
 
-        // TODO: Only bulk approve
-        // if (_approvalSignatures.length = 4) {
-        //   pol.bulkApprove(_approvalSignatures);
-        // }
+        // these are always the last item in array, there is one element more than roles count
+        // for storing nayms treasury address and it's commission
+        dataAddress["treasury"] = _stakeholders.stakeholdersAddresses[rolesCount];
+        dataUint256["naymsCommissionBP"] = _stakeholders.commissions[rolesCount];
 
-        emit NewSimplePolicy(_id, address(this));
+        bool underwriterRep;
+        bool brokerRep;
+        (underwriterRep, brokerRep) = _isBrokerOrUnderwriterRep(_caller, broker, underwriter);
+        require(underwriterRep || brokerRep, "must be broker or underwriter");
+
+        dataBool["underwriterApproved"] = underwriterRep;
+        dataBool["brokerApproved"] = brokerRep;
     }
 
     function _isBrokerOrUnderwriterRep(
@@ -80,54 +93,9 @@ contract SimplePolicy is Controller, Proxy, ISimplePolicy, ISimplePolicyStates {
         underwriterRep_ = isUnderwriter && acl().hasRoleInGroup(ctxUnderwriter, _caller, ROLEGROUP_ENTITY_REPS);
 
         // entity has broker role in system context?
-        bool isBroker = acl().hasRoleInGroup(ctxSystem, _broker, ROLE_BROKER);
+        bool isBroker = acl().hasRoleInGroup(ctxSystem, _broker, ROLEGROUP_BROKERS);
 
         // caller is broker entity rep?
         brokerRep_ = isBroker && acl().hasRoleInGroup(ctxBroker, _caller, ROLEGROUP_ENTITY_REPS);
-    }
-
-    function getSimplePolicyInfo()
-        external
-        view
-        override
-        returns (
-            bytes32 id_,
-            uint256 number_,
-            uint256 startDate_,
-            uint256 maturationDate_,
-            address unit_,
-            uint256 limit_,
-            uint256 state_
-        )
-    {
-        id_ = dataBytes32["id"];
-        number_ = dataUint256["number"];
-        startDate_ = dataUint256["startDate"];
-        maturationDate_ = dataUint256["maturationDate"];
-        unit_ = dataAddress["unit"];
-        limit_ = dataUint256["limit"];
-        state_ = dataUint256["state"];
-    }
-
-    function checkAndUpdateState() external virtual override returns (bool reduceTotalLimit_) {
-        bytes32 id = dataBytes32["id"];
-        uint256 state = dataUint256["state"];
-        reduceTotalLimit_ = false;
-
-        if (block.timestamp >= dataUint256["maturationDate"] && state < POLICY_STATE_MATURED) {
-            // move state to matured
-            dataUint256["state"] = POLICY_STATE_MATURED;
-
-            reduceTotalLimit_ = true;
-
-            // emit event
-            emit SimplePolicyStateUpdated(id, POLICY_STATE_MATURED, msg.sender);
-        } else if (block.timestamp >= dataUint256["startDate"] && state < POLICY_STATE_ACTIVE) {
-            // move state to active
-            dataUint256["state"] = POLICY_STATE_ACTIVE;
-
-            // emit event
-            emit SimplePolicyStateUpdated(id, POLICY_STATE_ACTIVE, msg.sender);
-        }
     }
 }

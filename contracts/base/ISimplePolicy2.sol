@@ -24,7 +24,8 @@ interface ISimplePolicy2 {
             uint256 maturationDate_,
             address unit_,
             uint256 limit_,
-            uint256 state_
+            uint256 state_,
+            address treasury_
         );
 
     /**
@@ -46,4 +47,15 @@ interface ISimplePolicy2 {
     //  * @param _id Unique id that represents the policy - this is what stakeholder will sign to approve the policy.
     //  */
     // function verifySimplePolicy (bytes32 _id ) external;
+    function approveSimplePolicy(bytes32[] memory _roles, bytes[] memory _signatures) external;
+
+    function getCommissionBalances()
+        external
+        view
+        returns (
+            uint256 brokerCommissionBalance_,
+            uint256 claimsAdminCommissionBalance_,
+            uint256 naymsCommissionBalance_,
+            uint256 underwriterCommissionBalance_
+        );    
 }

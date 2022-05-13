@@ -37,6 +37,11 @@ import { PolicyApprovalsFacet } from "../../contracts/PolicyApprovalsFacet.sol";
 
 import { PolicyDelegate } from "../../contracts/PolicyDelegate.sol";
 
+import { SimplePolicyApprovalsFacet } from "../../contracts/SimplePolicyApprovalsFacet.sol";
+import { SimplePolicyCommissionsFacet } from "../../contracts/SimplePolicyCommissionsFacet.sol";
+import { SimplePolicyHeartbeatFacet } from "../../contracts/SimplePolicyHeartbeatFacet.sol";
+import { SimplePolicyDelegate } from "../../contracts/SimplePolicyDelegate.sol";
+
 import { EntityCoreFacet } from "../../contracts/EntityCoreFacet.sol";
 import { EntityFundingFacet } from "../../contracts/EntityFundingFacet.sol";
 import { EntityTokensFacet } from "../../contracts/EntityTokensFacet.sol";
@@ -45,6 +50,7 @@ import { EntityTreasuryFacet } from "../../contracts/EntityTreasuryFacet.sol";
 import { EntityTreasuryBridgeFacet } from "../../contracts/EntityTreasuryBridgeFacet.sol";
 import { EntitySimplePolicyCoreFacet } from "../../contracts/EntitySimplePolicyCoreFacet.sol";
 import { EntitySimplePolicyDataFacet } from "../../contracts/EntitySimplePolicyDataFacet.sol";
+import { EntitySimplePolicyPayFacet } from "../../contracts/EntitySimplePolicyPayFacet.sol";
 
 import { IEntity } from "../../contracts/base/IEntity.sol";
 import { EntityDelegate } from "../../contracts/EntityDelegate.sol";
@@ -61,6 +67,9 @@ import { FreezeUpgradesFacet } from "../../contracts/test/FreezeUpgradesFacet.so
 import { IDiamondProxy } from "../../contracts/base/IDiamondProxy.sol";
 import { Strings } from "../../contracts/base/Strings.sol";
 import { Address } from "../../contracts/base/Address.sol";
+import { ECDSA } from "../../contracts/base/ECDSA.sol";
+
+import { Stakeholders } from "../../contracts/SimplePolicy.sol";
 
 interface IProxy {
     function getDelegateAddress() external view returns (address);
@@ -72,55 +81,78 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
     using Address for address;
     using Strings for string;
 
-    ACL internal acl;
-    Settings internal settings;
-    bytes32 internal systemContext;
+    ACL public acl;
+    Settings public settings;
+    bytes32 public systemContext;
 
-    MarketCoreFacet internal marketCoreFacet;
-    MarketDataFacet internal marketDataFacet;
-    Market internal marketProxy;
+    MarketCoreFacet public marketCoreFacet;
+    MarketDataFacet public marketDataFacet;
+    Market public marketProxy;
 
-    IMarket internal market;
+    IMarket public market;
 
-    EntityDeployer internal entityDeployer;
+    EntityDeployer public entityDeployer;
 
-    FeeBankCoreFacet internal feeBankCoreFacet;
-    FeeBank internal feeBank;
+    FeeBankCoreFacet public feeBankCoreFacet;
+    FeeBank public feeBank;
 
-    PolicyCoreFacet internal policyCoreFacet;
-    PolicyClaimsFacet internal policyClaimsFacet;
-    PolicyCommissionsFacet internal policyCommissionsFacet;
-    PolicyPremiumsFacet internal policyPremiumsFacet;
-    PolicyTrancheTokensFacet internal policyTrancheTokensFacet;
-    PolicyApprovalsFacet internal policyApprovalsFacet;
-    PolicyDelegate internal policyDelegate;
+    PolicyCoreFacet public policyCoreFacet;
+    PolicyClaimsFacet public policyClaimsFacet;
+    PolicyCommissionsFacet public policyCommissionsFacet;
+    PolicyPremiumsFacet public policyPremiumsFacet;
+    PolicyTrancheTokensFacet public policyTrancheTokensFacet;
+    PolicyApprovalsFacet public policyApprovalsFacet;
+    PolicyDelegate public policyDelegate;
 
-    EntityCoreFacet internal entityCoreFacet;
-    EntityFundingFacet internal entityFundingFacet;
-    EntityTokensFacet internal entityTokensFacet;
-    EntityDividendsFacet internal entityDividendsFacet;
-    EntityTreasuryFacet internal entityTreasuryFacet;
-    EntityTreasuryBridgeFacet internal entityTreasuryBridgeFacet;
-    EntitySimplePolicyCoreFacet internal entitySimplePolicyCoreFacet;
-    EntitySimplePolicyDataFacet internal entitySimplePolicyDataFacet;
-    EntityDelegate internal entityDelegate;
+    SimplePolicyApprovalsFacet public simplePolicyApprovalsFacet;
+    SimplePolicyCommissionsFacet public simplePolicyCommissionsFacet;
+    SimplePolicyHeartbeatFacet public simplePolicyHeartbeatFacet;
+    SimplePolicyDelegate public simplePolicyDelegate;
 
-    CommonUpgradeFacet internal commonUpgradeFacet;
+    EntityCoreFacet public entityCoreFacet;
+    EntityFundingFacet public entityFundingFacet;
+    EntityTokensFacet public entityTokensFacet;
+    EntityDividendsFacet public entityDividendsFacet;
+    EntityTreasuryFacet public entityTreasuryFacet;
+    EntityTreasuryBridgeFacet public entityTreasuryBridgeFacet;
+    EntitySimplePolicyCoreFacet public entitySimplePolicyCoreFacet;
+    EntitySimplePolicyDataFacet public entitySimplePolicyDataFacet;
+    EntitySimplePolicyPayFacet public entitySimplePolicyPayFacet;
+    EntityDelegate public entityDelegate;
+
+    CommonUpgradeFacet public commonUpgradeFacet;
 
     address internal entityAdmin;
     bytes32 internal entityContext;
     address internal entityAddress;
 
-    DummyToken internal weth;
-    DummyToken internal wethTrue;
+    address internal underwriterEntityAddress;
+    address internal insuredPartyEntityAddress;
+    address internal brokerEntityAddress;
+    address internal claimsAdminEntityAddress;
 
-    IEntity internal entity;
+    DummyToken public weth;
+    DummyToken public wethTrue;
+
+    IEntity public entity;
+    IEntity public underwriter;
+    IEntity public insuredParty;
+    IEntity public broker;
+    IEntity public claimsAdmin;
 
     address internal immutable account0 = address(this);
 
     address internal constant systemManager = account1;
     address internal constant entityManager = account2;
     address internal constant entityRep = account3;
+
+    address internal constant insuredPartyRep = account4;
+    address internal constant underwriterRep = account5;
+    address internal constant brokerRep = account6;
+    address internal constant claimsAdminRep = account7;
+
+    bytes32 internal constant simplePolicyId = "0x1";
+    Stakeholders internal stakeHolders;
 
     event EntityDeposit(address indexed caller, address indexed unit, uint256 indexed amount);
     event NewPolicy(address indexed policy, address indexed entity, address indexed deployer);
@@ -237,6 +269,18 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         policyDelegate = new PolicyDelegate(address(settings));
         settings.setAddress(address(settings), SETTING_POLICY_DELEGATE, address(policyDelegate));
 
+        simplePolicyApprovalsFacet = new SimplePolicyApprovalsFacet(address(settings));
+        simplePolicyCommissionsFacet = new SimplePolicyCommissionsFacet(address(settings));
+        simplePolicyHeartbeatFacet = new SimplePolicyHeartbeatFacet(address(settings));
+        address[] memory simplePolicyFacetAddys = new address[](3);
+        simplePolicyFacetAddys[0] = address(simplePolicyApprovalsFacet);
+        simplePolicyFacetAddys[1] = address(simplePolicyCommissionsFacet);
+        simplePolicyFacetAddys[2] = address(simplePolicyHeartbeatFacet);
+        settings.setAddresses(address(settings), SETTING_SIMPLE_POLICY_IMPL, simplePolicyFacetAddys);
+
+        simplePolicyDelegate = new SimplePolicyDelegate(address(settings));
+        settings.setAddress(address(settings), SETTING_SIMPLE_POLICY_DELEGATE, address(simplePolicyDelegate));
+
         entityCoreFacet = new EntityCoreFacet(address(settings));
         entityFundingFacet = new EntityFundingFacet(address(settings));
         entityTokensFacet = new EntityTokensFacet(address(settings));
@@ -245,8 +289,9 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         entityTreasuryBridgeFacet = new EntityTreasuryBridgeFacet(address(settings));
         entitySimplePolicyCoreFacet = new EntitySimplePolicyCoreFacet(address(settings));
         entitySimplePolicyDataFacet = new EntitySimplePolicyDataFacet(address(settings));
+        entitySimplePolicyPayFacet = new EntitySimplePolicyPayFacet(address(settings));
 
-        address[] memory entityFacetAddys = new address[](9);
+        address[] memory entityFacetAddys = new address[](10);
         entityFacetAddys[0] = address(entityCoreFacet);
         entityFacetAddys[1] = address(entityFundingFacet);
         entityFacetAddys[2] = address(entityTokensFacet);
@@ -255,7 +300,8 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         entityFacetAddys[5] = address(entityTreasuryBridgeFacet);
         entityFacetAddys[6] = address(entitySimplePolicyCoreFacet);
         entityFacetAddys[7] = address(entitySimplePolicyDataFacet);
-        entityFacetAddys[8] = address(commonUpgradeFacet);
+        entityFacetAddys[8] = address(entitySimplePolicyPayFacet);
+        entityFacetAddys[9] = address(commonUpgradeFacet);
         settings.setAddresses(address(settings), SETTING_ENTITY_IMPL, entityFacetAddys);
 
         entityDelegate = new EntityDelegate(address(settings));
@@ -267,10 +313,98 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
 
         entityAdmin = address(this);
         entityDeployer.deploy(entityAdmin, entityContext);
-
         entityAddress = entityDeployer.getChild(1);
-
         entity = IEntity(entityAddress);
+
+        entityContext = entity.aclContext();
+
+        entityDeployer.deploy(underwriterRep, entityContext);
+        entityDeployer.deploy(insuredPartyRep, entityContext);
+        entityDeployer.deploy(brokerRep, entityContext);
+        entityDeployer.deploy(claimsAdminRep, entityContext);
+
+        brokerEntityAddress = entityDeployer.getChild(4);
+        underwriterEntityAddress = entityDeployer.getChild(2);
+        claimsAdminEntityAddress = entityDeployer.getChild(5);
+        insuredPartyEntityAddress = entityDeployer.getChild(3);
+
+        acl.assignRole(systemContext, brokerEntityAddress, ROLE_BROKER);
+        acl.assignRole(entityContext, address(0xACC6), ROLE_ENTITY_REP);
+
+        underwriter = IEntity(underwriterEntityAddress);
+        insuredParty = IEntity(insuredPartyEntityAddress);
+        broker = IEntity(brokerEntityAddress);
+        claimsAdmin = IEntity(claimsAdminEntityAddress);
+
+        acl.assignRole(broker.aclContext(), brokerRep, ROLE_ENTITY_REP);
+        acl.assignRole(underwriter.aclContext(), underwriterRep, ROLE_ENTITY_REP);
+        acl.assignRole(claimsAdmin.aclContext(), claimsAdminRep, ROLE_ENTITY_REP);
+        acl.assignRole(insuredParty.aclContext(), insuredPartyRep, ROLE_ENTITY_REP);
+
+        address[] memory stakeholdersAddresses = new address[](5);
+        stakeholdersAddresses[0] = address(broker);         // broker           0xACC6
+        stakeholdersAddresses[1] = address(underwriter);    // underwriter      0xACC5
+        stakeholdersAddresses[2] = address(claimsAdmin);    // claims admin     0xACC7
+        stakeholdersAddresses[3] = address(insuredParty);   // insured party    0xACC4
+        // stakeholdersAddresses[4] = entityAddress;        // nayms fee bank
+
+        bytes32[] memory roles = new bytes32[](4);
+        roles[0] = ROLE_BROKER;
+        roles[1] = ROLE_UNDERWRITER;
+        roles[2] = ROLE_CLAIMS_ADMIN;
+        roles[3] = ROLE_INSURED_PARTY;
+
+        uint256[] memory commissions = new uint256[](5);
+        commissions[0] = 10;
+        commissions[1] = 10;
+        commissions[2] = 10;
+        commissions[3] = 10;
+        commissions[4] = 10; // Nayms commission
+
+        stakeHolders.stakeholdersAddresses = stakeholdersAddresses;
+        stakeHolders.roles = roles;
+        stakeHolders.commissions = commissions;
+
+        address signer1 = vm.addr(0xAAA1);
+        address signer2 = vm.addr(0xAAA2);
+        address signer3 = vm.addr(0xAAA3);
+        address signer4 = vm.addr(0xAAA4);
+
+        vm.label(signer1, "Signer 1");
+        vm.label(signer2, "Signer 2");
+        vm.label(signer3, "Signer 3");
+        vm.label(signer4, "Signer 4");
+        acl.assignRole(broker.aclContext(), signer1, ROLE_ENTITY_REP);
+        acl.assignRole(underwriter.aclContext(), signer2, ROLE_ENTITY_REP);
+        acl.assignRole(claimsAdmin.aclContext(), signer3, ROLE_ENTITY_REP);
+        acl.assignRole(insuredParty.aclContext(), signer4, ROLE_ENTITY_REP);
+
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(0xAAA1, ECDSA.toEthSignedMessageHash(simplePolicyId));
+        address signer = ecrecover(simplePolicyId, v, r, s);
+        assertEq(signer1, signer);
+        console2.log("Signer: ", signer);
+        console2.log("Signer 1: ", signer1);
+
+        bytes memory fullSig1 = abi.encodePacked(r, s, v);
+        (v, r, s) = vm.sign(0xAAA2, ECDSA.toEthSignedMessageHash(simplePolicyId));
+        
+        bytes memory fullSig2 = abi.encodePacked(r, s, v);
+        (v, r, s) = vm.sign(0xAAA3, ECDSA.toEthSignedMessageHash(simplePolicyId));
+        
+        bytes memory fullSig3 = abi.encodePacked(r, s, v);
+        (v, r, s) = vm.sign(0xAAA4, ECDSA.toEthSignedMessageHash(simplePolicyId));
+        
+        bytes memory fullSig4 = abi.encodePacked(r, s, v);
+        signer = ECDSA.recover(simplePolicyId, fullSig1);
+
+        bytes[] memory signatures = new bytes[](4);
+        signatures[0] = fullSig1;
+        signatures[1] = fullSig2;
+        signatures[2] = fullSig3;
+        signatures[3] = fullSig4;
+
+        stakeHolders.approvalSignatures = signatures;
 
         vm.label(address(weth), "WETH False");
         vm.label(address(wethTrue), "WETH True");
@@ -284,6 +418,16 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         vm.label(address(0xACC7), "Account 7");
         vm.label(address(0xACC8), "Account 8");
         vm.label(address(0xACC9), "Account 9");
+
+        vm.label(brokerRep, "BrokerRep");
+        vm.label(underwriterRep, "UnderwriterRep");
+        vm.label(claimsAdminRep, "ClaimsAdminRep");
+        vm.label(insuredPartyRep, "InsuredPartyRep");
+
+        vm.label(brokerEntityAddress, "BrokerEntity");
+        vm.label(underwriterEntityAddress, "UnderwriterEntity");
+        vm.label(claimsAdminEntityAddress, "ClaimsAdminEntity");
+        vm.label(insuredPartyEntityAddress, "InsuredPartyEntity");
     }
 
     struct VersionInfo {
@@ -1188,23 +1332,13 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         acl.assignRole(entity.aclContext(), entityRep, ROLE_ENTITY_REP);
         entity.updateAllowPolicy(true);
 
-        bytes32 simplePolicyId = "0x1";
         uint256 startDate;
         uint256 maturationDate;
         address underlying = address(weth);
         uint256 limit;
 
-        address[] memory stakeHolders = new address[](5);
-        stakeHolders[0] = entityAddress;
-        stakeHolders[1] = entityAddress;
-        stakeHolders[2] = address(0);
-        stakeHolders[3] = entityAddress;
-        stakeHolders[4] = entityAddress;
-
-        bytes[] memory approvalSignatures = new bytes[](0);
-
         vm.expectRevert("creation disabled");
-        entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders, approvalSignatures);
+        entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders);
 
         entity.updateAllowSimplePolicy(true);
         assertTrue(entity.allowSimplePolicy());
@@ -1214,18 +1348,18 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
 
         // currency is enabled
         vm.expectRevert("currency disabled");
-        entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders, approvalSignatures);
+        entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders);
 
         entity.updateEnabledCurrency(underlying, collateralRatio, maxCapital);
 
         // limit is greater than 0
         vm.expectRevert("limit not > 0");
-        entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders, approvalSignatures);
+        entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, 0, stakeHolders);
 
         // limit is below max capital
         limit = 150;
         vm.expectRevert("max capital exceeded");
-        entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders, approvalSignatures);
+        entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders);
 
         // collateral ratio is valid
         collateralRatio = 1500;
@@ -1240,7 +1374,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
 
         limit = 100;
         vm.expectRevert("collateral ratio not met");
-        entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders, approvalSignatures);
+        entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders);
 
         // caller is an underwriter or broker
         weth.deposit{ value: 500 }();
@@ -1248,30 +1382,22 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
 
         entity.deposit(address(weth), 500);
         entity.updateEnabledCurrency(underlying, 500, 1000);
+        vm.prank(address(0xACC9));
         vm.expectRevert("must be broker or underwriter");
-        entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders, approvalSignatures);
+        entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders);
+        vm.stopPrank();
     }
 
     function testEntityCreateSimplePolicyAfterCreation() public {
+
         acl.assignRole(entity.aclContext(), systemManager, ROLE_SYSTEM_MANAGER);
         acl.assignRole(entity.aclContext(), entityManager, ROLE_ENTITY_MANAGER);
         acl.assignRole(entity.aclContext(), entityRep, ROLE_ENTITY_REP);
-        entity.updateAllowPolicy(true);
 
         uint256 startDate;
         uint256 maturationDate;
         address underlying = address(weth);
         uint256 limit = 100;
-        bytes32 simplePolicyId = "0x1";
-
-        address[] memory stakeHolders = new address[](5);
-        stakeHolders[0] = entityAddress;
-        stakeHolders[1] = entityAddress;
-        stakeHolders[2] = address(0);
-        stakeHolders[3] = entityAddress;
-        stakeHolders[4] = entityAddress;
-
-        bytes[] memory approvalSignatures = new bytes[](0);
 
         entity.updateAllowSimplePolicy(true);
 
@@ -1283,15 +1409,17 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         weth.deposit{ value: 500 }();
         weth.approve(entityAddress, 500);
         entity.deposit(address(weth), 500);
-
         acl.assignRole(systemContext, entityAddress, ROLE_UNDERWRITER);
-        entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders, approvalSignatures);
 
-        address policyAddress = 0x84EC5D405CC8B587c624836b53a28eb29F83d162;
+        vm.prank(address(0xACC6)); // be a broker
+        entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders);
+        vm.stopPrank();
+
+        address policyAddress = entity.getChild(1);
         ISimplePolicy2 simplePolicy = ISimplePolicy2(policyAddress);
 
         // they exist and have their properties set
-        (bytes32 simplePolicyIdChk, uint256 policyNumber, , , , , ) = simplePolicy.getSimplePolicyInfo();
+        (bytes32 simplePolicyIdChk, uint256 policyNumber, , , , , , ) = simplePolicy.getSimplePolicyInfo();
 
         // number of policies is increased
         assertEq(entity.getNumSimplePolicies(), 1);
@@ -1325,7 +1453,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         assertEq(claimsPaid, claimAmount);
     }
 
-    function testEntityPaySimplePremium() public {
+    function testEntityPaySimplePremiumAndCommissionsPayout() public {
         acl.assignRole(entity.aclContext(), systemManager, ROLE_SYSTEM_MANAGER);
         acl.assignRole(entity.aclContext(), entityManager, ROLE_ENTITY_MANAGER);
         acl.assignRole(entity.aclContext(), entityRep, ROLE_ENTITY_REP);
@@ -1334,37 +1462,27 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         uint256 startDate;
         uint256 maturationDate;
         address underlying = address(weth);
-        uint256 limit = 100;
-        bytes32 simplePolicyId = "0x1";
-
-        address[] memory stakeHolders = new address[](5);
-        stakeHolders[0] = entityAddress;
-        stakeHolders[1] = entityAddress;
-        stakeHolders[2] = address(0);
-        stakeHolders[3] = entityAddress;
-        stakeHolders[4] = entityAddress;
-
-        bytes[] memory approvalSignatures = new bytes[](0);
+        uint256 limit = 100 * 1000000000;
 
         entity.updateAllowSimplePolicy(true);
 
         uint256 collateralRatio = 500;
-        uint256 maxCapital = 100;
+        uint256 maxCapital = 100 * 1000000000;
 
         entity.updateEnabledCurrency(underlying, collateralRatio, maxCapital);
 
-        weth.deposit{ value: 500 }();
-        weth.approve(entityAddress, 500);
-        entity.deposit(address(weth), 500);
+        weth.deposit{ value: 500 * 1000000000 }();
+        weth.approve(entityAddress, 500 * 1000000000);
+        entity.deposit(address(weth), 500 * 1000000000);
 
         acl.assignRole(systemContext, entityAddress, ROLE_UNDERWRITER);
-        entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders, approvalSignatures);
+        entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders);
 
-        address policyAddress = 0x84EC5D405CC8B587c624836b53a28eb29F83d162;
+        address policyAddress = entity.getChild(1);
         ISimplePolicy2 simplePolicy = ISimplePolicy2(policyAddress);
 
         // they exist and have their properties set
-        (bytes32 simplePolicyIdChk, uint256 policyNumber, , , , , ) = simplePolicy.getSimplePolicyInfo();
+        (bytes32 simplePolicyIdChk, uint256 policyNumber, , , , , , ) = simplePolicy.getSimplePolicyInfo();
 
         // premiums can be payed out - if done by entity represetative
         // vm.startPrank(entityRep);
@@ -1375,15 +1493,68 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         vm.expectRevert("invalid premium amount");
         entity.paySimplePremium(simplePolicyId, entityAddress, 0);
 
+        // commissions balances are zero before the premium is paid
+        {
+            (
+                uint256 brokerCommissionBalance_,
+                uint256 claimsAdminCommissionBalance_,
+                uint256 naymsCommissionBalance_,
+                uint256 underwriterCommissionBalance_
+            ) = simplePolicy.getCommissionBalances();
+            assertEq(brokerCommissionBalance_, 0);
+            assertEq(claimsAdminCommissionBalance_, 0);
+            assertEq(naymsCommissionBalance_, 0);
+            assertEq(underwriterCommissionBalance_, 0);
+        }
+
         // premiums can be payed out - and the payout goes to the entity
-        uint256 premiumAmount = 10;
+        uint256 premiumAmount = 10 * 1000000000;
         uint256 previousBalance = entity.getBalance(underlying);
         entity.paySimplePremium(simplePolicyId, entityAddress, premiumAmount);
 
-        assertEq(entity.getBalance(underlying), previousBalance + premiumAmount);
+        // verify commissions are taken for each of the stakeholders
+        uint256 commissionsTotal;
+        {
+            (
+                uint256 brokerCommissionBalance_,
+                uint256 claimsAdminCommissionBalance_,
+                uint256 naymsCommissionBalance_,
+                uint256 underwriterCommissionBalance_
+            ) = simplePolicy.getCommissionBalances();
+            
+            commissionsTotal = brokerCommissionBalance_ + claimsAdminCommissionBalance_ + naymsCommissionBalance_ + underwriterCommissionBalance_;
+
+            assertEq(brokerCommissionBalance_, premiumAmount / 1000 * stakeHolders.commissions[0]);
+            assertEq(underwriterCommissionBalance_, premiumAmount / 1000 * stakeHolders.commissions[1]);
+            assertEq(claimsAdminCommissionBalance_, premiumAmount / 1000 * stakeHolders.commissions[2]);
+            assertEq(naymsCommissionBalance_, premiumAmount / 1000 * stakeHolders.commissions[4]);
+        }
+
+        assertEq(entity.getBalance(underlying), previousBalance + premiumAmount - commissionsTotal);
 
         (uint256 premiumsPaid, ) = entity.getPremiumsAndClaimsPaid(simplePolicyId);
-        assertEq(premiumsPaid, premiumAmount);
+        assertEq(premiumsPaid, premiumAmount - commissionsTotal);
+
+        entity.payOutCommissions(simplePolicyId);
+
+        // after being payed out, the commission balances are zero
+        {
+            (
+                uint256 brokerCommissionBalance_,
+                uint256 claimsAdminCommissionBalance_,
+                uint256 naymsCommissionBalance_,
+                uint256 underwriterCommissionBalance_
+            ) = simplePolicy.getCommissionBalances();
+            assertEq(brokerCommissionBalance_, 0);
+            assertEq(claimsAdminCommissionBalance_, 0);
+            assertEq(naymsCommissionBalance_, 0);
+            assertEq(underwriterCommissionBalance_, 0);
+        }
+
+        assertEq(weth.balanceOf(brokerEntityAddress), premiumAmount / 1000 * stakeHolders.commissions[0]);
+        assertEq(weth.balanceOf(underwriterEntityAddress), premiumAmount / 1000 * stakeHolders.commissions[1]);
+        assertEq(weth.balanceOf(claimsAdminEntityAddress), premiumAmount / 1000 * stakeHolders.commissions[2]);
+
     }
 
     function testEntityHeartBeatFunction() public {
@@ -1396,16 +1567,6 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         uint256 maturationDate = 10;
         address underlying = address(weth);
         uint256 limit = 100;
-        bytes32 simplePolicyId = "0x1";
-
-        address[] memory stakeHolders = new address[](5);
-        stakeHolders[0] = entityAddress;
-        stakeHolders[1] = entityAddress;
-        stakeHolders[2] = address(0);
-        stakeHolders[3] = entityAddress;
-        stakeHolders[4] = entityAddress;
-
-        bytes[] memory approvalSignatures = new bytes[](0);
 
         entity.updateAllowSimplePolicy(true);
 
@@ -1419,23 +1580,23 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         entity.deposit(address(weth), 500);
 
         acl.assignRole(systemContext, entityAddress, ROLE_UNDERWRITER);
-        entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders, approvalSignatures);
+        entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders);
 
-        address policyAddress = 0x84EC5D405CC8B587c624836b53a28eb29F83d162;
+        address policyAddress = entity.getChild(1);
         ISimplePolicy2 simplePolicy = ISimplePolicy2(policyAddress);
 
         // activates the policy after start date
 
         entity.checkAndUpdateState(simplePolicyId);
 
-        (, , , , , , uint256 state) = simplePolicy.getSimplePolicyInfo();
+        (, , , , , , uint256 state, ) = simplePolicy.getSimplePolicyInfo();
         assertEq(state, POLICY_STATE_ACTIVE);
 
         // updates state and total limit accordingly after maturation date
         (, , uint256 totalLimitBefore) = entity.getEnabledCurrency(underlying);
         vm.warp(11);
         entity.checkAndUpdateState(simplePolicyId);
-        (, , , , , , state) = simplePolicy.getSimplePolicyInfo();
+        (, , , , , , state, ) = simplePolicy.getSimplePolicyInfo();
         assertEq(state, POLICY_STATE_MATURED);
 
         (, , uint256 totalLimitAfter) = entity.getEnabledCurrency(underlying);

@@ -3,15 +3,27 @@ pragma solidity >=0.8.9;
 import "./IDiamondUpgradeFacet.sol";
 import "./IAccessControl.sol";
 import "./ISettingsControl.sol";
+import "./IChild.sol";
 import "./ISimplePolicyStates.sol";
+import "./ISimplePolicyApprovalsFacet.sol";
+import "./ISimplePolicyCommissionsFacet.sol";
+import "./ISimplePolicyHeartbeatFacet.sol";
 
 /**
- * @dev Super-interface for simple policies
+ * @dev Super-interface for Simple Policies
  */
-abstract contract ISimplePolicy is IAccessControl {
+abstract contract ISimplePolicy is
+    IDiamondUpgradeFacet,
+    IAccessControl,
+    ISettingsControl,
+    IChild,
+    ISimplePolicyStates,
+    ISimplePolicyApprovalsFacet,
+    ISimplePolicyCommissionsFacet,
+    ISimplePolicyHeartbeatFacet
+{
     /**
      * @dev Get simple policy info.
-     *
      */
     function getSimplePolicyInfo()
         external
@@ -24,15 +36,9 @@ abstract contract ISimplePolicy is IAccessControl {
             uint256 maturationDate_,
             address unit_,
             uint256 limit_,
-            uint256 state_
+            uint256 state_,
+            address treasury_
         );
-
-    /**
-     * @dev Emitted when a new policy has been created.
-     * @param id The policy id.
-     * @param simplePolicy The policy address.
-     */
-    event NewSimplePolicy(bytes32 indexed id, address indexed simplePolicy);
 
     /**
      * @dev Heartbeat: Ensure the policy and tranche states are up-to-date.
@@ -46,4 +52,27 @@ abstract contract ISimplePolicy is IAccessControl {
     //  * @param _id Unique id that represents the policy - this is what stakeholder will sign to approve the policy.
     //  */
     // function verifySimplePolicy (bytes32 _id ) external;
+
+    /**
+     * @dev take commissions for the premium paid
+     *
+     * @param _amount total premium amount paid
+     */
+    function takeCommissions(uint256 _amount) external virtual returns (uint256 netPremiumAmount_);
+
+    /**
+     * @dev Get the commission balances for the simple policy.
+     */
+    function getCommissionBalances()
+        external
+        view
+        virtual
+        returns (
+            uint256 brokerCommissionBalance_,
+            uint256 claimsAdminCommissionBalance_,
+            uint256 naymsCommissionBalance_,
+            uint256 underwriterCommissionBalance_
+        );
+
+    function payCommissions() external payable virtual;
 }

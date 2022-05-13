@@ -6,7 +6,7 @@ import { getCurrentEntityDeployer, ensureEntityDeployerIsDeployed } from './modu
 import { ensureMarketIsDeployed } from './modules/market'
 import { ensureFeeBankIsDeployed } from './modules/feeBank'
 import { ensureEntityImplementationsAreDeployed } from './modules/entityImplementations'
-import { ensurePolicyImplementationsAreDeployed } from './modules/policyImplementations'
+import { ensurePolicyImplementationsAreDeployed, ensureSimplePolicyImplementationsAreDeployed } from './modules/policyImplementations'
 
 async function main() {
   // copy artifacts
@@ -99,6 +99,7 @@ async function main() {
 
   await ensureEntityImplementationsAreDeployed(ctx)
   await ensurePolicyImplementationsAreDeployed(ctx)
+  await ensureSimplePolicyImplementationsAreDeployed(ctx)
 
   if (releaseConfig.extractDeployedAddresses) {
     await updateDeployedAddressesJson(ctx)

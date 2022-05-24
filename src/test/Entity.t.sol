@@ -1383,7 +1383,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         entity.deposit(address(weth), 500);
         entity.updateEnabledCurrency(underlying, 500, 1000);
         vm.prank(address(0xACC9));
-        vm.expectRevert("must be broker or underwriter");
+        vm.expectRevert("must be entity admin");
         entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders);
         vm.stopPrank();
     }
@@ -1411,7 +1411,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         entity.deposit(address(weth), 500);
         acl.assignRole(systemContext, entityAddress, ROLE_UNDERWRITER);
 
-        vm.prank(address(0xACC6)); // be a broker
+        vm.prank(entityAdmin); // be an entity admin
         entity.createSimplePolicy(simplePolicyId, startDate, maturationDate, underlying, limit, stakeHolders);
         vm.stopPrank();
 

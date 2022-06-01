@@ -5,19 +5,16 @@ import "../base/ISimplePolicyApprovalsFacet.sol";
 import "../base/ISimplePolicyCommissionsFacet.sol";
 import "../base/ISimplePolicyHeartbeatFacet.sol";
 
-
 contract DummySimplePolicyFacet is IDiamondFacet, ISimplePolicyApprovalsFacet, ISimplePolicyCommissionsFacet, ISimplePolicyHeartbeatFacet {
+    function getSelectors() public pure override returns (bytes memory) {
+        return abi.encodePacked(ISimplePolicyHeartbeatFacet.checkAndUpdateState.selector);
+    }
 
-  function getSelectors() public pure override returns (bytes memory) {
-    return abi.encodePacked(ISimplePolicyHeartbeatFacet.checkAndUpdateState.selector);
-  }
+    function approveSimplePolicy(bytes32[] memory _roles, bytes[] memory _signatures) external {}
 
-  function approveSimplePolicy(bytes32[] memory _roles, bytes[] memory _signatures) external {}
+    function checkAndUpdateState() external override returns (bool reduceTotalLimit_) {}
 
-
-  function checkAndUpdateState() external override returns (bool reduceTotalLimit_) {}
-
-  function getCommissionBalances()
+    function getCommissionBalances()
         external
         view
         returns (
@@ -25,20 +22,26 @@ contract DummySimplePolicyFacet is IDiamondFacet, ISimplePolicyApprovalsFacet, I
             uint256 claimsAdminCommissionBalance_,
             uint256 naymsCommissionBalance_,
             uint256 underwriterCommissionBalance_
-        ) {}
-  function takeCommissions(uint256 _amount) external returns (uint256 netPremiumAmount_) {}
+        )
+    {}
 
-  function commissionsPayedOut() external {}
+    function takeCommissions(uint256 _amount) external returns (uint256 netPremiumAmount_) {}
 
-  function getStakeholders() external view override
+    function commissionsPayedOut() external {}
+
+    function getStakeholders()
+        external
+        view
+        override
         returns (
             address broker_,
             address underwriter_,
             address claimsAdmin_,
             address feeBank_
-        ) {}
+        )
+    {}
 
-  function getCommissionRates()
+    function getCommissionRates()
         external
         view
         override
@@ -47,6 +50,6 @@ contract DummySimplePolicyFacet is IDiamondFacet, ISimplePolicyApprovalsFacet, I
             uint256 claimsAdminCommissionBP_,
             uint256 naymsCommissionBP_,
             uint256 underwriterCommissionBP_
-        ) {}
-
+        )
+    {}
 }

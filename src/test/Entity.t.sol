@@ -69,7 +69,7 @@ import { Strings } from "../../contracts/base/Strings.sol";
 import { Address } from "../../contracts/base/Address.sol";
 import { ECDSA } from "../../contracts/base/ECDSA.sol";
 
-import { Stakeholders } from "../../contracts/SimplePolicy.sol";
+import { ISimplePolicy } from "../../contracts/base/ISimplePolicy.sol";
 
 interface IProxy {
     function getDelegateAddress() external view returns (address);
@@ -152,7 +152,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
     address internal constant claimsAdminRep = account7;
 
     bytes32 internal constant simplePolicyId = "0x1";
-    Stakeholders internal stakeHolders;
+    ISimplePolicy.Stakeholders internal stakeHolders;
 
     event EntityDeposit(address indexed caller, address indexed unit, uint256 indexed amount);
     event NewPolicy(address indexed policy, address indexed entity, address indexed deployer);
@@ -381,21 +381,20 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
 
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(0xAAA1, ECDSA.toEthSignedMessageHash(simplePolicyId));
+        bytes memory fullSig1 = abi.encodePacked(r, s, v);
+        
         address signer = ecrecover(simplePolicyId, v, r, s);
         assertEq(signer1, signer);
-        console2.log("Signer: ", signer);
-        console2.log("Signer 1: ", signer1);
 
-        bytes memory fullSig1 = abi.encodePacked(r, s, v);
         (v, r, s) = vm.sign(0xAAA2, ECDSA.toEthSignedMessageHash(simplePolicyId));
-        
         bytes memory fullSig2 = abi.encodePacked(r, s, v);
+        
         (v, r, s) = vm.sign(0xAAA3, ECDSA.toEthSignedMessageHash(simplePolicyId));
-        
         bytes memory fullSig3 = abi.encodePacked(r, s, v);
-        (v, r, s) = vm.sign(0xAAA4, ECDSA.toEthSignedMessageHash(simplePolicyId));
         
+        (v, r, s) = vm.sign(0xAAA4, ECDSA.toEthSignedMessageHash(simplePolicyId));
         bytes memory fullSig4 = abi.encodePacked(r, s, v);
+        
         signer = ECDSA.recover(simplePolicyId, fullSig1);
 
         bytes[] memory signatures = new bytes[](4);

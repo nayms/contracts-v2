@@ -6,6 +6,7 @@ import "../base/IEntityFundingFacet.sol";
 import "../base/IEntitySimplePolicyCoreFacet.sol";
 import "../base/IEntitySimplePolicyDataFacet.sol";
 import "../base/IEntitySimplePolicyPayFacet.sol";
+import { ISimplePolicy } from "../base/ISimplePolicy.sol";
 
 contract DummyEntityFacet is IDiamondFacet, IEntityCoreFacet, IEntityFundingFacet, IEntitySimplePolicyCoreFacet, IEntitySimplePolicyDataFacet, IEntitySimplePolicyPayFacet {
     function getSelectors() public pure override returns (bytes memory) {
@@ -78,7 +79,7 @@ contract DummyEntityFacet is IDiamondFacet, IEntityCoreFacet, IEntityFundingFace
         uint256 _maturationDate,
         address _unit,
         uint256 _limit,
-        Stakeholders calldata _stakeholders
+        ISimplePolicy.Stakeholders calldata _stakeholders
     ) external override {}
 
     function paySimplePremium(

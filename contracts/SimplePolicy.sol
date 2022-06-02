@@ -6,13 +6,7 @@ import "./base/Proxy.sol";
 import "./base/Child.sol";
 import "./SimplePolicyFacetBase.sol";
 import "./base/ISimplePolicyStates.sol";
-
-struct Stakeholders {
-    bytes32[] roles;
-    address[] stakeholdersAddresses;
-    bytes[] approvalSignatures;
-    uint256[] commissions; // always has one element more than roles, for nayms treasury
-}
+import { ISimplePolicy } from "./base/ISimplePolicy.sol";
 
 contract SimplePolicy is Controller, Proxy, SimplePolicyFacetBase, Child, ISimplePolicyStates {
     constructor(
@@ -24,7 +18,7 @@ contract SimplePolicy is Controller, Proxy, SimplePolicyFacetBase, Child, ISimpl
         uint256 _maturationDate,
         address _unit,
         uint256 _limit,
-        Stakeholders memory _stakeholders
+        ISimplePolicy.Stakeholders memory _stakeholders
     ) Controller(_settings) Proxy() {
         require(_limit > 0, "limit not > 0");
 

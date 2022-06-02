@@ -22,6 +22,14 @@ abstract contract ISimplePolicy is
     ISimplePolicyCommissionsFacet,
     ISimplePolicyHeartbeatFacet
 {
+
+    struct Stakeholders {
+        bytes32[] roles;
+        address[] stakeholdersAddresses;
+        bytes[] approvalSignatures;
+        uint256[] commissions; // always has one element more than roles, for nayms treasury
+    }
+
     /**
      * @dev Get simple policy info.
      */

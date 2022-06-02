@@ -5,8 +5,8 @@ import { EntityFacetBase, IERC20 } from "./EntityFacetBase.sol";
 import "./base/Controller.sol";
 import "./base/IEntitySimplePolicyCoreFacet.sol";
 import "./base/IDiamondFacet.sol";
-import { SimplePolicy, Stakeholders } from "./SimplePolicy.sol";
-import "./base/ISimplePolicy.sol";
+import { SimplePolicy } from "./SimplePolicy.sol";
+import { ISimplePolicy } from "./base/ISimplePolicy.sol";
 
 contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCoreFacet, IDiamondFacet {
     constructor(address _settings) Controller(_settings) {}
@@ -35,7 +35,7 @@ contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCore
         uint256 _maturationDate,
         address _unit,
         uint256 _limit,
-        Stakeholders memory _stakeholders
+        ISimplePolicy.Stakeholders memory _stakeholders
     ) external override assertIsEntityAdmin(msg.sender) {
         _validateSimplePolicyCreation(_unit, _limit);
         dataUint256[__a(_unit, "totalLimit")] += _limit;

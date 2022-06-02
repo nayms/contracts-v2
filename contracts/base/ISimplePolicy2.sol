@@ -57,5 +57,5 @@ interface ISimplePolicy2 {
             uint256 claimsAdminCommissionBalance_,
             uint256 naymsCommissionBalance_,
             uint256 underwriterCommissionBalance_
-        );    
+        );
 }

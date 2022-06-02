@@ -22,7 +22,6 @@ abstract contract ISimplePolicy is
     ISimplePolicyCommissionsFacet,
     ISimplePolicyHeartbeatFacet
 {
-
     struct Stakeholders {
         bytes32[] roles;
         address[] stakeholdersAddresses;

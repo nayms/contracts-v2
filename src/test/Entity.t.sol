@@ -342,10 +342,10 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         acl.assignRole(insuredParty.aclContext(), insuredPartyRep, ROLE_ENTITY_REP);
 
         address[] memory stakeholdersAddresses = new address[](5);
-        stakeholdersAddresses[0] = address(broker);         // broker           0xACC6
-        stakeholdersAddresses[1] = address(underwriter);    // underwriter      0xACC5
-        stakeholdersAddresses[2] = address(claimsAdmin);    // claims admin     0xACC7
-        stakeholdersAddresses[3] = address(insuredParty);   // insured party    0xACC4
+        stakeholdersAddresses[0] = address(broker); // broker           0xACC6
+        stakeholdersAddresses[1] = address(underwriter); // underwriter      0xACC5
+        stakeholdersAddresses[2] = address(claimsAdmin); // claims admin     0xACC7
+        stakeholdersAddresses[3] = address(insuredParty); // insured party    0xACC4
         // stakeholdersAddresses[4] = entityAddress;        // nayms fee bank
 
         bytes32[] memory roles = new bytes32[](4);
@@ -379,22 +379,21 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         acl.assignRole(claimsAdmin.aclContext(), signer3, ROLE_ENTITY_REP);
         acl.assignRole(insuredParty.aclContext(), signer4, ROLE_ENTITY_REP);
 
-
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(0xAAA1, ECDSA.toEthSignedMessageHash(simplePolicyId));
         bytes memory fullSig1 = abi.encodePacked(r, s, v);
-        
+
         address signer = ecrecover(simplePolicyId, v, r, s);
         assertEq(signer1, signer);
 
         (v, r, s) = vm.sign(0xAAA2, ECDSA.toEthSignedMessageHash(simplePolicyId));
         bytes memory fullSig2 = abi.encodePacked(r, s, v);
-        
+
         (v, r, s) = vm.sign(0xAAA3, ECDSA.toEthSignedMessageHash(simplePolicyId));
         bytes memory fullSig3 = abi.encodePacked(r, s, v);
-        
+
         (v, r, s) = vm.sign(0xAAA4, ECDSA.toEthSignedMessageHash(simplePolicyId));
         bytes memory fullSig4 = abi.encodePacked(r, s, v);
-        
+
         signer = ECDSA.recover(simplePolicyId, fullSig1);
 
         bytes[] memory signatures = new bytes[](4);
@@ -1388,7 +1387,6 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
     }
 
     function testEntityCreateSimplePolicyAfterCreation() public {
-
         acl.assignRole(entity.aclContext(), systemManager, ROLE_SYSTEM_MANAGER);
         acl.assignRole(entity.aclContext(), entityManager, ROLE_ENTITY_MANAGER);
         acl.assignRole(entity.aclContext(), entityRep, ROLE_ENTITY_REP);
@@ -1494,12 +1492,8 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
 
         // commissions balances are zero before the premium is paid
         {
-            (
-                uint256 brokerCommissionBalance_,
-                uint256 claimsAdminCommissionBalance_,
-                uint256 naymsCommissionBalance_,
-                uint256 underwriterCommissionBalance_
-            ) = simplePolicy.getCommissionBalances();
+            (uint256 brokerCommissionBalance_, uint256 claimsAdminCommissionBalance_, uint256 naymsCommissionBalance_, uint256 underwriterCommissionBalance_) = simplePolicy
+                .getCommissionBalances();
             assertEq(brokerCommissionBalance_, 0);
             assertEq(claimsAdminCommissionBalance_, 0);
             assertEq(naymsCommissionBalance_, 0);
@@ -1514,19 +1508,15 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
         // verify commissions are taken for each of the stakeholders
         uint256 commissionsTotal;
         {
-            (
-                uint256 brokerCommissionBalance_,
-                uint256 claimsAdminCommissionBalance_,
-                uint256 naymsCommissionBalance_,
-                uint256 underwriterCommissionBalance_
-            ) = simplePolicy.getCommissionBalances();
-            
+            (uint256 brokerCommissionBalance_, uint256 claimsAdminCommissionBalance_, uint256 naymsCommissionBalance_, uint256 underwriterCommissionBalance_) = simplePolicy
+                .getCommissionBalances();
+
             commissionsTotal = brokerCommissionBalance_ + claimsAdminCommissionBalance_ + naymsCommissionBalance_ + underwriterCommissionBalance_;
 
-            assertEq(brokerCommissionBalance_, premiumAmount / 1000 * stakeHolders.commissions[0]);
-            assertEq(underwriterCommissionBalance_, premiumAmount / 1000 * stakeHolders.commissions[1]);
-            assertEq(claimsAdminCommissionBalance_, premiumAmount / 1000 * stakeHolders.commissions[2]);
-            assertEq(naymsCommissionBalance_, premiumAmount / 1000 * stakeHolders.commissions[4]);
+            assertEq(brokerCommissionBalance_, (premiumAmount / 1000) * stakeHolders.commissions[0]);
+            assertEq(underwriterCommissionBalance_, (premiumAmount / 1000) * stakeHolders.commissions[1]);
+            assertEq(claimsAdminCommissionBalance_, (premiumAmount / 1000) * stakeHolders.commissions[2]);
+            assertEq(naymsCommissionBalance_, (premiumAmount / 1000) * stakeHolders.commissions[4]);
         }
 
         assertEq(entity.getBalance(underlying), previousBalance + premiumAmount - commissionsTotal);
@@ -1538,22 +1528,17 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
 
         // after being payed out, the commission balances are zero
         {
-            (
-                uint256 brokerCommissionBalance_,
-                uint256 claimsAdminCommissionBalance_,
-                uint256 naymsCommissionBalance_,
-                uint256 underwriterCommissionBalance_
-            ) = simplePolicy.getCommissionBalances();
+            (uint256 brokerCommissionBalance_, uint256 claimsAdminCommissionBalance_, uint256 naymsCommissionBalance_, uint256 underwriterCommissionBalance_) = simplePolicy
+                .getCommissionBalances();
             assertEq(brokerCommissionBalance_, 0);
             assertEq(claimsAdminCommissionBalance_, 0);
             assertEq(naymsCommissionBalance_, 0);
             assertEq(underwriterCommissionBalance_, 0);
         }
 
-        assertEq(weth.balanceOf(brokerEntityAddress), premiumAmount / 1000 * stakeHolders.commissions[0]);
-        assertEq(weth.balanceOf(underwriterEntityAddress), premiumAmount / 1000 * stakeHolders.commissions[1]);
-        assertEq(weth.balanceOf(claimsAdminEntityAddress), premiumAmount / 1000 * stakeHolders.commissions[2]);
-
+        assertEq(weth.balanceOf(brokerEntityAddress), (premiumAmount / 1000) * stakeHolders.commissions[0]);
+        assertEq(weth.balanceOf(underwriterEntityAddress), (premiumAmount / 1000) * stakeHolders.commissions[1]);
+        assertEq(weth.balanceOf(claimsAdminEntityAddress), (premiumAmount / 1000) * stakeHolders.commissions[2]);
     }
 
     function testEntityHeartBeatFunction() public {

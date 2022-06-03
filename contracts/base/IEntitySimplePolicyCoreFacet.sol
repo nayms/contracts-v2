@@ -23,7 +23,7 @@ interface IEntitySimplePolicyCoreFacet {
         uint256 _maturationDate,
         address _unit,
         uint256 _limit,
-        ISimplePolicy.StakeholdersData calldata _stakeholders
+        ISimplePolicy.StakeholdersData memory _stakeholders
     ) external;
 
     /**

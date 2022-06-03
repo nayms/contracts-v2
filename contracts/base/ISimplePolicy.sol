@@ -48,39 +48,4 @@ abstract contract ISimplePolicy is
             address treasury_
         );
 
-    /**
-     * @dev Heartbeat: Ensure the policy and tranche states are up-to-date.
-     *
-     */
-    function checkAndUpdateState() external virtual returns (bool reduceTotalLimit_);
-
-    //   /**
-    //  * @dev Verify simple policy.
-    //  *
-    //  * @param _id Unique id that represents the policy - this is what stakeholder will sign to approve the policy.
-    //  */
-    // function verifySimplePolicy (bytes32 _id ) external;
-
-    /**
-     * @dev take commissions for the premium paid
-     *
-     * @param _amount total premium amount paid
-     */
-    function takeCommissions(uint256 _amount) external virtual returns (uint256 netPremiumAmount_);
-
-    /**
-     * @dev Get the commission balances for the simple policy.
-     */
-    function getCommissionBalances()
-        external
-        view
-        virtual
-        returns (
-            uint256 brokerCommissionBalance_,
-            uint256 claimsAdminCommissionBalance_,
-            uint256 naymsCommissionBalance_,
-            uint256 underwriterCommissionBalance_
-        );
-
-    function payCommissions() external payable virtual;
 }

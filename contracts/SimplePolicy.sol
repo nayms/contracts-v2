@@ -18,7 +18,7 @@ contract SimplePolicy is Controller, Proxy, SimplePolicyFacetBase, Child, ISimpl
         uint256 _maturationDate,
         address _unit,
         uint256 _limit,
-        ISimplePolicy.Stakeholders memory _stakeholders
+        ISimplePolicy.StakeholdersData memory _stakeholders
     ) Controller(_settings) Proxy() {
         require(_limit > 0, "limit not > 0");
 

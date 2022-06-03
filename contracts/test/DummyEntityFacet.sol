@@ -79,7 +79,7 @@ contract DummyEntityFacet is IDiamondFacet, IEntityCoreFacet, IEntityFundingFace
         uint256 _maturationDate,
         address _unit,
         uint256 _limit,
-        ISimplePolicy.Stakeholders calldata _stakeholders
+        ISimplePolicy.StakeholdersData calldata _stakeholders
     ) external override {}
 
     function paySimplePremium(

@@ -35,7 +35,7 @@ contract EntitySimplePolicyCoreFacet is EntityFacetBase, IEntitySimplePolicyCore
         uint256 _maturationDate,
         address _unit,
         uint256 _limit,
-        ISimplePolicy.Stakeholders memory _stakeholders
+        ISimplePolicy.StakeholdersData memory _stakeholders
     ) external override assertIsEntityAdmin(msg.sender) {
         _validateSimplePolicyCreation(_unit, _limit);
         dataUint256[__a(_unit, "totalLimit")] += _limit;

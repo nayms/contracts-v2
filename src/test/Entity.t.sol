@@ -152,7 +152,7 @@ contract EntityTest is DSTestPlusF, MockAccounts, IACLConstants, ISettingsKeys, 
     address internal constant claimsAdminRep = account7;
 
     bytes32 internal constant simplePolicyId = "0x1";
-    ISimplePolicy.Stakeholders internal stakeHolders;
+    ISimplePolicy.StakeholdersData internal stakeHolders;
 
     event EntityDeposit(address indexed caller, address indexed unit, uint256 indexed amount);
     event NewPolicy(address indexed policy, address indexed entity, address indexed deployer);

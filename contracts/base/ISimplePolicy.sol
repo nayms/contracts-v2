@@ -23,7 +23,7 @@ abstract contract ISimplePolicy is
     ISimplePolicyHeartbeatFacet
 {
 
-    struct Stakeholders {
+    struct StakeholdersData {
         bytes32[] roles;
         address[] stakeholdersAddresses;
         bytes[] approvalSignatures;

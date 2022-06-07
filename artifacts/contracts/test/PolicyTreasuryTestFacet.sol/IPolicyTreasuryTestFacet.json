@@ -1,0 +1,114 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "IPolicyTreasuryTestFacet",
+  "sourceName": "contracts/test/PolicyTreasuryTestFacet.sol",
+  "abi": [
+    {
+      "inputs": [],
+      "name": "getSelectors",
+      "outputs": [
+        {
+          "internalType": "bytes",
+          "name": "",
+          "type": "bytes"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_orderId",
+          "type": "uint256"
+        }
+      ],
+      "name": "treasuryCancelOrder",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "_type",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "address",
+          "name": "_sellUnit",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_sellAmount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "_buyUnit",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_buyAmount",
+          "type": "uint256"
+        }
+      ],
+      "name": "treasuryCreateOrder",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "treasuryIncPolicyBalance",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_recipient",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "treasuryPayClaim",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "treasurySetMinPolicyBalance",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

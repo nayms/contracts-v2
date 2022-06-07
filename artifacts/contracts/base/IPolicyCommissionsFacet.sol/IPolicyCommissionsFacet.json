@@ -1,0 +1,99 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "IPolicyCommissionsFacet",
+  "sourceName": "contracts/base/IPolicyCommissionsFacet.sol",
+  "abi": [
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "claimsAdmin",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "broker",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "underwriter",
+          "type": "address"
+        }
+      ],
+      "name": "PaidCommissions",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "getCommissionBalances",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "brokerCommissionBalance_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "claimsAdminCommissionBalance_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "naymsCommissionBalance_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "underwriterCommissionBalance_",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getCommissionRates",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "brokerCommissionBP_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "claimsAdminCommissionBP_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "naymsCommissionBP_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "underwriterCommissionBP_",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "payCommissions",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

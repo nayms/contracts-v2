@@ -1,0 +1,163 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "IEntitySimplePolicyDataFacet",
+  "sourceName": "contracts/base/IEntitySimplePolicyDataFacet.sol",
+  "abi": [
+    {
+      "inputs": [],
+      "name": "allowSimplePolicy",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "_allow",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getEnabledCurrencies",
+      "outputs": [
+        {
+          "internalType": "address[]",
+          "name": "",
+          "type": "address[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_unit",
+          "type": "address"
+        }
+      ],
+      "name": "getEnabledCurrency",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "collateralRatio_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "maxCapital_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "totalLimit_",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getNumSimplePolicies",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "_numPolicies",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "_id",
+          "type": "bytes32"
+        }
+      ],
+      "name": "getPremiumsAndClaimsPaid",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "premiumsPaid_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "claimsPaid_",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_simplePolicyNumber",
+          "type": "uint256"
+        }
+      ],
+      "name": "getSimplePolicyId",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "id_",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "_id",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "paySimpleClaim",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_unit",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_collateralRatio",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_maxCapital",
+          "type": "uint256"
+        }
+      ],
+      "name": "updateEnabledCurrency",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

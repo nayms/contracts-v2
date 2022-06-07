@@ -1,0 +1,60 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "IDiamondUpgradeFacet",
+  "sourceName": "contracts/base/IDiamondUpgradeFacet.sol",
+  "abi": [
+    {
+      "inputs": [],
+      "name": "getSelectors",
+      "outputs": [
+        {
+          "internalType": "bytes",
+          "name": "",
+          "type": "bytes"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getVersionInfo",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "num_",
+          "type": "string"
+        },
+        {
+          "internalType": "uint256",
+          "name": "date_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "string",
+          "name": "hash_",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address[]",
+          "name": "_facets",
+          "type": "address[]"
+        }
+      ],
+      "name": "upgrade",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

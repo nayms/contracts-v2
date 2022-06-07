@@ -1,0 +1,118 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "IEntityCoreFacet",
+  "sourceName": "contracts/base/IEntityCoreFacet.sol",
+  "abi": [
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "policy",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "entity",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "deployer",
+          "type": "address"
+        }
+      ],
+      "name": "NewPolicy",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "allowPolicy",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "_allow",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "_id",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "_typeAndPremiumIntervalSecondsAndDatesAndCommissionsBP",
+          "type": "uint256[]"
+        },
+        {
+          "internalType": "address[]",
+          "name": "_unitAndTreasuryAndStakeholders",
+          "type": "address[]"
+        },
+        {
+          "internalType": "uint256[][]",
+          "name": "_trancheData",
+          "type": "uint256[][]"
+        },
+        {
+          "internalType": "bytes[]",
+          "name": "_approvalSignatures",
+          "type": "bytes[]"
+        }
+      ],
+      "name": "createPolicy",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_policy",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_trancheIndex",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "payTranchePremium",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bool",
+          "name": "_allow",
+          "type": "bool"
+        }
+      ],
+      "name": "updateAllowPolicy",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

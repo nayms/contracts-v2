@@ -1,0 +1,285 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "IPolicyTreasury",
+  "sourceName": "contracts/base/IPolicyTreasury.sol",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_orderId",
+          "type": "uint256"
+        }
+      ],
+      "name": "cancelOrder",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "_type",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "address",
+          "name": "_sellUnit",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_sellAmount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "_buyUnit",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_buyAmount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_feeSchedule",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "_notify",
+          "type": "address"
+        },
+        {
+          "internalType": "bytes",
+          "name": "_notifyData",
+          "type": "bytes"
+        }
+      ],
+      "name": "createOrder",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_unit",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_index",
+          "type": "uint256"
+        }
+      ],
+      "name": "getClaim",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "policy_",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "recipient_",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amount_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bool",
+          "name": "paid_",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_unit",
+          "type": "address"
+        }
+      ],
+      "name": "getClaims",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "count_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "unpaidCount_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "unpaidTotalAmount_",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_unit",
+          "type": "address"
+        }
+      ],
+      "name": "getEconomics",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "realBalance_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "virtualBalance_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "minBalance_",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_policy",
+          "type": "address"
+        }
+      ],
+      "name": "getPolicyEconomics",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "unit_",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "balance_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "minBalance_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "claimsUnpaidTotalAmount_",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "incPolicyBalance",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_policy",
+          "type": "address"
+        }
+      ],
+      "name": "isPolicyCollateralized",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_recipient",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "payClaim",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_unit",
+          "type": "address"
+        }
+      ],
+      "name": "resolveClaims",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "setMinPolicyBalance",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

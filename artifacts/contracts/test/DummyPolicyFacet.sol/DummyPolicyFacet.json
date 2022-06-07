@@ -1,0 +1,218 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "DummyPolicyFacet",
+  "sourceName": "contracts/test/DummyPolicyFacet.sol",
+  "abi": [
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "index",
+          "type": "uint256"
+        }
+      ],
+      "name": "CreateTranche",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "checkAndUpdateState",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_numShares",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_pricePerShareAmount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "_premiums",
+          "type": "uint256[]"
+        }
+      ],
+      "name": "createTranche",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getInfo",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "id_",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "address",
+          "name": "treasury_",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "initiationDate_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "startDate_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "maturationDate_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "unit_",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "numTranches_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "state_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "type_",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getSelectors",
+      "outputs": [
+        {
+          "internalType": "bytes",
+          "name": "",
+          "type": "bytes"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_index",
+          "type": "uint256"
+        }
+      ],
+      "name": "getTrancheInfo",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "token_",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "state_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "numShares_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "initialPricePerShare_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "balance_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "sharesSold_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "initialSaleOfferId_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "finalBuybackofferId_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bool",
+          "name": "buybackCompleted_",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "initiationDateHasPassed",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "maturationDateHasPassed",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "startDateHasPassed",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x608060405234801561001057600080fd5b506102ca806100206000396000f3fe608060405234801561001057600080fd5b50600436106100885760003560e01c80637a7da48b1161005b5780637a7da48b14610119578063a100ce4f1461012d578063f5395a8c1461012f578063f6f7b2031461008d57600080fd5b806317326e1c1461008d5780634b503f0b146100a15780635a9b0b89146100ce578063781d037a1461008d575b600080fd5b604051600081526020015b60405180910390f35b60408051635a9b0b8960e01b602082015281516004818303018152602490910191829052610098916101a3565b60408051600080825260208201819052918101829052606081018290526080810182905260a0810182905260c0810182905260e0810182905261010081019190915261012001610098565b61012d6101273660046101f8565b50505050565b005b61015361013d36600461027b565b5060009081908190819081908190819081908190565b604080516001600160a01b03909a168a5260208a0198909852968801959095526060870193909352608086019190915260a085015260c084015260e0830152151561010082015261012001610098565b600060208083528351808285015260005b818110156101d0578581018301518582016040015282016101b4565b818111156101e2576000604083870101525b50601f01601f1916929092016040019392505050565b6000806000806060858703121561020e57600080fd5b8435935060208501359250604085013567ffffffffffffffff8082111561023457600080fd5b818701915087601f83011261024857600080fd5b81358181111561025757600080fd5b8860208260051b850101111561026c57600080fd5b95989497505060200194505050565b60006020828403121561028d57600080fd5b503591905056fea2646970667358221220808c289cc51ec5f9bc362325860986efd05391a8b98d932aeb08869f9413a28b64736f6c63430008090033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b50600436106100885760003560e01c80637a7da48b1161005b5780637a7da48b14610119578063a100ce4f1461012d578063f5395a8c1461012f578063f6f7b2031461008d57600080fd5b806317326e1c1461008d5780634b503f0b146100a15780635a9b0b89146100ce578063781d037a1461008d575b600080fd5b604051600081526020015b60405180910390f35b60408051635a9b0b8960e01b602082015281516004818303018152602490910191829052610098916101a3565b60408051600080825260208201819052918101829052606081018290526080810182905260a0810182905260c0810182905260e0810182905261010081019190915261012001610098565b61012d6101273660046101f8565b50505050565b005b61015361013d36600461027b565b5060009081908190819081908190819081908190565b604080516001600160a01b03909a168a5260208a0198909852968801959095526060870193909352608086019190915260a085015260c084015260e0830152151561010082015261012001610098565b600060208083528351808285015260005b818110156101d0578581018301518582016040015282016101b4565b818111156101e2576000604083870101525b50601f01601f1916929092016040019392505050565b6000806000806060858703121561020e57600080fd5b8435935060208501359250604085013567ffffffffffffffff8082111561023457600080fd5b818701915087601f83011261024857600080fd5b81358181111561025757600080fd5b8860208260051b850101111561026c57600080fd5b95989497505060200194505050565b60006020828403121561028d57600080fd5b503591905056fea2646970667358221220808c289cc51ec5f9bc362325860986efd05391a8b98d932aeb08869f9413a28b64736f6c63430008090033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

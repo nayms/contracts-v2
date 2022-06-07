@@ -1,0 +1,165 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "SettingsControl",
+  "sourceName": "contracts/base/SettingsControl.sol",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_settings",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [],
+      "name": "SETTING_ENTITY_DELEGATE",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "SETTING_ENTITY_DEPLOYER",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "SETTING_ENTITY_IMPL",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "SETTING_ETHER_TOKEN",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "SETTING_FEEBANK",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "SETTING_FEEBANK_IMPL",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "SETTING_MARKET",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "SETTING_MARKET_IMPL",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "SETTING_POLICY_DELEGATE",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "SETTING_POLICY_IMPL",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "settings",
+      "outputs": [
+        {
+          "internalType": "contract ISettings",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x608060405234801561001057600080fd5b5060405161039a38038061039a83398101604081905261002f91610082565b80600060405161004d906773657474696e677360c01b815260080190565b90815260405190819003602001902080546001600160a01b03929092166001600160a01b0319909216919091179055506100b2565b60006020828403121561009457600080fd5b81516001600160a01b03811681146100ab57600080fd5b9392505050565b6102d9806100c16000396000f3fe608060405234801561001057600080fd5b50600436106100a95760003560e01c80633f42ffef116100715780633f42ffef146101845780634b7d215e146101ab578063551e385a146101d2578063b46b88fe146101f9578063e06174e414610220578063e3097dc21461024057600080fd5b80630e0fc352146100ae5780631205d133146100e85780631f9b28741461010f578063297a012a146101365780633e107d4a1461015d575b600080fd5b6100d57f063693c9545b949ff498535f9e0aa95ada8e88c062d28e2f219b896e151e126681565b6040519081526020015b60405180910390f35b6100d57f098afcb3a137a2ba8835fbf7daecb275af5afb3479f12844d5b7bfb8134e7ced81565b6100d57f5c6c7d4897f0ae38084370e7a61ea386e95c7f54629c0b793a0ac47751f1240581565b6100d57f6a4d660b9f1720511be22f039683db86d0d0d207c2ad9255325630800d4fb53981565b6100d57f6f244974cc67342b1bd623d411fd8100ec9eddbac05348e71d1a9296de6264a581565b6100d57f1bf52521006d8a3718b0692b7f32c8ee781bfed9e9215eb5b8fc3b34749fb5b581565b6100d57f9574e138325b5c365da8d5cc75cf22323ed6f3ce52fac5621225020a162a4c6181565b6100d57fc72bfe3e0f1799ce0d90c4c72cf8f07d0cfa8121d51cb05d8c827f0896d8c0b681565b6100d57f0e8925aa0bfe65f831f6c9099dd95b0614eb69312630ef3497bee453d9ed40a981565b610228610267565b6040516001600160a01b0390911681526020016100df565b6100d57fa449044fc5332c1625929b3afecb2f821955279285b4a8406a6ffa8968c1b7cf81565b600080604051610285906773657474696e677360c01b815260080190565b908152604051908190036020019020546001600160a01b031691905056fea264697066735822122093008c2a6ec35a396debd65287e6b0f7e50a33b357d01152ef8b90c223f7139b64736f6c63430008090033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b50600436106100a95760003560e01c80633f42ffef116100715780633f42ffef146101845780634b7d215e146101ab578063551e385a146101d2578063b46b88fe146101f9578063e06174e414610220578063e3097dc21461024057600080fd5b80630e0fc352146100ae5780631205d133146100e85780631f9b28741461010f578063297a012a146101365780633e107d4a1461015d575b600080fd5b6100d57f063693c9545b949ff498535f9e0aa95ada8e88c062d28e2f219b896e151e126681565b6040519081526020015b60405180910390f35b6100d57f098afcb3a137a2ba8835fbf7daecb275af5afb3479f12844d5b7bfb8134e7ced81565b6100d57f5c6c7d4897f0ae38084370e7a61ea386e95c7f54629c0b793a0ac47751f1240581565b6100d57f6a4d660b9f1720511be22f039683db86d0d0d207c2ad9255325630800d4fb53981565b6100d57f6f244974cc67342b1bd623d411fd8100ec9eddbac05348e71d1a9296de6264a581565b6100d57f1bf52521006d8a3718b0692b7f32c8ee781bfed9e9215eb5b8fc3b34749fb5b581565b6100d57f9574e138325b5c365da8d5cc75cf22323ed6f3ce52fac5621225020a162a4c6181565b6100d57fc72bfe3e0f1799ce0d90c4c72cf8f07d0cfa8121d51cb05d8c827f0896d8c0b681565b6100d57f0e8925aa0bfe65f831f6c9099dd95b0614eb69312630ef3497bee453d9ed40a981565b610228610267565b6040516001600160a01b0390911681526020016100df565b6100d57fa449044fc5332c1625929b3afecb2f821955279285b4a8406a6ffa8968c1b7cf81565b600080604051610285906773657474696e677360c01b815260080190565b908152604051908190036020019020546001600160a01b031691905056fea264697066735822122093008c2a6ec35a396debd65287e6b0f7e50a33b357d01152ef8b90c223f7139b64736f6c63430008090033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

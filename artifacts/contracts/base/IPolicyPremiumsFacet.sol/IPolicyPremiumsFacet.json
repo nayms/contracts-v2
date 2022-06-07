@@ -1,0 +1,137 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "IPolicyPremiumsFacet",
+  "sourceName": "contracts/base/IPolicyPremiumsFacet.sol",
+  "abi": [
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "trancheIndex",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "caller",
+          "type": "address"
+        }
+      ],
+      "name": "PremiumPayment",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_trancheIndex",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_premiumIndex",
+          "type": "uint256"
+        }
+      ],
+      "name": "getTranchePremiumInfo",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "amount_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "dueAt_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "paidSoFar_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "fullyPaidAt_",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_trancheIndex",
+          "type": "uint256"
+        }
+      ],
+      "name": "getTranchePremiumsInfo",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "numPremiums_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "nextPremiumAmount_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "nextPremiumDueAt_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "nextPremiumPaidSoFar_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "premiumPaymentsMissed_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "numPremiumsPaid_",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_index",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "payTranchePremium",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

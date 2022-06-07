@@ -1,0 +1,562 @@
+{
+  "id": "2aa56d6f5dd1d5f1f2c5e031c2ba6cb0",
+  "_format": "hh-sol-build-info-1",
+  "solcVersion": "0.8.9",
+  "solcLongVersion": "0.8.9+commit.e5eed63a",
+  "input": {
+    "language": "Solidity",
+    "sources": {
+      "contracts/base/ISimplePolicy2.sol": {
+        "content": "// SPDX-License-Identifier: MIT\npragma solidity >=0.8.9;\n\n// import \"./IDiamondUpgradeFacet.sol\";\n// import \"./IAccessControl.sol\";\n// import \"./ISettingsControl.sol\";\n// import \"./ISimplePolicyStates.sol\";\n\n/**\n * @dev Interface for simple policies\n */\ninterface ISimplePolicy2 {\n    /**\n     * @dev Get simple policy info.\n     *\n     */\n    function getSimplePolicyInfo()\n        external\n        view\n        returns (\n            bytes32 id_,\n            uint256 number_,\n            uint256 startDate_,\n            uint256 maturationDate_,\n            address unit_,\n            uint256 limit_,\n            uint256 state_\n        );\n\n    /**\n     * @dev Emitted when a new policy has been created.\n     * @param id The policy id.\n     * @param simplePolicy The policy address.\n     */\n    event NewSimplePolicy(bytes32 indexed id, address indexed simplePolicy);\n\n    /**\n     * @dev Heartbeat: Ensure the policy and tranche states are up-to-date.\n     *\n     */\n    function checkAndUpdateState() external returns (bool reduceTotalLimit_);\n\n    //   /**\n    //  * @dev Verify simple policy.\n    //  *\n    //  * @param _id Unique id that represents the policy - this is what stakeholder will sign to approve the policy.\n    //  */\n    // function verifySimplePolicy (bytes32 _id ) external;\n}\n"
+      }
+    },
+    "settings": {
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "outputSelection": {
+        "*": {
+          "*": [
+            "abi",
+            "evm.bytecode",
+            "evm.deployedBytecode",
+            "evm.methodIdentifiers",
+            "metadata"
+          ],
+          "": [
+            "ast"
+          ]
+        }
+      }
+    }
+  },
+  "output": {
+    "contracts": {
+      "contracts/base/ISimplePolicy2.sol": {
+        "ISimplePolicy2": {
+          "abi": [
+            {
+              "anonymous": false,
+              "inputs": [
+                {
+                  "indexed": true,
+                  "internalType": "bytes32",
+                  "name": "id",
+                  "type": "bytes32"
+                },
+                {
+                  "indexed": true,
+                  "internalType": "address",
+                  "name": "simplePolicy",
+                  "type": "address"
+                }
+              ],
+              "name": "NewSimplePolicy",
+              "type": "event"
+            },
+            {
+              "inputs": [],
+              "name": "checkAndUpdateState",
+              "outputs": [
+                {
+                  "internalType": "bool",
+                  "name": "reduceTotalLimit_",
+                  "type": "bool"
+                }
+              ],
+              "stateMutability": "nonpayable",
+              "type": "function"
+            },
+            {
+              "inputs": [],
+              "name": "getSimplePolicyInfo",
+              "outputs": [
+                {
+                  "internalType": "bytes32",
+                  "name": "id_",
+                  "type": "bytes32"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "number_",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "startDate_",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "maturationDate_",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "address",
+                  "name": "unit_",
+                  "type": "address"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "limit_",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "state_",
+                  "type": "uint256"
+                }
+              ],
+              "stateMutability": "view",
+              "type": "function"
+            }
+          ],
+          "evm": {
+            "bytecode": {
+              "functionDebugData": {},
+              "generatedSources": [],
+              "linkReferences": {},
+              "object": "",
+              "opcodes": "",
+              "sourceMap": ""
+            },
+            "deployedBytecode": {
+              "functionDebugData": {},
+              "generatedSources": [],
+              "immutableReferences": {},
+              "linkReferences": {},
+              "object": "",
+              "opcodes": "",
+              "sourceMap": ""
+            },
+            "methodIdentifiers": {
+              "checkAndUpdateState()": "a100ce4f",
+              "getSimplePolicyInfo()": "30daa8a0"
+            }
+          },
+          "metadata": "{\"compiler\":{\"version\":\"0.8.9+commit.e5eed63a\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"id\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"simplePolicy\",\"type\":\"address\"}],\"name\":\"NewSimplePolicy\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"checkAndUpdateState\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"reduceTotalLimit_\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getSimplePolicyInfo\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"id_\",\"type\":\"bytes32\"},{\"internalType\":\"uint256\",\"name\":\"number_\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"startDate_\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"maturationDate_\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"unit_\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"limit_\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"state_\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"details\":\"Interface for simple policies\",\"events\":{\"NewSimplePolicy(bytes32,address)\":{\"details\":\"Emitted when a new policy has been created.\",\"params\":{\"id\":\"The policy id.\",\"simplePolicy\":\"The policy address.\"}}},\"kind\":\"dev\",\"methods\":{\"checkAndUpdateState()\":{\"details\":\"Heartbeat: Ensure the policy and tranche states are up-to-date.\"},\"getSimplePolicyInfo()\":{\"details\":\"Get simple policy info.\"}},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/base/ISimplePolicy2.sol\":\"ISimplePolicy2\"},\"evmVersion\":\"london\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[]},\"sources\":{\"contracts/base/ISimplePolicy2.sol\":{\"keccak256\":\"0x2fdeac5e3f8f5be43fdac301747cbd527eccec064d5501de7b86d03e3b39e6e4\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://72b4cd9b2307605488b9697a145608a619448e7930604a1de48d2b813dfb4500\",\"dweb:/ipfs/QmQXpsNesbZqaPd7Y11TgZiw2VLQUTuY66myFX8hUwFpat\"]}},\"version\":1}"
+        }
+      }
+    },
+    "sources": {
+      "contracts/base/ISimplePolicy2.sol": {
+        "ast": {
+          "absolutePath": "contracts/base/ISimplePolicy2.sol",
+          "exportedSymbols": {
+            "ISimplePolicy2": [
+              34
+            ]
+          },
+          "id": 35,
+          "license": "MIT",
+          "nodeType": "SourceUnit",
+          "nodes": [
+            {
+              "id": 1,
+              "literals": [
+                "solidity",
+                ">=",
+                "0.8",
+                ".9"
+              ],
+              "nodeType": "PragmaDirective",
+              "src": "32:24:0"
+            },
+            {
+              "abstract": false,
+              "baseContracts": [],
+              "canonicalName": "ISimplePolicy2",
+              "contractDependencies": [],
+              "contractKind": "interface",
+              "documentation": {
+                "id": 2,
+                "nodeType": "StructuredDocumentation",
+                "src": "208:45:0",
+                "text": " @dev Interface for simple policies"
+              },
+              "fullyImplemented": false,
+              "id": 34,
+              "linearizedBaseContracts": [
+                34
+              ],
+              "name": "ISimplePolicy2",
+              "nameLocation": "264:14:0",
+              "nodeType": "ContractDefinition",
+              "nodes": [
+                {
+                  "documentation": {
+                    "id": 3,
+                    "nodeType": "StructuredDocumentation",
+                    "src": "285:54:0",
+                    "text": " @dev Get simple policy info."
+                  },
+                  "functionSelector": "30daa8a0",
+                  "id": 20,
+                  "implemented": false,
+                  "kind": "function",
+                  "modifiers": [],
+                  "name": "getSimplePolicyInfo",
+                  "nameLocation": "353:19:0",
+                  "nodeType": "FunctionDefinition",
+                  "parameters": {
+                    "id": 4,
+                    "nodeType": "ParameterList",
+                    "parameters": [],
+                    "src": "372:2:0"
+                  },
+                  "returnParameters": {
+                    "id": 19,
+                    "nodeType": "ParameterList",
+                    "parameters": [
+                      {
+                        "constant": false,
+                        "id": 6,
+                        "mutability": "mutable",
+                        "name": "id_",
+                        "nameLocation": "443:3:0",
+                        "nodeType": "VariableDeclaration",
+                        "scope": 20,
+                        "src": "435:11:0",
+                        "stateVariable": false,
+                        "storageLocation": "default",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_bytes32",
+                          "typeString": "bytes32"
+                        },
+                        "typeName": {
+                          "id": 5,
+                          "name": "bytes32",
+                          "nodeType": "ElementaryTypeName",
+                          "src": "435:7:0",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_bytes32",
+                            "typeString": "bytes32"
+                          }
+                        },
+                        "visibility": "internal"
+                      },
+                      {
+                        "constant": false,
+                        "id": 8,
+                        "mutability": "mutable",
+                        "name": "number_",
+                        "nameLocation": "468:7:0",
+                        "nodeType": "VariableDeclaration",
+                        "scope": 20,
+                        "src": "460:15:0",
+                        "stateVariable": false,
+                        "storageLocation": "default",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_uint256",
+                          "typeString": "uint256"
+                        },
+                        "typeName": {
+                          "id": 7,
+                          "name": "uint256",
+                          "nodeType": "ElementaryTypeName",
+                          "src": "460:7:0",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_uint256",
+                            "typeString": "uint256"
+                          }
+                        },
+                        "visibility": "internal"
+                      },
+                      {
+                        "constant": false,
+                        "id": 10,
+                        "mutability": "mutable",
+                        "name": "startDate_",
+                        "nameLocation": "497:10:0",
+                        "nodeType": "VariableDeclaration",
+                        "scope": 20,
+                        "src": "489:18:0",
+                        "stateVariable": false,
+                        "storageLocation": "default",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_uint256",
+                          "typeString": "uint256"
+                        },
+                        "typeName": {
+                          "id": 9,
+                          "name": "uint256",
+                          "nodeType": "ElementaryTypeName",
+                          "src": "489:7:0",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_uint256",
+                            "typeString": "uint256"
+                          }
+                        },
+                        "visibility": "internal"
+                      },
+                      {
+                        "constant": false,
+                        "id": 12,
+                        "mutability": "mutable",
+                        "name": "maturationDate_",
+                        "nameLocation": "529:15:0",
+                        "nodeType": "VariableDeclaration",
+                        "scope": 20,
+                        "src": "521:23:0",
+                        "stateVariable": false,
+                        "storageLocation": "default",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_uint256",
+                          "typeString": "uint256"
+                        },
+                        "typeName": {
+                          "id": 11,
+                          "name": "uint256",
+                          "nodeType": "ElementaryTypeName",
+                          "src": "521:7:0",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_uint256",
+                            "typeString": "uint256"
+                          }
+                        },
+                        "visibility": "internal"
+                      },
+                      {
+                        "constant": false,
+                        "id": 14,
+                        "mutability": "mutable",
+                        "name": "unit_",
+                        "nameLocation": "566:5:0",
+                        "nodeType": "VariableDeclaration",
+                        "scope": 20,
+                        "src": "558:13:0",
+                        "stateVariable": false,
+                        "storageLocation": "default",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_address",
+                          "typeString": "address"
+                        },
+                        "typeName": {
+                          "id": 13,
+                          "name": "address",
+                          "nodeType": "ElementaryTypeName",
+                          "src": "558:7:0",
+                          "stateMutability": "nonpayable",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_address",
+                            "typeString": "address"
+                          }
+                        },
+                        "visibility": "internal"
+                      },
+                      {
+                        "constant": false,
+                        "id": 16,
+                        "mutability": "mutable",
+                        "name": "limit_",
+                        "nameLocation": "593:6:0",
+                        "nodeType": "VariableDeclaration",
+                        "scope": 20,
+                        "src": "585:14:0",
+                        "stateVariable": false,
+                        "storageLocation": "default",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_uint256",
+                          "typeString": "uint256"
+                        },
+                        "typeName": {
+                          "id": 15,
+                          "name": "uint256",
+                          "nodeType": "ElementaryTypeName",
+                          "src": "585:7:0",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_uint256",
+                            "typeString": "uint256"
+                          }
+                        },
+                        "visibility": "internal"
+                      },
+                      {
+                        "constant": false,
+                        "id": 18,
+                        "mutability": "mutable",
+                        "name": "state_",
+                        "nameLocation": "621:6:0",
+                        "nodeType": "VariableDeclaration",
+                        "scope": 20,
+                        "src": "613:14:0",
+                        "stateVariable": false,
+                        "storageLocation": "default",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_uint256",
+                          "typeString": "uint256"
+                        },
+                        "typeName": {
+                          "id": 17,
+                          "name": "uint256",
+                          "nodeType": "ElementaryTypeName",
+                          "src": "613:7:0",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_uint256",
+                            "typeString": "uint256"
+                          }
+                        },
+                        "visibility": "internal"
+                      }
+                    ],
+                    "src": "421:216:0"
+                  },
+                  "scope": 34,
+                  "src": "344:294:0",
+                  "stateMutability": "view",
+                  "virtual": false,
+                  "visibility": "external"
+                },
+                {
+                  "anonymous": false,
+                  "documentation": {
+                    "id": 21,
+                    "nodeType": "StructuredDocumentation",
+                    "src": "644:146:0",
+                    "text": " @dev Emitted when a new policy has been created.\n @param id The policy id.\n @param simplePolicy The policy address."
+                  },
+                  "id": 27,
+                  "name": "NewSimplePolicy",
+                  "nameLocation": "801:15:0",
+                  "nodeType": "EventDefinition",
+                  "parameters": {
+                    "id": 26,
+                    "nodeType": "ParameterList",
+                    "parameters": [
+                      {
+                        "constant": false,
+                        "id": 23,
+                        "indexed": true,
+                        "mutability": "mutable",
+                        "name": "id",
+                        "nameLocation": "833:2:0",
+                        "nodeType": "VariableDeclaration",
+                        "scope": 27,
+                        "src": "817:18:0",
+                        "stateVariable": false,
+                        "storageLocation": "default",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_bytes32",
+                          "typeString": "bytes32"
+                        },
+                        "typeName": {
+                          "id": 22,
+                          "name": "bytes32",
+                          "nodeType": "ElementaryTypeName",
+                          "src": "817:7:0",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_bytes32",
+                            "typeString": "bytes32"
+                          }
+                        },
+                        "visibility": "internal"
+                      },
+                      {
+                        "constant": false,
+                        "id": 25,
+                        "indexed": true,
+                        "mutability": "mutable",
+                        "name": "simplePolicy",
+                        "nameLocation": "853:12:0",
+                        "nodeType": "VariableDeclaration",
+                        "scope": 27,
+                        "src": "837:28:0",
+                        "stateVariable": false,
+                        "storageLocation": "default",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_address",
+                          "typeString": "address"
+                        },
+                        "typeName": {
+                          "id": 24,
+                          "name": "address",
+                          "nodeType": "ElementaryTypeName",
+                          "src": "837:7:0",
+                          "stateMutability": "nonpayable",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_address",
+                            "typeString": "address"
+                          }
+                        },
+                        "visibility": "internal"
+                      }
+                    ],
+                    "src": "816:50:0"
+                  },
+                  "src": "795:72:0"
+                },
+                {
+                  "documentation": {
+                    "id": 28,
+                    "nodeType": "StructuredDocumentation",
+                    "src": "873:94:0",
+                    "text": " @dev Heartbeat: Ensure the policy and tranche states are up-to-date."
+                  },
+                  "functionSelector": "a100ce4f",
+                  "id": 33,
+                  "implemented": false,
+                  "kind": "function",
+                  "modifiers": [],
+                  "name": "checkAndUpdateState",
+                  "nameLocation": "981:19:0",
+                  "nodeType": "FunctionDefinition",
+                  "parameters": {
+                    "id": 29,
+                    "nodeType": "ParameterList",
+                    "parameters": [],
+                    "src": "1000:2:0"
+                  },
+                  "returnParameters": {
+                    "id": 32,
+                    "nodeType": "ParameterList",
+                    "parameters": [
+                      {
+                        "constant": false,
+                        "id": 31,
+                        "mutability": "mutable",
+                        "name": "reduceTotalLimit_",
+                        "nameLocation": "1026:17:0",
+                        "nodeType": "VariableDeclaration",
+                        "scope": 33,
+                        "src": "1021:22:0",
+                        "stateVariable": false,
+                        "storageLocation": "default",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_bool",
+                          "typeString": "bool"
+                        },
+                        "typeName": {
+                          "id": 30,
+                          "name": "bool",
+                          "nodeType": "ElementaryTypeName",
+                          "src": "1021:4:0",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_bool",
+                            "typeString": "bool"
+                          }
+                        },
+                        "visibility": "internal"
+                      }
+                    ],
+                    "src": "1020:24:0"
+                  },
+                  "scope": 34,
+                  "src": "972:73:0",
+                  "stateMutability": "nonpayable",
+                  "virtual": false,
+                  "visibility": "external"
+                }
+              ],
+              "scope": 35,
+              "src": "254:1043:0",
+              "usedErrors": []
+            }
+          ],
+          "src": "32:1266:0"
+        },
+        "id": 0
+      }
+    }
+  }
+}

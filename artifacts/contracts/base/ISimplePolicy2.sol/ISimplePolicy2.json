@@ -1,0 +1,86 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "ISimplePolicy2",
+  "sourceName": "contracts/base/ISimplePolicy2.sol",
+  "abi": [
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "id",
+          "type": "bytes32"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "simplePolicy",
+          "type": "address"
+        }
+      ],
+      "name": "NewSimplePolicy",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "checkAndUpdateState",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "reduceTotalLimit_",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getSimplePolicyInfo",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "id_",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint256",
+          "name": "number_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "startDate_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "maturationDate_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "unit_",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "limit_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "state_",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

@@ -1,0 +1,75 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "IPolicyTreasuryConstants",
+  "sourceName": "contracts/base/IPolicyTreasuryConstants.sol",
+  "abi": [
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "policy",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "bal",
+          "type": "uint256"
+        }
+      ],
+      "name": "SetMinPolicyBalance",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "policy",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "newBal",
+          "type": "uint256"
+        }
+      ],
+      "name": "UpdatePolicyBalance",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "ORDER_TYPE_TOKEN_BUYBACK",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "ORDER_TYPE_TOKEN_SALE",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

@@ -1,0 +1,102 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "IPolicyApprovalsFacet",
+  "sourceName": "contracts/base/IPolicyApprovalsFacet.sol",
+  "abi": [
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "approver",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "role",
+          "type": "bytes32"
+        }
+      ],
+      "name": "Approved",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "caller",
+          "type": "address"
+        }
+      ],
+      "name": "BulkApproved",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "_role",
+          "type": "bytes32"
+        }
+      ],
+      "name": "approve",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes[]",
+          "name": "_signatures",
+          "type": "bytes[]"
+        }
+      ],
+      "name": "bulkApprove",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getApprovalsInfo",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "approved_",
+          "type": "bool"
+        },
+        {
+          "internalType": "bool",
+          "name": "insuredPartyApproved_",
+          "type": "bool"
+        },
+        {
+          "internalType": "bool",
+          "name": "underwriterApproved_",
+          "type": "bool"
+        },
+        {
+          "internalType": "bool",
+          "name": "brokerApproved_",
+          "type": "bool"
+        },
+        {
+          "internalType": "bool",
+          "name": "claimsAdminApproved_",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

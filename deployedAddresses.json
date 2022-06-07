@@ -3,6 +3,9 @@
     "4": {
       "address": "0xf2110ad65ADCbbd01733Cf1A916c7B77Cc88aD9E"
     },
+    "5": {
+      "address": "0xCAd2199A40F4b6e6B177Cb09D23fcA97f7d90295"
+    },
     "31337": {
       "address": "0xc5ACF4116B253e7BBf2195e2ec57B43FbAaD9Bb9"
     }
@@ -11,6 +14,9 @@
     "4": {
       "address": "0x464752534Fc9A1c2124dc4F37DF4EFA8BB280Fed"
     },
+    "5": {
+      "address": "0xA1d5746e61b515BE0a7103685bE48361e4b720a8"
+    },
     "31337": {
       "address": "0xaCCE78fC0c9B7FB940c6ef74ce49A67B9bCbaA6e"
     }
@@ -18,6 +24,9 @@
   "EntityDeployer": {
     "4": {
       "address": "0xACD6729Cf241ee5B24A71A480223D9Ab73874976"
+    },
+    "5": {
+      "address": "0xC6f7f6C00324919C28f5351A605930b3150c63Ec"
     },
     "31337": {
       "address": "0xcF9848324f364E1b6D115a151b49D6D53b45D519"
@@ -32,6 +41,9 @@
     "4": {
       "address": "0x89291d6D7268C08cB091349e0f5A1da88eDb1B4A"
     },
+    "5": {
+      "address": "0x49F529F21028eF1357A371E83087f4C077aa302F"
+    },
     "31337": {
       "address": "0xbcC59C52349682a69A443F7f9D6C94B8c7E96696"
     }
@@ -39,6 +51,9 @@
   "FeeBank": {
     "4": {
       "address": "0x80C53ca6D01a0Ad4f57F9aC5f2ACb6F1E986d674"
+    },
+    "5": {
+      "address": "0xce80dbe99501d3d42D603f1E89007dCCe0b6FF15"
     },
     "31337": {
       "address": "0xc612D90Ca5c80E5b0F2Aed1f34AD68569E251c23"

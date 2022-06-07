@@ -6,6 +6,9 @@
 update     :; foundryup
 updatey    :; yarn up -R
 
+# build 
+bscript    :; forge build --root . --contracts script/
+
 # format, lint
 formatsol  :; yarn run prettier
 lintsol	   :; yarn run lint
@@ -27,3 +30,6 @@ th         :; yarn hardhat test
 testhh     :; yarn hardhat test
 
 # common tests
+
+# solidity scripts
+startsale  :; forge script ./script/StartTokenSale.sol --sender 0xfcE918c07BD4c900941500A6632deB24bA7897Ce --fork-url https://eth-goerli.alchemyapi.io/v2/${ALCHEMY_ETH_GOERLI_API_KEY} -vvvv

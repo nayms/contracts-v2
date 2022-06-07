@@ -1,6 +1,6 @@
 {
   "name": "@nayms/contracts",
-  "version": "1.0.0-build.1788",
+  "version": "1.0.0-build.dev1654617532519",
   "description": "Nayms smart contracts",
   "main": "index.js",
   "publishConfig": {
@@ -26,6 +26,7 @@
     "coverage": "rm -rf coverage && yarn hardhat coverage",
     "copy-artifacts": "./scripts/copyArtifacts.js",
     "generate-index": "./scripts/generateIndex.js",
+    "setup-release-config-for-goerli": "NETWORK=goerli ./scripts/setupReleaseConfig.js",
     "setup-release-config-for-rinkeby": "NETWORK=rinkeby ./scripts/setupReleaseConfig.js",
     "setup-release-config-for-kovan": "NETWORK=kovan ./scripts/setupReleaseConfig.js",
     "setup-release-config-for-mainnet": "NETWORK=mainnet ./scripts/setupReleaseConfig.js",
@@ -34,6 +35,7 @@
     "compile": "yarn clean && yarn hardhat compile && yarn copy-artifacts && yarn generate-index",
     "deploy:local": "yarn hardhat run ./deploy",
     "deploy:rinkeby": "yarn hardhat run --network rinkeby ./deploy",
+    "deploy:goerli": "yarn hardhat run --network goerli ./deploy",
     "deploy:kovan": "yarn hardhat run --network kovan ./deploy",
     "deploy:mainnet": "yarn hardhat run --network mainnet ./deploy",
     "deploy-admin-dapp": "yarn build-admin-dapp && gh-pages -t -d dapp -e $(./scripts/outputVersion.js) -u \"Nayms Engineering <engineering@nayms.io>\"",

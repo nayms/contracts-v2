@@ -32,19 +32,19 @@ export const deployContract = async ({ ctx = {}, artifacts, getTxParams = defaul
   const chainId = hre.network.config.chainId
   const chainList = [1, 3, 4, 5, 42]
 
-  if (chainList.includes(chainId)) {
-    await log.task(`Verifying contract ${name} ${c.address} on etherscan`, async task => { 
-      try {
-        await hre.run("verify:verify", {
-          address: c.address,
-          constructorArguments: args,
-        })
-      }
-      catch(e) {
-        task.log(`deployContract() hre etherscan verify contract error: ${e}`)
-      }
-    })
-  }
+  // if (chainList.includes(chainId)) {
+  //   await log.task(`Verifying contract ${name} ${c.address} on etherscan`, async task => { 
+  //     try {
+  //       await hre.run("verify:verify", {
+  //         address: c.address,
+  //         constructorArguments: args,
+  //       })
+  //     }
+  //     catch(e) {
+  //       task.log(`deployContract() hre etherscan verify contract error: ${e}`)
+  //     }
+  //   })
+  // }
 
   return c
 }

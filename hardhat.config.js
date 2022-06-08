@@ -63,6 +63,14 @@ module.exports = {
         mnemonic,
       },
       timeout: 120000,
+    },
+    goerli: {
+      chainId: 5,
+      url: `https://eth-goerli.alchemyapi.io/v2/${alchemyKey}`,
+      accounts: {
+        mnemonic,
+      },
+      timeout: 120000,
     }
   },
 

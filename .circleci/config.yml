@@ -81,7 +81,7 @@ jobs:
           at: ~/repo
       - run:
           name: Setup release config
-          command: yarn setup-release-config-for-goerly
+          command: yarn setup-release-config-for-goerli
       - run:
           name: Deploy to Goerli
           command: yarn deploy:goerli

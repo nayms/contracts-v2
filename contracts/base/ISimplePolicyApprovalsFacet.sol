@@ -5,7 +5,6 @@ pragma solidity >=0.8.9;
  * @dev Simple Policy approvals methods.
  */
 interface ISimplePolicyApprovalsFacet {
-    
     /**
      * @dev Bulk-approve this policy.
      *

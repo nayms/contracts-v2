@@ -81,10 +81,10 @@ jobs:
           at: ~/repo
       - run:
           name: Setup release config
-          command: yarn setup-release-config-for-rinkeby
+          command: yarn setup-release-config-for-goerli
       - run:
-          name: Deploy to Rinkeby
-          command: yarn deploy:rinkeby
+          name: Deploy to Goerli
+          command: yarn deploy:goerli
           no_output_timeout: 20m
       - persist_to_workspace:
           root: ~/repo

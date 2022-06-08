@@ -37,6 +37,11 @@ async function main() {
         throw new Error('Release config does not allow Kovan deployment')
       }
       break
+    case 'goerli':
+      if (releaseConfig.deployNetwork !== 'goerli') {
+        throw new Error('Release config does not allow Goerli deployment')
+      }
+      break  
     default:
     // do nothing
   }

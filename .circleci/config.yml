@@ -81,10 +81,10 @@ jobs:
           at: ~/repo
       - run:
           name: Setup release config
-          command: yarn setup-release-config-for-rinkeby
+          command: yarn setup-release-config-for-goerly
       - run:
-          name: Deploy to Rinkeby
-          command: yarn deploy:rinkeby
+          name: Deploy to Goerli
+          command: yarn deploy:goerli
           no_output_timeout: 20m
       - persist_to_workspace:
           root: ~/repo
@@ -152,21 +152,24 @@ workflows:
             - build_contracts
           filters:
             branches:
-              only:
+              ignore:
+                - gh-pages
                 - master
       - deploy_admin_dapp:
           requires:
             - deploy_contracts
           filters:
             branches:
-              only:
+              ignore:
+                - gh-pages
                 - master
       - publish_to_npm:
           requires:
             - deploy_contracts
           filters:
             branches:
-              only:
+              ignore:
+                - gh-pages
                 - master
       - git_tag:
           requires:

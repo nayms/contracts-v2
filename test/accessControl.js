@@ -35,7 +35,7 @@ describe('AccessControl', () => {
 
   it('inRoleGroup', async () => {
     await accessControl.inRoleGroup(accounts[0], ROLEGROUPS.SYSTEM_ADMINS).should.eventually.eq(true)
-    await accessControl.inRoleGroup(accounts[0], ROLEGROUPS.SYSTEM_MANAGERS).should.eventually.eq(false)
+    await accessControl.inRoleGroup(accounts[0], ROLEGROUPS.SYSTEM_MANAGERS).should.eventually.eq(true)
   })
 
   it('inRoleGroupWithContext', async () => {

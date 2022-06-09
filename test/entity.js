@@ -383,7 +383,7 @@ describe('Entity', () => {
     describe('are minted by starting a sale', () => {
 
       it('but must be by system mgr', async () => {
-        await entity.startTokenSale(500, etherToken.address, 1000).should.be.rejectedWith('must be system mgr')
+        await entity.startTokenSale(500, etherToken.address, 1000, { from: entityManager }).should.be.rejectedWith('must be system mgr')
       })
 
       it('and creates a market offer', async () => {
@@ -561,7 +561,7 @@ describe('Entity', () => {
       describe('and a sale can be cancelled', () => {
 
         it('but only by entity mgr', async () => {
-          await entity.cancelTokenSale(etherToken.address).should.be.rejectedWith('must be system mgr')
+          await entity.cancelTokenSale(etherToken.address, { from: entityManager }).should.be.rejectedWith('must be system mgr')
         })
 
         it('but only if a sale is active', async () => {

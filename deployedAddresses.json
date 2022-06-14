@@ -2,16 +2,34 @@
   "ACL": {
     "4": {
       "address": "0x4c814ceE5EAa13762521077c7ceAE01B3dccfED2"
+    },
+    "5": {
+      "address": "0xB0286636430f9EcDe69fA554A3D06fd0b5966134"
+    },
+    "31337": {
+      "address": "0xc5ACF4116B253e7BBf2195e2ec57B43FbAaD9Bb9"
     }
   },
   "Settings": {
     "4": {
       "address": "0x2D982d4735EBb0BCf7636B5c36D87D027A7d1A92"
+    },
+    "5": {
+      "address": "0x94f30d3FDb528e6f0658E4045d9cE3f9e184B1DD"
+    },
+    "31337": {
+      "address": "0xaCCE78fC0c9B7FB940c6ef74ce49A67B9bCbaA6e"
     }
   },
   "EntityDeployer": {
     "4": {
       "address": "0x7CA6cc15B340f951889bD77613927d05015888fb"
+    },
+    "5": {
+      "address": "0xE92d4470BB1fc23830c57226406646AA8b1587d5"
+    },
+    "31337": {
+      "address": "0xcF9848324f364E1b6D115a151b49D6D53b45D519"
     }
   },
   "EtherToken": {
@@ -22,11 +40,23 @@
   "Market": {
     "4": {
       "address": "0x56b46b4A6e9e20c94B57c0D082c9936C1af5cAd5"
+    },
+    "5": {
+      "address": "0xb2bA059E7a70DC52dB3d0a6534BF75b204975fDa"
+    },
+    "31337": {
+      "address": "0xbcC59C52349682a69A443F7f9D6C94B8c7E96696"
     }
   },
   "FeeBank": {
     "4": {
       "address": "0xe5948071647f87ED3531114e521C031495206947"
+    },
+    "5": {
+      "address": "0x3C163Ae00c009E0F393d8cA1AA21f40ac2500C91"
+    },
+    "31337": {
+      "address": "0xc612D90Ca5c80E5b0F2Aed1f34AD68569E251c23"
     }
   }
 }

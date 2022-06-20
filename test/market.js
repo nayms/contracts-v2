@@ -1159,7 +1159,7 @@ describe('Market', () => {
       // but e.g., will create new offer for the following example amounts to make getLastOfferId return 4
       // fourth_offer_pay_amt = toWei('30');
       // fourth_offer_buy_amt = toWei('60');
-      await market.getLastOfferId().should.eventually.eq(3)
+      await market.getLastOfferId().should.eventually.eq(4)
 
       const secondOffer = await market.getOffer(2)
       expect(secondOffer.sellAmount).to.eq('0')
@@ -1173,7 +1173,7 @@ describe('Market', () => {
       expect(fourthOffer.sellAmount).to.eq('0')  // previously 5
       expect(fourthOffer.buyAmount).to.eq('0') // previously 10
 
-      await market.getLastOfferId().should.eventually.eq(3)
+      await market.getLastOfferId().should.eventually.eq(4)
 
       await erc20DAI.balanceOf(accounts[1]).should.eventually.eq(toWei('980').toString())
       await erc20WETH.balanceOf(accounts[1]).should.eventually.eq(toWei('1000').toString())
@@ -1313,7 +1313,7 @@ describe('Market', () => {
     })
 
     it('should get correct last offer id after creating offers', async () => {
-      await market.getLastOfferId().should.eventually.eq(1)
+      await market.getLastOfferId().should.eventually.eq(2)
     })
 
     it('should get correct balances after matching offers', async () => {

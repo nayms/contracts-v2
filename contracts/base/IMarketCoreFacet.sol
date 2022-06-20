@@ -2,7 +2,6 @@
 pragma solidity >=0.8.9;
 
 interface IMarketCoreFacet {
-
     /**
      * @dev Emitted when an offer gets created
      * @param id ID of the offer created

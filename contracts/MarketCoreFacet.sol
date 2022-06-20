@@ -301,7 +301,7 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
         }
 
         emit OfferCreated(id, _sellToken, _buyToken);
-        
+
         return id;
     }
 

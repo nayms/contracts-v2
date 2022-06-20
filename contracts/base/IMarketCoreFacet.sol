@@ -2,7 +2,6 @@
 pragma solidity >=0.8.9;
 
 interface IMarketCoreFacet {
-
     /**
      * @dev Emitted when an offer gets created
      * @param id ID of the offer created
@@ -10,7 +9,7 @@ interface IMarketCoreFacet {
      * @param buyToken The address the token being bought
      */
     event OfferCreated(uint256 indexed id, address indexed sellToken, address indexed buyToken);
-    
+
     /**
      * @dev Emitted when an offer gets cancelled
      * @param id ID of the offer to cancel

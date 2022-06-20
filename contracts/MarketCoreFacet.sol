@@ -77,7 +77,6 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
 
             // ensure it's in the right position in the list
             _insertOfferIntoSortedList(id);
-
         } else {
             id = _createOffer(_sellToken, remainingSellAmount_, _buyToken, remainingBuyAmount_, _feeSchedule, _notify, _notifyData, OFFER_STATE_FULFILLED);
         }
@@ -300,7 +299,7 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
         }
 
         emit OfferCreated(id, _sellToken, _buyToken);
-        
+
         return id;
     }
 

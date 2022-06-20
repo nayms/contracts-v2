@@ -11,11 +11,12 @@ contract EntitySimplePolicyPayFacet is EntityFacetBase, IDiamondFacet, IEntitySi
     constructor(address _settings) Controller(_settings) {}
 
     function getSelectors() public pure override returns (bytes memory) {
-        return abi.encodePacked(
-            IEntitySimplePolicyPayFacet.paySimpleClaim.selector, 
-            IEntitySimplePolicyPayFacet.paySimplePremium.selector,
-            IEntitySimplePolicyPayFacet.payOutCommissions.selector
-        );
+        return
+            abi.encodePacked(
+                IEntitySimplePolicyPayFacet.paySimpleClaim.selector,
+                IEntitySimplePolicyPayFacet.paySimplePremium.selector,
+                IEntitySimplePolicyPayFacet.payOutCommissions.selector
+            );
     }
 
     function paySimpleClaim(bytes32 _id, uint256 _amount) external payable override assertIsSystemManager(msg.sender) {
@@ -63,13 +64,13 @@ contract EntitySimplePolicyPayFacet is EntityFacetBase, IDiamondFacet, IEntitySi
 
     function payOutCommissions(bytes32 _id) external override {
         ISimplePolicy policy = ISimplePolicy(dataAddress[__b(_id, "addressById")]);
-        
+
         uint256 brokerCommissionBalance;
         uint256 claimsAdminCommissionBalance;
         uint256 naymsCommissionBalance;
         uint256 underwriterCommissionBalance;
         (brokerCommissionBalance, claimsAdminCommissionBalance, naymsCommissionBalance, underwriterCommissionBalance) = policy.getCommissionBalances();
-        
+
         (, , , , address unit, , , address treasury) = policy.getSimplePolicyInfo();
 
         address underwriter_;
@@ -98,10 +99,9 @@ contract EntitySimplePolicyPayFacet is EntityFacetBase, IDiamondFacet, IEntitySi
         if (naymsCommissionBalance > 0) {
             tkn.approve(address(this), naymsCommissionBalance);
             tkn.transferFrom(treasury, feeBank_, naymsCommissionBalance);
-        }            
-        
+        }
+
         // reset commission balances after paying them out
         policy.commissionsPayedOut();
-
     }
 }

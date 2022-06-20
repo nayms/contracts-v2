@@ -2,6 +2,15 @@
 pragma solidity >=0.8.9;
 
 interface IMarketCoreFacet {
+
+    /**
+     * @dev Emitted when an offer gets created
+     * @param id ID of the offer created
+     * @param sellToken The address the token being sold
+     * @param buyToken The address the token being bought
+     */
+    event OfferCreated(uint256 indexed id, address indexed sellToken, address indexed buyToken);
+
     /**
      * @dev Execute a limit offer with an observer attached.
      *

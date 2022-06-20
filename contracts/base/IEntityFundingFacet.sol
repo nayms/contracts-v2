@@ -65,6 +65,13 @@ interface IEntityFundingFacet {
     ) external;
 
     /**
+     * @dev Cancel offer
+     *
+     * @param _offerId The ID of offer to be cacnelled.
+     */
+    function cancelOffer(uint256 _offerId) external;
+
+    /**
      * @dev Emitted when a deposit is made.
      * @param caller The caller.
      * @param unit The token deposited.

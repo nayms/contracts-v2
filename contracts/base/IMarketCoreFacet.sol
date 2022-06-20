@@ -10,6 +10,14 @@ interface IMarketCoreFacet {
      * @param buyToken The address the token being bought
      */
     event OfferCreated(uint256 indexed id, address indexed sellToken, address indexed buyToken);
+    
+    /**
+     * @dev Emitted when an offer gets cancelled
+     * @param id ID of the offer to cancel
+     * @param sellToken The address the token being sold
+     * @param buyToken The address the token being bought
+     */
+    event OfferCancelled(uint256 indexed id, address indexed sellToken, address indexed buyToken);
 
     /**
      * @dev Execute a limit offer with an observer attached.

@@ -44,6 +44,8 @@ contract DummyEntityFacet is IDiamondFacet, IEntityCoreFacet, IEntityFundingFace
         uint256 _buyAmount
     ) external override returns (uint256) {}
 
+    function cancelOffer(uint256 _offerId) external {}
+
     function sellAtBestPrice(
         address _sellUnit,
         uint256 _sellAmount,

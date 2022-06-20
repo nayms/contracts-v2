@@ -413,6 +413,7 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
         address creator = dataAddress[__i(_offerId, "creator")];
         address sellToken = dataAddress[__i(_offerId, "sellToken")];
         uint256 sellAmount = dataUint256[__i(_offerId, "sellAmount")];
+        address buyToken = dataAddress[__i(_offerId, "buyToken")];
         uint256 buyAmount = dataUint256[__i(_offerId, "buyAmount")];
         address notify = dataAddress[__i(_offerId, "notify")];
         bytes memory notifyData = dataBytes[__i(_offerId, "notifyData")];
@@ -426,6 +427,8 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
         if (notify != address(0)) {
             IMarketObserver(notify).handleClosure(_offerId, sellAmount, buyAmount, notifyData);
         }
+
+        emit OfferCancelled(_offerId, sellToken, buyToken);
     }
 
     function _assertValidOffer(

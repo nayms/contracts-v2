@@ -27,11 +27,11 @@ contract EntitySimplePolicyPayFacet is EntityFacetBase, IDiamondFacet, IEntitySi
         uint256 limit;
         (, , , , unit, limit, , ) = policy.getSimplePolicyInfo();
 
-        uint256 claimsPaid = dataUint256[__a(unit, "claimsPaid")];
+        uint256 claimsPaid = dataUint256[__b(_id, "claimsPaid")];
 
         require(limit >= _amount + claimsPaid, "exceeds policy limit");
 
-        dataUint256[__a(unit, "claimsPaid")] += _amount;
+        dataUint256[__b(_id, "claimsPaid")] += _amount;
         dataUint256[__a(unit, "balance")] -= _amount;
 
         // payout the insured party!
@@ -57,7 +57,7 @@ contract EntitySimplePolicyPayFacet is EntityFacetBase, IDiamondFacet, IEntitySi
         address treasury;
         (, , , , unit, , , treasury) = policy.getSimplePolicyInfo();
 
-        dataUint256[__a(unit, "premiumsPaid")] += netPremiumAmount;
+        dataUint256[__b(_id, "premiumsPaid")] += netPremiumAmount;
         dataUint256[__a(unit, "balance")] += netPremiumAmount;
 
         IERC20 token = IERC20(unit);

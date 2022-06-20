@@ -80,6 +80,10 @@ contract EntityFundingFacet is EntityFacetBase, IEntityFundingFacet, IDiamondFac
         _sellAtBestPriceOnMarket(_sellUnit, _sellAmount, _buyUnit);
     }
 
+    function cancelOffer(uint256 _offerId) external {
+        _getMarket().cancel(_offerId);
+    }
+
     function _sellAtBestPriceOnMarket(
         address _sellUnit,
         uint256 _sellAmount,

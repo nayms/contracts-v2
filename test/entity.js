@@ -6,7 +6,7 @@ import {
   BYTES_ZERO,
   createEntity,
   createPolicy,
-  createTranche,
+  createTranche
 } from './utils'
 
 import { getAccountWallet } from '../deploy/utils'
@@ -285,6 +285,12 @@ describe('Entity', () => {
 
           // post-check
           await etherToken.balanceOf(accounts[5]).should.eventually.eq(1)
+        })
+
+        it('and can be cancelled', async () => {
+          await entity.trade(etherToken.address, 1, etherToken2.address, 1, { from: accounts[3] })
+          const offerId = await market.getLastOfferId()
+          entity.cancelOffer(offerId).should.be.fulfilled
         })
 
         it('and can only use upto the amount that was explicitly deposited, i.e. excluding accidental sends', async () => {

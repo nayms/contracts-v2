@@ -646,7 +646,15 @@ describe('Market', () => {
       })
 
       it('should allow offer owner to cancel offer successfully', async () => {
-        await market.cancel(2, { from: accounts[2] }).should.be.fulfilled
+        const result = await market.cancel(2, { from: accounts[2] }).should.be.fulfilled
+
+        const eventArgs = extractEventArgs(result, events.OfferCancelled)
+
+        expect(eventArgs).to.include({
+          id: '2',
+          sellToken: erc20WETH.address,
+          buyToken: erc20DAI.address
+        })
 
         const secondOfferState = await market.isActive(2)
         expect(secondOfferState).to.be.equal(false)

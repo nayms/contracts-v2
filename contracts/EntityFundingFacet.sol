@@ -80,7 +80,7 @@ contract EntityFundingFacet is EntityFacetBase, IEntityFundingFacet, IDiamondFac
         _sellAtBestPriceOnMarket(_sellUnit, _sellAmount, _buyUnit);
     }
 
-    function cancelOffer(uint256 _offerId) external {
+    function cancelOffer(uint256 _offerId) external override assertCanTradeTrancheTokens {
         _getMarket().cancel(_offerId);
     }
 

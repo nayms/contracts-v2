@@ -69,18 +69,20 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
 
         (remainingBuyAmount_, remainingSellAmount_, ) = _matchToExistingOffers(_sellToken, _sellAmount, _buyToken, _buyAmount, _notify, _notifyData, false);
 
+        uint256 id;
         // if still some left
         if (remainingBuyAmount_ > 0 && remainingSellAmount_ > 0 && remainingSellAmount_ >= dataUint256["dust"]) {
             // new offer should be created
-            uint256 id = _createOffer(_sellToken, remainingSellAmount_, _buyToken, remainingBuyAmount_, _feeSchedule, _notify, _notifyData, false);
+            id = _createOffer(_sellToken, remainingSellAmount_, _buyToken, remainingBuyAmount_, _feeSchedule, _notify, _notifyData, OFFER_STATE_ACTIVE);
 
             // ensure it's in the right position in the list
             _insertOfferIntoSortedList(id);
 
-            return id;
+        } else {
+            id = _createOffer(_sellToken, remainingSellAmount_, _buyToken, remainingBuyAmount_, _feeSchedule, _notify, _notifyData, OFFER_STATE_FULFILLED);
         }
 
-        return 0; // no limit offer created, fully matched
+        return id;
     }
 
     function executeMarketOffer(
@@ -99,7 +101,7 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
         require(remainingSellAmount_ == 0, "not enough orders in market");
 
         // market offer settled, create record for history
-        uint256 marketOfferId = _createOffer(_sellToken, _sellAmount, _buyToken, boughtAmount_, FEE_SCHEDULE_STANDARD, msg.sender, "", true);
+        uint256 marketOfferId = _createOffer(_sellToken, _sellAmount, _buyToken, boughtAmount_, FEE_SCHEDULE_STANDARD, msg.sender, "", OFFER_STATE_FULFILLED);
         // `_sellAmount` is used above for setting the initial sell amount on the offer,
         // then it's updated to the actual remaining sell amount after offer execution
         dataUint256[__i(marketOfferId, "sellAmount")] = remainingSellAmount_;
@@ -275,7 +277,7 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
         uint256 _feeSchedule,
         address _notify,
         bytes memory _notifyData,
-        bool marketOffer
+        uint256 _state
     ) private returns (uint256) {
         dataUint256["lastOfferId"] += 1;
         uint256 id = dataUint256["lastOfferId"];
@@ -290,12 +292,9 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
         dataUint256[__i(id, "feeSchedule")] = _feeSchedule;
         dataAddress[__i(id, "notify")] = _notify;
         dataBytes[__i(id, "notifyData")] = _notifyData;
+        dataUint256[__i(id, "state")] = _state;
 
-        if (marketOffer) {
-            // market offers are only created for historical reasons, no need to escrow
-            dataUint256[__i(id, "state")] = OFFER_STATE_FULFILLED;
-        } else {
-            dataUint256[__i(id, "state")] = OFFER_STATE_ACTIVE;
+        if (_state == OFFER_STATE_ACTIVE) {
             // escrow the tokens for limit offers
             require(IERC20(_sellToken).transferFrom(msg.sender, address(this), _sellAmount), "unable to escrow tokens");
         }

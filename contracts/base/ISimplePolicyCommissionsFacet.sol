@@ -5,7 +5,6 @@ pragma solidity >=0.8.9;
  * @dev Simple Policy commissions methods.
  */
 interface ISimplePolicyCommissionsFacet {
-    
     /**
      * @dev Get commission rates.
      *
@@ -45,7 +44,7 @@ interface ISimplePolicyCommissionsFacet {
     /**
      * @dev Take commission from supplied amount, in corresponding basis points.
      * This just increases the balance, doesn't actually pay out the commission.
-     * 
+     *
      * @param _amount Premium amount to take commission from.
      *
      * @return netPremiumAmount_ net premium amount after commission.
@@ -53,7 +52,7 @@ interface ISimplePolicyCommissionsFacet {
     function takeCommissions(uint256 _amount) external returns (uint256 netPremiumAmount_);
 
     /**
-     * @dev Zero out commission balances, after paying them out. 
+     * @dev Zero out commission balances, after paying them out.
      * Entity does the actual transfer, here only balance gets updated.
      */
     function commissionsPayedOut() external;
@@ -61,7 +60,9 @@ interface ISimplePolicyCommissionsFacet {
     /**
      * @dev Get the addresses of stakeholders
      */
-    function getStakeholders() external view 
+    function getStakeholders()
+        external
+        view
         returns (
             address broker_,
             address underwriter_,

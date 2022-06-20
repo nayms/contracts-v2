@@ -14,13 +14,14 @@ contract SimplePolicyCommissionsFacet is EternalStorage, Controller, IDiamondFac
     }
 
     function getSelectors() public pure override returns (bytes memory) {
-        return abi.encodePacked(
-          ISimplePolicyCommissionsFacet.getCommissionRates.selector,
-          ISimplePolicyCommissionsFacet.getCommissionBalances.selector,
-          ISimplePolicyCommissionsFacet.takeCommissions.selector,
-          ISimplePolicyCommissionsFacet.commissionsPayedOut.selector,
-          ISimplePolicyCommissionsFacet.getStakeholders.selector
-          );
+        return
+            abi.encodePacked(
+                ISimplePolicyCommissionsFacet.getCommissionRates.selector,
+                ISimplePolicyCommissionsFacet.getCommissionBalances.selector,
+                ISimplePolicyCommissionsFacet.takeCommissions.selector,
+                ISimplePolicyCommissionsFacet.commissionsPayedOut.selector,
+                ISimplePolicyCommissionsFacet.getStakeholders.selector
+            );
     }
 
     function getCommissionRates()
@@ -32,12 +33,13 @@ contract SimplePolicyCommissionsFacet is EternalStorage, Controller, IDiamondFac
             uint256 claimsAdminCommissionBP_,
             uint256 naymsCommissionBP_,
             uint256 underwriterCommissionBP_
-        ) {
-            brokerCommissionBP_ = dataUint256["brokerCommissionBP"];
-            claimsAdminCommissionBP_ = dataUint256["claimsAdminCommissionBP"];
-            naymsCommissionBP_ = dataUint256["naymsCommissionBP"];
-            underwriterCommissionBP_ = dataUint256["underwriterCommissionBP"];
-        }
+        )
+    {
+        brokerCommissionBP_ = dataUint256["brokerCommissionBP"];
+        claimsAdminCommissionBP_ = dataUint256["claimsAdminCommissionBP"];
+        naymsCommissionBP_ = dataUint256["naymsCommissionBP"];
+        underwriterCommissionBP_ = dataUint256["underwriterCommissionBP"];
+    }
 
     function getCommissionBalances()
         external
@@ -92,16 +94,20 @@ contract SimplePolicyCommissionsFacet is EternalStorage, Controller, IDiamondFac
             dataUint256["naymsCommissionBalance"] = 0;
             nonZeroBalance = true;
         }
-        require(nonZeroBalance, 'no commissions to pay out');
+        require(nonZeroBalance, "no commissions to pay out");
     }
 
-    function getStakeholders() external view override
+    function getStakeholders()
+        external
+        view
+        override
         returns (
             address broker_,
             address underwriter_,
             address claimsAdmin_,
             address feeBank_
-        ) {
+        )
+    {
         broker_ = _getEntityWithRole(ROLE_BROKER);
         underwriter_ = _getEntityWithRole(ROLE_UNDERWRITER);
         claimsAdmin_ = _getEntityWithRole(ROLE_CLAIMS_ADMIN);

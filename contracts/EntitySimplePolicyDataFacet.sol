@@ -37,12 +37,8 @@ contract EntitySimplePolicyDataFacet is EntityFacetBase, IDiamondFacet, IEntityS
     }
 
     function getPremiumsAndClaimsPaid(bytes32 _id) external view override returns (uint256 premiumsPaid_, uint256 claimsPaid_) {
-        ISimplePolicy policy = ISimplePolicy(dataAddress[__b(_id, "addressById")]);
-        address unit;
-        (, , , , unit, , , ) = policy.getSimplePolicyInfo();
-
-        premiumsPaid_ = dataUint256[__a(unit, "premiumsPaid")];
-        claimsPaid_ = dataUint256[__a(unit, "claimsPaid")];
+        premiumsPaid_ = dataUint256[__b(_id, "premiumsPaid")];
+        claimsPaid_ = dataUint256[__b(_id, "claimsPaid")];
     }
 
     function getEnabledCurrencies() external view override returns (address[] memory) {
@@ -116,9 +112,7 @@ contract EntitySimplePolicyDataFacet is EntityFacetBase, IDiamondFacet, IEntityS
         bool reduceTotalLimit = policy.checkAndUpdateState();
 
         if (reduceTotalLimit) {
-            address unit;
-            uint256 limit;
-            (, , , , unit, limit, , ) = policy.getSimplePolicyInfo();
+            (, , , , address unit, uint256 limit, , ) = policy.getSimplePolicyInfo();
 
             dataUint256[__a(unit, "totalLimit")] -= limit;
         }

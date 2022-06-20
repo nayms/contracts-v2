@@ -112,9 +112,7 @@ contract EntitySimplePolicyDataFacet is EntityFacetBase, IDiamondFacet, IEntityS
         bool reduceTotalLimit = policy.checkAndUpdateState();
 
         if (reduceTotalLimit) {
-            address unit;
-            uint256 limit;
-            (, , , , unit, limit, , ) = policy.getSimplePolicyInfo();
+            (, , , , address unit, uint256 limit, , ) = policy.getSimplePolicyInfo();
 
             dataUint256[__a(unit, "totalLimit")] -= limit;
         }

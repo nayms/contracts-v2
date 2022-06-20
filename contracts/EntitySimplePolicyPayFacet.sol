@@ -23,9 +23,7 @@ contract EntitySimplePolicyPayFacet is EntityFacetBase, IDiamondFacet, IEntitySi
 
         ISimplePolicy policy = ISimplePolicy(dataAddress[__b(_id, "addressById")]);
 
-        address unit;
-        uint256 limit;
-        (, , , , unit, limit, , ) = policy.getSimplePolicyInfo();
+        (, , , , address unit, uint256 limit, , ) = policy.getSimplePolicyInfo();
 
         uint256 claimsPaid = dataUint256[__b(_id, "claimsPaid")];
 
@@ -53,9 +51,7 @@ contract EntitySimplePolicyPayFacet is EntityFacetBase, IDiamondFacet, IEntitySi
 
         uint256 netPremiumAmount = policy.takeCommissions(_amount);
 
-        address unit;
-        address treasury;
-        (, , , , unit, , , treasury) = policy.getSimplePolicyInfo();
+        (, , , , address unit, , , address treasury) = policy.getSimplePolicyInfo();
 
         dataUint256[__b(_id, "premiumsPaid")] += netPremiumAmount;
         dataUint256[__a(unit, "balance")] += netPremiumAmount;
@@ -74,9 +70,7 @@ contract EntitySimplePolicyPayFacet is EntityFacetBase, IDiamondFacet, IEntitySi
         uint256 underwriterCommissionBalance;
         (brokerCommissionBalance, claimsAdminCommissionBalance, naymsCommissionBalance, underwriterCommissionBalance) = policy.getCommissionBalances();
         
-        address unit;
-        address treasury;
-        (, , , , unit, , , treasury) = policy.getSimplePolicyInfo();
+        (, , , , address unit, , , address treasury) = policy.getSimplePolicyInfo();
 
         address underwriter_;
         address broker_;

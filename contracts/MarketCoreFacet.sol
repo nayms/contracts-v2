@@ -300,6 +300,8 @@ contract MarketCoreFacet is EternalStorage, Controller, MarketFacetBase, IDiamon
             require(IERC20(_sellToken).transferFrom(msg.sender, address(this), _sellAmount), "unable to escrow tokens");
         }
 
+        emit OfferCreated(id, _sellToken, _buyToken);
+        
         return id;
     }
 

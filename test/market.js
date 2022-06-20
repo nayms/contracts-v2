@@ -1,6 +1,7 @@
-import { expect, ADDRESS_ZERO, BYTES_ZERO, EvmSnapshot } from './utils/index'
+import { expect, ADDRESS_ZERO, BYTES_ZERO, EvmSnapshot, extractEventArgs } from './utils/index'
 import { toBN, toWei, toHex } from './utils/web3'
 
+import { events } from '../'
 import { getAccounts } from '../deploy/utils'
 import { ensureAclIsDeployed } from '../deploy/modules/acl'
 import { ensureSettingsIsDeployed } from '../deploy/modules/settings'
@@ -456,6 +457,38 @@ describe('Market', () => {
           FEE_SCHEDULE_PLATFORM_ACTION
         ).should.be.fulfilled
       })
+    })
+  })
+
+  describe('event', () => {
+    it('is emitted after creation', async () => {
+      const pay_amt = toWei('10')
+      const buy_amt = toWei('10')
+
+      await erc20WETH.approve(
+        market.address,
+        pay_amt,
+        { from: accounts[2] }
+      ).should.be.fulfilled
+
+      const result = await market.executeLimitOffer(
+        erc20WETH.address,
+        pay_amt,
+        erc20DAI.address,
+        buy_amt,
+        FEE_SCHEDULE_STANDARD,
+        ADDRESS_ZERO, 
+        BYTES_ZERO,
+        { from: accounts[2] }
+      )
+
+      const eventArgs = extractEventArgs(result, events.OfferCreated)
+
+      expect(eventArgs).to.include({
+        sellToken: erc20WETH.address,
+        buyToken: erc20DAI.address,
+      })
+
     })
   })
 
